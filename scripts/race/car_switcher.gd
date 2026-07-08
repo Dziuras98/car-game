@@ -29,13 +29,7 @@ var _results_list: VBoxContainer
 var _player_controls_locked: bool = false
 var _race_in_progress: bool = false
 var _race_completed: bool = false
-var _race_points: Array[Vector3] = []
-var _participants: Array[PlayerCarController] = []
-var _participant_laps: Array[int] = []
-var _participant_progress: Array[int] = []
-var _participant_finished: Array[bool] = []
-var _participant_lap_armed: Array[bool] = []
-var _finish_order: Array[PlayerCarController] = []
+var _lap_tracker: LapTracker
 
 @onready var _car_spawn: Node3D = get_node(car_spawn_path) as Node3D
 @onready var _camera: Node = get_node_or_null(camera_path)
@@ -49,10 +43,13 @@ const AI_DRIVER_SCRIPT: Script = preload("res://scripts/race/ai_race_driver.gd")
 
 
 func _ready() -> void:
+	_rng.randomize()
+	_lap_tracker = LapTracker.new()
+	_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
+
 	if available_cars.is_empty():
 		return
 
-	_rng.randomize()
 	_build_countdown_ui()
 	_build_lap_ui()
 	_build_results_ui()
@@ -77,8 +74,9 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if _race_in_progress and not _race_completed:
-		_update_race_positions()
+	if _race_in_progress and not _race_completed and _lap_tracker != null:
+		_lap_tracker.update_positions()
+		_update_lap_ui()
 
 
 func _switch_to_next_car() -> void:
@@ -388,18 +386,17 @@ func _hide_lap_ui() -> void:
 
 
 func _update_lap_ui() -> void:
-	if (_lap_label == null and _position_label == null) or _current_car == null:
+	if (_lap_label == null and _position_label == null) or _current_car == null or _lap_tracker == null:
 		return
 
-	var player_index: int = _participants.find(_current_car)
-	var completed_laps: int = 0
-	if player_index >= 0:
-		completed_laps = _participant_laps[player_index]
-	var current_lap: int = clampi(completed_laps + 1, 1, maxi(race_lap_count, 1))
+	var current_lap: int = _lap_tracker.get_current_lap(_current_car)
 	if _lap_label != null:
 		_lap_label.text = "Okrazenie %d/%d" % [current_lap, maxi(race_lap_count, 1)]
 	if _position_label != null:
-		_position_label.text = "Pozycja %d/%d" % [_get_player_race_position(), maxi(_participants.size(), 1)]
+		_position_label.text = "Pozycja %d/%d" % [
+			_lap_tracker.get_race_position(_current_car),
+			maxi(_lap_tracker.get_participant_count(), 1)
+		]
 
 
 func _hide_results() -> void:
@@ -431,110 +428,19 @@ func _clear_current_car() -> void:
 
 
 func _prepare_race_tracking() -> void:
-	_clear_race_tracking()
-	_refresh_race_points()
-	if _current_car != null:
-		_register_participant(_current_car)
-	for opponent: PlayerCarController in _opponents:
-		_register_participant(opponent)
+	if _lap_tracker == null:
+		return
+
+	_lap_tracker.prepare(_track, race_lap_count, _current_car, _opponents)
 	_show_lap_ui()
 
 
 func _clear_race_tracking() -> void:
-	_race_points.clear()
-	_participants.clear()
-	_participant_laps.clear()
-	_participant_progress.clear()
-	_participant_finished.clear()
-	_participant_lap_armed.clear()
-	_finish_order.clear()
+	if _lap_tracker != null:
+		_lap_tracker.clear()
 
 
-func _refresh_race_points() -> void:
-	_race_points.clear()
-	if _track == null or not _track.has_method("get_racing_line_points"):
-		return
-
-	var local_points: Array = _track.call("get_racing_line_points")
-	for point: Variant in local_points:
-		if point is Vector3:
-			_race_points.append(_track.to_global(point))
-
-
-func _register_participant(car: PlayerCarController) -> void:
-	if car == null:
-		return
-
-	_participants.append(car)
-	_participant_laps.append(0)
-	_participant_progress.append(_get_nearest_race_point_index(car.global_position))
-	_participant_finished.append(false)
-	_participant_lap_armed.append(false)
-
-
-func _update_race_positions() -> void:
-	if _race_points.is_empty():
-		_refresh_race_points()
-		if _race_points.is_empty():
-			return
-
-	for participant_index: int in _participants.size():
-		var car: PlayerCarController = _participants[participant_index]
-		if not is_instance_valid(car) or _participant_finished[participant_index]:
-			continue
-
-		var previous_index: int = _participant_progress[participant_index]
-		var current_index: int = _get_nearest_race_point_index(car.global_position)
-		_participant_progress[participant_index] = current_index
-
-		if _is_lap_arming_progress(current_index):
-			_participant_lap_armed[participant_index] = true
-
-		if _participant_lap_armed[participant_index] and _crossed_finish_line(previous_index, current_index):
-			_participant_lap_armed[participant_index] = false
-			_participant_laps[participant_index] += 1
-			if _participant_laps[participant_index] >= maxi(race_lap_count, 1):
-				_mark_participant_finished(participant_index)
-
-	_update_lap_ui()
-
-
-func _get_nearest_race_point_index(position: Vector3) -> int:
-	var nearest_index: int = 0
-	var nearest_distance: float = INF
-
-	for point_index: int in _race_points.size():
-		var distance: float = position.distance_squared_to(_race_points[point_index])
-		if distance < nearest_distance:
-			nearest_distance = distance
-			nearest_index = point_index
-
-	return nearest_index
-
-
-func _crossed_finish_line(previous_index: int, current_index: int) -> bool:
-	if _race_points.size() < 4:
-		return false
-
-	var finish_exit_index: int = floori(float(_race_points.size()) * 0.75)
-	var finish_entry_index: int = ceili(float(_race_points.size()) * 0.25)
-	return previous_index >= finish_exit_index and current_index <= finish_entry_index
-
-
-func _is_lap_arming_progress(current_index: int) -> bool:
-	if _race_points.size() < 4:
-		return false
-
-	var arming_start_index: int = floori(float(_race_points.size()) * 0.35)
-	var arming_end_index: int = ceili(float(_race_points.size()) * 0.85)
-	return current_index >= arming_start_index and current_index <= arming_end_index
-
-
-func _mark_participant_finished(participant_index: int) -> void:
-	_participant_finished[participant_index] = true
-	var car: PlayerCarController = _participants[participant_index]
-	_finish_order.append(car)
-
+func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
 	if car == _current_car:
 		_finish_race()
 	elif is_instance_valid(car):
@@ -557,14 +463,14 @@ func _finish_race() -> void:
 
 
 func _show_results() -> void:
-	if _results_layer == null or _results_list == null:
+	if _results_layer == null or _results_list == null or _lap_tracker == null:
 		return
 
 	for child: Node in _results_list.get_children():
 		_results_list.remove_child(child)
 		child.queue_free()
 
-	var ordered_participants: Array[PlayerCarController] = _get_result_order()
+	var ordered_participants: Array[PlayerCarController] = _lap_tracker.get_result_order()
 	for result_index: int in ordered_participants.size():
 		var car: PlayerCarController = ordered_participants[result_index]
 		var row: Label = Label.new()
@@ -573,44 +479,6 @@ func _show_results() -> void:
 		_results_list.add_child(row)
 
 	_results_layer.visible = true
-
-
-func _get_result_order() -> Array[PlayerCarController]:
-	var ordered: Array[PlayerCarController] = []
-	for finished_car: PlayerCarController in _finish_order:
-		if is_instance_valid(finished_car) and not ordered.has(finished_car):
-			ordered.append(finished_car)
-
-	var remaining: Array[PlayerCarController] = []
-	for car: PlayerCarController in _participants:
-		if is_instance_valid(car) and not ordered.has(car):
-			remaining.append(car)
-
-	remaining.sort_custom(Callable(self, "_sort_participants_by_progress"))
-	ordered.append_array(remaining)
-	return ordered
-
-
-func _get_player_race_position() -> int:
-	if _current_car == null:
-		return 1
-
-	var ordered_participants: Array[PlayerCarController] = _get_result_order()
-	var player_position: int = ordered_participants.find(_current_car)
-	if player_position < 0:
-		return 1
-	return player_position + 1
-
-
-func _sort_participants_by_progress(a: PlayerCarController, b: PlayerCarController) -> bool:
-	return _get_race_distance_score(a) > _get_race_distance_score(b)
-
-
-func _get_race_distance_score(car: PlayerCarController) -> int:
-	var participant_index: int = _participants.find(car)
-	if participant_index < 0:
-		return -1
-	return _participant_laps[participant_index] * maxi(_race_points.size(), 1) + _participant_progress[participant_index]
 
 
 func _get_participant_label(car: PlayerCarController) -> String:
