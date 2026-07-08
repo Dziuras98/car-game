@@ -1,11 +1,12 @@
-[gd_scene load_steps=8 format=3 uid="uid://dlu8ihf75elrs"]
+[gd_scene load_steps=9 format=3 uid="uid://dlu8ihf75elrs"]
 
-[ext_resource type="PackedScene" uid="uid://dlxhkhoiyvlx5" path="res://scenes/tracks/test_track.tscn" id="1_track"]
+[ext_resource type="PackedScene" path="res://scenes/tracks/simple_oval.tscn" id="1_track"]
 [ext_resource type="PackedScene" path="res://scenes/cars/370zat.tscn" id="2_car"]
 [ext_resource type="Script" path="res://scripts/camera/follow_camera.gd" id="3_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/speedometer.tscn" id="4_speedometer"]
 [ext_resource type="Script" path="res://scripts/race/car_switcher.gd" id="5_switcher"]
 [ext_resource type="PackedScene" path="res://scenes/cars/370z.tscn" id="6_manual_car"]
+[ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="7_menu"]
 
 [sub_resource type="Environment" id="Environment_sky"]
 background_mode = 1
@@ -19,8 +20,10 @@ available_cars = Array[PackedScene]([ExtResource("2_car"), ExtResource("6_manual
 car_spawn_path = NodePath("CarSpawn")
 camera_path = NodePath("Camera3D")
 speedometer_path = NodePath("Speedometer")
+menu_path = NodePath("MainMenu")
+track_path = NodePath("ProstyOwal")
 
-[node name="TestTrack" parent="." instance=ExtResource("1_track")]
+[node name="ProstyOwal" parent="." instance=ExtResource("1_track")]
 
 [node name="CarSpawn" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
@@ -40,3 +43,5 @@ environment = SubResource("Environment_sky")
 
 [node name="Speedometer" parent="." instance=ExtResource("4_speedometer")]
 target_path = NodePath("../PlayerCar")
+
+[node name="MainMenu" parent="." instance=ExtResource("7_menu")]

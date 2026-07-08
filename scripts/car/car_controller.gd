@@ -10,6 +10,8 @@ class_name PlayerCarController
 @export var max_forward_speed: float = 30.0
 @export var max_reverse_speed: float = 10.0
 @export var steering_speed: float = 2.7
+@export var wheel_base: float = 2.65
+@export var max_steering_angle_degrees: float = 32.0
 
 @export_group("Engine")
 @export var idle_rpm: float = 900.0
@@ -39,6 +41,7 @@ class_name PlayerCarController
 @export var automatic_downshift_rpm: float = 2100.0
 @export var automatic_kickdown_throttle: float = 0.82
 @export var automatic_kickdown_rpm: float = 5200.0
+@export var automatic_shift_delay: float = 0.22
 @export var torque_converter_stall_rpm: float = 2600.0
 @export var torque_converter_coupling_rpm: float = 4200.0
 @export var torque_converter_stall_torque_multiplier: float = 1.65
@@ -55,6 +58,8 @@ class_name PlayerCarController
 @export var handbrake_lateral_grip_multiplier: float = 0.28
 @export var steering_slip_gain: float = 0.85
 @export var slip_speed_threshold: float = 2.2
+@export var slip_steering_lock_threshold: float = 0.55
+@export var slip_steering_same_direction_multiplier: float = 0.12
 @export var skid_mark_min_slip: float = 0.45
 @export var skid_mark_interval: float = 0.055
 @export var skid_mark_lifetime: float = 10.0
@@ -77,6 +82,12 @@ var _tire_slip_intensity: float = 0.0
 var _skid_mark_timer: float = 0.0
 var _skid_mark_parent: Node3D
 var _skid_mark_material: StandardMaterial3D
+var _player_input_enabled: bool = true
+var _external_input_enabled: bool = false
+var _external_throttle: float = 0.0
+var _external_brake: float = 0.0
+var _external_steering: float = 0.0
+var _external_handbrake: bool = false
 
 
 func _ready() -> void:
@@ -101,7 +112,10 @@ func get_throttle_input() -> float:
 
 
 func get_engine_load() -> float:
-	if _uses_geared_transmission() and (_current_gear == 0 or _shift_timer > 0.0):
+	if _uses_geared_transmission() and _current_gear == 0:
+		return 0.0
+
+	if manual_transmission_enabled and _shift_timer > 0.0:
 		return 0.0
 
 	if automatic_transmission_enabled and _current_gear < 0:
@@ -134,25 +148,55 @@ func get_gear_text() -> String:
 	return "N"
 
 
+func set_player_input_enabled(enabled: bool) -> void:
+	_player_input_enabled = enabled
+	if not enabled:
+		_throttle_input = 0.0
+		_brake_input = 0.0
+
+
+func set_external_input_enabled(enabled: bool) -> void:
+	_external_input_enabled = enabled
+	if not enabled:
+		set_external_drive_inputs(0.0, 0.0, 0.0, false)
+
+
+func set_external_drive_inputs(throttle: float, brake: float, steering: float, handbrake_active: bool = false) -> void:
+	_external_throttle = clampf(throttle, 0.0, 1.0)
+	_external_brake = clampf(brake, 0.0, 1.0)
+	_external_steering = clampf(steering, -1.0, 1.0)
+	_external_handbrake = handbrake_active
+
+
 func _physics_process(delta: float) -> void:
-	if Input.is_action_just_pressed("reset-car"):
+	if not _external_input_enabled and _player_input_enabled and Input.is_action_just_pressed("reset-car"):
 		_reset_to_start()
 		return
 
 	_update_shift_timer(delta)
 
-	var throttle: float = Input.get_action_strength("accelerate")
-	var brake: float = Input.get_action_strength("brake")
-	var steering: float = Input.get_action_strength("steer-right") - Input.get_action_strength("steer-left")
-	var handbrake_active: bool = Input.is_action_pressed("handbrake")
+	var throttle: float = 0.0
+	var brake: float = 0.0
+	var steering: float = 0.0
+	var handbrake_active: bool = false
+	if _external_input_enabled:
+		throttle = _external_throttle
+		brake = _external_brake
+		steering = _external_steering
+		handbrake_active = _external_handbrake
+	elif _player_input_enabled:
+		throttle = Input.get_action_strength("accelerate")
+		brake = Input.get_action_strength("brake")
+		steering = Input.get_action_strength("steer-right") - Input.get_action_strength("steer-left")
+		handbrake_active = Input.is_action_pressed("handbrake")
 	_throttle_input = throttle
 	_brake_input = brake
 
 	_update_transmission_input(throttle, brake)
 	_update_engine(throttle, delta)
 	_update_speed(throttle, brake, handbrake_active, delta)
-	_update_tire_model(steering, handbrake_active, delta)
 	_update_steering(steering, delta)
+	_update_tire_model(steering, handbrake_active, delta)
 	_apply_velocity(delta)
 
 
@@ -175,32 +219,39 @@ func _update_automatic_transmission(throttle: float, brake: float) -> void:
 
 	var local_forward_speed: float = _forward_speed
 	if brake > 0.0 and throttle <= 0.0 and local_forward_speed < 0.25:
-		_set_manual_gear(-1)
+		_set_transmission_gear(-1)
 		return
 
 	if throttle > 0.0 and _current_gear < 1:
-		_set_manual_gear(1)
+		_set_transmission_gear(1)
 
 	if _current_gear < 1 or _shift_timer > 0.0:
 		return
 
 	var throttle_ratio: float = clampf(throttle, 0.0, 1.0)
+
+	if brake > 0.0 and throttle_ratio <= 0.0 and local_forward_speed > 0.25 and _current_gear > 1:
+		var brake_downshift_rpm: float = _get_coupled_engine_rpm_for_gear(_current_gear - 1)
+		if brake_downshift_rpm < redline_rpm * 0.97:
+			_set_transmission_gear(_current_gear - 1)
+			return
+
 	if throttle_ratio >= automatic_kickdown_throttle and _current_gear > 1 and _engine_rpm < automatic_kickdown_rpm:
 		var kickdown_rpm: float = _get_coupled_engine_rpm_for_gear(_current_gear - 1)
 		if kickdown_rpm < redline_rpm * 0.97:
-			_set_manual_gear(_current_gear - 1)
+			_set_transmission_gear(_current_gear - 1)
 			return
 
 	var upshift_rpm: float = lerpf(automatic_upshift_rpm, redline_rpm * 0.98, throttle_ratio)
 	if _engine_rpm >= upshift_rpm and _current_gear < gear_ratios.size():
-		_set_manual_gear(_current_gear + 1)
+		_set_transmission_gear(_current_gear + 1)
 		return
 
 	var downshift_rpm: float = automatic_downshift_rpm + throttle_ratio * 900.0
 	if _engine_rpm <= downshift_rpm and _current_gear > 1:
 		var lower_gear_rpm: float = _get_coupled_engine_rpm_for_gear(_current_gear - 1)
 		if lower_gear_rpm < redline_rpm * 0.97:
-			_set_manual_gear(_current_gear - 1)
+			_set_transmission_gear(_current_gear - 1)
 
 
 func _update_shift_timer(delta: float) -> void:
@@ -209,11 +260,15 @@ func _update_shift_timer(delta: float) -> void:
 
 
 func _set_manual_gear(next_gear: int) -> void:
+	_set_transmission_gear(next_gear)
+
+
+func _set_transmission_gear(next_gear: int) -> void:
 	if next_gear == _current_gear:
 		return
 
 	_current_gear = next_gear
-	_shift_timer = shift_delay
+	_shift_timer = automatic_shift_delay if automatic_transmission_enabled else shift_delay
 
 
 func _update_engine(throttle: float, delta: float) -> void:
@@ -230,7 +285,7 @@ func _update_speed(throttle: float, brake: float, handbrake_active: bool, delta:
 	if throttle > 0.0:
 		if _uses_geared_transmission():
 			if automatic_transmission_enabled and _current_gear < 1:
-				_set_manual_gear(1)
+				_set_transmission_gear(1)
 
 			_forward_speed += _get_transmission_drive_acceleration(throttle) * delta
 		else:
@@ -246,7 +301,7 @@ func _update_speed(throttle: float, brake: float, handbrake_active: bool, delta:
 				_forward_speed = move_toward(_forward_speed, 0.0, brake_deceleration * brake * delta)
 			else:
 				if _current_gear >= 0:
-					_set_manual_gear(-1)
+					_set_transmission_gear(-1)
 
 				_forward_speed += _get_transmission_drive_acceleration(brake) * delta
 		elif _forward_speed > 0.25:
@@ -271,14 +326,13 @@ func _update_tire_model(steering: float, handbrake_active: bool, delta: float) -
 	var absolute_forward_speed: float = absf(_forward_speed)
 	var grip_multiplier: float = handbrake_lateral_grip_multiplier if handbrake_active else 1.0
 	var active_lateral_grip: float = maxf(lateral_grip * grip_multiplier, 0.1)
-	var steer_input: float = 0.0 if absolute_forward_speed < 0.5 else steering
 
-	_lateral_speed += steer_input * absolute_forward_speed * steering_slip_gain * delta
 	_lateral_speed = move_toward(_lateral_speed, 0.0, active_lateral_grip * delta)
 
 	var lateral_ratio: float = absf(_lateral_speed) / maxf(slip_speed_threshold, 0.1)
+	var steering_load: float = absf(steering) * absolute_forward_speed * steering_slip_gain / maxf(max_forward_speed, 1.0)
 	var handbrake_bonus: float = 0.35 if handbrake_active and absolute_forward_speed > 4.0 else 0.0
-	_tire_slip_intensity = clampf(lateral_ratio + handbrake_bonus, 0.0, 1.0)
+	_tire_slip_intensity = clampf(lateral_ratio + steering_load + handbrake_bonus, 0.0, 1.0)
 
 	if not is_on_floor():
 		_tire_slip_intensity = 0.0
@@ -354,7 +408,10 @@ func _get_torque_converter_rpm(coupled_rpm: float) -> float:
 
 
 func _get_transmission_drive_acceleration(throttle: float) -> float:
-	if gear_ratios.is_empty() or _shift_timer > 0.0 or _current_gear == 0:
+	if gear_ratios.is_empty() or _current_gear == 0:
+		return 0.0
+
+	if manual_transmission_enabled and _shift_timer > 0.0:
 		return 0.0
 
 	var wheel_force: float = _get_wheel_drive_force(throttle)
@@ -447,20 +504,42 @@ func _get_rev_limiter_multiplier() -> float:
 
 
 func _update_steering(steering: float, delta: float) -> void:
-	var speed_ratio: float = clampf(absf(_forward_speed) / max_forward_speed, 0.0, 1.0)
-	if abs(steering) < 0.01 or speed_ratio < 0.02:
+	var steering_amount: float = _get_slip_limited_steering(steering)
+	var absolute_forward_speed: float = absf(_forward_speed)
+	if absf(steering_amount) < 0.01 or absolute_forward_speed < 0.35:
 		return
 
-	var direction: float = signf(_forward_speed)
-	var low_speed_factor: float = lerpf(0.45, 1.0, speed_ratio)
-	var grip_factor: float = lerpf(1.0, 0.42, _tire_slip_intensity)
-	rotate_y(-steering * steering_speed * low_speed_factor * grip_factor * direction * delta)
+	var horizontal_velocity: Vector3 = _get_horizontal_velocity_vector()
+	var speed_ratio: float = clampf(absolute_forward_speed / maxf(max_forward_speed, 0.1), 0.0, 1.0)
+	var high_speed_steering_limit: float = lerpf(1.0, 0.42, _smoothstep(speed_ratio))
+	var steer_angle: float = deg_to_rad(max_steering_angle_degrees) * steering_amount * high_speed_steering_limit
+	var grip_factor: float = lerpf(1.0, 0.38, _tire_slip_intensity)
+	var yaw_rate: float = tan(steer_angle) * _forward_speed / maxf(wheel_base, 0.1) * grip_factor
+	yaw_rate = clampf(yaw_rate, -steering_speed, steering_speed)
+
+	rotate_y(-yaw_rate * delta)
+	_set_local_speeds_from_horizontal_velocity(horizontal_velocity)
+
+
+func _get_slip_limited_steering(steering: float) -> float:
+	var steering_amount: float = clampf(steering, -1.0, 1.0)
+	var lateral_slip_ratio: float = absf(_lateral_speed) / maxf(slip_speed_threshold, 0.1)
+	if lateral_slip_ratio < slip_steering_lock_threshold:
+		return steering_amount
+
+	var slip_direction: float = signf(_lateral_speed)
+	if signf(steering_amount) != slip_direction:
+		return steering_amount
+
+	var lock_range: float = maxf(1.0 - slip_steering_lock_threshold, 0.01)
+	var lock_amount: float = clampf((lateral_slip_ratio - slip_steering_lock_threshold) / lock_range, 0.0, 1.0)
+	var same_direction_multiplier: float = clampf(slip_steering_same_direction_multiplier, 0.0, 1.0)
+	var steering_multiplier: float = lerpf(1.0, same_direction_multiplier, lock_amount)
+	return steering_amount * steering_multiplier
 
 
 func _apply_velocity(delta: float) -> void:
-	var forward: Vector3 = -global_transform.basis.z.normalized()
-	var right: Vector3 = global_transform.basis.x.normalized()
-	var horizontal_velocity: Vector3 = forward * _forward_speed + right * _lateral_speed
+	var horizontal_velocity: Vector3 = _get_horizontal_velocity_vector()
 	velocity.x = horizontal_velocity.x
 	velocity.z = horizontal_velocity.z
 
@@ -470,6 +549,19 @@ func _apply_velocity(delta: float) -> void:
 		velocity.y -= gravity * delta
 
 	move_and_slide()
+
+
+func _get_horizontal_velocity_vector() -> Vector3:
+	var forward: Vector3 = -global_transform.basis.z.normalized()
+	var right: Vector3 = global_transform.basis.x.normalized()
+	return forward * _forward_speed + right * _lateral_speed
+
+
+func _set_local_speeds_from_horizontal_velocity(horizontal_velocity: Vector3) -> void:
+	var forward: Vector3 = -global_transform.basis.z.normalized()
+	var right: Vector3 = global_transform.basis.x.normalized()
+	_forward_speed = horizontal_velocity.dot(forward)
+	_lateral_speed = horizontal_velocity.dot(right)
 
 
 func _reset_to_start() -> void:
@@ -489,7 +581,10 @@ func _reset_to_start() -> void:
 func _prepare_skid_marks() -> void:
 	_skid_mark_parent = Node3D.new()
 	_skid_mark_parent.name = "SkidMarks"
-	get_tree().current_scene.call_deferred("add_child", _skid_mark_parent)
+	var skid_mark_owner: Node = get_tree().current_scene
+	if skid_mark_owner == null:
+		skid_mark_owner = get_tree().root
+	skid_mark_owner.call_deferred("add_child", _skid_mark_parent)
 
 	_skid_mark_material = StandardMaterial3D.new()
 	_skid_mark_material.albedo_color = Color(0.015, 0.014, 0.012, 0.72)

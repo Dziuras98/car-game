@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://dlxhkhoiyvlx5"]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/race/generated_track.gd" id="1_track_generator"]
 
-[node name="TestTrack" type="Node3D" unique_id=26797048]
+[node name="ProstyOwal" type="Node3D"]
 script = ExtResource("1_track_generator")
 track_width = 16.0
 grass_size = Vector2(720, 860)

@@ -17,6 +17,10 @@ extends Node3D
 	set(value):
 		barrier_distance_from_road = value
 		_rebuild_track()
+@export var width_variation: float = 0.28:
+	set(value):
+		width_variation = clampf(value, 0.0, 0.45)
+		_rebuild_track()
 
 var _track_body: StaticBody3D
 var _track_mesh: MeshInstance3D
@@ -85,7 +89,6 @@ func _create_grass() -> void:
 
 func _create_shoulders() -> void:
 	var points: Array[Vector3] = _get_track_points()
-	var half_width: float = track_width * 0.5
 	var vertices: PackedVector3Array = PackedVector3Array()
 	var indices: PackedInt32Array = PackedInt32Array()
 
@@ -95,6 +98,7 @@ func _create_shoulders() -> void:
 		var next: Vector3 = points[(index + 1) % points.size()]
 		var tangent: Vector3 = (next - previous).normalized()
 		var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
+		var half_width: float = _get_half_width(index, points.size())
 
 		vertices.append(current - side * (half_width + shoulder_width))
 		vertices.append(current - side * half_width)
@@ -148,7 +152,6 @@ func _create_shoulders() -> void:
 
 func _create_track() -> void:
 	var points: Array[Vector3] = _get_track_points()
-	var half_width: float = track_width * 0.5
 	var vertices: PackedVector3Array = PackedVector3Array()
 	var indices: PackedInt32Array = PackedInt32Array()
 
@@ -158,6 +161,7 @@ func _create_track() -> void:
 		var next: Vector3 = points[(index + 1) % points.size()]
 		var tangent: Vector3 = (next - previous).normalized()
 		var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
+		var half_width: float = _get_half_width(index, points.size())
 
 		vertices.append(current - side * half_width)
 		vertices.append(current + side * half_width)
@@ -204,7 +208,6 @@ func _create_track() -> void:
 
 func _create_edge_markers() -> void:
 	var points: Array[Vector3] = _get_track_points()
-	var half_width: float = track_width * 0.5
 	var marker_material: StandardMaterial3D = StandardMaterial3D.new()
 	marker_material.albedo_color = Color(0.9, 0.9, 0.82, 1.0)
 	marker_material.roughness = 0.7
@@ -220,6 +223,7 @@ func _create_edge_markers() -> void:
 		var next: Vector3 = points[(index + 1) % points.size()]
 		var tangent: Vector3 = (next - previous).normalized()
 		var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
+		var half_width: float = _get_half_width(index, points.size())
 
 		_add_edge_marker(current - side * (half_width + 0.45), marker_material)
 		_add_edge_marker(current + side * (half_width + 0.45), marker_material)
@@ -227,7 +231,6 @@ func _create_edge_markers() -> void:
 
 func _create_barriers() -> void:
 	var points: Array[Vector3] = _get_track_points()
-	var barrier_offset: float = track_width * 0.5 + barrier_distance_from_road
 	var barrier_material: StandardMaterial3D = StandardMaterial3D.new()
 	barrier_material.albedo_color = Color(0.64, 0.68, 0.7, 1.0)
 	barrier_material.metallic = 0.2
@@ -245,6 +248,7 @@ func _create_barriers() -> void:
 		var tangent: Vector3 = (next - previous).normalized()
 		var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
 		var yaw: float = atan2(tangent.x, tangent.z)
+		var barrier_offset: float = _get_half_width(index, points.size()) + barrier_distance_from_road
 
 		_add_barrier_segment(current - side * barrier_offset, yaw, barrier_material)
 		_add_barrier_segment(current + side * barrier_offset, yaw, barrier_material)
@@ -287,18 +291,23 @@ func _add_quad_indices(indices: PackedInt32Array, a: int, b: int, c: int, d: int
 func _get_track_points() -> Array[Vector3]:
 	var control_points: Array[Vector3] = [
 		Vector3(0.0, 0.0, 0.0),
-		Vector3(0.0, 1.2, -52.0),
-		Vector3(42.0, 3.8, -82.0),
-		Vector3(88.0, 6.0, -74.0),
-		Vector3(118.0, 4.4, -24.0),
-		Vector3(102.0, 1.0, 28.0),
-		Vector3(62.0, 0.2, 50.0),
-		Vector3(38.0, 2.8, 86.0),
-		Vector3(-22.0, 5.6, 76.0),
-		Vector3(-64.0, 4.2, 38.0),
-		Vector3(-92.0, 1.1, 8.0),
-		Vector3(-78.0, 0.0, -42.0),
-		Vector3(-34.0, 0.6, -58.0),
+		Vector3(0.0, 0.0, -90.0),
+		Vector3(0.0, 0.0, -170.0),
+		Vector3(18.0, 0.4, -230.0),
+		Vector3(60.0, 1.2, -270.0),
+		Vector3(105.0, 1.8, -282.0),
+		Vector3(150.0, 1.2, -270.0),
+		Vector3(192.0, 0.4, -230.0),
+		Vector3(210.0, 0.0, -170.0),
+		Vector3(210.0, 0.0, -90.0),
+		Vector3(210.0, 0.0, 0.0),
+		Vector3(210.0, 0.0, 90.0),
+		Vector3(192.0, 0.4, 150.0),
+		Vector3(150.0, 1.2, 190.0),
+		Vector3(105.0, 1.8, 202.0),
+		Vector3(60.0, 1.2, 190.0),
+		Vector3(18.0, 0.4, 150.0),
+		Vector3(0.0, 0.0, 90.0),
 	]
 
 	var sampled_points: Array[Vector3] = []
@@ -313,6 +322,20 @@ func _get_track_points() -> Array[Vector3]:
 			sampled_points.append(_catmull_rom(p0, p1, p2, p3, t))
 
 	return sampled_points
+
+
+func get_racing_line_points() -> Array[Vector3]:
+	return _get_track_points()
+
+
+func _get_half_width(index: int, point_count: int) -> float:
+	var progress: float = float(index) / float(point_count)
+	var turn_blend: float = maxf(
+		clampf(1.0 - absf(progress - 0.29) / 0.16, 0.0, 1.0),
+		clampf(1.0 - absf(progress - 0.79) / 0.16, 0.0, 1.0)
+	)
+	var width_scale: float = 1.0 + turn_blend * width_variation
+	return track_width * clampf(width_scale, 0.7, 1.45) * 0.5
 
 
 func _catmull_rom(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: float) -> Vector3:

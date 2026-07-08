@@ -1,12 +1,10 @@
 extends CanvasLayer
 
 @export var target_path: NodePath
-@export var max_display_speed_kmh: float = 120.0
 
 @onready var _speed_value: Label = %SpeedValue
 @onready var _gear_value: Label = %GearValue
 @onready var _tachometer_gauge: TachometerGauge = %TachometerGauge
-@onready var _speed_bar: ProgressBar = %SpeedBar
 @onready var _car: PlayerCarController = get_node_or_null(target_path) as PlayerCarController
 
 
@@ -17,7 +15,6 @@ func set_target_node(target: PlayerCarController) -> void:
 
 
 func _ready() -> void:
-	_speed_bar.max_value = max_display_speed_kmh
 	_update_display(0.0)
 
 
@@ -37,5 +34,4 @@ func _update_display(speed_kmh: float, engine_rpm: float = 0.0, gear_text: Strin
 	var displayed_speed: float = absf(speed_kmh)
 	_speed_value.text = str(roundi(displayed_speed))
 	_tachometer_gauge.set_rpm(engine_rpm)
-	_speed_bar.value = clampf(displayed_speed, 0.0, max_display_speed_kmh)
 	_gear_value.text = gear_text

@@ -3,17 +3,19 @@ extends AudioStreamPlayer3D
 @export var mix_rate: int = 22050
 @export var minimum_slip: float = 0.18
 @export var quiet_volume_db: float = -80.0
-@export var loud_volume_db: float = -8.0
+@export var loud_volume_db: float = -10.0
 @export var slip_smoothing: float = 18.0
-@export var base_frequency: float = 1250.0
-@export var frequency_range: float = 1050.0
-@export var noise_amount: float = 0.45
+@export var hiss_amount: float = 0.62
+@export var scrape_amount: float = 0.36
+@export var rumble_amount: float = 0.24
 
 var _car: PlayerCarController
 var _playback: AudioStreamGeneratorPlayback
 var _smoothed_slip: float = 0.0
-var _phase: float = 0.0
-var _noise_state: float = 0.0
+var _hiss_state: float = 0.0
+var _scrape_state: float = 0.0
+var _rumble_state: float = 0.0
+var _flutter_state: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
@@ -65,19 +67,21 @@ func _fill_audio_buffer() -> void:
 
 
 func _generate_sample() -> float:
-	var delta: float = 1.0 / float(mix_rate)
-	var frequency: float = base_frequency + frequency_range * clampf(_smoothed_slip, 0.0, 1.0)
-	_phase = fmod(_phase + TAU * frequency * delta, TAU)
+	var slip_gain: float = clampf((_smoothed_slip - minimum_slip) / maxf(1.0 - minimum_slip, 0.01), 0.0, 1.0)
+	var speed_gain: float = 0.35
+	if _car != null:
+		speed_gain = lerpf(0.35, 1.0, clampf(absf(_car.get_forward_speed()) / maxf(_car.max_forward_speed, 1.0), 0.0, 1.0))
 
-	var tone: float = sin(_phase)
-	var rough_tone: float = signf(tone) * pow(absf(tone), 0.32)
-	var noise: float = _next_smooth_noise() * noise_amount
-	var slip_gain: float = clampf(_smoothed_slip, 0.0, 1.0)
+	_hiss_state = lerpf(_hiss_state, _rng.randf_range(-1.0, 1.0), 0.56)
+	_scrape_state = lerpf(_scrape_state, _rng.randf_range(-1.0, 1.0), 0.16)
+	_rumble_state = lerpf(_rumble_state, _rng.randf_range(-1.0, 1.0), 0.035)
+	_flutter_state = lerpf(_flutter_state, _rng.randf_range(0.0, 1.0), 0.055)
 
-	return clampf((rough_tone * 0.75 + noise) * slip_gain * 0.42, -0.85, 0.85)
+	var flutter: float = lerpf(0.72, 1.0, _flutter_state)
+	var surface_noise: float = (
+		_hiss_state * hiss_amount
+		+ _scrape_state * scrape_amount
+		+ _rumble_state * rumble_amount
+	)
 
-
-func _next_smooth_noise() -> float:
-	var target_noise: float = _rng.randf_range(-1.0, 1.0)
-	_noise_state = lerpf(_noise_state, target_noise, 0.18)
-	return _noise_state
+	return clampf(surface_noise * slip_gain * speed_gain * flutter * 0.58, -0.85, 0.85)
