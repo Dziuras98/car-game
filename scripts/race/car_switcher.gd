@@ -12,13 +12,10 @@ extends Node3D
 @export var opponent_row_spacing: float = 7.0
 @export var race_lap_count: int = 3
 
-var _current_car_index: int = -1
 var _current_car: PlayerCarController
 var selected_mode_id: String = ""
 var selected_track_id: String = ""
 var _opponents: Array[PlayerCarController] = []
-var _ai_drivers: Array[Node] = []
-var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _countdown_layer: CanvasLayer
 var _countdown_label: Label
 var _lap_layer: CanvasLayer
@@ -30,6 +27,7 @@ var _player_controls_locked: bool = false
 var _race_in_progress: bool = false
 var _race_completed: bool = false
 var _lap_tracker: LapTracker
+var _car_spawner: CarSpawner
 
 @onready var _car_spawn: Node3D = get_node(car_spawn_path) as Node3D
 @onready var _camera: Node = get_node_or_null(camera_path)
@@ -39,13 +37,20 @@ var _lap_tracker: LapTracker
 @onready var _track: Node3D = get_node_or_null(track_path) as Node3D
 
 const MODE_RACE: String = "race"
-const AI_DRIVER_SCRIPT: Script = preload("res://scripts/race/ai_race_driver.gd")
 
 
 func _ready() -> void:
-	_rng.randomize()
 	_lap_tracker = LapTracker.new()
 	_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
+	_car_spawner = CarSpawner.new()
+	_car_spawner.configure(
+		self,
+		_car_spawn,
+		_track,
+		available_cars,
+		opponent_lane_spacing,
+		opponent_row_spacing
+	)
 
 	if available_cars.is_empty():
 		return
@@ -80,19 +85,16 @@ func _physics_process(_delta: float) -> void:
 
 
 func _switch_to_next_car() -> void:
-	if available_cars.is_empty() or _race_in_progress:
+	if available_cars.is_empty() or _race_in_progress or _car_spawner == null:
 		return
 
-	var next_index: int = (_current_car_index + 1) % available_cars.size()
 	var spawn_transform: Transform3D = _car_spawn.global_transform
-
 	if is_instance_valid(_current_car):
 		spawn_transform = _current_car.global_transform
-		remove_child(_current_car)
-		_current_car.queue_free()
-		_current_car = null
 
-	_spawn_car(next_index, spawn_transform)
+	_current_car = _car_spawner.switch_to_next_car(spawn_transform, not _player_controls_locked)
+	_show_driving_ui_if_needed()
+	_update_car_targets()
 
 
 func _on_menu_selection_completed(mode_id: String, track_id: String, car_index: int) -> void:
@@ -116,26 +118,22 @@ func _on_menu_selection_completed(mode_id: String, track_id: String, car_index: 
 
 
 func _spawn_car(car_index: int, spawn_transform: Transform3D) -> void:
-	var car_scene: PackedScene = available_cars[car_index]
-	var car_instance: Node = car_scene.instantiate()
-	var car_controller: PlayerCarController = car_instance as PlayerCarController
-
-	if car_controller == null:
-		push_error("Car scene must have PlayerCarController on its root node.")
-		car_instance.queue_free()
+	if _car_spawner == null:
 		return
 
-	car_controller.transform = spawn_transform
-	add_child(car_controller)
+	_current_car = _car_spawner.spawn_player_car(car_index, spawn_transform, not _player_controls_locked)
+	_show_driving_ui_if_needed()
+	_update_car_targets()
 
-	_current_car = car_controller
-	_current_car_index = car_index
-	_current_car.set_player_input_enabled(not _player_controls_locked)
+
+func _show_driving_ui_if_needed() -> void:
+	if _current_car == null:
+		return
+
 	if _speedometer != null:
 		_speedometer.visible = true
 	if _minimap != null:
 		_minimap.visible = true
-	_update_car_targets()
 
 
 func _update_car_targets() -> void:
@@ -168,59 +166,16 @@ func _start_race() -> void:
 
 
 func _spawn_opponents() -> void:
-	for opponent_index: int in opponent_count:
-		if available_cars.is_empty():
-			return
+	if _car_spawner == null:
+		return
 
-		var car_scene: PackedScene = available_cars[_rng.randi_range(0, available_cars.size() - 1)]
-		var car_instance: Node = car_scene.instantiate()
-		var car_controller: PlayerCarController = car_instance as PlayerCarController
-		if car_controller == null:
-			car_instance.queue_free()
-			continue
-
-		car_controller.name = "Opponent%d" % (opponent_index + 1)
-		car_controller.transform = _get_opponent_spawn_transform(opponent_index)
-		car_controller.manual_transmission_enabled = false
-		car_controller.automatic_transmission_enabled = true
-		car_controller.set_player_input_enabled(false)
-		car_controller.set_external_input_enabled(true)
-		_randomize_car_paint(car_controller)
-		add_child(car_controller)
-		_opponents.append(car_controller)
-		_update_minimap_opponents()
-
-		var ai_driver: Node = AI_DRIVER_SCRIPT.new()
-		ai_driver.name = "%sDriver" % car_controller.name
-		ai_driver.set("car_path", car_controller.get_path())
-		if _track != null:
-			ai_driver.set("track_path", _track.get_path())
-		ai_driver.set("lane_offset", _get_opponent_lane_offset(opponent_index))
-		ai_driver.set("target_speed_kmh", _rng.randf_range(96.0, 128.0))
-		ai_driver.set("corner_speed_kmh", _rng.randf_range(66.0, 84.0))
-		add_child(ai_driver)
-		_ai_drivers.append(ai_driver)
-
-
-func _get_opponent_spawn_transform(opponent_index: int) -> Transform3D:
-	var spawn_transform: Transform3D = _car_spawn.global_transform
-	var row: int = floori(float(opponent_index) / 2.0) + 1
-	var side_multiplier: float = -1.0 if opponent_index % 2 == 0 else 1.0
-	var lane_offset: float = side_multiplier * opponent_lane_spacing * (0.5 + float(opponent_index % 2))
-	spawn_transform.origin += spawn_transform.basis.x.normalized() * lane_offset
-	spawn_transform.origin += spawn_transform.basis.z.normalized() * opponent_row_spacing * float(row)
-	return spawn_transform
-
-
-func _get_opponent_lane_offset(opponent_index: int) -> float:
-	var side_multiplier: float = -1.0 if opponent_index % 2 == 0 else 1.0
-	return side_multiplier * opponent_lane_spacing * 0.45
+	_opponents = _car_spawner.spawn_opponents(opponent_count)
+	_update_minimap_opponents()
 
 
 func _set_ai_enabled(enabled: bool) -> void:
-	for ai_driver: Node in _ai_drivers:
-		if is_instance_valid(ai_driver) and ai_driver.has_method("set_driver_enabled"):
-			ai_driver.call("set_driver_enabled", enabled)
+	if _car_spawner != null:
+		_car_spawner.set_ai_enabled(enabled)
 
 
 func _run_countdown() -> void:
@@ -405,14 +360,8 @@ func _hide_results() -> void:
 
 
 func _clear_race_opponents() -> void:
-	for ai_driver: Node in _ai_drivers:
-		if is_instance_valid(ai_driver):
-			ai_driver.queue_free()
-	_ai_drivers.clear()
-
-	for opponent: PlayerCarController in _opponents:
-		if is_instance_valid(opponent):
-			opponent.queue_free()
+	if _car_spawner != null:
+		_car_spawner.clear_opponents()
 	_opponents.clear()
 	_update_minimap_opponents()
 	_player_controls_locked = false
@@ -420,11 +369,9 @@ func _clear_race_opponents() -> void:
 
 
 func _clear_current_car() -> void:
-	if is_instance_valid(_current_car):
-		remove_child(_current_car)
-		_current_car.queue_free()
+	if _car_spawner != null:
+		_car_spawner.clear_current_car()
 	_current_car = null
-	_current_car_index = -1
 
 
 func _prepare_race_tracking() -> void:
@@ -515,20 +462,3 @@ func _return_to_main_menu() -> void:
 func _update_minimap_opponents() -> void:
 	if _minimap != null and _minimap.has_method("set_opponents"):
 		_minimap.call("set_opponents", _opponents)
-
-
-func _randomize_car_paint(root: Node) -> void:
-	var paint_color: Color = Color.from_hsv(_rng.randf(), 0.72, 0.82, 1.0)
-	_apply_paint_to_children(root, paint_color)
-
-
-func _apply_paint_to_children(node: Node, paint_color: Color) -> void:
-	var mesh_instance: MeshInstance3D = node as MeshInstance3D
-	if mesh_instance != null and node.name.to_lower().contains("paint"):
-		var material: StandardMaterial3D = StandardMaterial3D.new()
-		material.albedo_color = paint_color
-		material.roughness = 0.42
-		mesh_instance.material_override = material
-
-	for child: Node in node.get_children():
-		_apply_paint_to_children(child, paint_color)
