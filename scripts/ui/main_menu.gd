@@ -26,6 +26,11 @@ func _ready() -> void:
 	_show_mode_step()
 
 
+func reset_menu() -> void:
+	show()
+	_show_mode_step()
+
+
 func _build_ui() -> void:
 	var root: Control = Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

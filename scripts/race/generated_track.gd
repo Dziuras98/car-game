@@ -46,6 +46,7 @@ var _shoulder_collision: CollisionShape3D
 var _edge_markers: Node3D
 var _barriers: Node3D
 var _stadium: Node3D
+var _finish_line: Node3D
 
 
 func _ready() -> void:
@@ -60,6 +61,7 @@ func _rebuild_track() -> void:
 	_create_grass()
 	_create_shoulders()
 	_create_track()
+	_create_finish_line()
 	_create_edge_markers()
 	_create_barriers()
 	if has_stadium:
@@ -219,6 +221,49 @@ func _create_track() -> void:
 	_track_mesh.material_override = asphalt_material
 	_track_body.add_child(_track_mesh)
 	_track_mesh.owner = owner
+
+
+func _create_finish_line() -> void:
+	var points: Array[Vector3] = _get_track_points()
+	if points.size() < 2:
+		return
+
+	var current: Vector3 = points[0]
+	var next: Vector3 = points[1]
+	var tangent: Vector3 = (next - current).normalized()
+	var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
+	var yaw: float = atan2(tangent.x, tangent.z)
+	var half_width: float = _get_half_width(0, points.size())
+
+	_finish_line = Node3D.new()
+	_finish_line.name = "FinishLine"
+	add_child(_finish_line)
+	_finish_line.owner = owner
+
+	var stripe_material: StandardMaterial3D = StandardMaterial3D.new()
+	stripe_material.albedo_color = Color(0.96, 0.96, 0.92, 1.0)
+	stripe_material.roughness = 0.62
+
+	var line_mesh: BoxMesh = BoxMesh.new()
+	line_mesh.size = Vector3(half_width * 2.0, 0.04, 1.6)
+
+	var line: MeshInstance3D = MeshInstance3D.new()
+	line.name = "Stripe"
+	line.mesh = line_mesh
+	line.material_override = stripe_material
+	line.position = current + Vector3.UP * 0.05
+	line.rotation.y = yaw + PI * 0.5
+	_finish_line.add_child(line)
+	line.owner = owner
+
+	var marker_material: StandardMaterial3D = StandardMaterial3D.new()
+	marker_material.albedo_color = Color(1.0, 0.08, 0.06, 1.0)
+	marker_material.emission_enabled = true
+	marker_material.emission = Color(0.7, 0.02, 0.01, 1.0)
+	marker_material.emission_energy_multiplier = 0.35
+
+	_add_box_mesh(_finish_line, current - side * half_width + Vector3.UP * 1.8, Vector3(0.65, 3.4, 0.65), yaw, marker_material, "LeftMarker")
+	_add_box_mesh(_finish_line, current + side * half_width + Vector3.UP * 1.8, Vector3(0.65, 3.4, 0.65), yaw, marker_material, "RightMarker")
 
 
 func _create_edge_markers() -> void:
