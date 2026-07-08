@@ -22,6 +22,7 @@ var _countdown_layer: CanvasLayer
 var _countdown_label: Label
 var _lap_layer: CanvasLayer
 var _lap_label: Label
+var _position_label: Label
 var _results_layer: CanvasLayer
 var _results_list: VBoxContainer
 var _player_controls_locked: bool = false
@@ -268,8 +269,8 @@ func _build_lap_ui() -> void:
 	var panel: PanelContainer = PanelContainer.new()
 	panel.offset_left = 24.0
 	panel.offset_top = 24.0
-	panel.offset_right = 224.0
-	panel.offset_bottom = 82.0
+	panel.offset_right = 246.0
+	panel.offset_bottom = 116.0
 	root.add_child(panel)
 
 	var margin: MarginContainer = MarginContainer.new()
@@ -279,10 +280,19 @@ func _build_lap_ui() -> void:
 	margin.add_theme_constant_override("margin_bottom", 10)
 	panel.add_child(margin)
 
+	var content: VBoxContainer = VBoxContainer.new()
+	content.add_theme_constant_override("separation", 4)
+	margin.add_child(content)
+
 	_lap_label = Label.new()
 	_lap_label.add_theme_font_size_override("font_size", 22)
 	_lap_label.text = "Okrazenie 1/%d" % race_lap_count
-	margin.add_child(_lap_label)
+	content.add_child(_lap_label)
+
+	_position_label = Label.new()
+	_position_label.add_theme_font_size_override("font_size", 22)
+	_position_label.text = "Pozycja 1/1"
+	content.add_child(_position_label)
 
 
 func _build_results_ui() -> void:
@@ -361,7 +371,7 @@ func _hide_lap_ui() -> void:
 
 
 func _update_lap_ui() -> void:
-	if _lap_label == null or _current_car == null:
+	if (_lap_label == null and _position_label == null) or _current_car == null:
 		return
 
 	var player_index: int = _participants.find(_current_car)
@@ -369,7 +379,10 @@ func _update_lap_ui() -> void:
 	if player_index >= 0:
 		completed_laps = _participant_laps[player_index]
 	var current_lap: int = clampi(completed_laps + 1, 1, maxi(race_lap_count, 1))
-	_lap_label.text = "Okrazenie %d/%d" % [current_lap, maxi(race_lap_count, 1)]
+	if _lap_label != null:
+		_lap_label.text = "Okrazenie %d/%d" % [current_lap, maxi(race_lap_count, 1)]
+	if _position_label != null:
+		_position_label.text = "Pozycja %d/%d" % [_get_player_race_position(), maxi(_participants.size(), 1)]
 
 
 func _hide_results() -> void:
@@ -558,6 +571,17 @@ func _get_result_order() -> Array[PlayerCarController]:
 	remaining.sort_custom(Callable(self, "_sort_participants_by_progress"))
 	ordered.append_array(remaining)
 	return ordered
+
+
+func _get_player_race_position() -> int:
+	if _current_car == null:
+		return 1
+
+	var ordered_participants: Array[PlayerCarController] = _get_result_order()
+	var player_position: int = ordered_participants.find(_current_car)
+	if player_position < 0:
+		return 1
+	return player_position + 1
 
 
 func _sort_participants_by_progress(a: PlayerCarController, b: PlayerCarController) -> bool:
