@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/car/engine_audio.gd" id="2_engine_audio"]
@@ -33,6 +33,14 @@ roughness = 0.12
 albedo_color = Color(0.9, 0.05, 0.03, 1)
 roughness = 0.25
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_amber"]
+albedo_color = Color(1, 0.46, 0.08, 1)
+roughness = 0.22
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_plate"]
+albedo_color = Color(0.86, 0.86, 0.78, 1)
+roughness = 0.48
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trim"]
 albedo_color = Color(0.015, 0.018, 0.022, 1)
 roughness = 0.6
@@ -52,6 +60,13 @@ top_radius = 0.23
 bottom_radius = 0.23
 height = 0.44
 radial_segments = 24
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_exhaust"]
+top_radius = 0.09
+bottom_radius = 0.09
+height = 0.18
+radial_segments = 18
 rings = 1
 
 [node name="370Z" type="CharacterBody3D"]
@@ -91,9 +106,44 @@ transform = Transform3D(1.82, 0, 0, 0, 0.18, 0, 0, 0, 1.55, 0, 0.86, -1.02)
 material_override = SubResource("StandardMaterial3D_paint")
 mesh = SubResource("BoxMesh_unit")
 
+[node name="HoodCenterBulge" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.68, 0, 0, 0, 0.035, 0, 0, 0, 1.18, 0, 0.97, -1.08)
+material_override = SubResource("StandardMaterial3D_paint")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="HoodLeftCrease" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.07, 0, 0, 0, 0.035, 0, 0, 0, 1.2, -0.52, 0.99, -1.08)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="HoodRightCrease" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.07, 0, 0, 0, 0.035, 0, 0, 0, 1.2, 0.52, 0.99, -1.08)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
 [node name="LowNose" type="MeshInstance3D" parent="."]
 transform = Transform3D(1.92, 0, 0, 0, 0.28, 0, 0, 0, 0.78, 0, 0.46, -1.86)
 material_override = SubResource("StandardMaterial3D_paint")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="FrontUpperGrille" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.92, 0, 0, 0, 0.14, 0, 0, 0, 0.055, 0, 0.46, -2.255)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="FrontLowerMouth" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.34, 0, 0, 0, 0.16, 0, 0, 0, 0.06, 0, 0.28, -2.265)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftFangIntake" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.34, 0, 0, 0, 0.2, 0, 0, 0, 0.055, -0.72, 0.39, -2.265)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightFangIntake" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.34, 0, 0, 0, 0.2, 0, 0, 0, 0.055, 0.72, 0.39, -2.265)
+material_override = SubResource("StandardMaterial3D_trim")
 mesh = SubResource("BoxMesh_unit")
 
 [node name="RearHaunches" type="MeshInstance3D" parent="."]
@@ -101,9 +151,69 @@ transform = Transform3D(2.08, 0, 0, 0, 0.36, 0, 0, 0, 1.12, 0, 0.82, 1.16)
 material_override = SubResource("StandardMaterial3D_paint")
 mesh = SubResource("BoxMesh_unit")
 
+[node name="LeftRearShoulder" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.26, 0, 0, 0, 0.16, 0, 0, 0, 1.1, -0.88, 1.02, 1.12)
+material_override = SubResource("StandardMaterial3D_paint")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightRearShoulder" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.26, 0, 0, 0, 0.16, 0, 0, 0, 1.1, 0.88, 1.02, 1.12)
+material_override = SubResource("StandardMaterial3D_paint")
+mesh = SubResource("BoxMesh_unit")
+
 [node name="CabinGlass" type="MeshInstance3D" parent="."]
 transform = Transform3D(1.28, 0, 0, 0, 0.48, 0, 0, 0, 1.18, 0, 1.2, 0.23)
 material_override = SubResource("StandardMaterial3D_glass")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="Windshield" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.08, 0, 0, 0, 0.3, 0, 0, 0, 0.08, 0, 1.18, -0.43)
+material_override = SubResource("StandardMaterial3D_glass")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RearWindow" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.0, 0, 0, 0, 0.26, 0, 0, 0, 0.08, 0, 1.18, 0.93)
+material_override = SubResource("StandardMaterial3D_glass")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftDoorGlass" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.055, 0, 0, 0, 0.28, 0, 0, 0, 0.58, -0.67, 1.24, 0.05)
+material_override = SubResource("StandardMaterial3D_glass")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightDoorGlass" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.055, 0, 0, 0, 0.28, 0, 0, 0, 0.58, 0.67, 1.24, 0.05)
+material_override = SubResource("StandardMaterial3D_glass")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftQuarterGlass" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.055, 0, 0, 0, 0.22, 0, 0, 0, 0.36, -0.64, 1.22, 0.61)
+material_override = SubResource("StandardMaterial3D_glass")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightQuarterGlass" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.055, 0, 0, 0, 0.22, 0, 0, 0, 0.36, 0.64, 1.22, 0.61)
+material_override = SubResource("StandardMaterial3D_glass")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftAPillar" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.075, 0, 0, 0, 0.42, 0, 0, 0, 0.08, -0.66, 1.26, -0.37)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightAPillar" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.075, 0, 0, 0, 0.42, 0, 0, 0, 0.08, 0.66, 1.26, -0.37)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftBPillar" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.065, 0, 0, 0, 0.32, 0, 0, 0, 0.06, -0.66, 1.22, 0.36)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightBPillar" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.065, 0, 0, 0, 0.32, 0, 0, 0, 0.06, 0.66, 1.22, 0.36)
+material_override = SubResource("StandardMaterial3D_trim")
 mesh = SubResource("BoxMesh_unit")
 
 [node name="RoofPaint" type="MeshInstance3D" parent="."]
@@ -116,6 +226,36 @@ transform = Transform3D(1.72, 0, 0, 0, 0.16, 0, 0, 0, 0.78, 0, 1.02, 1.55)
 material_override = SubResource("StandardMaterial3D_paint")
 mesh = SubResource("BoxMesh_unit")
 
+[node name="LeftDoorCut" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.045, 0, 0, 0, 0.44, 0, 0, 0, 0.035, -1.035, 0.76, -0.2)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightDoorCut" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.045, 0, 0, 0, 0.44, 0, 0, 0, 0.035, 1.035, 0.76, -0.2)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftDoorHandle" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.055, 0, 0, 0, 0.06, 0, 0, 0, 0.22, -1.06, 0.92, 0.22)
+material_override = SubResource("StandardMaterial3D_rim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightDoorHandle" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.055, 0, 0, 0, 0.06, 0, 0, 0, 0.22, 1.06, 0.92, 0.22)
+material_override = SubResource("StandardMaterial3D_rim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftRockerPanel" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.09, 0, 0, 0, 0.12, 0, 0, 0, 2.7, -1.05, 0.33, -0.05)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightRockerPanel" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.09, 0, 0, 0, 0.12, 0, 0, 0, 2.7, 1.05, 0.33, -0.05)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
 [node name="FrontSplitter" type="MeshInstance3D" parent="."]
 transform = Transform3D(1.8, 0, 0, 0, 0.08, 0, 0, 0, 0.12, 0, 0.25, -2.28)
 material_override = SubResource("StandardMaterial3D_trim")
@@ -124,6 +264,21 @@ mesh = SubResource("BoxMesh_unit")
 [node name="RearSpoiler" type="MeshInstance3D" parent="."]
 transform = Transform3D(1.45, 0, 0, 0, 0.08, 0, 0, 0, 0.18, 0, 1.25, 2.0)
 material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RearBumperLower" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.6, 0, 0, 0, 0.22, 0, 0, 0, 0.08, 0, 0.39, 2.155)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RearDiffuser" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.1, 0, 0, 0, 0.08, 0, 0, 0, 0.22, 0, 0.25, 2.06)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RearLicensePlate" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.56, 0, 0, 0, 0.18, 0, 0, 0, 0.035, 0, 0.74, 2.205)
+material_override = SubResource("StandardMaterial3D_plate")
 mesh = SubResource("BoxMesh_unit")
 
 [node name="FrontLeftFender" type="MeshInstance3D" parent="."]
@@ -146,6 +301,26 @@ transform = Transform3D(0.46, 0, 0, 0, 0.24, 0, 0, 0, 0.86, 0.98, 0.78, 1.28)
 material_override = SubResource("StandardMaterial3D_paint")
 mesh = SubResource("BoxMesh_unit")
 
+[node name="FrontLeftArchLip" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.08, 0, 0, 0, 0.08, 0, 0, 0, 0.95, -1.08, 0.62, -1.35)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="FrontRightArchLip" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.08, 0, 0, 0, 0.08, 0, 0, 0, 0.95, 1.08, 0.62, -1.35)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RearLeftArchLip" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.08, 0, 0, 0, 0.08, 0, 0, 0, 0.98, -1.11, 0.63, 1.28)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RearRightArchLip" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.08, 0, 0, 0, 0.08, 0, 0, 0, 0.98, 1.11, 0.63, 1.28)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
 [node name="LeftHeadlight" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.42, 0, 0, 0, 0.09, 0, 0, 0, 0.12, -0.55, 0.65, -2.23)
 material_override = SubResource("StandardMaterial3D_headlight")
@@ -154,6 +329,26 @@ mesh = SubResource("BoxMesh_unit")
 [node name="RightHeadlight" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.42, 0, 0, 0, 0.09, 0, 0, 0, 0.12, 0.55, 0.65, -2.23)
 material_override = SubResource("StandardMaterial3D_headlight")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftHeadlightUpperHook" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.32, 0, 0, 0, 0.055, 0, 0, 0, 0.08, -0.66, 0.78, -2.235)
+material_override = SubResource("StandardMaterial3D_headlight")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightHeadlightUpperHook" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.32, 0, 0, 0, 0.055, 0, 0, 0, 0.08, 0.66, 0.78, -2.235)
+material_override = SubResource("StandardMaterial3D_headlight")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftAmberMarker" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.18, 0, 0, 0, 0.05, 0, 0, 0, 0.055, -0.88, 0.55, -2.24)
+material_override = SubResource("StandardMaterial3D_amber")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightAmberMarker" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.18, 0, 0, 0, 0.05, 0, 0, 0, 0.055, 0.88, 0.55, -2.24)
+material_override = SubResource("StandardMaterial3D_amber")
 mesh = SubResource("BoxMesh_unit")
 
 [node name="LeftTaillight" type="MeshInstance3D" parent="."]
@@ -165,6 +360,26 @@ mesh = SubResource("BoxMesh_unit")
 transform = Transform3D(0.45, 0, 0, 0, 0.1, 0, 0, 0, 0.12, 0.55, 0.74, 2.14)
 material_override = SubResource("StandardMaterial3D_taillight")
 mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftTaillightHook" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.24, 0, 0, 0, 0.06, 0, 0, 0, 0.11, -0.79, 0.84, 2.145)
+material_override = SubResource("StandardMaterial3D_taillight")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RightTaillightHook" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.24, 0, 0, 0, 0.06, 0, 0, 0, 0.11, 0.79, 0.84, 2.145)
+material_override = SubResource("StandardMaterial3D_taillight")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="LeftExhaustTip" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.48, 0.28, 2.25)
+material_override = SubResource("StandardMaterial3D_rim")
+mesh = SubResource("CylinderMesh_exhaust")
+
+[node name="RightExhaustTip" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.48, 0.28, 2.25)
+material_override = SubResource("StandardMaterial3D_rim")
+mesh = SubResource("CylinderMesh_exhaust")
 
 [node name="LeftMirror" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.16, 0, 0, 0, 0.12, 0, 0, 0, 0.28, -1.12, 1.12, -0.22)
@@ -216,12 +431,56 @@ transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 1.09, 0.39, 1.32)
 material_override = SubResource("StandardMaterial3D_rim")
 mesh = SubResource("CylinderMesh_rim")
 
+[node name="RimFrontLeftVerticalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.36, 0, 0, 0, 0.055, -1.32, 0.39, -1.35)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RimFrontLeftHorizontalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.055, 0, 0, 0, 0.36, -1.32, 0.39, -1.35)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RimFrontRightVerticalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.36, 0, 0, 0, 0.055, 1.32, 0.39, -1.35)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RimFrontRightHorizontalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.055, 0, 0, 0, 0.36, 1.32, 0.39, -1.35)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RimRearLeftVerticalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.36, 0, 0, 0, 0.055, -1.32, 0.39, 1.32)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RimRearLeftHorizontalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.055, 0, 0, 0, 0.36, -1.32, 0.39, 1.32)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RimRearRightVerticalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.36, 0, 0, 0, 0.055, 1.32, 0.39, 1.32)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
+[node name="RimRearRightHorizontalSpoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.035, 0, 0, 0, 0.055, 0, 0, 0, 0.36, 1.32, 0.39, 1.32)
+material_override = SubResource("StandardMaterial3D_trim")
+mesh = SubResource("BoxMesh_unit")
+
 [node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
 script = ExtResource("2_engine_audio")
 cylinders = 6
 idle_volume_db = -21.0
 load_volume_db = -5.0
-exhaust_roughness = 0.11
+exhaust_roughness = 0.13
+intake_presence = 0.22
+exhaust_resonance = 0.38
+mechanical_noise = 0.07
+overrun_crackle = 0.11
 
 [node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
 script = ExtResource("3_tire_squeal")
