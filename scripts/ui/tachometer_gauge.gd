@@ -6,6 +6,7 @@ class_name TachometerGauge
 @export var redline_rpm: float = 6500.0
 @export var major_tick_rpm: float = 1000.0
 @export var minor_tick_rpm: float = 500.0
+@export var label_gap_from_tick: float = 8.0
 @export var start_angle_degrees: float = 140.0
 @export var end_angle_degrees: float = 400.0
 
@@ -70,9 +71,6 @@ func _draw_numbers(center: Vector2, radius: float, start_angle: float, end_angle
 		_draw_number(center, radius, start_angle, end_angle, label_value, font, font_size)
 		label_value += major_tick_rpm
 
-	if not _is_major_tick(max_rpm):
-		_draw_number(center, radius, start_angle, end_angle, max_rpm, font, font_size)
-
 
 func _draw_needle(center: Vector2, radius: float, start_angle: float, end_angle: float) -> void:
 	var needle_angle: float = _rpm_to_angle(_rpm, start_angle, end_angle)
@@ -116,7 +114,9 @@ func _draw_number(
 	var label_direction: Vector2 = Vector2(cos(angle), sin(angle))
 	var label_text: String = _format_rpm_label(rpm_value)
 	var label_size: Vector2 = font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-	var label_position: Vector2 = center + label_direction * (radius - 28.0) - label_size * 0.5
+	var label_center: Vector2 = center + label_direction * (radius - 12.0 - label_gap_from_tick)
+	var baseline_offset: float = (font.get_ascent(font_size) - font.get_descent(font_size)) * 0.5
+	var label_position: Vector2 = Vector2(label_center.x - label_size.x * 0.5, label_center.y + baseline_offset)
 	var label_color: Color = Color(0.82, 0.88, 0.92, 1)
 
 	if rpm_value >= redline_rpm:
@@ -146,7 +146,4 @@ func _is_major_tick(value: float) -> bool:
 
 func _format_rpm_label(value: float) -> String:
 	var thousands: float = value / 1000.0
-	if absf(thousands - roundf(thousands)) <= 0.05:
-		return str(roundi(thousands))
-
-	return str(snappedf(thousands, 0.1))
+	return str(roundi(thousands))
