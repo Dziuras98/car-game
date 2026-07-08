@@ -1,0 +1,228 @@
+# Roadmap
+
+This roadmap prioritizes making the current prototype maintainable before adding more visible features.
+
+## Current baseline
+
+The project already has enough gameplay systems to be treated as a playable prototype:
+
+- main menu;
+- free drive mode;
+- race mode;
+- player car spawning;
+- two 370Z variants;
+- generated oval track;
+- AI opponents;
+- lap/position/results UI;
+- speedometer, tachometer and minimap;
+- procedural engine and tire audio.
+
+The next phase should focus on stabilizing architecture.
+
+## Phase 0 — Documentation and baseline freeze
+
+Status: started.
+
+Goal: document the current structure so future Codex tasks have stable context.
+
+Tasks:
+
+- [x] Add `README.md`.
+- [x] Add `docs/architecture.md`.
+- [x] Add `docs/roadmap.md`.
+- [ ] Add `docs/controls.md` if controls grow beyond README.
+- [ ] Add `docs/vehicle_model.md` before major handling changes.
+- [ ] Add `docs/tuning_notes.md` before detailed 370Z tuning.
+
+Definition of done:
+
+- repository has a readable project overview;
+- major scripts and scenes are documented;
+- refactor order is clear;
+- future Codex tasks can reference explicit architecture goals.
+
+## Phase 1 — Split the high-level game coordinator
+
+Goal: remove unrelated responsibilities from `scripts/race/car_switcher.gd` without changing gameplay behavior.
+
+Recommended order:
+
+1. Create `scripts/game/game_manager.gd`.
+2. Move menu-selection flow and game-state transitions there.
+3. Create `scripts/game/car_spawner.gd`.
+4. Move player/opponent car instantiation there.
+5. Create `scripts/race/race_manager.gd`.
+6. Move race start, countdown, finish and opponent enable/disable logic there.
+7. Create `scripts/race/lap_tracker.gd`.
+8. Move lap, participant progress, position and result-order logic there.
+9. Keep `ai_race_driver.gd` focused only on driving.
+10. Remove or reduce `car_switcher.gd` after equivalent behavior is preserved.
+
+Definition of done:
+
+- free drive works;
+- race mode works;
+- car choice still works;
+- camera, speedometer and minimap still bind to the active car;
+- AI opponents still spawn and move;
+- lap and position UI still update;
+- results screen still appears after race completion;
+- no car handling/tuning changes are mixed into this phase.
+
+## Phase 2 — Move race UI into scenes
+
+Goal: stop building race UI procedurally inside race/game logic.
+
+Tasks:
+
+- [ ] Create `scenes/ui/race_hud.tscn`.
+- [ ] Create `scripts/ui/race_hud.gd`.
+- [ ] Create `scenes/ui/countdown_overlay.tscn`.
+- [ ] Create `scripts/ui/countdown_overlay.gd`.
+- [ ] Create `scenes/ui/results_screen.tscn`.
+- [ ] Create `scripts/ui/results_screen.gd`.
+- [ ] Wire these scenes from `main.tscn` or instantiate them from `game_manager.gd`.
+- [ ] Remove procedural UI construction from the race/game manager.
+
+Definition of done:
+
+- UI layout is editable in Godot scenes;
+- scripts only update values and visibility;
+- existing visual behavior remains equivalent or better.
+
+## Phase 3 — Extract non-driving effects from the car controller
+
+Goal: reduce `scripts/car/car_controller.gd` before touching handling or drivetrain math.
+
+Recommended first extraction:
+
+- [ ] Create `scripts/car/skid_mark_emitter.gd`.
+- [ ] Move skid mark material creation, parent creation and mark spawning there.
+- [ ] Let `PlayerCarController` only report tire slip and call/emits mark events.
+
+Definition of done:
+
+- skid marks still appear under the same conditions;
+- car movement is unchanged;
+- tire squeal audio still reacts to slip intensity;
+- `car_controller.gd` loses visual-effect responsibilities.
+
+## Phase 4 — Extract drivetrain model
+
+Goal: separate engine/transmission simulation from movement and steering.
+
+Tasks:
+
+- [ ] Create `scripts/car/drivetrain_model.gd`.
+- [ ] Move RPM calculation.
+- [ ] Move torque curve calculation.
+- [ ] Move manual transmission logic.
+- [ ] Move automatic transmission logic.
+- [ ] Move torque converter approximation.
+- [ ] Expose a small API returning wheel drive acceleration/force, RPM, load and gear text.
+
+Definition of done:
+
+- speedometer still receives speed, RPM and gear text;
+- engine audio still receives RPM/load/throttle;
+- manual and automatic 370Z variants behave at least as before;
+- tuning parameters are still visible in the Godot inspector or moved cleanly to a Resource.
+
+## Phase 5 — Introduce car specs as Resources
+
+Goal: stop storing all car tuning directly in scene overrides and controller export variables.
+
+Tasks:
+
+- [ ] Create `scripts/car/car_specs.gd` extending `Resource`.
+- [ ] Add drivetrain fields.
+- [ ] Add mass/resistance fields.
+- [ ] Add tire/steering fields.
+- [ ] Create `resources/cars/370z_manual.tres`.
+- [ ] Create `resources/cars/370z_automatic.tres`.
+- [ ] Let car scenes reference specs.
+
+Definition of done:
+
+- adding a new car variant does not require duplicating controller parameters manually;
+- menu can later read car names from car definitions;
+- car tuning can be versioned as data.
+
+## Phase 6 — Replace heuristic lap tracking with checkpoints
+
+Goal: make race progress robust enough for more complex tracks.
+
+Tasks:
+
+- [ ] Add checkpoint/final-line areas to generated track or track scenes.
+- [ ] Create `scripts/race/checkpoint.gd`.
+- [ ] Let `lap_tracker.gd` validate checkpoint order.
+- [ ] Add wrong-way or missed-checkpoint handling.
+- [ ] Keep nearest-racing-line progress only as a position-sorting aid.
+
+Definition of done:
+
+- laps cannot be counted by cutting across the track;
+- driving backwards over the finish line does not count incorrectly;
+- AI and player use the same participant tracking rules.
+
+## Phase 7 — Track data and multiple tracks
+
+Goal: separate track data from procedural generation.
+
+Tasks:
+
+- [ ] Create `scripts/race/track_layout_resource.gd`.
+- [ ] Move control points from `generated_track.gd` into a Resource.
+- [ ] Add track metadata: name, width, scenery options, lap count suggestion.
+- [ ] Create `resources/tracks/simple_oval.tres`.
+- [ ] Update menu track list to use available track data.
+
+Definition of done:
+
+- adding a second track no longer requires editing `generated_track.gd` internals;
+- minimap and AI still get racing-line points;
+- generated road, barriers and scenery still work.
+
+## Phase 8 — Performance and quality pass
+
+Goal: make the prototype stable enough for longer sessions.
+
+Tasks:
+
+- [ ] Add simple profiling notes.
+- [ ] Add audio LOD or disable procedural audio for distant AI opponents.
+- [ ] Avoid unnecessary per-frame redraws where possible.
+- [ ] Cache racing-line lookup for AI or restrict nearest-point search window.
+- [ ] Review generated mesh and collision rebuild frequency.
+- [ ] Add basic export preset once gameplay stabilizes.
+
+Definition of done:
+
+- race with several AI opponents stays stable;
+- no obvious CPU spikes from audio or procedural track rebuilds;
+- UI remains responsive;
+- project can be exported locally when needed.
+
+## Phase 9 — Feature expansion
+
+Only start this after the architecture is less coupled.
+
+Candidate features:
+
+- more cars;
+- better imported car models;
+- different tracks;
+- improved AI racing behavior;
+- ghost laps;
+- lap timer and best lap storage;
+- gamepad tuning;
+- pause menu;
+- replay camera;
+- garage/car selection screen;
+- better tire model;
+- basic collisions and barriers with stronger gameplay consequences.
+
+## Current rule
+
+Do not add new cars, tracks or major gameplay systems until Phase 1 and Phase 2 are complete.
