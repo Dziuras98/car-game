@@ -4,6 +4,7 @@ extends Node3D
 @export var car_spawn_path: NodePath
 @export var camera_path: NodePath
 @export var speedometer_path: NodePath
+@export var minimap_path: NodePath
 @export var menu_path: NodePath
 @export var track_path: NodePath
 @export var opponent_count: int = 3
@@ -39,6 +40,7 @@ var _finish_order: Array[PlayerCarController] = []
 @onready var _car_spawn: Node3D = get_node(car_spawn_path) as Node3D
 @onready var _camera: Node = get_node_or_null(camera_path)
 @onready var _speedometer: Node = get_node_or_null(speedometer_path)
+@onready var _minimap: Node = get_node_or_null(minimap_path)
 @onready var _menu: Node = get_node_or_null(menu_path)
 @onready var _track: Node3D = get_node_or_null(track_path) as Node3D
 
@@ -57,6 +59,10 @@ func _ready() -> void:
 
 	if _speedometer != null:
 		_speedometer.visible = false
+	if _minimap != null:
+		_minimap.visible = false
+		if _track != null and _minimap.has_method("set_track_node"):
+			_minimap.call("set_track_node", _track)
 
 	if _menu != null and _menu.has_signal("selection_completed"):
 		_menu.connect("selection_completed", Callable(self, "_on_menu_selection_completed"))
@@ -129,6 +135,8 @@ func _spawn_car(car_index: int, spawn_transform: Transform3D) -> void:
 	_current_car.set_player_input_enabled(not _player_controls_locked)
 	if _speedometer != null:
 		_speedometer.visible = true
+	if _minimap != null:
+		_minimap.visible = true
 	_update_car_targets()
 
 
@@ -138,6 +146,14 @@ func _update_car_targets() -> void:
 
 	if _speedometer != null and _speedometer.has_method("set_target_node"):
 		_speedometer.call("set_target_node", _current_car)
+
+	if _minimap != null:
+		if _minimap.has_method("set_target_node"):
+			_minimap.call("set_target_node", _current_car)
+		if _track != null and _minimap.has_method("set_track_node"):
+			_minimap.call("set_track_node", _track)
+		if _minimap.has_method("set_opponents"):
+			_minimap.call("set_opponents", _opponents)
 
 
 func _start_race() -> void:
@@ -174,6 +190,7 @@ func _spawn_opponents() -> void:
 		_randomize_car_paint(car_controller)
 		add_child(car_controller)
 		_opponents.append(car_controller)
+		_update_minimap_opponents()
 
 		var ai_driver: Node = AI_DRIVER_SCRIPT.new()
 		ai_driver.name = "%sDriver" % car_controller.name
@@ -400,6 +417,7 @@ func _clear_race_opponents() -> void:
 		if is_instance_valid(opponent):
 			opponent.queue_free()
 	_opponents.clear()
+	_update_minimap_opponents()
 	_player_controls_locked = false
 	_race_in_progress = false
 
@@ -614,11 +632,21 @@ func _return_to_main_menu() -> void:
 	selected_track_id = ""
 	if _speedometer != null:
 		_speedometer.visible = false
+	if _minimap != null:
+		_minimap.visible = false
+		if _minimap.has_method("set_target_node"):
+			_minimap.call("set_target_node", null)
+		_update_minimap_opponents()
 	if _menu != null:
 		if _menu.has_method("reset_menu"):
 			_menu.call("reset_menu")
 		else:
 			_menu.show()
+
+
+func _update_minimap_opponents() -> void:
+	if _minimap != null and _minimap.has_method("set_opponents"):
+		_minimap.call("set_opponents", _opponents)
 
 
 func _randomize_car_paint(root: Node) -> void:
