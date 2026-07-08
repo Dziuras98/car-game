@@ -1,7 +1,8 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
-[ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="2_tire_squeal"]
+[ext_resource type="Script" path="res://scripts/car/engine_audio.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_body"]
 size = Vector3(1.8, 0.9, 3.5)
@@ -31,7 +32,7 @@ height = 0.42
 radial_segments = 24
 rings = 2
 
-[node name="PlayerCar" type="CharacterBody3D"]
+[node name="TestCar" type="CharacterBody3D"]
 floor_snap_length = 0.4
 script = ExtResource("1_controller")
 
@@ -69,5 +70,12 @@ transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 1.05, 0.38, 1.15)
 material_override = SubResource("StandardMaterial3D_wheel")
 mesh = SubResource("CylinderMesh_wheel")
 
+[node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("2_engine_audio")
+cylinders = 4
+idle_volume_db = -24.0
+load_volume_db = -9.0
+exhaust_roughness = 0.08
+
 [node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
-script = ExtResource("2_tire_squeal")
+script = ExtResource("3_tire_squeal")

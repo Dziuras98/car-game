@@ -1,0 +1,103 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/speedometer.gd" id="1_speedometer"]
+[ext_resource type="Script" path="res://scripts/ui/tachometer_gauge.gd" id="2_tachometer"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.02, 0.025, 0.03, 0.72)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
+bg_color = Color(0.1, 0.8, 0.95, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="Speedometer" type="CanvasLayer"]
+script = ExtResource("1_speedometer")
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -286.0
+offset_right = -28.0
+offset_bottom = -28.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.84, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "SPEED"
+
+[node name="SpeedRow" type="HBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpeedValue" type="Label" parent="Panel/VBoxContainer/SpeedRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 48
+text = "0"
+
+[node name="Unit" type="Label" parent="Panel/VBoxContainer/SpeedRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.84, 0.9, 1)
+theme_override_font_sizes/font_size = 18
+text = "km/h"
+vertical_alignment = 2
+
+[node name="SpeedBar" type="ProgressBar" parent="Panel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 120.0
+show_percentage = false
+theme_override_styles/fill = SubResource("StyleBoxFlat_bar")
+
+[node name="GearRow" type="HBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GearLabel" type="Label" parent="Panel/VBoxContainer/GearRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.84, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "GEAR"
+
+[node name="GearValue" type="Label" parent="Panel/VBoxContainer/GearRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "N"
+
+[node name="RpmLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.84, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "RPM"
+
+[node name="TachometerGauge" type="Control" parent="Panel/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 120)
+layout_mode = 2
+script = ExtResource("2_tachometer")

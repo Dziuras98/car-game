@@ -1,23 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://dlxhkhoiyvlx5"]
+[gd_scene load_steps=2 format=3 uid="uid://dlxhkhoiyvlx5"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_gxpxo"]
-size = Vector3(100, 1, 100)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_asphalt"]
-albedo_color = Color(0.23, 0.25, 0.23, 1)
-roughness = 0.92
-
-[sub_resource type="BoxMesh" id="BoxMesh_maghx"]
-size = Vector3(100, 1, 100)
+[ext_resource type="Script" path="res://scripts/race/generated_track.gd" id="1_track_generator"]
 
 [node name="TestTrack" type="Node3D" unique_id=26797048]
-
-[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=1384511725]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=746943270]
-shape = SubResource("BoxShape3D_gxpxo")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D" unique_id=1321391477]
-material_override = SubResource("StandardMaterial3D_asphalt")
-mesh = SubResource("BoxMesh_maghx")
+script = ExtResource("1_track_generator")
+track_width = 14.0
+grass_size = Vector2(260, 190)
+shoulder_width = 12.0
+barrier_distance_from_road = 14.0
