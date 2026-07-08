@@ -21,6 +21,18 @@ extends Node3D
 	set(value):
 		width_variation = clampf(value, 0.0, 0.45)
 		_rebuild_track()
+@export var has_stadium: bool = false:
+	set(value):
+		has_stadium = value
+		_rebuild_track()
+@export_range(4, 18, 1) var stadium_section_step: int = 8:
+	set(value):
+		stadium_section_step = maxi(value, 4)
+		_rebuild_track()
+@export var stadium_distance_from_barrier: float = 24.0:
+	set(value):
+		stadium_distance_from_barrier = maxf(value, 8.0)
+		_rebuild_track()
 
 var _track_body: StaticBody3D
 var _track_mesh: MeshInstance3D
@@ -33,6 +45,7 @@ var _shoulder_mesh: MeshInstance3D
 var _shoulder_collision: CollisionShape3D
 var _edge_markers: Node3D
 var _barriers: Node3D
+var _stadium: Node3D
 
 
 func _ready() -> void:
@@ -49,6 +62,8 @@ func _rebuild_track() -> void:
 	_create_track()
 	_create_edge_markers()
 	_create_barriers()
+	if has_stadium:
+		_create_stadium()
 
 
 func _clear_generated_children() -> void:
@@ -254,6 +269,225 @@ func _create_barriers() -> void:
 		_add_barrier_segment(current + side * barrier_offset, yaw, barrier_material)
 
 
+func _create_stadium() -> void:
+	var points: Array[Vector3] = _get_track_points()
+	var center: Vector3 = _get_points_center(points)
+
+	var concrete_material: StandardMaterial3D = StandardMaterial3D.new()
+	concrete_material.albedo_color = Color(0.42, 0.43, 0.42, 1.0)
+	concrete_material.roughness = 0.78
+
+	var seat_material: StandardMaterial3D = StandardMaterial3D.new()
+	seat_material.albedo_color = Color(0.76, 0.08, 0.06, 1.0)
+	seat_material.roughness = 0.55
+
+	var roof_material: StandardMaterial3D = StandardMaterial3D.new()
+	roof_material.albedo_color = Color(0.12, 0.12, 0.13, 1.0)
+	roof_material.roughness = 0.5
+
+	var back_wall_material: StandardMaterial3D = StandardMaterial3D.new()
+	back_wall_material.albedo_color = Color(0.24, 0.25, 0.26, 1.0)
+	back_wall_material.roughness = 0.82
+	back_wall_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var wall_cap_material: StandardMaterial3D = StandardMaterial3D.new()
+	wall_cap_material.albedo_color = Color(0.16, 0.17, 0.18, 1.0)
+	wall_cap_material.roughness = 0.7
+	wall_cap_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var wall_arrow_material: StandardMaterial3D = StandardMaterial3D.new()
+	wall_arrow_material.albedo_color = Color(1.0, 0.88, 0.12, 1.0)
+	wall_arrow_material.emission_enabled = true
+	wall_arrow_material.emission = Color(1.0, 0.68, 0.08, 1.0)
+	wall_arrow_material.emission_energy_multiplier = 0.35
+	wall_arrow_material.roughness = 0.48
+	wall_arrow_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var audience_materials: Array[StandardMaterial3D] = []
+	for color: Color in [
+		Color(0.1, 0.18, 0.9, 1.0),
+		Color(0.95, 0.82, 0.08, 1.0),
+		Color(0.92, 0.16, 0.12, 1.0),
+		Color(0.92, 0.92, 0.9, 1.0),
+		Color(0.08, 0.55, 0.18, 1.0),
+	]:
+		var material: StandardMaterial3D = StandardMaterial3D.new()
+		material.albedo_color = color
+		material.roughness = 0.65
+		audience_materials.append(material)
+
+	_stadium = Node3D.new()
+	_stadium.name = "Stadium"
+	add_child(_stadium)
+	_stadium.owner = owner
+
+	_add_stadium_back_walls(points, center, back_wall_material, wall_cap_material)
+	_add_wall_direction_arrows(points, center, wall_arrow_material)
+
+	var section_index: int = 0
+	for index in range(0, points.size(), stadium_section_step):
+		var previous: Vector3 = points[(index - 1 + points.size()) % points.size()]
+		var current: Vector3 = points[index]
+		var next: Vector3 = points[(index + 1) % points.size()]
+		var tangent: Vector3 = (next - previous).normalized()
+		var outward: Vector3 = (current - center)
+		outward.y = 0.0
+		outward = outward.normalized()
+		var yaw: float = atan2(tangent.x, tangent.z)
+		var base_offset: float = _get_half_width(index, points.size()) + barrier_distance_from_road + stadium_distance_from_barrier
+		var base_position: Vector3 = current + outward * base_offset
+
+		_add_stadium_section(base_position, outward, yaw, section_index, concrete_material, seat_material, roof_material, audience_materials)
+		section_index += 1
+
+		if section_index % 5 == 0:
+			_add_stadium_light(base_position + outward * 18.0, yaw)
+
+
+func _add_stadium_back_walls(
+	points: Array[Vector3],
+	center: Vector3,
+	wall_material: Material,
+	cap_material: Material
+) -> void:
+	var wall_height: float = 13.0
+	var cap_half_width: float = 0.85
+	var wall_vertices: PackedVector3Array = PackedVector3Array()
+	var wall_indices: PackedInt32Array = PackedInt32Array()
+	var cap_vertices: PackedVector3Array = PackedVector3Array()
+	var cap_indices: PackedInt32Array = PackedInt32Array()
+
+	for index in points.size():
+		var current: Vector3 = points[index]
+		var outward: Vector3 = current - center
+		outward.y = 0.0
+		outward = outward.normalized()
+		var wall_offset: float = _get_half_width(index, points.size()) + barrier_distance_from_road + stadium_distance_from_barrier + 19.0
+		var wall_base_position: Vector3 = current + outward * wall_offset
+
+		wall_vertices.append(wall_base_position)
+		wall_vertices.append(wall_base_position + Vector3.UP * wall_height)
+		cap_vertices.append(wall_base_position - outward * cap_half_width + Vector3.UP * wall_height)
+		cap_vertices.append(wall_base_position + outward * cap_half_width + Vector3.UP * wall_height)
+
+	for index in points.size():
+		var next_index: int = (index + 1) % points.size()
+		var bottom_a: int = index * 2
+		var top_a: int = bottom_a + 1
+		var bottom_b: int = next_index * 2
+		var top_b: int = bottom_b + 1
+		var cap_inner_a: int = index * 2
+		var cap_outer_a: int = cap_inner_a + 1
+		var cap_inner_b: int = next_index * 2
+		var cap_outer_b: int = cap_inner_b + 1
+
+		_add_quad_indices(wall_indices, bottom_a, bottom_b, top_a, top_b)
+		_add_quad_indices(cap_indices, cap_inner_a, cap_inner_b, cap_outer_a, cap_outer_b)
+
+	_add_array_mesh(_stadium, wall_vertices, wall_indices, wall_material, "StadiumBackWall")
+	_add_array_mesh(_stadium, cap_vertices, cap_indices, cap_material, "StadiumWallCap")
+
+
+func _add_wall_direction_arrows(points: Array[Vector3], center: Vector3, arrow_material: Material) -> void:
+	var arrow_vertices: PackedVector3Array = PackedVector3Array()
+	var arrow_indices: PackedInt32Array = PackedInt32Array()
+
+	for index in range(0, points.size(), 6):
+		var previous: Vector3 = points[(index - 1 + points.size()) % points.size()]
+		var current: Vector3 = points[index]
+		var next: Vector3 = points[(index + 1) % points.size()]
+		var tangent: Vector3 = (next - previous).normalized()
+		var outward: Vector3 = current - center
+		outward.y = 0.0
+		outward = outward.normalized()
+		var wall_offset: float = _get_half_width(index, points.size()) + barrier_distance_from_road + stadium_distance_from_barrier + 19.0
+		var wall_position: Vector3 = current + outward * wall_offset - outward * 0.08 + Vector3.UP * 5.2
+		var shaft_start: Vector3 = wall_position - tangent * 3.8
+		var shaft_end: Vector3 = wall_position + tangent * 1.2
+		var tip: Vector3 = wall_position + tangent * 4.2
+		var shaft_half_height: Vector3 = Vector3.UP * 0.38
+		var head_half_height: Vector3 = Vector3.UP * 1.25
+		var base_index: int = arrow_vertices.size()
+
+		arrow_vertices.append(shaft_start - shaft_half_height)
+		arrow_vertices.append(shaft_end - shaft_half_height)
+		arrow_vertices.append(shaft_start + shaft_half_height)
+		arrow_vertices.append(shaft_end + shaft_half_height)
+		arrow_vertices.append(shaft_end - head_half_height)
+		arrow_vertices.append(tip)
+		arrow_vertices.append(shaft_end + head_half_height)
+
+		_add_quad_indices(arrow_indices, base_index, base_index + 1, base_index + 2, base_index + 3)
+		arrow_indices.append(base_index + 4)
+		arrow_indices.append(base_index + 5)
+		arrow_indices.append(base_index + 6)
+
+	_add_array_mesh(_stadium, arrow_vertices, arrow_indices, arrow_material, "WallDirectionArrows")
+
+
+func _add_stadium_section(
+	base_position: Vector3,
+	outward: Vector3,
+	yaw: float,
+	section_index: int,
+	concrete_material: Material,
+	seat_material: Material,
+	roof_material: Material,
+	audience_materials: Array[StandardMaterial3D]
+) -> void:
+	for row in 4:
+		var row_position: Vector3 = base_position + outward * float(row) * 4.2 + Vector3.UP * (0.25 + float(row) * 0.85)
+		_add_box_mesh(
+			_stadium,
+			row_position,
+			Vector3(4.0, 0.5, 10.5),
+			yaw,
+			concrete_material,
+			"StandStep"
+		)
+		_add_box_mesh(
+			_stadium,
+			row_position + Vector3.UP * 0.35 - outward * 0.7,
+			Vector3(0.35, 0.28, 9.4),
+			yaw,
+			seat_material,
+			"SeatRow"
+		)
+
+		for seat in 3:
+			var lateral_offset: float = (float(seat) - 1.0) * 2.8
+			var lateral: Vector3 = Vector3(cos(yaw), 0.0, -sin(yaw))
+			var spectator_position: Vector3 = row_position + lateral * lateral_offset + Vector3.UP * 0.82 - outward * 0.25
+			var material_index: int = (section_index + row + seat) % audience_materials.size()
+			_add_box_mesh(
+				_stadium,
+				spectator_position,
+				Vector3(0.55, 0.75, 0.55),
+				yaw,
+				audience_materials[material_index],
+				"Spectator"
+			)
+
+	var roof_position: Vector3 = base_position + outward * 6.6 + Vector3.UP * 4.4
+	_add_box_mesh(_stadium, roof_position, Vector3(13.5, 0.35, 11.5), yaw, roof_material, "GrandstandRoof")
+
+
+func _add_stadium_light(position: Vector3, yaw: float) -> void:
+	var pole_material: StandardMaterial3D = StandardMaterial3D.new()
+	pole_material.albedo_color = Color(0.18, 0.19, 0.2, 1.0)
+	pole_material.metallic = 0.35
+	pole_material.roughness = 0.45
+
+	var light_material: StandardMaterial3D = StandardMaterial3D.new()
+	light_material.albedo_color = Color(1.0, 0.92, 0.66, 1.0)
+	light_material.emission_enabled = true
+	light_material.emission = Color(1.0, 0.86, 0.45, 1.0)
+	light_material.emission_energy_multiplier = 0.9
+
+	_add_box_mesh(_stadium, position + Vector3.UP * 5.2, Vector3(0.45, 10.4, 0.45), yaw, pole_material, "LightPole")
+	_add_box_mesh(_stadium, position + Vector3.UP * 10.4, Vector3(0.9, 0.8, 4.6), yaw, light_material, "Floodlights")
+
+
 func _add_edge_marker(position: Vector3, material: Material) -> void:
 	var marker_mesh: BoxMesh = BoxMesh.new()
 	marker_mesh.size = Vector3(0.45, 0.2, 1.4)
@@ -277,6 +511,43 @@ func _add_barrier_segment(position: Vector3, yaw: float, material: Material) -> 
 	barrier.rotation.y = yaw
 	_barriers.add_child(barrier)
 	barrier.owner = owner
+
+
+func _add_box_mesh(parent: Node3D, position: Vector3, size: Vector3, yaw: float, material: Material, node_name: String) -> void:
+	var mesh: BoxMesh = BoxMesh.new()
+	mesh.size = size
+
+	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
+	mesh_instance.name = node_name
+	mesh_instance.mesh = mesh
+	mesh_instance.material_override = material
+	mesh_instance.position = position
+	mesh_instance.rotation.y = yaw
+	parent.add_child(mesh_instance)
+	mesh_instance.owner = owner
+
+
+func _add_array_mesh(
+	parent: Node3D,
+	vertices: PackedVector3Array,
+	indices: PackedInt32Array,
+	material: Material,
+	node_name: String
+) -> void:
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_INDEX] = indices
+
+	var mesh: ArrayMesh = ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+
+	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
+	mesh_instance.name = node_name
+	mesh_instance.mesh = mesh
+	mesh_instance.material_override = material
+	parent.add_child(mesh_instance)
+	mesh_instance.owner = owner
 
 
 func _add_quad_indices(indices: PackedInt32Array, a: int, b: int, c: int, d: int) -> void:
@@ -326,6 +597,13 @@ func _get_track_points() -> Array[Vector3]:
 
 func get_racing_line_points() -> Array[Vector3]:
 	return _get_track_points()
+
+
+func _get_points_center(points: Array[Vector3]) -> Vector3:
+	var center: Vector3 = Vector3.ZERO
+	for point: Vector3 in points:
+		center += point
+	return center / float(points.size())
 
 
 func _get_half_width(index: int, point_count: int) -> float:
