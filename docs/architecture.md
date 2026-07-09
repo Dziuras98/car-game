@@ -26,6 +26,8 @@ Validated areas:
 
 The current regression gate is `scenes/tests/full_program_smoke_test.tscn`, optionally launched through `scripts/tests/run_full_program_smoke_test.gd`.
 
+The mobile-controls scene refactor has been reported as passing the full-program smoke test. The later `VehicleMotionModel` extraction is behavior-preserving by design, but still requires the same smoke test after checkout.
+
 ## Current composition
 
 The current main scene is `scenes/main.tscn`.
@@ -83,6 +85,7 @@ scripts/
     tire_model.gd
     tire_squeal_audio.gd
     torque_converter_model.gd
+    vehicle_motion_model.gd
   game/
     game_manager.gd
     car_spawner.gd
@@ -154,10 +157,11 @@ scripts/car/drivetrain_model.gd             # gear ratios, wheel RPM, wheel forc
 scripts/car/torque_converter_model.gd       # automatic RPM coupling and torque multiplication
 scripts/car/resistance_model.gd             # drag and rolling resistance
 scripts/car/tire_model.gd                   # lateral grip recovery and tire slip intensity
+scripts/car/vehicle_motion_model.gd         # local/global velocity projection helpers
 scripts/car/skid_mark_emitter.gd            # skid mark visual effect
 ```
 
-This is acceptable for a prototype and has passed the current regression test, but the controller should still be split further before drivetrain and tire behavior are expanded.
+This is acceptable for a prototype and has passed the current regression test before the latest vehicle-motion extraction. The controller should still be split further before drivetrain and tire behavior are expanded.
 
 ### Target car architecture
 
@@ -182,7 +186,7 @@ scripts/car/
   tire_squeal_audio.gd
 ```
 
-The next substantial car refactor should be narrow and behavior-preserving. Prefer extracting only local/global velocity projection helpers before touching steering, grounding or `move_and_slide()`.
+`vehicle_motion_model.gd` now exists and is intentionally narrow. It only converts between local forward/lateral speed and global horizontal velocity using the car transform. It does not apply gravity, grounding, steering or `move_and_slide()`.
 
 ## Race/game architecture
 
@@ -329,7 +333,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 | Risk | Severity | Reason |
 |---|---:|---|
-| `car_controller.gd` is still large | High | Gear application, steering, local/global velocity projection and movement are still coupled |
+| `car_controller.gd` is still large | High | Gear application, steering, grounding and movement are still coupled, although local/global velocity projection has been extracted |
 | Track generator mixes data and scenery | Medium/High | Adding more tracks will duplicate or complicate logic |
 | Lap tracking is heuristic | Medium/High | Uses racing-line progress rather than physical checkpoints |
 | `GameTestAdapter` knows selected `GameManager` internals | Medium | Better than spreading private access through tests, but a public diagnostic API would be cleaner |
@@ -340,9 +344,9 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 ## Preferred next refactor
 
-After the current validated baseline, continue in this order:
+After the current `VehicleMotionModel` extraction, continue in this order:
 
-1. Extract local/global velocity projection helpers from `car_controller.gd` into a small `VehicleMotionModel`.
+1. Run `scenes/tests/full_program_smoke_test.tscn` and record the result.
 2. Move car tuning into `CarSpecs` Resources.
 3. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
 4. Continue converting remaining procedural race/menu UI into scene-driven UI.
