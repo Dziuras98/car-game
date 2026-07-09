@@ -113,6 +113,15 @@ func get_opponents() -> Array[PlayerCarController]:
 	return _opponents
 
 
+func get_moving_opponent_count_for_test() -> int:
+	var moving_count: int = 0
+	for opponent: PlayerCarController in _opponents:
+		if is_instance_valid(opponent) and absf(opponent.get_forward_speed()) > 0.05:
+			moving_count += 1
+
+	return moving_count
+
+
 func get_configured_opponent_count() -> int:
 	return opponent_count
 

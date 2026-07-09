@@ -73,13 +73,10 @@ func has_moving_opponent() -> bool:
 
 
 func get_moving_opponent_count() -> int:
-	var moving_count: int = 0
-	for opponent_variant: Variant in get_opponents():
-		var opponent: PlayerCarController = opponent_variant as PlayerCarController
-		if opponent != null and absf(float(opponent.call("get_forward_speed"))) > 0.05:
-			moving_count += 1
+	if _main == null:
+		return 0
 
-	return moving_count
+	return int(_main.call("get_moving_opponent_count_for_test"))
 
 
 func return_to_main_menu() -> void:
