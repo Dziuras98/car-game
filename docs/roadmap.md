@@ -121,7 +121,7 @@ Definition of done:
 
 ## Phase 4 — Extract drivetrain model
 
-Status: mostly complete for drivetrain/transmission helpers. Engine RPM/torque/limiter, resistance logic, drivetrain helper calculations, torque converter helper calculations, manual gear-request logic and automatic gear-selection decisions are split out. Shift timing, gear application, tire behavior and movement remain in `PlayerCarController`.
+Status: mostly complete for drivetrain/transmission helpers. Engine RPM/torque/limiter, resistance logic, drivetrain helper calculations, torque converter helper calculations, manual gear-request logic, automatic gear-selection decisions and shift-timer helper calculations are split out. Gear application, tire behavior and movement remain in `PlayerCarController`.
 
 Goal: separate engine/transmission simulation from movement and steering.
 
@@ -143,7 +143,8 @@ Tasks:
 - [x] Move manual gear-up/gear-down request helper.
 - [x] Create `scripts/car/automatic_transmission_model.gd`.
 - [x] Move automatic gear-selection decision helper.
-- [ ] Move shift timing helper.
+- [x] Create `scripts/car/shift_timer_model.gd`.
+- [x] Move shift-timer update and delay-selection helper.
 - [ ] Expose a small API returning wheel drive acceleration/force, RPM, load and gear text.
 
 Definition of done:
