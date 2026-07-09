@@ -83,6 +83,7 @@ Keyboard controls currently configured in `project.godot`:
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
 | `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
+| `scripts/car/car_input.gd` | Player/external drive input helper |
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual-effect emitter |
 | `scripts/car/engine_audio.gd` | Procedural engine audio |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
@@ -91,7 +92,7 @@ Keyboard controls currently configured in `project.godot`:
 
 The project works as a prototype, but some scripts still have too many responsibilities:
 
-- `scripts/car/car_controller.gd` still manages input, drivetrain, transmission, resistance, steering, tire slip, reset and movement.
+- `scripts/car/car_controller.gd` still manages drivetrain, transmission, resistance, steering, tire slip, reset and movement.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 
