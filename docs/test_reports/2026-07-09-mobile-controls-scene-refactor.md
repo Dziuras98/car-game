@@ -48,19 +48,21 @@ The refactor intentionally does not change:
 
 Pre-change manual Android validation was reported as successful by the project owner.
 
-Post-change validation is still required. Run:
+Post-change full-program smoke test was reported as successful by the project owner after the scene-driven mobile controls refactor.
+
+Validated command/scene:
 
 ```text
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-Expected result:
+Expected passing result remains:
 
 ```text
 [SMOKE] Extended full program smoke test passed: <N> checks
 ```
 
-Also manually verify on Android that:
+Manual Android follow-up checklist, if the overlay is touched again:
 
 - the overlay appears only on Android unless `force_visible` is enabled;
 - `GAS`, `BRAKE`, steering and `HB` work as hold actions;
@@ -69,6 +71,6 @@ Also manually verify on Android that:
 
 ## Next recommended work
 
-1. Run the full-program smoke test after this refactor.
-2. If it passes, continue with the narrow `VehicleMotionModel` extraction from `car_controller.gd`.
+1. Continue with the narrow `VehicleMotionModel` extraction from `car_controller.gd`.
+2. After that refactor, run the full-program smoke test again.
 3. Do not add new gameplay features until the smoke test has passed again on the current code.
