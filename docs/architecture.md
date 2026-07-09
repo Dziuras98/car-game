@@ -92,6 +92,7 @@ scripts/
     race_manager.gd
   tests/
     full_program_smoke_test.gd
+    game_test_adapter.gd
     run_full_program_smoke_test.gd
   ui/
     countdown_overlay.gd
@@ -140,25 +141,20 @@ Responsibilities currently inside the controller:
 - skid-mark dispatch;
 - movement through `move_and_slide()`.
 
-Player/external drive input is handled by `scripts/car/car_input.gd`.
+Specialized car helpers:
 
-Manual gear-up/gear-down requests are handled by `scripts/car/manual_transmission_model.gd`.
-
-Automatic gear-selection decisions are handled by `scripts/car/automatic_transmission_model.gd`.
-
-Shift-timer update and delay selection are handled by `scripts/car/shift_timer_model.gd`.
-
-Engine RPM, torque curve and rev limiter multiplier are handled by `scripts/car/engine_model.gd`.
-
-Gear-ratio lookup, wheel-coupled RPM, wheel-force and drive-acceleration helper calculations are handled by `scripts/car/drivetrain_model.gd`.
-
-Torque converter RPM coupling and torque multiplication are handled by `scripts/car/torque_converter_model.gd`.
-
-Aerodynamic drag and rolling resistance are handled by `scripts/car/resistance_model.gd`.
-
-Lateral grip recovery and tire slip-intensity calculation are handled by `scripts/car/tire_model.gd`.
-
-Skid mark visual effects are handled by `scripts/car/skid_mark_emitter.gd`.
+```text
+scripts/car/car_input.gd                    # player/external input abstraction
+scripts/car/manual_transmission_model.gd    # manual gear-up/gear-down requests
+scripts/car/automatic_transmission_model.gd # automatic gear-selection decisions
+scripts/car/shift_timer_model.gd            # shift timer update and delay selection
+scripts/car/engine_model.gd                 # RPM, torque curve and limiter
+scripts/car/drivetrain_model.gd             # gear ratios, wheel RPM, wheel force and drive acceleration
+scripts/car/torque_converter_model.gd       # automatic RPM coupling and torque multiplication
+scripts/car/resistance_model.gd             # drag and rolling resistance
+scripts/car/tire_model.gd                   # lateral grip recovery and tire slip intensity
+scripts/car/skid_mark_emitter.gd            # skid mark visual effect
+```
 
 This is acceptable for a prototype and has passed the current regression test, but the controller should still be split further before drivetrain and tire behavior are expanded.
 
@@ -285,12 +281,15 @@ Current automated runtime test:
 ```text
 scenes/tests/full_program_smoke_test.tscn
 scripts/tests/full_program_smoke_test.gd
+scripts/tests/game_test_adapter.gd
 scripts/tests/run_full_program_smoke_test.gd
 ```
 
 The test is an extended full-program smoke/regression test. It instantiates `scenes/main.tscn`, presses visible menu buttons, simulates input through `Input.action_press()` / `Input.action_release()`, verifies free-drive automatic/manual behavior, verifies race setup, checks `switch-car` blocking in race mode, waits through a longer AI race soak segment, simulates player finish and verifies return-to-menu cleanup.
 
-Current limitation: the test intentionally uses selected private fields and private callbacks on `GameManager` to inspect and drive state. This is acceptable for the current prototype but should later be replaced with a small diagnostic/test adapter API.
+`GameTestAdapter` centralizes smoke-test access to the current car, opponent list, configured opponent count, selected mode/track, node visibility, visible menu/results buttons, return-to-menu flow and simulated player finish. The test runner should use the adapter instead of directly reading `GameManager` fields.
+
+Current limitation: `GameTestAdapter` still knows selected `GameManager` internals. This is acceptable for the current prototype because the coupling is centralized, but a future production-facing diagnostic API on `GameManager` would be cleaner.
 
 ## Data architecture
 
@@ -332,7 +331,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 | `car_controller.gd` is still large | High | Gear application, steering, local/global velocity projection and movement are still coupled |
 | Track generator mixes data and scenery | Medium/High | Adding more tracks will duplicate or complicate logic |
 | Lap tracking is heuristic | Medium/High | Uses racing-line progress rather than physical checkpoints |
-| Smoke test uses private `GameManager` state | Medium | Useful now, but it couples tests to implementation details |
+| `GameTestAdapter` knows selected `GameManager` internals | Medium | Better than spreading private access through tests, but a public diagnostic API would be cleaner |
 | Mobile controls are procedural test UI | Medium | Useful for Android testing but should later become scene-driven and configurable |
 | UI is partly procedural | Medium | Harder to style, animate and maintain |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
@@ -342,11 +341,9 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 After the current validated baseline, continue in this order:
 
-1. Add or maintain test reports for validated baselines.
-2. Add a narrow test/diagnostic adapter so smoke tests stop reading private `GameManager` fields directly.
-3. Convert the temporary mobile controls overlay into a scene-driven UI.
-4. Extract local/global velocity projection helpers from `car_controller.gd` into a small `VehicleMotionModel`.
-5. Move car tuning into `CarSpecs` Resources.
-6. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
+1. Convert the temporary mobile controls overlay into a scene-driven UI.
+2. Extract local/global velocity projection helpers from `car_controller.gd` into a small `VehicleMotionModel`.
+3. Move car tuning into `CarSpecs` Resources.
+4. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
 
 Do not continue deeper vehicle movement refactors without running the extended smoke test immediately after each step.
