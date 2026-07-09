@@ -170,7 +170,8 @@ func _hold_action(action_name: String, duration_seconds: float) -> void:
 
 func _tap_action(action_name: String) -> void:
 	Input.action_press(action_name)
-	await _frames(1)
+	await get_tree().process_frame
+	await get_tree().physics_frame
 	Input.action_release(action_name)
 	await _frames(2)
 
