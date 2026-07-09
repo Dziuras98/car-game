@@ -41,7 +41,7 @@ At runtime, it composes:
 - minimap;
 - main menu;
 - high-level game/free-drive/race logic attached to the root node;
-- temporary Android mobile driving overlay created by `GameManager`.
+- temporary Android mobile driving overlay instantiated by `GameManager` from `scenes/ui/mobile_drive_controls.tscn`.
 
 The root node currently uses `scripts/game/game_manager.gd`.
 
@@ -63,6 +63,7 @@ scenes/
   ui/
     main_menu.tscn
     minimap.tscn
+    mobile_drive_controls.tscn
     speedometer.tscn
 
 scripts/
@@ -112,7 +113,7 @@ Current flow:
 
 1. Godot loads `scenes/main.tscn`.
 2. The root node runs `scripts/game/game_manager.gd`.
-3. `GameManager` creates the temporary mobile drive controls overlay.
+3. `GameManager` instantiates the temporary mobile drive controls scene.
 4. The main menu is shown.
 5. The player selects mode, track and car.
 6. `GameManager` receives the menu signal.
@@ -193,7 +194,7 @@ Current responsibilities of `GameManager`:
 - storing selected mode and track IDs;
 - delegating player/opponent spawn to `CarSpawner`;
 - wiring camera, speedometer and minimap targets;
-- creating the temporary mobile drive controls overlay;
+- instantiating the temporary mobile drive controls scene;
 - starting free-drive or race mode;
 - allowing car switching only in free-drive mode;
 - delegating race lifecycle to `RaceManager`;
@@ -211,10 +212,10 @@ scripts/ui/race_hud.gd            # UI facade used by GameManager
 scripts/ui/countdown_overlay.gd   # countdown overlay construction and visibility
 scripts/ui/lap_position_hud.gd    # lap and race-position display
 scripts/ui/results_screen.gd      # results list and return-to-menu button
-scripts/ui/mobile_drive_controls.gd # temporary Android touch-driving overlay
+scripts/ui/mobile_drive_controls.gd # temporary Android touch-driving overlay binding
 ```
 
-This is now a validated split compared to the original monolithic coordinator. Remaining cleanup should focus on converting procedural UI helpers into scenes, reducing `car_controller.gd`, and avoiding new feature work without running the regression test.
+This is now a validated split compared to the original monolithic coordinator. Remaining cleanup should focus on reducing `car_controller.gd`, converting remaining procedural race UI helpers into scenes, and avoiding new feature work without running the regression test.
 
 ## Track architecture
 
@@ -256,7 +257,7 @@ Current UI approach is mixed:
 - `speedometer.tscn` is a proper scene with a small binding script;
 - `main_menu.gd` builds menu UI procedurally;
 - `RaceHud` is a facade over procedural countdown, lap/position and results helpers;
-- `MobileDriveControls` builds a temporary Android testing overlay procedurally;
+- `MobileDriveControls` is now scene-driven and only binds scene buttons to input actions;
 - `minimap.gd` draws the map and participants manually.
 
 Target direction:
@@ -332,8 +333,8 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 | Track generator mixes data and scenery | Medium/High | Adding more tracks will duplicate or complicate logic |
 | Lap tracking is heuristic | Medium/High | Uses racing-line progress rather than physical checkpoints |
 | `GameTestAdapter` knows selected `GameManager` internals | Medium | Better than spreading private access through tests, but a public diagnostic API would be cleaner |
-| Mobile controls are procedural test UI | Medium | Useful for Android testing but should later become scene-driven and configurable |
-| UI is partly procedural | Medium | Harder to style, animate and maintain |
+| Race UI is partly procedural | Medium | Harder to style, animate and maintain |
+| Mobile controls are still temporary test UI | Low/Medium | The layout is scene-driven now, but it is still not final configurable input UI |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
 | Car/track lists are hardcoded | Medium | Adding content requires script and scene edits |
 
@@ -341,9 +342,9 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 After the current validated baseline, continue in this order:
 
-1. Convert the temporary mobile controls overlay into a scene-driven UI.
-2. Extract local/global velocity projection helpers from `car_controller.gd` into a small `VehicleMotionModel`.
-3. Move car tuning into `CarSpecs` Resources.
-4. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
+1. Extract local/global velocity projection helpers from `car_controller.gd` into a small `VehicleMotionModel`.
+2. Move car tuning into `CarSpecs` Resources.
+3. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
+4. Continue converting remaining procedural race/menu UI into scene-driven UI.
 
 Do not continue deeper vehicle movement refactors without running the extended smoke test immediately after each step.
