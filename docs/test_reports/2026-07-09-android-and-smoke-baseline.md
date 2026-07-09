@@ -2,7 +2,7 @@
 
 ## Scope
 
-This report records the current validated baseline after the architecture cleanup, Android playtesting, mobile touch-controls addition, race-mode `switch-car` restriction and extended full-program smoke test setup.
+This report records the current validated baseline after the architecture cleanup, Android playtesting, mobile touch-controls addition, race-mode `switch-car` restriction, extended full-program smoke test setup and smoke-test diagnostic adapter addition.
 
 ## Environment
 
@@ -18,6 +18,7 @@ Automated runtime validation:
 - Test scene: `scenes/tests/full_program_smoke_test.tscn`
 - Optional editor launcher: `scripts/tests/run_full_program_smoke_test.gd`
 - Test runner: `scripts/tests/full_program_smoke_test.gd`
+- Test adapter: `scripts/tests/game_test_adapter.gd`
 
 ## Manual validation result
 
@@ -46,7 +47,7 @@ Validated manually on Android:
 
 Status: PASS
 
-The extended full-program smoke test ran without errors.
+The extended full-program smoke test ran without errors before the adapter refactor. After the adapter refactor, run the same scene again as the current regression gate.
 
 Covered by the automated test:
 
@@ -103,7 +104,7 @@ The validation does not yet prove:
 - `scripts/car/car_controller.gd` is still the main technical-risk file because gear application, steering, local/global velocity projection and movement remain coupled there.
 - `scripts/race/generated_track.gd` still mixes track data, mesh generation, collision generation and scenery.
 - `scripts/race/lap_tracker.gd` still uses racing-line progress heuristics instead of physical checkpoints.
-- `scripts/tests/full_program_smoke_test.gd` currently reads selected private `GameManager` fields and calls selected private callbacks. This is acceptable for the prototype but should later be replaced by a small test/diagnostic adapter.
+- `scripts/tests/game_test_adapter.gd` centralizes selected private `GameManager` access for the smoke test. This is better than spreading private access through the test runner, but a future production-facing diagnostic API would be cleaner.
 - `scripts/ui/mobile_drive_controls.gd` is a temporary procedural overlay and should later become scene-driven UI.
 
 ## Regression gate
@@ -130,8 +131,7 @@ Any `[SMOKE][FAIL]` line should be treated as a regression until investigated.
 
 ## Recommended next work
 
-1. Add a small test/diagnostic adapter so the smoke test does not rely on private `GameManager` fields.
-2. Convert mobile controls from procedural runtime UI to `scenes/ui/mobile_drive_controls.tscn`.
-3. Extract only local/global velocity projection helpers from `car_controller.gd` into `VehicleMotionModel`.
-4. Move car tuning data into `CarSpecs` Resources.
-5. Add checkpoint-based lap validation before adding more complex tracks.
+1. Convert mobile controls from procedural runtime UI to `scenes/ui/mobile_drive_controls.tscn`.
+2. Extract only local/global velocity projection helpers from `car_controller.gd` into `VehicleMotionModel`.
+3. Move car tuning data into `CarSpecs` Resources.
+4. Add checkpoint-based lap validation before adding more complex tracks.
