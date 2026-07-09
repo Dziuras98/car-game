@@ -1,12 +1,20 @@
 extends Node3D
 
+const DEFAULT_CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
+
+@export_group("Cars")
+@export var car_catalog: CarCatalog = DEFAULT_CAR_CATALOG
 @export var available_cars: Array[PackedScene] = []
+
+@export_group("Scene Nodes")
 @export var car_spawn_path: NodePath
 @export var camera_path: NodePath
 @export var speedometer_path: NodePath
 @export var minimap_path: NodePath
 @export var menu_path: NodePath
 @export var track_path: NodePath
+
+@export_group("Race")
 @export var opponent_count: int = 3
 @export var opponent_lane_spacing: float = 4.2
 @export var opponent_row_spacing: float = 7.0
@@ -15,6 +23,9 @@ extends Node3D
 var _current_car: PlayerCarController
 var selected_mode_id: String = ""
 var selected_track_id: String = ""
+var selected_car_variant_id: StringName = &""
+var _available_car_variants: Array[CarVariantDefinition] = []
+var _available_car_scenes: Array[PackedScene] = []
 var _opponents: Array[PlayerCarController] = []
 var _lap_tracker: LapTracker
 var _car_spawner: CarSpawner
@@ -35,6 +46,9 @@ const MOBILE_DRIVE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile
 
 
 func _ready() -> void:
+	_prepare_car_selection_data()
+	_configure_menu_car_options()
+
 	_lap_tracker = LapTracker.new()
 	_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
 
@@ -43,7 +57,8 @@ func _ready() -> void:
 		self,
 		_car_spawn,
 		_track,
-		available_cars,
+		_available_car_scenes,
+		_available_car_variants,
 		opponent_lane_spacing,
 		opponent_row_spacing
 	)
@@ -59,7 +74,7 @@ func _ready() -> void:
 	_race_manager.opponent_should_stop.connect(_stop_participant_car)
 	_race_manager.race_finished.connect(_on_race_finished)
 
-	if available_cars.is_empty():
+	if not _has_available_car_options():
 		return
 
 	_race_hud.build(self, race_lap_count, Callable(self, "_return_to_main_menu"))
@@ -90,8 +105,39 @@ func _physics_process(_delta: float) -> void:
 		_update_lap_ui()
 
 
+func _prepare_car_selection_data() -> void:
+	_available_car_variants.clear()
+	_available_car_scenes.clear()
+
+	if car_catalog != null:
+		_available_car_variants = car_catalog.get_all_variants()
+		_available_car_scenes = car_catalog.get_variant_scene_list()
+
+	if _available_car_scenes.is_empty():
+		_available_car_scenes = available_cars.duplicate()
+
+
+func _configure_menu_car_options() -> void:
+	if _menu == null or not _menu.has_method("set_car_names"):
+		return
+
+	var car_names: PackedStringArray = PackedStringArray()
+	if car_catalog != null and not _available_car_variants.is_empty():
+		for variant: CarVariantDefinition in _available_car_variants:
+			car_names.append(variant.get_menu_name())
+	else:
+		for car_index: int in range(_available_car_scenes.size()):
+			car_names.append("Samochod %d" % (car_index + 1))
+
+	_menu.call("set_car_names", car_names)
+
+
+func _has_available_car_options() -> bool:
+	return not _available_car_variants.is_empty() or not _available_car_scenes.is_empty()
+
+
 func _switch_to_next_car() -> void:
-	if available_cars.is_empty() or _car_spawner == null:
+	if not _has_available_car_options() or _car_spawner == null:
 		return
 	if not _can_switch_cars():
 		return
@@ -101,6 +147,7 @@ func _switch_to_next_car() -> void:
 		spawn_transform = _current_car.global_transform
 
 	_current_car = _car_spawner.switch_to_next_car(spawn_transform, _is_player_input_enabled_for_spawn())
+	selected_car_variant_id = _get_variant_id_for_current_spawner_index()
 	_show_driving_ui_if_needed()
 	_update_car_targets()
 
@@ -118,15 +165,43 @@ func _on_menu_selection_completed(mode_id: String, track_id: String, car_index: 
 	_hide_results()
 	_clear_race_tracking()
 
-	var selected_car_index: int = car_index
-	if selected_car_index < 0 or selected_car_index >= available_cars.size():
-		selected_car_index = 0
+	var selected_car_index: int = _get_valid_car_index(car_index)
+	selected_car_variant_id = _get_variant_id_for_index(selected_car_index)
 
 	_spawn_car(selected_car_index, _car_spawn.global_transform)
 	if selected_mode_id == MODE_RACE:
 		_start_race()
 	else:
 		_hide_lap_ui()
+
+
+func _get_valid_car_index(car_index: int) -> int:
+	var available_count: int = _get_available_car_count()
+	if available_count <= 0:
+		return 0
+	return clampi(car_index, 0, available_count - 1)
+
+
+func _get_available_car_count() -> int:
+	if not _available_car_variants.is_empty():
+		return _available_car_variants.size()
+	return _available_car_scenes.size()
+
+
+func _get_variant_id_for_index(car_index: int) -> StringName:
+	if car_index < 0 or car_index >= _available_car_variants.size():
+		return &""
+	return _available_car_variants[car_index].variant_id
+
+
+func _get_variant_id_for_current_spawner_index() -> StringName:
+	if _current_car == null:
+		return &""
+	for variant_index: int in range(_available_car_variants.size()):
+		var variant: CarVariantDefinition = _available_car_variants[variant_index]
+		if variant != null and variant.get_specs() == _current_car.car_specs:
+			return variant.variant_id
+	return selected_car_variant_id
 
 
 func _spawn_car(car_index: int, spawn_transform: Transform3D) -> void:
@@ -312,6 +387,7 @@ func _return_to_main_menu() -> void:
 	_clear_race_tracking()
 	selected_mode_id = ""
 	selected_track_id = ""
+	selected_car_variant_id = &""
 	if _speedometer != null:
 		_speedometer.visible = false
 	if _minimap != null:
