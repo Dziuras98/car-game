@@ -2,7 +2,7 @@
 
 This document describes the current vehicle model before deeper drivetrain, tire and motion refactors.
 
-It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/automatic_transmission_model.gd`, `scripts/car/shift_timer_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
+It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/automatic_transmission_model.gd`, `scripts/car/shift_timer_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/tire_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
 
 ## Current model boundaries
 
@@ -22,7 +22,7 @@ Current main files:
 
 | Path | Responsibility |
 |---|---|
-| `scripts/car/car_controller.gd` | Main movement coordinator, applying selected gears, steering, tire slip and reset |
+| `scripts/car/car_controller.gd` | Main movement coordinator, applying selected gears, steering, grounding, skid-mark dispatch and reset |
 | `scripts/car/car_input.gd` | Player/external drive input sampling and input state |
 | `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
 | `scripts/car/automatic_transmission_model.gd` | Automatic gear-selection decision helper |
@@ -30,6 +30,7 @@ Current main files:
 | `scripts/car/engine_model.gd` | RPM state, free-rev blending, torque multiplier and rev limiter multiplier |
 | `scripts/car/drivetrain_model.gd` | Gear-ratio lookup, wheel-coupled RPM, wheel force and drive acceleration helper calculations |
 | `scripts/car/torque_converter_model.gd` | Torque converter RPM-coupling and torque-multiplication helper calculations |
+| `scripts/car/tire_model.gd` | Lateral grip recovery and tire slip-intensity helper calculations |
 | `scripts/car/resistance_model.gd` | Aerodynamic drag and rolling resistance |
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual effect emission |
 | `scripts/car/engine_audio.gd` | Procedural engine audio driven by controller telemetry |
@@ -49,7 +50,7 @@ The current `PlayerCarController._physics_process(delta)` flow is:
 6. Update engine RPM.
 7. Update forward speed.
 8. Update steering/yaw.
-9. Update tire slip model.
+9. Update tire slip model through `TireModel` and handle grounded/skid-mark behavior.
 10. Apply velocity through `move_and_slide()`.
 
 In simplified pseudocode:
@@ -504,7 +505,7 @@ After rotation, local forward/lateral speeds are recalculated from the pre-rotat
 
 ## Slip-limited steering
 
-Steering input is limited when lateral slip is high.
+Steering input is still limited inside `PlayerCarController` when lateral slip is high.
 
 ```text
 lateral_slip_ratio = abs(lateral_speed) / slip_speed_threshold
@@ -520,9 +521,9 @@ This gives the prototype a simple counter-steer-friendly behavior: steering into
 
 ## Tire model
 
-The tire model currently handles lateral grip recovery and slip intensity, not a full tire force model.
+`TireModel` handles lateral grip recovery and slip-intensity calculation. It does not own steering, grounding, skid-mark dispatch or movement.
 
-Active lateral grip:
+Lateral speed recovery:
 
 ```text
 grip_multiplier = handbrake_lateral_grip_multiplier if handbrake_active else 1.0
@@ -533,13 +534,14 @@ lateral_speed = move_toward(lateral_speed, 0.0, active_lateral_grip * delta)
 Slip intensity:
 
 ```text
+absolute_forward_speed = abs(forward_speed)
 lateral_ratio = abs(lateral_speed) / max(slip_speed_threshold, 0.1)
-steering_load = abs(steering) * abs(forward_speed) * steering_slip_gain / max(max_forward_speed, 1.0)
-handbrake_bonus = 0.35 if handbrake_active and abs(forward_speed) > 4.0 else 0.0
+steering_load = abs(steering) * absolute_forward_speed * steering_slip_gain / max(max_forward_speed, 1.0)
+handbrake_bonus = 0.35 if handbrake_active and absolute_forward_speed > 4.0 else 0.0
 tire_slip_intensity = clamp(lateral_ratio + steering_load + handbrake_bonus, 0.0, 1.0)
 ```
 
-If the car is not on the floor, tire slip intensity is forced to `0.0` and skid mark update is skipped.
+If the car is not on the floor, `PlayerCarController` still forces tire slip intensity to `0.0` and skips skid mark update.
 
 Skid marks are emitted by `SkidMarkEmitter` when tire slip exceeds the configured threshold.
 
@@ -615,7 +617,7 @@ After any vehicle-model refactor, test both manual and automatic variants:
 Preferred sequence for stabilization:
 
 1. Keep this document updated.
-2. Extract drivetrain helpers without changing equations.
+2. Extract drivetrain/tire helpers without changing equations.
 3. Keep exported tuning values on `PlayerCarController` until `CarSpecs` exists.
 4. Move one responsibility per change.
 5. Run the regression checklist before behavior-sensitive merges.
@@ -623,7 +625,7 @@ Preferred sequence for stabilization:
 Recommended next code extraction:
 
 ```text
-scripts/car/tire_model.gd
+scripts/car/vehicle_motion_model.gd
 ```
 
-The next vehicle-model change should move only lateral grip recovery and slip-intensity calculation. Steering, velocity and movement should remain in `PlayerCarController` until that smaller extraction is tested.
+The next vehicle-model change should move only horizontal velocity reconstruction and local-speed projection helpers. `move_and_slide()`, grounding and transform mutation should remain in `PlayerCarController` until local testing confirms the current split is stable.
