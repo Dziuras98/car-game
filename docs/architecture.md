@@ -46,6 +46,7 @@ scripts/
   car/
     car_controller.gd
     engine_audio.gd
+    skid_mark_emitter.gd
     tire_squeal_audio.gd
   game/
     game_manager.gd
@@ -105,11 +106,12 @@ Responsibilities currently inside the controller:
 - lateral slip approximation;
 - handbrake behavior;
 - tire slip intensity output;
-- skid mark spawning;
 - reset-to-start behavior;
 - movement through `move_and_slide()`.
 
-This is acceptable for a prototype but should not keep growing.
+Skid mark visual effects are handled by `scripts/car/skid_mark_emitter.gd`.
+
+This is acceptable for a prototype but the controller should still be split further before drivetrain and tire behavior are expanded.
 
 ### Target car architecture
 
@@ -127,9 +129,7 @@ scripts/car/
   tire_squeal_audio.gd
 ```
 
-The first extraction should be `skid_mark_emitter.gd`, because it is the least coupled part of the current controller.
-
-The second extraction should be drivetrain logic, because engine and transmission tuning will keep expanding.
+The next substantial car refactor should target drivetrain logic, because engine and transmission tuning will keep expanding.
 
 ## Race/game architecture
 
@@ -251,7 +251,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 | Risk | Severity | Reason |
 |---|---:|---|
-| `car_controller.gd` is growing into a monolith | High | Input, drivetrain, tires, VFX and movement are coupled |
+| `car_controller.gd` is still large | High | Input, drivetrain, tires and movement are still coupled |
 | Lap tracking is heuristic | Medium | Uses racing-line progress rather than physical checkpoints |
 | Track generator mixes data and scenery | Medium | Adding more tracks will duplicate or complicate logic |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
@@ -260,10 +260,10 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 ## Preferred next refactor
 
-After local validation of the current race/menu split, continue with one of these:
+After local validation of the current race/menu/UI split, continue with one of these:
 
 1. Convert procedural UI helpers into scene-driven UI.
-2. Extract skid mark visual effects from `car_controller.gd`.
-3. Add `docs/vehicle_model.md` before changing drivetrain or tire behavior.
+2. Add `docs/vehicle_model.md` before changing drivetrain or tire behavior.
+3. Extract drivetrain logic from `car_controller.gd` only after documenting the current vehicle model.
 
 Do not change car handling while race/menu/UI refactors remain untested locally.
