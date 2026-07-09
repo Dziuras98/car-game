@@ -18,7 +18,8 @@ The project currently contains:
 - free-drive and race menu flow;
 - AI opponents following the generated racing line;
 - lap, position and results UI;
-- speedometer, gear display and tachometer.
+- speedometer, gear display and tachometer;
+- test mobile touch controls for Android playtesting.
 
 The project is still a prototype. The next priority is architectural cleanup, not adding more cars or game modes.
 
@@ -59,6 +60,20 @@ Keyboard controls currently configured in `project.godot`:
 | Gear up | `E` / joypad button |
 | Gear down | `Q` / joypad button |
 
+On Android, `scripts/ui/mobile_drive_controls.gd` creates a temporary touch overlay that presses the same existing input actions. It is intended for testing, not final UI.
+
+Mobile overlay buttons:
+
+| Button | Action |
+|---|---|
+| `GAS` | `accelerate` |
+| `BRAKE` | `brake` |
+| `◀` / `▶` | `steer-left` / `steer-right` |
+| `HB` | `handbrake` |
+| `G+` / `G-` | `gear-up` / `gear-down` |
+| `RESET` | `reset-car` |
+| `CAM` | `camera-back` |
+
 ## Important files
 
 | Path | Purpose |
@@ -80,6 +95,7 @@ Keyboard controls currently configured in `project.godot`:
 | `scripts/ui/lap_position_hud.gd` | Procedural lap and race-position HUD helper |
 | `scripts/ui/results_screen.gd` | Procedural results screen helper |
 | `scripts/ui/main_menu.gd` | Main menu flow |
+| `scripts/ui/mobile_drive_controls.gd` | Test Android touch-driving overlay |
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
 | `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
@@ -104,6 +120,7 @@ The project works as a prototype, but some scripts still have too many responsib
 - `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
+- Mobile controls are a temporary testing overlay and should later become proper scene-driven UI.
 
 These should be refactored before adding more gameplay systems.
 
