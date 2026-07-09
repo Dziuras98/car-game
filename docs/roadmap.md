@@ -31,7 +31,7 @@ Tasks:
 - [x] Add `docs/architecture.md`.
 - [x] Add `docs/roadmap.md`.
 - [ ] Add `docs/controls.md` if controls grow beyond README.
-- [ ] Add `docs/vehicle_model.md` before major handling changes.
+- [x] Add `docs/vehicle_model.md` before major handling changes.
 - [ ] Add `docs/tuning_notes.md` before detailed 370Z tuning.
 
 Definition of done:
