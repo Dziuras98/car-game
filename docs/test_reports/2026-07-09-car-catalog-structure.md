@@ -89,19 +89,21 @@ This refactor intentionally does not change:
 
 ## Validation status
 
-Post-change validation is still required. Run:
+Post-change full-program smoke test was reported as successful by the project owner.
+
+Validated command/scene:
 
 ```text
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-Expected result:
+Expected passing result remains:
 
 ```text
 [SMOKE] Extended full program smoke test passed: <N> checks
 ```
 
-Recommended manual spot checks:
+Manual spot checks to repeat if this area changes again:
 
 - project opens without missing Resource errors;
 - automatic and manual 370Z scenes still instantiate;
@@ -112,6 +114,6 @@ Recommended manual spot checks:
 
 ## Next recommended work
 
-1. Run the full-program smoke test after this structure change.
-2. If it passes, record the successful result in this report.
-3. In a separate refactor, make the menu read `CarCatalog` and display model -> variant choices.
+1. Wire the current menu/game flow to `CarCatalog` instead of the flat `available_cars` array.
+2. Keep model/variant selection separate from visual redesign of the menu.
+3. Run the full-program smoke test immediately after wiring catalog-driven selection.
