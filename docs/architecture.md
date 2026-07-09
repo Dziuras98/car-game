@@ -2,7 +2,29 @@
 
 This document describes the current architecture of the Godot car game prototype and the intended direction for cleanup.
 
-It is not a final architecture. It is a baseline snapshot intended to guide incremental refactoring.
+It is not a final architecture. It is a validated baseline snapshot intended to guide incremental refactoring.
+
+## Validation status
+
+The current baseline has been manually validated in Godot Android Editor and with the extended full-program smoke test.
+
+Validated areas:
+
+- project opens without parse errors;
+- main menu flow works;
+- free-drive mode works;
+- race mode works;
+- AI opponents move after countdown;
+- player input lock/unlock works during race flow;
+- `switch-car` is allowed only in free-drive mode;
+- automatic transmission car can accelerate, brake and reverse;
+- manual transmission car can shift through forward, neutral and reverse states;
+- mobile touch controls work on Android;
+- engine and tire audio work on Android;
+- results screen and return-to-menu cleanup work;
+- post-race free-drive reentry works.
+
+The current regression gate is `scenes/tests/full_program_smoke_test.tscn`, optionally launched through `scripts/tests/run_full_program_smoke_test.gd`.
 
 ## Current composition
 
@@ -33,6 +55,8 @@ scenes/
     370zat.tscn
     player_car.tscn
     test_car.tscn
+  tests/
+    full_program_smoke_test.tscn
   tracks/
     simple_oval.tscn
     test_track.tscn
@@ -66,6 +90,9 @@ scripts/
     generated_track.gd
     lap_tracker.gd
     race_manager.gd
+  tests/
+    full_program_smoke_test.gd
+    run_full_program_smoke_test.gd
   ui/
     countdown_overlay.gd
     lap_position_hud.gd
@@ -90,11 +117,12 @@ Current flow:
 6. `GameManager` receives the menu signal.
 7. `CarSpawner` instantiates the selected car at `CarSpawn`.
 8. Camera, speedometer and minimap are pointed at the active car.
-9. In free-drive mode, player input is enabled immediately.
-10. In race mode, `CarSpawner` creates opponents and AI drivers.
-11. `RaceManager` runs the countdown and unlocks player/AI input after `START`.
-12. `LapTracker` updates lap/progress/position logic each physics tick.
-13. `RaceHud` delegates countdown, lap/position and results UI to specialized helpers.
+9. In free-drive mode, player input is enabled immediately and car switching is allowed.
+10. In race mode, car switching is blocked.
+11. In race mode, `CarSpawner` creates opponents and AI drivers.
+12. `RaceManager` runs the countdown and unlocks player/AI input after `START`.
+13. `LapTracker` updates lap/progress/position logic each physics tick.
+14. `RaceHud` delegates countdown, lap/position and results UI to specialized helpers.
 
 ## Car architecture
 
@@ -132,7 +160,7 @@ Lateral grip recovery and tire slip-intensity calculation are handled by `script
 
 Skid mark visual effects are handled by `scripts/car/skid_mark_emitter.gd`.
 
-This is acceptable for a prototype but the controller should still be split further before drivetrain and tire behavior are expanded.
+This is acceptable for a prototype and has passed the current regression test, but the controller should still be split further before drivetrain and tire behavior are expanded.
 
 ### Target car architecture
 
@@ -150,13 +178,14 @@ scripts/car/
   engine_model.gd               # RPM, torque curve, limiter
   resistance_model.gd           # drag and rolling resistance
   tire_model.gd                 # lateral grip, slip, handbrake, tire state
+  vehicle_motion_model.gd       # local/global velocity projection helpers
   skid_mark_emitter.gd          # skid mark visual effect
   car_specs.gd                  # Resource with tunable car data
   engine_audio.gd
   tire_squeal_audio.gd
 ```
 
-The next substantial car refactor should continue vehicle-controller cleanup, because gear application, steering and movement are still coupled to the controller.
+The next substantial car refactor should be narrow and behavior-preserving. Prefer extracting only local/global velocity projection helpers before touching steering, grounding or `move_and_slide()`.
 
 ## Race/game architecture
 
@@ -170,6 +199,7 @@ Current responsibilities of `GameManager`:
 - wiring camera, speedometer and minimap targets;
 - creating the temporary mobile drive controls overlay;
 - starting free-drive or race mode;
+- allowing car switching only in free-drive mode;
 - delegating race lifecycle to `RaceManager`;
 - delegating lap/progress/result-order logic to `LapTracker`;
 - delegating countdown/lap/results UI to `RaceHud`;
@@ -188,7 +218,7 @@ scripts/ui/results_screen.gd      # results list and return-to-menu button
 scripts/ui/mobile_drive_controls.gd # temporary Android touch-driving overlay
 ```
 
-This is now a better split than the original monolithic coordinator. Remaining cleanup should focus on converting procedural UI helpers into scenes and reducing `car_controller.gd`.
+This is now a validated split compared to the original monolithic coordinator. Remaining cleanup should focus on converting procedural UI helpers into scenes, reducing `car_controller.gd`, and avoiding new feature work without running the regression test.
 
 ## Track architecture
 
@@ -220,6 +250,7 @@ scripts/race/
   track_layout_resource.gd      # control points, width, racing line, metadata
   generated_track.gd            # builds drivable surface from layout
   track_decoration_builder.gd   # barriers, stadium, lights, scenery
+  checkpoint_builder.gd         # physical checkpoint and lap-validation volumes
 ```
 
 ## UI architecture
@@ -247,6 +278,20 @@ scenes/ui/
 
 UI layout should be scene-driven. Scripts should update labels, visibility and signals, not construct the whole visual hierarchy unless there is a specific reason.
 
+## Test architecture
+
+Current automated runtime test:
+
+```text
+scenes/tests/full_program_smoke_test.tscn
+scripts/tests/full_program_smoke_test.gd
+scripts/tests/run_full_program_smoke_test.gd
+```
+
+The test is an extended full-program smoke/regression test. It instantiates `scenes/main.tscn`, presses visible menu buttons, simulates input through `Input.action_press()` / `Input.action_release()`, verifies free-drive automatic/manual behavior, verifies race setup, checks `switch-car` blocking in race mode, waits through a longer AI race soak segment, simulates player finish and verifies return-to-menu cleanup.
+
+Current limitation: the test intentionally uses selected private fields and private callbacks on `GameManager` to inspect and drive state. This is acceptable for the current prototype but should later be replaced with a small diagnostic/test adapter API.
+
 ## Data architecture
 
 Current data is mostly stored in exported variables on scenes and scripts.
@@ -272,31 +317,36 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 ## Refactoring rules
 
-1. Do not change car handling while refactoring race/menu structure.
-2. Do not add new cars while extracting car systems.
-3. Keep UI extraction separate from race logic extraction.
-4. Keep procedural track changes separate from car physics changes.
-5. After each change, manually test free drive and race mode in Godot.
+1. Keep one architectural concern per change.
+2. Run `scenes/tests/full_program_smoke_test.tscn` after every gameplay, race, UI or input change.
+3. Keep car handling changes separate from race/menu/UI refactors.
+4. Do not add new cars while extracting car systems.
+5. Keep UI extraction separate from race logic extraction.
+6. Keep procedural track changes separate from car physics changes.
+7. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
 
 ## Current technical risks
 
 | Risk | Severity | Reason |
 |---|---:|---|
-| `car_controller.gd` is still large | High | Gear application, steering and movement are still coupled |
+| `car_controller.gd` is still large | High | Gear application, steering, local/global velocity projection and movement are still coupled |
+| Track generator mixes data and scenery | Medium/High | Adding more tracks will duplicate or complicate logic |
+| Lap tracking is heuristic | Medium/High | Uses racing-line progress rather than physical checkpoints |
+| Smoke test uses private `GameManager` state | Medium | Useful now, but it couples tests to implementation details |
 | Mobile controls are procedural test UI | Medium | Useful for Android testing but should later become scene-driven and configurable |
-| Lap tracking is heuristic | Medium | Uses racing-line progress rather than physical checkpoints |
-| Track generator mixes data and scenery | Medium | Adding more tracks will duplicate or complicate logic |
-| Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
 | UI is partly procedural | Medium | Harder to style, animate and maintain |
+| Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
 | Car/track lists are hardcoded | Medium | Adding content requires script and scene edits |
 
 ## Preferred next refactor
 
-After local validation of the current race/menu/UI split, continue with one of these:
+After the current validated baseline, continue in this order:
 
-1. Convert procedural UI helpers into scene-driven UI.
-2. Extract movement/velocity binding from `car_controller.gd` in small, behavior-preserving changes.
-3. Replace the temporary mobile controls overlay with scene-driven, configurable mobile UI.
-4. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
+1. Add or maintain test reports for validated baselines.
+2. Add a narrow test/diagnostic adapter so smoke tests stop reading private `GameManager` fields directly.
+3. Convert the temporary mobile controls overlay into a scene-driven UI.
+4. Extract local/global velocity projection helpers from `car_controller.gd` into a small `VehicleMotionModel`.
+5. Move car tuning into `CarSpecs` Resources.
+6. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
 
-Do not change car handling while race/menu/UI refactors remain untested locally.
+Do not continue deeper vehicle movement refactors without running the extended smoke test immediately after each step.
