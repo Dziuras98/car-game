@@ -51,7 +51,21 @@ A full-program smoke test is available at:
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-Open this scene in Godot and run it as the current scene. The test instantiates `scenes/main.tscn`, presses menu buttons, simulates driving input through `Input.action_press()` / `Input.action_release()`, checks free-drive automatic/manual flow, checks race setup, verifies that `switch-car` is blocked in race mode, simulates race finish and verifies return-to-menu cleanup.
+Recommended editor-scene flow:
+
+1. Open `scenes/tests/full_program_smoke_test.tscn`.
+2. Run it as the current scene.
+3. Watch the Output panel for `[SMOKE][PASS]` / `[SMOKE][FAIL]` lines.
+
+If you want to use Godot's script-run button instead, run this editor script:
+
+```text
+scripts/tests/run_full_program_smoke_test.gd
+```
+
+That launcher is an `@tool EditorScript` and starts the same smoke-test scene from the editor. Do not run `scripts/tests/full_program_smoke_test.gd` directly as a script; it is a normal runtime `Node` script attached to the test scene.
+
+The test instantiates `scenes/main.tscn`, presses menu buttons, simulates driving input through `Input.action_press()` / `Input.action_release()`, checks free-drive automatic/manual flow, checks race setup, verifies that `switch-car` is blocked in race mode, simulates race finish and verifies return-to-menu cleanup.
 
 The test prints `[SMOKE][PASS]` / `[SMOKE][FAIL]` lines to the Output panel and exits with status code `0` on pass or `1` on failure when run from command line.
 
@@ -98,7 +112,8 @@ Mobile overlay buttons:
 | `scenes/cars/370zat.tscn` | Automatic transmission 370Z variant |
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
-| `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner |
+| `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner attached to the smoke-test scene |
+| `scripts/tests/run_full_program_smoke_test.gd` | EditorScript launcher for the full-program smoke test scene |
 | `scripts/game/game_manager.gd` | High-level menu/free-drive/race coordinator |
 | `scripts/game/car_spawner.gd` | Player car, opponent and AI-driver instantiation helper |
 | `scripts/race/race_manager.gd` | Race lifecycle, countdown and input lock helper |
