@@ -75,11 +75,15 @@ Keyboard controls currently configured in `project.godot`:
 | `scripts/race/lap_tracker.gd` | Lap, progress, position and result-order tracking |
 | `scripts/race/ai_race_driver.gd` | Prototype AI driver |
 | `scripts/race/generated_track.gd` | Procedural track and scenery generator |
-| `scripts/ui/race_hud.gd` | Procedural countdown, lap/position and results HUD helper |
+| `scripts/ui/race_hud.gd` | Race HUD facade used by the game manager |
+| `scripts/ui/countdown_overlay.gd` | Procedural countdown overlay helper |
+| `scripts/ui/lap_position_hud.gd` | Procedural lap and race-position HUD helper |
+| `scripts/ui/results_screen.gd` | Procedural results screen helper |
 | `scripts/ui/main_menu.gd` | Main menu flow |
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
 | `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
+| `scripts/car/skid_mark_emitter.gd` | Skid mark visual-effect emitter |
 | `scripts/car/engine_audio.gd` | Procedural engine audio |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
 
@@ -87,9 +91,9 @@ Keyboard controls currently configured in `project.godot`:
 
 The project works as a prototype, but some scripts still have too many responsibilities:
 
-- `scripts/car/car_controller.gd` manages input, drivetrain, transmission, resistance, steering, tire slip, skid marks, reset and movement.
+- `scripts/car/car_controller.gd` still manages input, drivetrain, transmission, resistance, steering, tire slip, reset and movement.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
-- `scripts/ui/race_hud.gd` still builds HUD controls procedurally; it should later become scene-driven UI.
+- Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 
 These should be refactored before adding more gameplay systems.
 
