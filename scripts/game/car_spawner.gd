@@ -10,6 +10,7 @@ var _owner: Node3D
 var _car_spawn: Node3D
 var _track: Node3D
 var _available_cars: Array[PackedScene] = []
+var _available_variants: Array[CarVariantDefinition] = []
 var _current_car_index: int = -1
 var _current_car: PlayerCarController
 var _opponents: Array[PlayerCarController] = []
@@ -22,6 +23,7 @@ func configure(
 	car_spawn: Node3D,
 	track: Node3D,
 	available_car_scenes: Array[PackedScene],
+	available_car_variants: Array[CarVariantDefinition],
 	lane_spacing: float,
 	row_spacing: float
 ) -> void:
@@ -29,13 +31,14 @@ func configure(
 	_car_spawn = car_spawn
 	_track = track
 	_available_cars = available_car_scenes
+	_available_variants = available_car_variants
 	opponent_lane_spacing = lane_spacing
 	opponent_row_spacing = row_spacing
 	_rng.randomize()
 
 
 func has_available_cars() -> bool:
-	return not _available_cars.is_empty()
+	return _get_available_count() > 0
 
 
 func get_current_car() -> PlayerCarController:
@@ -47,11 +50,11 @@ func get_opponents() -> Array[PlayerCarController]:
 
 
 func spawn_player_car(car_index: int, spawn_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
-	if _owner == null or _available_cars.is_empty():
+	if _owner == null or not has_available_cars():
 		return null
 
-	var selected_car_index: int = clampi(car_index, 0, _available_cars.size() - 1)
-	var car_controller: PlayerCarController = _instantiate_car(_available_cars[selected_car_index])
+	var selected_car_index: int = clampi(car_index, 0, _get_available_count() - 1)
+	var car_controller: PlayerCarController = _instantiate_indexed_car(selected_car_index)
 	if car_controller == null:
 		return null
 
@@ -66,10 +69,10 @@ func spawn_player_car(car_index: int, spawn_transform: Transform3D, player_input
 
 
 func switch_to_next_car(spawn_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
-	if _available_cars.is_empty():
+	if not has_available_cars():
 		return null
 
-	var next_index: int = (_current_car_index + 1) % _available_cars.size()
+	var next_index: int = (_current_car_index + 1) % _get_available_count()
 	return spawn_player_car(next_index, spawn_transform, player_input_enabled)
 
 
@@ -86,19 +89,16 @@ func clear_current_car() -> void:
 
 func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 	clear_opponents()
-	if _owner == null or _car_spawn == null or _available_cars.is_empty():
+	if _owner == null or _car_spawn == null or not has_available_cars():
 		return _opponents
 
 	for opponent_index: int in opponent_count:
-		var car_scene: PackedScene = _available_cars[_rng.randi_range(0, _available_cars.size() - 1)]
-		var car_controller: PlayerCarController = _instantiate_car(car_scene)
+		var car_controller: PlayerCarController = _instantiate_opponent_car()
 		if car_controller == null:
 			continue
 
 		car_controller.name = "Opponent%d" % (opponent_index + 1)
 		car_controller.transform = _get_opponent_spawn_transform(opponent_index)
-		car_controller.manual_transmission_enabled = false
-		car_controller.automatic_transmission_enabled = true
 		car_controller.set_player_input_enabled(false)
 		car_controller.set_external_input_enabled(true)
 		_randomize_car_paint(car_controller)
@@ -137,7 +137,65 @@ func set_ai_enabled(enabled: bool) -> void:
 			ai_driver.call("set_driver_enabled", enabled)
 
 
+func _get_available_count() -> int:
+	if not _available_variants.is_empty():
+		return _available_variants.size()
+	return _available_cars.size()
+
+
+func _instantiate_indexed_car(car_index: int) -> PlayerCarController:
+	if not _available_variants.is_empty():
+		return _instantiate_variant(_available_variants[car_index])
+
+	return _instantiate_car(_available_cars[car_index])
+
+
+func _instantiate_opponent_car() -> PlayerCarController:
+	if not _available_variants.is_empty():
+		return _instantiate_variant(_get_opponent_variant())
+
+	if _available_cars.is_empty():
+		return null
+
+	var car_controller: PlayerCarController = _instantiate_car(_available_cars[_rng.randi_range(0, _available_cars.size() - 1)])
+	if car_controller != null:
+		car_controller.manual_transmission_enabled = false
+		car_controller.automatic_transmission_enabled = true
+	return car_controller
+
+
+func _get_opponent_variant() -> CarVariantDefinition:
+	var automatic_variants: Array[CarVariantDefinition] = []
+	for variant: CarVariantDefinition in _available_variants:
+		if variant == null:
+			continue
+		var specs: CarSpecs = variant.get_specs()
+		if specs == null or specs.automatic_transmission_enabled:
+			automatic_variants.append(variant)
+
+	if not automatic_variants.is_empty():
+		return automatic_variants[_rng.randi_range(0, automatic_variants.size() - 1)]
+
+	return _available_variants[_rng.randi_range(0, _available_variants.size() - 1)]
+
+
+func _instantiate_variant(variant: CarVariantDefinition) -> PlayerCarController:
+	if variant == null:
+		return null
+
+	var car_controller: PlayerCarController = _instantiate_car(variant.get_car_scene())
+	if car_controller == null:
+		return null
+
+	if variant.get_specs() != null:
+		car_controller.car_specs = variant.get_specs()
+	return car_controller
+
+
 func _instantiate_car(car_scene: PackedScene) -> PlayerCarController:
+	if car_scene == null:
+		return null
+
 	var car_instance: Node = car_scene.instantiate()
 	var car_controller: PlayerCarController = car_instance as PlayerCarController
 
