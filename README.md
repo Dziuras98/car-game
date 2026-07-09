@@ -19,7 +19,8 @@ The project currently contains:
 - AI opponents following the generated racing line;
 - lap, position and results UI;
 - speedometer, gear display and tachometer;
-- test mobile touch controls for Android playtesting.
+- test mobile touch controls for Android playtesting;
+- full-program smoke test scene for automated regression checks.
 
 The project is still a prototype. The next priority is architectural cleanup, not adding more cars or game modes.
 
@@ -41,6 +42,18 @@ The repository is intentionally small and mostly text-based, which makes it suit
 4. Run the project with `F5`.
 
 The game starts from the main scene and displays the menu before spawning the selected car.
+
+## Automated smoke test
+
+A full-program smoke test is available at:
+
+```text
+scenes/tests/full_program_smoke_test.tscn
+```
+
+Open this scene in Godot and run it as the current scene. The test instantiates `scenes/main.tscn`, presses menu buttons, simulates driving input through `Input.action_press()` / `Input.action_release()`, checks free-drive automatic/manual flow, checks race setup, verifies that `switch-car` is blocked in race mode, simulates race finish and verifies return-to-menu cleanup.
+
+The test prints `[SMOKE][PASS]` / `[SMOKE][FAIL]` lines to the Output panel and exits with status code `0` on pass or `1` on failure when run from command line.
 
 ## Controls
 
@@ -80,10 +93,12 @@ Mobile overlay buttons:
 |---|---|
 | `project.godot` | Project settings and input map |
 | `scenes/main.tscn` | Main composition scene |
+| `scenes/tests/full_program_smoke_test.tscn` | Full-program automated smoke test scene |
 | `scenes/cars/370z.tscn` | Base 370Z-style car scene |
 | `scenes/cars/370zat.tscn` | Automatic transmission 370Z variant |
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
+| `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner |
 | `scripts/game/game_manager.gd` | High-level menu/free-drive/race coordinator |
 | `scripts/game/car_spawner.gd` | Player car, opponent and AI-driver instantiation helper |
 | `scripts/race/race_manager.gd` | Race lifecycle, countdown and input lock helper |
