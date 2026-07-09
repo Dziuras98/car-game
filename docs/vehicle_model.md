@@ -2,7 +2,7 @@
 
 This document describes the current vehicle model before deeper drivetrain, tire and motion refactors.
 
-It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
+It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/automatic_transmission_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
 
 ## Current model boundaries
 
@@ -22,9 +22,10 @@ Current main files:
 
 | Path | Responsibility |
 |---|---|
-| `scripts/car/car_controller.gd` | Main movement coordinator, automatic transmission selection, shift timing, steering, tire slip and reset |
+| `scripts/car/car_controller.gd` | Main movement coordinator, shift timing, applying selected gears, steering, tire slip and reset |
 | `scripts/car/car_input.gd` | Player/external drive input sampling and input state |
 | `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
+| `scripts/car/automatic_transmission_model.gd` | Automatic gear-selection decision helper |
 | `scripts/car/engine_model.gd` | RPM state, free-rev blending, torque multiplier and rev limiter multiplier |
 | `scripts/car/drivetrain_model.gd` | Gear-ratio lookup, wheel-coupled RPM, wheel force and drive acceleration helper calculations |
 | `scripts/car/torque_converter_model.gd` | Torque converter RPM-coupling and torque-multiplication helper calculations |
@@ -247,7 +248,9 @@ If `rev_limiter_rpm <= redline_rpm`, multiplier becomes `0.0` once redline is re
 
 Manual gear-up/gear-down requests are handled by `ManualTransmissionModel`.
 
-Automatic gear-selection logic is still inside `PlayerCarController`.
+Automatic gear-selection decisions are handled by `AutomaticTransmissionModel`.
+
+`PlayerCarController` still owns applying selected gears and shift timing.
 
 `DrivetrainModel` owns gear-ratio lookup and wheel-coupled RPM helper calculations.
 
@@ -314,16 +317,20 @@ When `manual_transmission_enabled` is true, `PlayerCarController` asks `ManualTr
 
 ### Automatic transmission
 
-When `automatic_transmission_enabled` is true:
+When `automatic_transmission_enabled` is true, `PlayerCarController` calculates `lower_gear_rpm` when needed and asks `AutomaticTransmissionModel.get_requested_gear(...)` for a requested gear.
 
-- braking at near-zero speed with no throttle selects reverse;
-- throttle while not in forward gear selects first gear;
+`AutomaticTransmissionModel` owns these decisions:
+
+- braking at near-zero speed with no throttle requests reverse;
+- throttle while not in forward gear requests first gear;
 - shifting is skipped while `_shift_timer > 0.0`;
-- braking while moving can downshift if the lower gear stays below `redline_rpm * 0.97`;
-- kickdown can downshift when throttle exceeds `automatic_kickdown_throttle` and RPM is below `automatic_kickdown_rpm`;
+- braking while moving can request a downshift if the lower gear stays below `redline_rpm * 0.97`;
+- kickdown can request a downshift when throttle exceeds `automatic_kickdown_throttle` and RPM is below `automatic_kickdown_rpm`;
 - upshift threshold blends from `automatic_upshift_rpm` to `redline_rpm * 0.98` based on throttle;
 - downshift threshold is `automatic_downshift_rpm + throttle * 900.0`;
 - downshifts are blocked if the lower gear would exceed `redline_rpm * 0.97`.
+
+`PlayerCarController` still owns applying the requested gear through `_set_transmission_gear()` and shift timing.
 
 ## Torque converter model
 
@@ -597,7 +604,7 @@ Preferred sequence for stabilization:
 Recommended next code extraction:
 
 ```text
-scripts/car/automatic_transmission_model.gd
+scripts/car/shift_timer_model.gd
 ```
 
-The next drivetrain change should move only automatic gear-selection decision helpers. Applying the selected gear, shift timing and movement should remain in `PlayerCarController` until that smaller extraction is tested.
+The next drivetrain change should move only shift-timer update and delay-selection helpers. Applying the selected gear and movement should remain in `PlayerCarController` until that smaller extraction is tested.
