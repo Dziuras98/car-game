@@ -13,7 +13,7 @@ The project currently contains:
 - a Nissan 370Z-inspired prototype car scene;
 - separate manual and automatic transmission variants;
 - Resource-backed `CarSpecs` data for the 370Z manual and automatic variants;
-- model/variant/catalog Resources for future multi-variant car selection;
+- catalog-driven model/variant Resources for car selection;
 - a character-body based car controller;
 - extracted vehicle-motion helper for local/global velocity projection;
 - procedural engine and tire squeal audio;
@@ -74,7 +74,7 @@ The test instantiates `scenes/main.tscn`, presses menu buttons, simulates drivin
 
 The extended coverage includes longer automatic/manual acceleration segments, steering left/right, handbrake/slip telemetry, braking, automatic reverse from near stop, manual neutral/reverse gear checks, a longer AI race soak segment and post-race free-drive reentry.
 
-`scripts/tests/game_test_adapter.gd` centralizes smoke-test access to the current car, opponents, selected mode/track, visible buttons and simulated player finish. The test runner should use that adapter instead of directly reading `GameManager` fields.
+`scripts/tests/game_test_adapter.gd` centralizes smoke-test access to the current car, opponents, selected mode/track, selected car variant, visible buttons and simulated player finish. The test runner should use that adapter instead of directly reading `GameManager` fields.
 
 The test prints `[SMOKE][PASS]` / `[SMOKE][FAIL]` lines to the Output panel and exits with status code `0` on pass or `1` on failure when run from command line.
 
@@ -173,7 +173,7 @@ Mobile overlay buttons:
 The project works as a prototype, but some scripts still have too many responsibilities:
 
 - `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement, although local/global velocity projection and car tuning data have been partly extracted.
-- `resources/cars/catalog.tres` now defines model/variant structure, but the menu and `main.tscn` still use the existing flat `available_cars` array until the next UI/data refactor.
+- `resources/cars/catalog.tres` now drives car selection data, but the menu still displays a flat variant list; model -> variant UI is a separate later refactor.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 - Mobile controls are now scene-driven, but they are still a temporary Android testing overlay rather than final input UI.
