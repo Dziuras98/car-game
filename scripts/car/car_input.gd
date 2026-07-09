@@ -5,6 +5,8 @@ var throttle: float = 0.0
 var brake: float = 0.0
 var steering: float = 0.0
 var handbrake_active: bool = false
+var gear_up_pressed: bool = false
+var gear_down_pressed: bool = false
 
 var _player_input_enabled: bool = true
 var _external_input_enabled: bool = false
@@ -17,8 +19,7 @@ var _external_handbrake: bool = false
 func set_player_input_enabled(enabled: bool) -> void:
 	_player_input_enabled = enabled
 	if not enabled:
-		throttle = 0.0
-		brake = 0.0
+		_clear_drive_input()
 
 
 func set_external_input_enabled(enabled: bool) -> void:
@@ -39,10 +40,7 @@ func should_reset_car() -> bool:
 
 
 func read_drive_input() -> void:
-	throttle = 0.0
-	brake = 0.0
-	steering = 0.0
-	handbrake_active = false
+	_clear_drive_input()
 
 	if _external_input_enabled:
 		throttle = _external_throttle
@@ -56,3 +54,14 @@ func read_drive_input() -> void:
 		brake = Input.get_action_strength("brake")
 		steering = Input.get_action_strength("steer-right") - Input.get_action_strength("steer-left")
 		handbrake_active = Input.is_action_pressed("handbrake")
+		gear_up_pressed = Input.is_action_just_pressed("gear-up")
+		gear_down_pressed = Input.is_action_just_pressed("gear-down")
+
+
+func _clear_drive_input() -> void:
+	throttle = 0.0
+	brake = 0.0
+	steering = 0.0
+	handbrake_active = false
+	gear_up_pressed = false
+	gear_down_pressed = false

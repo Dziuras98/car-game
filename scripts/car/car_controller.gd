@@ -190,7 +190,7 @@ func _physics_process(delta: float) -> void:
 	_throttle_input = throttle
 	_brake_input = brake
 
-	_update_transmission_input(throttle, brake)
+	_update_transmission_input(throttle, brake, _car_input.gear_up_pressed, _car_input.gear_down_pressed)
 	_update_engine(throttle, delta)
 	_update_speed(throttle, brake, handbrake_active, delta)
 	_update_steering(steering, delta)
@@ -198,9 +198,14 @@ func _physics_process(delta: float) -> void:
 	_apply_velocity(delta)
 
 
-func _update_transmission_input(throttle: float, brake: float) -> void:
+func _update_transmission_input(throttle: float, brake: float, gear_up_pressed: bool, gear_down_pressed: bool) -> void:
 	if manual_transmission_enabled:
-		var requested_gear: int = _manual_transmission_model.get_requested_gear(_current_gear, gear_ratios.size())
+		var requested_gear: int = _manual_transmission_model.get_requested_gear(
+			_current_gear,
+			gear_ratios.size(),
+			gear_up_pressed,
+			gear_down_pressed
+		)
 		if requested_gear != _current_gear:
 			_set_transmission_gear(requested_gear)
 		return
