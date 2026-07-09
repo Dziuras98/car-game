@@ -15,6 +15,8 @@ The project already has enough gameplay systems to be treated as a playable prot
 - AI opponents;
 - lap/position/results UI;
 - speedometer, tachometer and minimap;
+- scene-driven mobile controls;
+- extracted vehicle-motion helper for local/global velocity projection;
 - procedural engine and tire audio.
 
 The next phase should focus on stabilizing architecture.
@@ -73,7 +75,7 @@ Definition of done:
 
 ## Phase 2 — Move race UI into scenes
 
-Status: started. Race UI is split into helper scripts, but still builds controls procedurally.
+Status: started. Race UI is split into helper scripts, but still builds controls procedurally. Mobile driving controls have already been converted to a scene.
 
 Goal: stop building race UI procedurally and make it scene-driven.
 
@@ -87,7 +89,9 @@ Tasks:
 - [x] Create `scripts/ui/lap_position_hud.gd`.
 - [ ] Create `scenes/ui/results_screen.tscn`.
 - [x] Create `scripts/ui/results_screen.gd`.
-- [ ] Wire these scenes from `main.tscn` or instantiate them from `game_manager.gd`.
+- [x] Create `scenes/ui/mobile_drive_controls.tscn`.
+- [x] Bind `scripts/ui/mobile_drive_controls.gd` to scene buttons instead of constructing controls in script.
+- [ ] Wire race UI scenes from `main.tscn` or instantiate them from `game_manager.gd`.
 - [x] Remove procedural UI construction from the race/game manager.
 
 Definition of done:
@@ -175,6 +179,28 @@ Definition of done:
 - handbrake still increases slip and reduces lateral grip;
 - steering feel is not obviously changed;
 - airborne behavior still forces tire slip to zero.
+
+## Phase 4.75 — Extract vehicle motion projection helper
+
+Status: implemented, pending local regression testing.
+
+Goal: move local/global horizontal velocity projection out of `PlayerCarController` without changing steering, grounding, gravity or `move_and_slide()`.
+
+Tasks:
+
+- [x] Create `scripts/car/vehicle_motion_model.gd`.
+- [x] Move local forward/lateral speed to global horizontal velocity projection.
+- [x] Move global horizontal velocity back to local forward/lateral speed projection.
+- [x] Keep `velocity.y`, gravity, floor stick and `move_and_slide()` in `PlayerCarController`.
+- [ ] Run `scenes/tests/full_program_smoke_test.tscn` after checkout.
+
+Definition of done:
+
+- free-drive automatic acceleration still works;
+- steering still preserves speed projection after yaw rotation;
+- handbrake/slip telemetry still behaves as before;
+- reset still clears local speeds;
+- race and post-race smoke-test flow still pass.
 
 ## Phase 5 — Introduce car specs as Resources
 
@@ -273,4 +299,4 @@ Candidate features:
 
 ## Current rule
 
-Do not add new cars, tracks or major gameplay systems until Phase 1 is locally regression-tested and Phase 2 is complete.
+Do not add new cars, tracks or major gameplay systems until the current refactor has passed the full-program smoke test and the remaining architecture tasks have a stable baseline.
