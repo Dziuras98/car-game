@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_catalog.gd" id="1_catalog"]
+[ext_resource type="Resource" path="res://resources/cars/nissan/370z/model.tres" id="2_370z"]
+
+[resource]
+script = ExtResource("1_catalog")
+models = Array[Resource]([ExtResource("2_370z")])
