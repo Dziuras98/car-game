@@ -48,6 +48,7 @@ scripts/
     car_input.gd
     engine_audio.gd
     engine_model.gd
+    resistance_model.gd
     skid_mark_emitter.gd
     tire_squeal_audio.gd
   game/
@@ -98,8 +99,6 @@ Responsibilities currently inside the controller:
 - manual and automatic transmission logic;
 - torque converter approximation;
 - wheel force calculation;
-- aerodynamic drag;
-- rolling resistance;
 - steering model;
 - lateral slip approximation;
 - handbrake behavior;
@@ -110,6 +109,8 @@ Responsibilities currently inside the controller:
 Player/external drive input is handled by `scripts/car/car_input.gd`.
 
 Engine RPM, torque curve and rev limiter multiplier are handled by `scripts/car/engine_model.gd`.
+
+Aerodynamic drag and rolling resistance are handled by `scripts/car/resistance_model.gd`.
 
 Skid mark visual effects are handled by `scripts/car/skid_mark_emitter.gd`.
 
@@ -125,6 +126,7 @@ scripts/car/
   car_input.gd                  # player/external input abstraction
   drivetrain_model.gd           # gearbox, torque converter, wheel force
   engine_model.gd               # RPM, torque curve, limiter
+  resistance_model.gd           # drag and rolling resistance
   tire_model.gd                 # lateral grip, slip, handbrake, tire state
   skid_mark_emitter.gd          # skid mark visual effect
   car_specs.gd                  # Resource with tunable car data

@@ -121,7 +121,7 @@ Definition of done:
 
 ## Phase 4 — Extract drivetrain model
 
-Status: started. Engine RPM/torque/limiter logic is split out, but transmission and wheel-force logic remain in `PlayerCarController`.
+Status: started. Engine RPM/torque/limiter and resistance logic are split out, but transmission and wheel-force logic remain in `PlayerCarController`.
 
 Goal: separate engine/transmission simulation from movement and steering.
 
@@ -130,6 +130,9 @@ Tasks:
 - [x] Create `scripts/car/engine_model.gd`.
 - [x] Move RPM calculation.
 - [x] Move torque curve calculation.
+- [x] Create `scripts/car/resistance_model.gd`.
+- [x] Move aerodynamic drag calculation.
+- [x] Move rolling resistance calculation.
 - [ ] Create `scripts/car/drivetrain_model.gd`.
 - [ ] Move manual transmission logic.
 - [ ] Move automatic transmission logic.
