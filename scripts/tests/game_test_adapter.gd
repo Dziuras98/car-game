@@ -47,6 +47,13 @@ func get_selected_track_id() -> String:
 	return str(_main.get("selected_track_id"))
 
 
+func get_selected_car_variant_id() -> StringName:
+	if _main == null:
+		return &""
+
+	return StringName(str(_main.get("selected_car_variant_id")))
+
+
 func get_menu() -> Node:
 	if _main == null:
 		return null
