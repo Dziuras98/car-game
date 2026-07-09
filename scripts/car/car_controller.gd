@@ -81,12 +81,14 @@ var _brake_input: float = 0.0
 var _tire_slip_intensity: float = 0.0
 var _car_input: CarInput = CarInput.new()
 var _engine_model: EngineModel = EngineModel.new()
+var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _skid_mark_emitter: SkidMarkEmitter
 
 
 func _ready() -> void:
 	_start_transform = global_transform
 	_prepare_engine_model()
+	_prepare_resistance_model()
 	_prepare_skid_marks()
 
 
@@ -323,20 +325,7 @@ func _update_skid_marks(delta: float) -> void:
 
 
 func _apply_resistance(delta: float) -> void:
-	if absf(_forward_speed) < 0.01:
-		return
-
-	var direction: float = signf(_forward_speed)
-	var safe_mass: float = maxf(vehicle_mass, 1.0)
-	var drag_force: float = 0.5 * air_density * drag_coefficient * frontal_area * _forward_speed * _forward_speed
-	var drag_acceleration: float = drag_force / safe_mass
-	var rolling_acceleration: float = rolling_resistance_coefficient * 9.81
-	var resistance_delta: float = (drag_acceleration + rolling_acceleration) * delta
-
-	if absf(_forward_speed) <= resistance_delta:
-		_forward_speed = 0.0
-	else:
-		_forward_speed -= direction * resistance_delta
+	_forward_speed = _resistance_model.apply(_forward_speed, delta)
 
 
 func _get_wheel_driven_rpm() -> float:
@@ -537,6 +526,16 @@ func _prepare_engine_model() -> void:
 		rpm_response
 	)
 	_engine_rpm = _engine_model.get_rpm()
+
+
+func _prepare_resistance_model() -> void:
+	_resistance_model.configure(
+		vehicle_mass,
+		drag_coefficient,
+		frontal_area,
+		air_density,
+		rolling_resistance_coefficient
+	)
 
 
 func _prepare_skid_marks() -> void:
