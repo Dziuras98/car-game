@@ -56,9 +56,12 @@ scripts/
     lap_tracker.gd
     race_manager.gd
   ui/
+    countdown_overlay.gd
+    lap_position_hud.gd
     main_menu.gd
     minimap.gd
     race_hud.gd
+    results_screen.gd
     speedometer.gd
     tachometer_gauge.gd
 ```
@@ -78,7 +81,7 @@ Current flow:
 9. In race mode, `CarSpawner` creates opponents and AI drivers.
 10. `RaceManager` runs the countdown and unlocks player/AI input after `START`.
 11. `LapTracker` updates lap/progress/position logic each physics tick.
-12. `RaceHud` shows countdown, lap/position and results UI.
+12. `RaceHud` delegates countdown, lap/position and results UI to specialized helpers.
 
 ## Car architecture
 
@@ -147,13 +150,16 @@ Current responsibilities of `GameManager`:
 Specialized helpers:
 
 ```text
-scripts/game/car_spawner.gd      # player car, opponent and AI-driver instantiation
-scripts/race/race_manager.gd     # countdown, input lock, race start/finish state
-scripts/race/lap_tracker.gd      # participant registration, laps, progress, results
-scripts/ui/race_hud.gd           # procedural countdown, lap and results UI
+scripts/game/car_spawner.gd       # player car, opponent and AI-driver instantiation
+scripts/race/race_manager.gd      # countdown, input lock, race start/finish state
+scripts/race/lap_tracker.gd       # participant registration, laps, progress, results
+scripts/ui/race_hud.gd            # UI facade used by GameManager
+scripts/ui/countdown_overlay.gd   # countdown overlay construction and visibility
+scripts/ui/lap_position_hud.gd    # lap and race-position display
+scripts/ui/results_screen.gd      # results list and return-to-menu button
 ```
 
-This is now a better split than the original monolithic coordinator. Remaining cleanup should focus on converting procedural UI into scenes and reducing `car_controller.gd`.
+This is now a better split than the original monolithic coordinator. Remaining cleanup should focus on converting procedural UI helpers into scenes and reducing `car_controller.gd`.
 
 ## Track architecture
 
@@ -193,7 +199,7 @@ Current UI approach is mixed:
 
 - `speedometer.tscn` is a proper scene with a small binding script;
 - `main_menu.gd` builds menu UI procedurally;
-- `race_hud.gd` builds countdown, lap UI and results UI procedurally;
+- `RaceHud` is a facade over procedural countdown, lap/position and results helpers;
 - `minimap.gd` draws the map and participants manually.
 
 Target direction:
@@ -256,7 +262,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 After local validation of the current race/menu split, continue with one of these:
 
-1. Convert `RaceHud` into scene-driven UI.
+1. Convert procedural UI helpers into scene-driven UI.
 2. Extract skid mark visual effects from `car_controller.gd`.
 3. Add `docs/vehicle_model.md` before changing drivetrain or tire behavior.
 
