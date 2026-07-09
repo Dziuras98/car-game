@@ -18,7 +18,8 @@ At runtime, it composes:
 - speedometer HUD;
 - minimap;
 - main menu;
-- high-level game/free-drive/race logic attached to the root node.
+- high-level game/free-drive/race logic attached to the root node;
+- temporary Android mobile driving overlay created by `GameManager`.
 
 The root node currently uses `scripts/game/game_manager.gd`.
 
@@ -69,6 +70,7 @@ scripts/
     countdown_overlay.gd
     lap_position_hud.gd
     main_menu.gd
+    mobile_drive_controls.gd
     minimap.gd
     race_hud.gd
     results_screen.gd
@@ -82,16 +84,17 @@ Current flow:
 
 1. Godot loads `scenes/main.tscn`.
 2. The root node runs `scripts/game/game_manager.gd`.
-3. The main menu is shown.
-4. The player selects mode, track and car.
-5. `GameManager` receives the menu signal.
-6. `CarSpawner` instantiates the selected car at `CarSpawn`.
-7. Camera, speedometer and minimap are pointed at the active car.
-8. In free-drive mode, player input is enabled immediately.
-9. In race mode, `CarSpawner` creates opponents and AI drivers.
-10. `RaceManager` runs the countdown and unlocks player/AI input after `START`.
-11. `LapTracker` updates lap/progress/position logic each physics tick.
-12. `RaceHud` delegates countdown, lap/position and results UI to specialized helpers.
+3. `GameManager` creates the temporary mobile drive controls overlay.
+4. The main menu is shown.
+5. The player selects mode, track and car.
+6. `GameManager` receives the menu signal.
+7. `CarSpawner` instantiates the selected car at `CarSpawn`.
+8. Camera, speedometer and minimap are pointed at the active car.
+9. In free-drive mode, player input is enabled immediately.
+10. In race mode, `CarSpawner` creates opponents and AI drivers.
+11. `RaceManager` runs the countdown and unlocks player/AI input after `START`.
+12. `LapTracker` updates lap/progress/position logic each physics tick.
+13. `RaceHud` delegates countdown, lap/position and results UI to specialized helpers.
 
 ## Car architecture
 
@@ -165,6 +168,7 @@ Current responsibilities of `GameManager`:
 - storing selected mode and track IDs;
 - delegating player/opponent spawn to `CarSpawner`;
 - wiring camera, speedometer and minimap targets;
+- creating the temporary mobile drive controls overlay;
 - starting free-drive or race mode;
 - delegating race lifecycle to `RaceManager`;
 - delegating lap/progress/result-order logic to `LapTracker`;
@@ -181,6 +185,7 @@ scripts/ui/race_hud.gd            # UI facade used by GameManager
 scripts/ui/countdown_overlay.gd   # countdown overlay construction and visibility
 scripts/ui/lap_position_hud.gd    # lap and race-position display
 scripts/ui/results_screen.gd      # results list and return-to-menu button
+scripts/ui/mobile_drive_controls.gd # temporary Android touch-driving overlay
 ```
 
 This is now a better split than the original monolithic coordinator. Remaining cleanup should focus on converting procedural UI helpers into scenes and reducing `car_controller.gd`.
@@ -224,6 +229,7 @@ Current UI approach is mixed:
 - `speedometer.tscn` is a proper scene with a small binding script;
 - `main_menu.gd` builds menu UI procedurally;
 - `RaceHud` is a facade over procedural countdown, lap/position and results helpers;
+- `MobileDriveControls` builds a temporary Android testing overlay procedurally;
 - `minimap.gd` draws the map and participants manually.
 
 Target direction:
@@ -234,6 +240,7 @@ scenes/ui/
   race_hud.tscn
   countdown_overlay.tscn
   results_screen.tscn
+  mobile_drive_controls.tscn
   speedometer.tscn
   minimap.tscn
 ```
@@ -276,6 +283,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 | Risk | Severity | Reason |
 |---|---:|---|
 | `car_controller.gd` is still large | High | Gear application, steering and movement are still coupled |
+| Mobile controls are procedural test UI | Medium | Useful for Android testing but should later become scene-driven and configurable |
 | Lap tracking is heuristic | Medium | Uses racing-line progress rather than physical checkpoints |
 | Track generator mixes data and scenery | Medium | Adding more tracks will duplicate or complicate logic |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
@@ -288,6 +296,7 @@ After local validation of the current race/menu/UI split, continue with one of t
 
 1. Convert procedural UI helpers into scene-driven UI.
 2. Extract movement/velocity binding from `car_controller.gd` in small, behavior-preserving changes.
-3. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
+3. Replace the temporary mobile controls overlay with scene-driven, configurable mobile UI.
+4. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
 
 Do not change car handling while race/menu/UI refactors remain untested locally.
