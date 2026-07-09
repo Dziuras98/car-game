@@ -13,6 +13,7 @@ The project currently contains:
 - a Nissan 370Z-inspired prototype car scene;
 - separate manual and automatic transmission variants;
 - a character-body based car controller;
+- extracted vehicle-motion helper for local/global velocity projection;
 - procedural engine and tire squeal audio;
 - generated oval track geometry;
 - free-drive and race menu flow;
@@ -146,6 +147,7 @@ Mobile overlay buttons:
 | `scripts/car/resistance_model.gd` | Aerodynamic drag and rolling resistance helper |
 | `scripts/car/torque_converter_model.gd` | Torque converter RPM-coupling and torque-multiplication helper |
 | `scripts/car/tire_model.gd` | Lateral grip recovery and tire slip-intensity helper |
+| `scripts/car/vehicle_motion_model.gd` | Local/global velocity projection helper |
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual-effect emitter |
 | `scripts/car/engine_audio.gd` | Procedural engine audio |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
@@ -157,7 +159,7 @@ Mobile overlay buttons:
 
 The project works as a prototype, but some scripts still have too many responsibilities:
 
-- `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement.
+- `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement, although local/global velocity projection has been extracted.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 - Mobile controls are now scene-driven, but they are still a temporary Android testing overlay rather than final input UI.
