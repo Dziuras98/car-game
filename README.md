@@ -86,6 +86,7 @@ Keyboard controls currently configured in `project.godot`:
 | `scripts/car/car_input.gd` | Player/external drive input helper |
 | `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
 | `scripts/car/automatic_transmission_model.gd` | Automatic gear-selection decision helper |
+| `scripts/car/shift_timer_model.gd` | Shift-timer update and delay-selection helper |
 | `scripts/car/drivetrain_model.gd` | Gear-ratio, wheel RPM, wheel-force and drive-acceleration helper |
 | `scripts/car/engine_model.gd` | Engine RPM, torque curve and rev limiter helper |
 | `scripts/car/resistance_model.gd` | Aerodynamic drag and rolling resistance helper |
@@ -99,7 +100,7 @@ Keyboard controls currently configured in `project.godot`:
 
 The project works as a prototype, but some scripts still have too many responsibilities:
 
-- `scripts/car/car_controller.gd` still manages shift timing, applying selected gears, steering, tire slip, reset and movement.
+- `scripts/car/car_controller.gd` still manages applying selected gears, steering, tire slip, reset and movement.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 
