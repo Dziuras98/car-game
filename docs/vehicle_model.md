@@ -2,7 +2,7 @@
 
 This document describes the current vehicle model before deeper drivetrain, tire and motion refactors.
 
-It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
+It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
 
 ## Current model boundaries
 
@@ -22,10 +22,11 @@ Current main files:
 
 | Path | Responsibility |
 |---|---|
-| `scripts/car/car_controller.gd` | Main movement coordinator, transmission selection, torque converter, steering, tire slip and reset |
+| `scripts/car/car_controller.gd` | Main movement coordinator, transmission selection, steering, tire slip and reset |
 | `scripts/car/car_input.gd` | Player/external drive input sampling and input state |
 | `scripts/car/engine_model.gd` | RPM state, free-rev blending, torque multiplier and rev limiter multiplier |
 | `scripts/car/drivetrain_model.gd` | Gear-ratio lookup, wheel-coupled RPM, wheel force and drive acceleration helper calculations |
+| `scripts/car/torque_converter_model.gd` | Torque converter RPM-coupling and torque-multiplication helper calculations |
 | `scripts/car/resistance_model.gd` | Aerodynamic drag and rolling resistance |
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual effect emission |
 | `scripts/car/engine_audio.gd` | Procedural engine audio driven by controller telemetry |
@@ -71,7 +72,7 @@ update_tire_model(steering, handbrake_active, delta)
 apply_velocity(delta)
 ```
 
-Future refactors should preserve this order unless the PR explicitly documents a behavior change.
+Future refactors should preserve this order unless the change explicitly documents a behavior change.
 
 ## Public telemetry and control API
 
@@ -90,7 +91,7 @@ The controller currently exposes:
 | `set_external_input_enabled(enabled)` | Enable/disable external AI input |
 | `set_external_drive_inputs(throttle, brake, steering, handbrake_active)` | Feed AI/control inputs |
 
-These methods are part of the effective integration contract with camera/HUD/audio/race/AI systems. Avoid changing their names or meanings during cleanup PRs.
+These methods are part of the effective integration contract with camera/HUD/audio/race/AI systems. Avoid changing their names or meanings during cleanup.
 
 ## Exported parameter groups
 
@@ -134,7 +135,7 @@ The current controller keeps tuning values in exported fields so car scenes can 
 - `drivetrain_efficiency`
 - `shift_delay`
 
-### Automatic transmission
+### Automatic transmission / torque converter
 
 - `automatic_upshift_rpm`
 - `automatic_downshift_rpm`
@@ -172,7 +173,7 @@ The current controller keeps tuning values in exported fields so car scenes can 
 - `gravity`
 - `floor_stick_force`
 
-Until `CarSpecs` resources exist, cleanup PRs should keep these exports on `PlayerCarController` to avoid breaking existing scene overrides.
+Until `CarSpecs` resources exist, cleanup changes should keep these exports on `PlayerCarController` to avoid breaking existing scene overrides.
 
 ## Input model
 
@@ -207,9 +208,9 @@ Reset input is only accepted when external input is disabled and player input is
 
 The controller calculates wheel-driven RPM and passes it to `EngineModel.update(throttle, wheel_rpm, delta)`.
 
-For geared transmissions, wheel-driven RPM comes from `DrivetrainModel.get_coupled_engine_rpm_for_gear(gear, forward_speed)`. For non-geared fallback behavior, the controller still maps speed ratio directly to RPM.
+For geared transmissions, wheel-driven RPM comes from `DrivetrainModel.get_coupled_engine_rpm_for_gear(gear, forward_speed)`. For automatic transmission, that coupled RPM is passed through `TorqueConverterModel.get_coupled_rpm(coupled_rpm, drive_input)`. For non-geared fallback behavior, the controller still maps speed ratio directly to RPM.
 
-The engine model then calculates:
+The engine model calculates:
 
 ```text
 free_rev_rpm = idle_rpm + throttle * (redline_rpm - idle_rpm) * 0.35
@@ -316,16 +317,21 @@ When `automatic_transmission_enabled` is true:
 
 ## Torque converter model
 
-Torque converter logic is still inside `PlayerCarController`.
+`TorqueConverterModel` owns torque converter RPM coupling and torque multiplication. `PlayerCarController` still decides when automatic mode is active and which drive input to pass to the helper.
 
 ### RPM coupling
 
 For automatic transmission, wheel-coupled RPM is passed through `_get_torque_converter_rpm(coupled_rpm)`.
 
-The model calculates:
+The controller derives:
 
 ```text
 drive_input = brake if current gear is reverse else throttle
+```
+
+Then `TorqueConverterModel.get_coupled_rpm(coupled_rpm, drive_input)` calculates:
+
+```text
 stall_target_rpm = lerp(idle_rpm, torque_converter_stall_rpm, drive_input)
 unlocked_rpm = max(coupled_rpm, stall_target_rpm)
 coupling_ratio = clamp((coupled_rpm - idle_rpm) / (torque_converter_coupling_rpm - idle_rpm), 0.0, 1.0)
@@ -334,7 +340,9 @@ engine_rpm = lerp(unlocked_rpm, coupled_rpm, coupling_ratio)
 
 ### Torque multiplication
 
-For automatic transmission, drive force uses torque converter torque multiplication:
+For automatic transmission, drive force uses torque converter torque multiplication.
+
+`TorqueConverterModel.get_torque_multiplier(engine_rpm, drive_input)` calculates:
 
 ```text
 coupling_ratio = clamp((engine_rpm - idle_rpm) / (torque_converter_coupling_rpm - idle_rpm), 0.0, 1.0)
@@ -342,7 +350,7 @@ slipping_multiplier = lerp(torque_converter_stall_torque_multiplier, 1.0, coupli
 converter_multiplier = lerp(1.0, slipping_multiplier, drive_input)
 ```
 
-Manual and non-automatic modes use multiplier `1.0`.
+Manual and non-automatic modes still use multiplier `1.0` from `PlayerCarController`.
 
 ## Drive force model
 
@@ -573,13 +581,13 @@ Preferred sequence for stabilization:
 1. Keep this document updated.
 2. Extract drivetrain helpers without changing equations.
 3. Keep exported tuning values on `PlayerCarController` until `CarSpecs` exists.
-4. Move one responsibility per PR.
-5. Run the regression checklist before merging behavior-sensitive PRs.
+4. Move one responsibility per change.
+5. Run the regression checklist before behavior-sensitive merges.
 
 Recommended next code extraction:
 
 ```text
-scripts/car/torque_converter_model.gd
+scripts/car/manual_transmission_model.gd
 ```
 
-The next drivetrain PR should move only the torque converter RPM-coupling and torque-multiplication helpers. Manual/automatic gear-selection logic should remain in `PlayerCarController` until that smaller extraction is tested.
+The next drivetrain change should move only manual transmission gear-up/gear-down and shift-timer helpers. Automatic gear selection should remain in `PlayerCarController` until that smaller extraction is tested.
