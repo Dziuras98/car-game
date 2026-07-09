@@ -1,8 +1,8 @@
 # Vehicle model baseline
 
-This document describes the current vehicle model before deeper drivetrain, tire and motion refactors.
+This document describes the current vehicle model after the runtime, powertrain, chassis and reset extraction.
 
-It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/automatic_transmission_model.gd`, `scripts/car/shift_timer_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/tire_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
+It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/car_runtime_state.gd`, `scripts/car/car_drive_config.gd`, `scripts/car/car_powertrain_controller.gd`, `scripts/car/car_chassis_controller.gd`, `scripts/car/car_reset_controller.gd`, drivetrain code, tire code and tuning Resources.
 
 ## Current model boundaries
 
@@ -22,7 +22,13 @@ Current main files:
 
 | Path | Responsibility |
 |---|---|
-| `scripts/car/car_controller.gd` | Main movement coordinator, applying selected gears, steering, grounding, skid-mark dispatch and reset |
+| `scripts/car/car_controller.gd` | Thin runtime coordinator and public telemetry/control API |
+| `scripts/car/car_runtime_state.gd` | Runtime forward/lateral speed, RPM, gear, shift timer, input snapshot, tire slip and start transform |
+| `scripts/car/car_drive_config.gd` | Sanitized runtime copy of car tuning values |
+| `scripts/car/car_drive_config_builder.gd` | Builds runtime config from `CarSpecs` first or legacy controller exports as fallback |
+| `scripts/car/car_powertrain_controller.gd` | Transmission input, shift timer, engine RPM, torque, resistance and forward-speed update |
+| `scripts/car/car_chassis_controller.gd` | Steering, slip-limited steering, tire model update, skid dispatch, gravity and `move_and_slide()` |
+| `scripts/car/car_reset_controller.gd` | Reset-to-start coordination |
 | `scripts/car/car_input.gd` | Player/external drive input sampling and input state |
 | `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
 | `scripts/car/automatic_transmission_model.gd` | Automatic gear-selection decision helper |
@@ -32,7 +38,9 @@ Current main files:
 | `scripts/car/torque_converter_model.gd` | Torque converter RPM-coupling and torque-multiplication helper calculations |
 | `scripts/car/tire_model.gd` | Lateral grip recovery and tire slip-intensity helper calculations |
 | `scripts/car/resistance_model.gd` | Aerodynamic drag and rolling resistance |
+| `scripts/car/vehicle_motion_model.gd` | Local forward/lateral speed to global horizontal velocity projection and reverse projection |
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual effect emission |
+| `scripts/car/car_specs.gd` | Resource-backed tuning data |
 | `scripts/car/engine_audio.gd` | Procedural engine audio driven by controller telemetry |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire audio driven by tire slip intensity |
 
@@ -43,44 +51,43 @@ The current model is intentionally simple and game-oriented. It is not a full ri
 The current `PlayerCarController._physics_process(delta)` flow is:
 
 1. Check reset input through `CarInput`.
-2. Update shift timer through `ShiftTimerModel`.
-3. Read player or external AI drive input.
-4. Store throttle and brake telemetry for HUD/audio/engine-load output.
-5. Update transmission input.
-6. Update engine RPM.
-7. Update forward speed.
-8. Update steering/yaw.
-9. Update tire slip model through `TireModel` and handle grounded/skid-mark behavior.
-10. Apply velocity through `move_and_slide()`.
+2. If reset was requested, delegate reset to `CarResetController` and return.
+3. Read player or external AI drive input through `CarInput`.
+4. Store throttle/brake telemetry in `CarRuntimeState`.
+5. Let `CarPowertrainController` update shift timer, transmission state, engine RPM and forward speed.
+6. Let `CarChassisController` update steering/yaw.
+7. Let `CarChassisController` update tire recovery, slip intensity and skid mark dispatch.
+8. Let `CarChassisController` apply horizontal velocity, floor stick/gravity and `move_and_slide()`.
 
 In simplified pseudocode:
 
 ```gdscript
 if car_input.should_reset_car():
-    reset_to_start()
+    reset_controller.reset_to_start(...)
     return
 
-shift_timer = shift_timer_model.update_timer(shift_timer, delta)
 car_input.read_drive_input()
 
-throttle = car_input.throttle
-brake = car_input.brake
-steering = car_input.steering
-handbrake_active = car_input.handbrake_active
-
-update_transmission_input(throttle, brake)
-update_engine(throttle, delta)
-update_speed(throttle, brake, handbrake_active, delta)
-update_steering(steering, delta)
-update_tire_model(steering, handbrake_active, delta)
-apply_velocity(delta)
+state.set_drive_input_snapshot(car_input.throttle, car_input.brake)
+powertrain_controller.update(
+    state,
+    car_input.throttle,
+    car_input.brake,
+    car_input.handbrake_active,
+    car_input.gear_up_pressed,
+    car_input.gear_down_pressed,
+    delta
+)
+chassis_controller.update_steering(state, car_input.steering, self, delta)
+chassis_controller.update_tires(state, car_input.steering, car_input.handbrake_active, self, skid_mark_emitter, delta)
+chassis_controller.apply_velocity(state, self, delta)
 ```
 
 Future refactors should preserve this order unless the change explicitly documents a behavior change.
 
 ## Public telemetry and control API
 
-The controller currently exposes:
+`PlayerCarController` exposes:
 
 | Method | Purpose |
 |---|---|
@@ -95,89 +102,60 @@ The controller currently exposes:
 | `set_external_input_enabled(enabled)` | Enable/disable external AI input |
 | `set_external_drive_inputs(throttle, brake, steering, handbrake_active)` | Feed AI/control inputs |
 
-These methods are part of the effective integration contract with camera/HUD/audio/race/AI systems. Avoid changing their names or meanings during cleanup.
+Current test/debug helpers:
 
-## Exported parameter groups
+| Method | Purpose |
+|---|---|
+| `get_current_gear_for_test()` | Returns runtime gear integer |
+| `get_lateral_speed_for_test()` | Returns runtime lateral speed |
 
-The current controller keeps tuning values in exported fields so car scenes can override them in the Godot inspector.
+These methods are part of the effective integration contract with UI, audio, race and AI systems. Avoid changing their names or meanings during cleanup.
 
-### Driving
+## Tuning data path
 
-- `acceleration`
-- `brake_deceleration`
-- `reverse_acceleration`
-- `coast_deceleration`
-- `handbrake_deceleration`
-- `max_forward_speed`
-- `max_reverse_speed`
-- `steering_speed`
-- `wheel_base`
-- `max_steering_angle_degrees`
+Preferred runtime data flow:
 
-### Engine
+```text
+CarVariantDefinition -> CarSpecs -> CarDriveConfig -> runtime controllers
+```
 
-- `idle_rpm`
-- `peak_torque_rpm`
-- `redline_rpm`
-- `rev_limiter_rpm`
-- `low_rpm_torque_multiplier`
-- `mid_rpm_torque_multiplier`
-- `redline_torque_multiplier`
-- `engine_force`
-- `engine_brake_force`
-- `rpm_response`
+Fallback runtime data flow:
 
-### Transmission / drivetrain
+```text
+PlayerCarController legacy exports -> CarDriveConfig -> runtime controllers
+```
 
-- `manual_transmission_enabled`
-- `automatic_transmission_enabled`
-- `gear_ratios`
-- `reverse_gear_ratio`
-- `final_drive_ratio`
-- `peak_engine_torque`
-- `wheel_radius`
-- `drivetrain_efficiency`
-- `shift_delay`
+`CarSpecs` is the Resource-backed source used by the current catalog-driven 370Z variants. Legacy export fields remain on `PlayerCarController` for scene compatibility and fallback behavior when `car_specs == null`.
 
-### Automatic transmission / torque converter
+Current `CarSpecs`/`CarDriveConfig` groups:
 
-- `automatic_upshift_rpm`
-- `automatic_downshift_rpm`
-- `automatic_kickdown_throttle`
-- `automatic_kickdown_rpm`
-- `automatic_shift_delay`
-- `torque_converter_stall_rpm`
-- `torque_converter_coupling_rpm`
-- `torque_converter_stall_torque_multiplier`
+- driving;
+- engine;
+- transmission/drivetrain;
+- automatic transmission/torque converter;
+- resistance;
+- tires/skid marks;
+- grounding.
 
-### Resistance
+Cleanup rule: add a new tuning field only if it is copied consistently through `CarSpecs`, `CarDriveConfig`, `CarDriveConfig.duplicate_config()`, `CarDriveConfigBuilder` and relevant tests.
 
-- `vehicle_mass`
-- `drag_coefficient`
-- `frontal_area`
-- `air_density`
-- `rolling_resistance_coefficient`
+## Runtime state
 
-### Tires and skid marks
+`CarRuntimeState` owns the mutable driving state:
 
-- `lateral_grip`
-- `handbrake_lateral_grip_multiplier`
-- `steering_slip_gain`
-- `slip_speed_threshold`
-- `slip_steering_lock_threshold`
-- `slip_steering_same_direction_multiplier`
-- `skid_mark_min_slip`
-- `skid_mark_interval`
-- `skid_mark_lifetime`
-- `skid_mark_width`
-- `skid_mark_length`
+| Field | Meaning |
+|---|---|
+| `start_transform` | Captured reset target transform |
+| `forward_speed` | Local forward speed |
+| `lateral_speed` | Local lateral speed |
+| `engine_rpm` | Current engine RPM |
+| `current_gear` | `-1` reverse, `0` neutral, `1..N` forward |
+| `shift_timer` | Remaining shift delay |
+| `throttle_input` | Last throttle telemetry snapshot |
+| `brake_input` | Last brake telemetry snapshot |
+| `tire_slip_intensity` | Current slip telemetry |
 
-### Grounding
-
-- `gravity`
-- `floor_stick_force`
-
-Until `CarSpecs` resources exist, cleanup changes should keep these exports on `PlayerCarController` to avoid breaking existing scene overrides.
+`reset_drive_state(idle_rpm)` clears local speeds, resets RPM to the requested idle RPM, resets current gear to first gear, clears shift timer, clears input telemetry and clears tire slip.
 
 ## Input model
 
@@ -191,6 +169,8 @@ Player input reads:
 | `brake` | `Input.get_action_strength("brake")` |
 | `steering` | `steer-right - steer-left` |
 | `handbrake_active` | `Input.is_action_pressed("handbrake")` |
+| `gear_up_pressed` | `Input.is_action_just_pressed("gear-up")` |
+| `gear_down_pressed` | `Input.is_action_just_pressed("gear-down")` |
 | reset check | `Input.is_action_just_pressed("reset-car")` |
 
 External input is used by AI and is clamped to:
@@ -204,59 +184,17 @@ External input is used by AI and is clamped to:
 
 Reset input is only accepted when external input is disabled and player input is enabled.
 
-## Engine model
+## Powertrain model
 
-`EngineModel` owns current RPM and engine multiplier helpers.
+`CarPowertrainController` owns the runtime powertrain update.
 
-### RPM update
+Per physics frame, it:
 
-The controller calculates wheel-driven RPM and passes it to `EngineModel.update(throttle, wheel_rpm, delta)`.
-
-For geared transmissions, wheel-driven RPM comes from `DrivetrainModel.get_coupled_engine_rpm_for_gear(gear, forward_speed)`. For automatic transmission, that coupled RPM is passed through `TorqueConverterModel.get_coupled_rpm(coupled_rpm, drive_input)`. For non-geared fallback behavior, the controller still maps speed ratio directly to RPM.
-
-The engine model calculates:
-
-```text
-free_rev_rpm = idle_rpm + throttle * (redline_rpm - idle_rpm) * 0.35
-target_rpm = max(wheel_rpm, free_rev_rpm)
-rpm_blend = 1.0 - exp(-rpm_response * delta)
-current_rpm = lerp(current_rpm, target_rpm, rpm_blend)
-current_rpm = clamp(current_rpm, idle_rpm, rev_limiter_rpm)
-```
-
-### Torque multiplier
-
-Torque multiplier is a piecewise smooth curve:
-
-1. low RPM blends from `low_rpm_torque_multiplier` to `mid_rpm_torque_multiplier`;
-2. mid RPM blends from `mid_rpm_torque_multiplier` to `1.0` around `peak_torque_rpm`;
-3. high RPM blends from `1.0` to `redline_torque_multiplier` near redline.
-
-The helper uses a local smoothstep function:
-
-```text
-smoothstep(x) = x * x * (3.0 - 2.0 * x)
-```
-
-### Rev limiter multiplier
-
-Below `redline_rpm`, limiter multiplier is `1.0`.
-
-Between `redline_rpm` and `rev_limiter_rpm`, multiplier fades toward `0.0`.
-
-If `rev_limiter_rpm <= redline_rpm`, multiplier becomes `0.0` once redline is reached.
-
-## Transmission and wheel RPM
-
-Manual gear-up/gear-down requests are handled by `ManualTransmissionModel`.
-
-Automatic gear-selection decisions are handled by `AutomaticTransmissionModel`.
-
-Shift-timer update and shift-delay selection are handled by `ShiftTimerModel`.
-
-`PlayerCarController` still owns applying selected gears.
-
-`DrivetrainModel` owns gear-ratio lookup and wheel-coupled RPM helper calculations.
+1. decays `state.shift_timer` through `ShiftTimerModel`;
+2. handles manual or automatic transmission requests;
+3. updates engine RPM through `EngineModel`;
+4. updates local forward speed through drivetrain acceleration, braking, coasting, engine braking, handbrake deceleration and resistance;
+5. clamps forward speed to configured forward/reverse limits.
 
 ### Gear conventions
 
@@ -283,349 +221,135 @@ Fallback non-geared display:
 - positive forward speed => `D`
 - otherwise => `N`
 
-### Gear-ratio lookup
-
-`DrivetrainModel.get_gear_ratio_for_gear(gear)` returns:
-
-- `reverse_gear_ratio` when gear is negative;
-- `1.0` when `gear_ratios` is empty;
-- otherwise `gear_ratios[clamped_gear_index]`.
-
-### Wheel-coupled engine RPM
-
-`DrivetrainModel.get_coupled_engine_rpm_for_gear(gear, forward_speed)` calculates:
-
-```text
-wheel_circumference = TAU * wheel_radius
-wheel_rpm = abs(forward_speed) / wheel_circumference * 60.0
-coupled_rpm = max(idle_rpm, wheel_rpm * gear_ratio * final_drive_ratio)
-```
-
-If wheel circumference is invalid, it returns `idle_rpm`.
-
 ### Manual transmission
 
-When `manual_transmission_enabled` is true, `PlayerCarController` asks `ManualTransmissionModel.get_requested_gear(current_gear, gear_ratios.size())` for a requested gear.
+`ManualTransmissionModel` increments gear on `gear-up`, decrements gear on `gear-down`, clamps the minimum to reverse and clamps the maximum to the configured forward gear count.
 
-`ManualTransmissionModel`:
-
-- increments gear when `gear-up` is pressed, up to `gear_ratios.size()`;
-- decrements gear when `gear-down` is pressed, down to `-1`;
-- returns unchanged gear when there is no gear request.
-
-`PlayerCarController` still owns applying the requested gear through `_set_transmission_gear()`.
+`CarPowertrainController` applies the requested gear and sets shift delay through `ShiftTimerModel`.
 
 ### Automatic transmission
-
-When `automatic_transmission_enabled` is true, `PlayerCarController` calculates `lower_gear_rpm` when needed and asks `AutomaticTransmissionModel.get_requested_gear(...)` for a requested gear.
 
 `AutomaticTransmissionModel` owns these decisions:
 
 - braking at near-zero speed with no throttle requests reverse;
 - throttle while not in forward gear requests first gear;
-- shifting is skipped while `_shift_timer > 0.0`;
+- shifting is skipped while `shift_timer > 0.0`;
 - braking while moving can request a downshift if the lower gear stays below `redline_rpm * 0.97`;
 - kickdown can request a downshift when throttle exceeds `automatic_kickdown_throttle` and RPM is below `automatic_kickdown_rpm`;
 - upshift threshold blends from `automatic_upshift_rpm` to `redline_rpm * 0.98` based on throttle;
 - downshift threshold is `automatic_downshift_rpm + throttle * 900.0`;
 - downshifts are blocked if the lower gear would exceed `redline_rpm * 0.97`.
 
-`PlayerCarController` still owns applying the requested gear through `_set_transmission_gear()`.
+### Engine model
 
-### Shift timing
+`EngineModel` owns current RPM and engine multiplier helpers.
 
-`ShiftTimerModel.update_timer(current_timer, delta)` handles timer decay:
+The powertrain calculates wheel-driven RPM and passes it to `EngineModel.update(throttle, wheel_rpm, delta)`.
 
-```text
-if current_timer <= 0.0:
-    return 0.0
-return max(current_timer - delta, 0.0)
-```
+For geared transmissions, wheel-driven RPM comes from `DrivetrainModel.get_coupled_engine_rpm_for_gear(gear, forward_speed)`. For automatic transmission, that coupled RPM is passed through `TorqueConverterModel.get_coupled_rpm(coupled_rpm, drive_input)`. For non-geared fallback behavior, the powertrain maps speed ratio directly to RPM.
 
-`ShiftTimerModel.get_shift_delay(automatic_enabled, automatic_delay, manual_delay)` selects:
+RPM update:
 
 ```text
-automatic_delay if automatic_enabled else manual_delay
+free_rev_rpm = idle_rpm + throttle * (redline_rpm - idle_rpm) * 0.35
+target_rpm = max(wheel_rpm, free_rev_rpm)
+rpm_blend = 1.0 - exp(-rpm_response * delta)
+current_rpm = lerp(current_rpm, target_rpm, rpm_blend)
+current_rpm = clamp(current_rpm, idle_rpm, rev_limiter_rpm)
 ```
 
-`PlayerCarController` still owns storing `_shift_timer` and deciding when `_set_transmission_gear()` is called.
+### Resistance
 
-Drive force is still disabled while `manual_transmission_enabled and _shift_timer > 0.0`.
+`ResistanceModel` applies aerodynamic drag and rolling resistance to local forward speed after throttle/brake/coast/handbrake changes.
 
-## Torque converter model
+## Chassis model
 
-`TorqueConverterModel` owns torque converter RPM coupling and torque multiplication. `PlayerCarController` still decides when automatic mode is active and which drive input to pass to the helper.
+`CarChassisController` owns steering, tire update and movement application.
 
-### RPM coupling
+### Steering
 
-For automatic transmission, wheel-coupled RPM is passed through `_get_torque_converter_rpm(coupled_rpm)`.
+`update_steering()`:
 
-The controller derives:
+1. clamps steering input to `-1.0..1.0`;
+2. reduces same-direction steering under high lateral slip;
+3. ignores steering if steering amount is tiny or forward speed is below a small threshold;
+4. stores the current global horizontal velocity;
+5. computes speed-based steering limit;
+6. computes yaw rate from steering angle, forward speed, wheel base and grip factor;
+7. rotates the car around Y;
+8. converts the preserved horizontal velocity back into local forward/lateral speeds after yaw rotation.
 
-```text
-drive_input = brake if current gear is reverse else throttle
-```
+### Tire slip
 
-Then `TorqueConverterModel.get_coupled_rpm(coupled_rpm, drive_input)` calculates:
+`update_tires()`:
 
-```text
-stall_target_rpm = lerp(idle_rpm, torque_converter_stall_rpm, drive_input)
-unlocked_rpm = max(coupled_rpm, stall_target_rpm)
-coupling_ratio = clamp((coupled_rpm - idle_rpm) / (torque_converter_coupling_rpm - idle_rpm), 0.0, 1.0)
-engine_rpm = lerp(unlocked_rpm, coupled_rpm, coupling_ratio)
-```
+1. recovers lateral speed toward zero through `TireModel.recover_lateral_speed()`;
+2. calculates tire slip intensity through `TireModel.calculate_slip_intensity()`;
+3. forces slip intensity to zero when airborne;
+4. dispatches skid-mark updates when grounded.
 
-### Torque multiplication
+### Velocity and grounding
 
-For automatic transmission, drive force uses torque converter torque multiplication.
+`apply_velocity()`:
 
-`TorqueConverterModel.get_torque_multiplier(engine_rpm, drive_input)` calculates:
+1. converts local forward/lateral speeds to global horizontal velocity through `VehicleMotionModel`;
+2. assigns `velocity.x` and `velocity.z`;
+3. applies floor stick when grounded;
+4. applies gravity when airborne;
+5. calls `move_and_slide()`.
 
-```text
-coupling_ratio = clamp((engine_rpm - idle_rpm) / (torque_converter_coupling_rpm - idle_rpm), 0.0, 1.0)
-slipping_multiplier = lerp(torque_converter_stall_torque_multiplier, 1.0, coupling_ratio)
-converter_multiplier = lerp(1.0, slipping_multiplier, drive_input)
-```
-
-Manual and non-automatic modes still use multiplier `1.0` from `PlayerCarController`.
-
-## Drive force model
-
-`DrivetrainModel` owns wheel-force and geared drive-acceleration helper calculations.
-
-For geared transmission, drive acceleration is calculated as:
-
-```text
-wheel_force = wheel_drive_force(throttle)
-drive_acceleration = wheel_force / vehicle_mass
-forward_speed += drive_acceleration * delta
-```
-
-Wheel force is:
-
-```text
-engine_torque = peak_engine_torque * torque_multiplier * rev_limiter_multiplier * throttle * converter_multiplier
-wheel_torque = engine_torque * gear_ratio * final_drive_ratio * drivetrain_efficiency
-wheel_force = wheel_torque / wheel_radius * drive_direction
-```
-
-Drive direction is `-1.0` in reverse gear and `1.0` otherwise.
-
-If `gear_ratios` is empty, current gear is neutral, or manual shift delay is active, geared drive acceleration is `0.0`.
-
-For non-geared fallback behavior, forward acceleration still remains in `PlayerCarController` and uses:
-
-```text
-forward_speed += throttle * engine_force * torque_multiplier * rev_limiter_multiplier * delta
-```
-
-## Braking, coasting and resistance
-
-`_update_speed()` handles braking and coasting before applying resistance.
-
-### Braking
-
-Manual transmission:
-
-```text
-forward_speed = move_toward(forward_speed, 0.0, brake_deceleration * brake * delta)
-```
-
-Automatic transmission:
-
-- if moving forward or throttle is active, brake slows toward zero;
-- if nearly stopped and braking, reverse gear is selected and reverse drive acceleration is applied.
-
-Non-geared fallback:
-
-- if moving forward, brake slows toward zero;
-- otherwise brake accelerates backward using `reverse_acceleration`.
-
-### Coasting and engine braking
-
-When throttle and brake are both zero:
-
-```text
-forward_speed = move_toward(forward_speed, 0.0, coast_deceleration * delta)
-```
-
-When throttle is zero and forward speed is positive:
-
-```text
-forward_speed = move_toward(forward_speed, 0.0, engine_brake_force * delta)
-```
-
-### Handbrake longitudinal effect
-
-When handbrake is active:
-
-```text
-forward_speed = move_toward(forward_speed, 0.0, handbrake_deceleration * delta)
-```
-
-### Resistance model
-
-`ResistanceModel.apply(forward_speed, delta)` applies:
-
-```text
-drag_force = 0.5 * air_density * drag_coefficient * frontal_area * forward_speed^2
-drag_acceleration = drag_force / max(vehicle_mass, 1.0)
-rolling_acceleration = rolling_resistance_coefficient * 9.81
-resistance_delta = (drag_acceleration + rolling_acceleration) * delta
-```
-
-If `abs(forward_speed) <= resistance_delta`, speed becomes `0.0`. Otherwise speed is reduced against the sign of current speed.
-
-Finally, forward speed is clamped:
-
-```text
-forward_speed = clamp(forward_speed, -max_reverse_speed, max_forward_speed)
-```
-
-## Steering model
-
-Steering is applied after speed update.
-
-If steering amount is near zero or absolute forward speed is below `0.35`, steering update exits early.
-
-Otherwise:
-
-```text
-horizontal_velocity = current forward/right velocity vector
-speed_ratio = clamp(abs(forward_speed) / max_forward_speed, 0.0, 1.0)
-high_speed_steering_limit = lerp(1.0, 0.42, smoothstep(speed_ratio))
-steer_angle = deg_to_rad(max_steering_angle_degrees) * steering_amount * high_speed_steering_limit
-grip_factor = lerp(1.0, 0.38, tire_slip_intensity)
-yaw_rate = tan(steer_angle) * forward_speed / wheel_base * grip_factor
-yaw_rate = clamp(yaw_rate, -steering_speed, steering_speed)
-rotate_y(-yaw_rate * delta)
-```
-
-After rotation, local forward/lateral speeds are recalculated from the pre-rotation horizontal velocity vector.
-
-## Slip-limited steering
-
-Steering input is still limited inside `PlayerCarController` when lateral slip is high.
-
-```text
-lateral_slip_ratio = abs(lateral_speed) / slip_speed_threshold
-```
-
-If `lateral_slip_ratio < slip_steering_lock_threshold`, steering is unchanged.
-
-If steering is opposite the slip direction, steering is unchanged.
-
-If steering is in the same direction as the slip, steering is multiplied down toward `slip_steering_same_direction_multiplier` as slip rises above the threshold.
-
-This gives the prototype a simple counter-steer-friendly behavior: steering into the slide becomes less effective than steering against the slide.
-
-## Tire model
-
-`TireModel` handles lateral grip recovery and slip-intensity calculation. It does not own steering, grounding, skid-mark dispatch or movement.
-
-Lateral speed recovery:
-
-```text
-grip_multiplier = handbrake_lateral_grip_multiplier if handbrake_active else 1.0
-active_lateral_grip = max(lateral_grip * grip_multiplier, 0.1)
-lateral_speed = move_toward(lateral_speed, 0.0, active_lateral_grip * delta)
-```
-
-Slip intensity:
-
-```text
-absolute_forward_speed = abs(forward_speed)
-lateral_ratio = abs(lateral_speed) / max(slip_speed_threshold, 0.1)
-steering_load = abs(steering) * absolute_forward_speed * steering_slip_gain / max(max_forward_speed, 1.0)
-handbrake_bonus = 0.35 if handbrake_active and absolute_forward_speed > 4.0 else 0.0
-tire_slip_intensity = clamp(lateral_ratio + steering_load + handbrake_bonus, 0.0, 1.0)
-```
-
-If the car is not on the floor, `PlayerCarController` still forces tire slip intensity to `0.0` and skips skid mark update.
-
-Skid marks are emitted by `SkidMarkEmitter` when tire slip exceeds the configured threshold.
-
-## Velocity and grounding
-
-Horizontal velocity is reconstructed from local forward and lateral speeds:
-
-```text
-horizontal_velocity = -global_transform.basis.z.normalized() * forward_speed
-                    + global_transform.basis.x.normalized() * lateral_speed
-```
-
-Then:
-
-```text
-velocity.x = horizontal_velocity.x
-velocity.z = horizontal_velocity.z
-```
-
-Vertical behavior:
-
-- if on floor: `velocity.y = -floor_stick_force`;
-- otherwise: `velocity.y -= gravity * delta`.
-
-Movement is applied with:
-
-```gdscript
-move_and_slide()
-```
+This keeps the game-oriented `CharacterBody3D` approach. There is no wheel collider or full rigid-body suspension simulation yet.
 
 ## Reset behavior
 
-Reset restores:
+`CarResetController` owns reset-to-start coordination.
 
-- global transform to `_start_transform`;
-- `velocity` to `Vector3.ZERO`;
-- `_forward_speed` to `0.0`;
-- `_lateral_speed` to `0.0`;
-- engine RPM to idle through `EngineModel.reset()`;
-- current gear to `1`;
-- shift timer to `0.0`;
-- throttle/brake telemetry to `0.0`;
-- tire slip intensity to `0.0`;
-- skid mark emitter timer.
+On reset:
 
-Reset does not currently reset external input values inside `CarInput`.
+- the car global transform is restored to `state.start_transform`;
+- Godot body velocity is cleared;
+- runtime drive state is reset using the active config idle RPM;
+- powertrain RPM state is reset;
+- skid mark timer is reset if the emitter exists.
 
-## Regression checklist for future vehicle refactors
+Current design choice: reset returns the current gear to first gear. This is arcade-friendly and covered by the runtime config test. If the manual transmission should later reset to neutral, that should be an explicit behavior change and test update.
 
-After any vehicle-model refactor, test both manual and automatic variants:
+## Current limitations
 
-1. Project opens without script parse errors.
-2. Free drive spawns the selected car.
-3. Player input works: accelerate, brake, steering, handbrake, reset.
-4. AI external input still drives opponent cars.
-5. Speedometer still tracks speed.
-6. Tachometer still tracks RPM.
-7. Engine audio still follows RPM/load/throttle.
-8. Tire squeal still follows tire slip.
-9. Skid marks still appear only during meaningful slip and fade out.
-10. Manual gear up/down still works.
-11. Automatic starts in forward drive on throttle.
-12. Automatic selects reverse from near stop when braking.
-13. Automatic upshifts and downshifts under normal driving.
-14. Kickdown downshift still works under high throttle.
-15. Reset returns car position, speed and RPM to baseline.
-16. Coasting and engine braking still feel unchanged.
-17. Handbrake still reduces speed and increases slip.
-18. Top speed is not obviously changed.
+- The model is not a physically complete vehicle simulation.
+- There is no suspension model, tire load transfer, wheel rotation state or collision damage model.
+- Manual clutch behavior is abstracted away; manual shifting is gear-step based.
+- Automatic transmission is game-oriented and does not model every hydraulic/TCU detail.
+- Steering is bicycle-model inspired but simplified.
+- Tire slip is a scalar gameplay signal, not a full tire-force model.
+- `CarSpecs`, `CarDriveConfig` and legacy exports duplicate tuning fields until legacy scene overrides are removed.
+- Runtime `car_specs` reconfiguration should get more focused tests, especially around non-powertrain side effects such as skid mark configuration.
 
-## Safe refactor sequence from here
+## Regression checklist for vehicle changes
 
-Preferred sequence for stabilization:
+After any vehicle model change, run or verify:
 
-1. Keep this document updated.
-2. Extract drivetrain/tire helpers without changing equations.
-3. Keep exported tuning values on `PlayerCarController` until `CarSpecs` exists.
-4. Move one responsibility per change.
-5. Run the regression checklist before behavior-sensitive merges.
+1. project opens without parse errors;
+2. `scenes/tests/full_program_smoke_test.tscn` passes;
+3. `scripts/tests/car_controller_runtime_config_test.gd` passes;
+4. automatic 370Z accelerates from stop;
+5. automatic 370Z brakes and reverses from near stop;
+6. manual 370Z starts in first gear;
+7. manual gear up/down reaches reverse, neutral and forward gears correctly;
+8. reset clears forward and lateral speed;
+9. steering still preserves speed projection after yaw rotation;
+10. handbrake increases slip telemetry and can trigger skid/tire audio;
+11. race countdown locks and unlocks player/AI input;
+12. AI opponents can still drive the generated racing line.
 
-Recommended next code extraction:
+## Safe next vehicle tasks
 
-```text
-scripts/car/vehicle_motion_model.gd
-```
+Recommended order:
 
-The next vehicle-model change should move only horizontal velocity reconstruction and local-speed projection helpers. `move_and_slide()`, grounding and transform mutation should remain in `PlayerCarController` until local testing confirms the current split is stable.
+1. add focused tests for `CarPowertrainController` forward/reverse/manual/automatic behavior;
+2. add focused tests for `CarChassisController` and `VehicleMotionModel` projection behavior;
+3. fix runtime `car_specs` reconfiguration edge cases;
+4. remove legacy export fallback only after all scenes and catalog variants use `CarSpecs`;
+5. split `CarSpecs` into sub-resources only after the flat Resource becomes difficult to maintain.
+
+Do not tune handling, add new vehicles or import detailed vehicle models in the same change as architecture cleanup.
