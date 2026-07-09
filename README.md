@@ -12,6 +12,7 @@ The project currently contains:
 - a main scene that composes the track, camera, HUD, minimap, menu and car spawning flow;
 - a Nissan 370Z-inspired prototype car scene;
 - separate manual and automatic transmission variants;
+- Resource-backed `CarSpecs` data for the 370Z manual and automatic variants;
 - a character-body based car controller;
 - extracted vehicle-motion helper for local/global velocity projection;
 - procedural engine and tire squeal audio;
@@ -120,6 +121,8 @@ Mobile overlay buttons:
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
 | `scenes/ui/mobile_drive_controls.tscn` | Android touch-driving overlay scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
+| `resources/cars/370z_manual.tres` | Manual 370Z tuning data Resource |
+| `resources/cars/370z_automatic.tres` | Automatic 370Z tuning data Resource |
 | `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner attached to the smoke-test scene |
 | `scripts/tests/game_test_adapter.gd` | Diagnostic adapter used by the smoke test |
 | `scripts/tests/run_full_program_smoke_test.gd` | EditorScript launcher for the full-program smoke test scene |
@@ -138,6 +141,7 @@ Mobile overlay buttons:
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
 | `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
+| `scripts/car/car_specs.gd` | Resource class for car tuning data |
 | `scripts/car/car_input.gd` | Player/external drive input helper |
 | `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
 | `scripts/car/automatic_transmission_model.gd` | Automatic gear-selection decision helper |
@@ -159,7 +163,8 @@ Mobile overlay buttons:
 
 The project works as a prototype, but some scripts still have too many responsibilities:
 
-- `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement, although local/global velocity projection has been extracted.
+- `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement, although local/global velocity projection and car tuning data have been partly extracted.
+- `resources/cars/*.tres` now hold 370Z tuning data, but old exported scene values are intentionally kept as a fallback while this path is validated.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 - Mobile controls are now scene-driven, but they are still a temporary Android testing overlay rather than final input UI.
