@@ -4,6 +4,12 @@ const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
 const TRACK_SIMPLE_OVAL: String = "simple_oval"
+const SHORT_DRIVE_DURATION: float = 0.85
+const LONG_DRIVE_DURATION: float = 2.4
+const STEERING_DURATION: float = 1.0
+const BRAKE_DURATION: float = 1.0
+const REVERSE_DURATION: float = 1.2
+const RACE_SOAK_DURATION: float = 8.0
 const TEST_ACTIONS: Array[String] = [
 	"accelerate",
 	"brake",
@@ -31,13 +37,14 @@ func _exit_tree() -> void:
 
 
 func _run() -> void:
-	print("[SMOKE] Starting full program smoke test")
+	print("[SMOKE] Starting extended full program smoke test")
 	await _load_main_scene()
 	await _test_free_drive_automatic()
 	await _return_to_main_menu()
 	await _test_free_drive_manual()
 	await _return_to_main_menu()
 	await _test_race_mode()
+	await _test_post_race_free_drive_reentry()
 	_finish()
 
 
@@ -52,7 +59,7 @@ func _load_main_scene() -> void:
 
 
 func _test_free_drive_automatic() -> void:
-	print("[SMOKE] Testing free drive automatic flow")
+	print("[SMOKE] Testing extended free drive automatic flow")
 	await _select_menu_path("Dowolny", "370Z automat")
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected")
@@ -65,10 +72,37 @@ func _test_free_drive_automatic() -> void:
 	if automatic_car == null:
 		return
 
-	await _expect_car_accelerates(automatic_car, "automatic car accelerates from touch/input action")
+	await _expect_car_accelerates_for(automatic_car, SHORT_DRIVE_DURATION, "automatic car accelerates from input action")
+	_expect(float(automatic_car.call("get_engine_rpm")) > 900.0, "automatic car reports RPM above idle after acceleration")
+	_expect(float(automatic_car.call("get_engine_load")) >= 0.0, "automatic car reports non-negative engine load")
+
+	var speed_before_long_drive: float = float(automatic_car.call("get_forward_speed"))
+	await _hold_action("accelerate", LONG_DRIVE_DURATION)
+	var speed_after_long_drive: float = float(automatic_car.call("get_forward_speed"))
+	_expect(speed_after_long_drive > speed_before_long_drive + 0.5, "automatic car keeps accelerating during longer drive segment")
+
+	await _hold_actions(["accelerate", "steer-left"], STEERING_DURATION)
+	_expect(absf(float(automatic_car.call("get_forward_speed"))) > 0.5, "automatic car keeps moving while steering left")
+
+	await _hold_actions(["accelerate", "steer-right"], STEERING_DURATION)
+	_expect(absf(float(automatic_car.call("get_forward_speed"))) > 0.5, "automatic car keeps moving while steering right")
+
+	await _hold_actions(["accelerate", "steer-left", "handbrake"], STEERING_DURATION)
+	_expect(float(automatic_car.call("get_tire_slip_intensity")) >= 0.0, "automatic car reports valid tire slip during handbrake segment")
+
+	var speed_before_brake: float = float(automatic_car.call("get_forward_speed"))
+	await _hold_action("brake", BRAKE_DURATION)
+	var speed_after_brake: float = float(automatic_car.call("get_forward_speed"))
+	_expect(speed_after_brake < speed_before_brake, "automatic car slows down under braking")
+
 	await _tap_action("reset-car")
-	await _frames(6)
+	await _frames(8)
 	_expect(absf(float(automatic_car.call("get_forward_speed"))) < 0.75, "reset clears automatic car forward speed")
+
+	await _hold_action("brake", REVERSE_DURATION)
+	_expect(float(automatic_car.call("get_forward_speed")) < -0.05, "automatic car reverses when braking from near stop")
+	await _tap_action("reset-car")
+	await _frames(8)
 
 	var before_switch: PlayerCarController = _current_car()
 	await _tap_action("switch-car")
@@ -77,7 +111,7 @@ func _test_free_drive_automatic() -> void:
 
 
 func _test_free_drive_manual() -> void:
-	print("[SMOKE] Testing free drive manual flow")
+	print("[SMOKE] Testing extended free drive manual flow")
 	await _select_menu_path("Dowolny", "370Z manual")
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected for manual car")
@@ -96,12 +130,33 @@ func _test_free_drive_manual() -> void:
 	await _frames(4)
 	_expect(str(manual_car.call("get_gear_text")) == "1", "manual gear-down changes display back to first gear")
 
+	await _tap_action("gear-down")
+	await _frames(4)
+	_expect(str(manual_car.call("get_gear_text")) == "N", "manual gear-down from first selects neutral")
+
+	await _tap_action("gear-down")
+	await _frames(4)
+	_expect(str(manual_car.call("get_gear_text")) == "R", "manual gear-down from neutral selects reverse")
+
+	await _tap_action("gear-up")
+	await _frames(4)
+	_expect(str(manual_car.call("get_gear_text")) == "N", "manual gear-up from reverse selects neutral")
+
+	await _tap_action("gear-up")
+	await _frames(4)
+	_expect(str(manual_car.call("get_gear_text")) == "1", "manual gear-up from neutral selects first")
+
 	await _seconds(0.35)
-	await _expect_car_accelerates(manual_car, "manual car accelerates after gear input")
+	await _expect_car_accelerates_for(manual_car, LONG_DRIVE_DURATION, "manual car accelerates during longer drive segment")
+	await _hold_actions(["accelerate", "steer-left"], STEERING_DURATION)
+	_expect(absf(float(manual_car.call("get_forward_speed"))) > 0.5, "manual car keeps moving while steering")
+	await _tap_action("reset-car")
+	await _frames(8)
+	_expect(absf(float(manual_car.call("get_forward_speed"))) < 0.75, "reset clears manual car forward speed")
 
 
 func _test_race_mode() -> void:
-	print("[SMOKE] Testing race flow")
+	print("[SMOKE] Testing extended race flow")
 	await _select_menu_path("Wyscig", "370Z automat")
 
 	_expect(_selected_mode_id() == MODE_RACE, "race mode is selected")
@@ -122,6 +177,13 @@ func _test_race_mode() -> void:
 
 	await _seconds(1.0)
 	_expect(_has_moving_opponent(), "at least one AI opponent starts moving after countdown")
+	var moving_opponent_count_after_start: int = _moving_opponent_count()
+	_expect(moving_opponent_count_after_start > 0, "moving opponent count is greater than zero after start")
+
+	await _seconds(RACE_SOAK_DURATION)
+	_expect(_current_car() == race_car, "player car remains stable during longer race soak")
+	_expect(_moving_opponent_count() > 0, "AI opponents keep moving during longer race soak")
+	_expect(_selected_mode_id() == MODE_RACE, "race mode remains selected during longer race soak")
 
 	if race_car != null:
 		_main.call("_on_lap_tracker_participant_finished", race_car)
@@ -130,9 +192,20 @@ func _test_race_mode() -> void:
 		_expect(results_button != null, "results screen is shown after simulated player finish")
 		if results_button != null:
 			results_button.emit_signal("pressed")
-			await _frames(10)
+			await _frames(12)
 			_expect(_current_car() == null, "return-to-menu clears current car")
 			_expect(_selected_mode_id() == "", "return-to-menu clears selected mode")
+			_expect(_opponents().is_empty(), "return-to-menu clears opponents")
+
+
+func _test_post_race_free_drive_reentry() -> void:
+	print("[SMOKE] Testing post-race free-drive reentry")
+	await _select_menu_path("Dowolny", "370Z automat")
+	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode can be selected again after race cleanup")
+	_expect(_current_car() != null, "player car respawns after race cleanup")
+	var car_after_reentry: PlayerCarController = _current_car()
+	if car_after_reentry != null:
+		await _expect_car_accelerates_for(car_after_reentry, SHORT_DRIVE_DURATION, "car accelerates after post-race free-drive reentry")
 
 
 func _select_menu_path(mode_label: String, car_label: String) -> void:
@@ -152,9 +225,9 @@ func _press_button_with_text(label_text: String) -> void:
 	await _frames(3)
 
 
-func _expect_car_accelerates(car: PlayerCarController, message: String) -> void:
+func _expect_car_accelerates_for(car: PlayerCarController, duration_seconds: float, message: String) -> void:
 	var start_speed: float = float(car.call("get_forward_speed"))
-	await _hold_action("accelerate", 0.65)
+	await _hold_action("accelerate", duration_seconds)
 	var speed_after_acceleration: float = float(car.call("get_forward_speed"))
 	_expect(speed_after_acceleration > start_speed + 0.1, message)
 	_release_test_actions()
@@ -162,9 +235,17 @@ func _expect_car_accelerates(car: PlayerCarController, message: String) -> void:
 
 
 func _hold_action(action_name: String, duration_seconds: float) -> void:
-	Input.action_press(action_name)
+	await _hold_actions([action_name], duration_seconds)
+
+
+func _hold_actions(action_names: Array[String], duration_seconds: float) -> void:
+	for action_name: String in action_names:
+		Input.action_press(action_name)
+
 	await _seconds(duration_seconds)
-	Input.action_release(action_name)
+
+	for action_name: String in action_names:
+		Input.action_release(action_name)
 	await _frames(2)
 
 
@@ -250,12 +331,17 @@ func _is_child_visible(node_name: String) -> bool:
 
 
 func _has_moving_opponent() -> bool:
+	return _moving_opponent_count() > 0
+
+
+func _moving_opponent_count() -> int:
+	var moving_count: int = 0
 	for opponent_variant: Variant in _opponents():
 		var opponent: PlayerCarController = opponent_variant as PlayerCarController
 		if opponent != null and absf(float(opponent.call("get_forward_speed"))) > 0.05:
-			return true
+			moving_count += 1
 
-	return false
+	return moving_count
 
 
 func _find_visible_button_with_text(root_node: Node, label_text: String) -> Button:
@@ -293,11 +379,11 @@ func _release_test_actions() -> void:
 func _finish() -> void:
 	_release_test_actions()
 	if _failures.is_empty():
-		print("[SMOKE] Full program smoke test passed: %d checks" % _checks)
+		print("[SMOKE] Extended full program smoke test passed: %d checks" % _checks)
 		get_tree().quit(0)
 		return
 
-	push_error("[SMOKE] Full program smoke test failed: %d failure(s), %d checks" % [_failures.size(), _checks])
+	push_error("[SMOKE] Extended full program smoke test failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[SMOKE] - %s" % failure_message)
 	get_tree().quit(1)
