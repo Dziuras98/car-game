@@ -15,8 +15,8 @@ Example:
 
 ```text
 Nissan 370Z
-  370Z 3.7 V6 7AT
-  370Z 3.7 V6 6MT
+  370Z automat
+  370Z manual
 ```
 
 Both variants share the same model identity, but they can reference different scenes and different tuning specs.
@@ -68,8 +68,8 @@ Purpose:
 - stores all available car models;
 - can return models;
 - can return a flat list of all variants;
-- can return flat variant scenes for compatibility with the current `available_cars` flow;
-- can return variant display names for a future catalog-driven menu.
+- can return flat variant scenes for compatibility with the current spawn flow;
+- can return variant display names for the menu.
 
 ### `CarModelDefinition`
 
@@ -144,10 +144,14 @@ resources/cars/nissan/370z/specs/370z_6mt_specs.tres
 5. The same model may have many variants with different engines, gearboxes, drivetrain layouts, mass, tires or tuning.
 6. If two variants share identical visuals, they can reference the same scene but different specs.
 7. If two variants need different meshes or nodes, they can reference different scenes.
-8. Add the model to `resources/cars/catalog.tres` so future UI can discover it.
+8. Add the model to `resources/cars/catalog.tres` so the menu and game flow can discover it.
 
 ## Current integration status
 
 The data layer exists and the current 370Z variants are represented in the catalog.
 
-The current menu and game flow still use the existing flat `available_cars` array in `scenes/main.tscn`. That is intentional for this step. The next safe refactor is to make the menu read models and variants from `resources/cars/catalog.tres`, then derive the playable car scene from the selected `CarVariantDefinition`.
+`GameManager` now loads `resources/cars/catalog.tres` and derives the active variant list, menu car names and playable scene list from it. `MainMenu` still emits a simple `car_index`, but that index now refers to the flattened catalog variant list instead of directly referring to the old exported `available_cars` list.
+
+`CarSpawner` receives both the flat scene list and the flat variant list. When variants are available, it instantiates cars from `CarVariantDefinition` and applies the variant's `CarSpecs` before the car enters the scene tree. The old `available_cars` scene array remains as a fallback for now.
+
+The next safe refactor is a UI change: replace the current one-step car choice with model -> variant selection, while keeping the same catalog data layer.
