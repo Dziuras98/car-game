@@ -63,9 +63,12 @@ scenes/
     simple_oval.tscn
     test_track.tscn
   ui/
+    countdown_overlay.tscn
+    lap_position_hud.tscn
     main_menu.tscn
     minimap.tscn
     mobile_drive_controls.tscn
+    results_screen.tscn
     speedometer.tscn
 
 scripts/
@@ -213,13 +216,13 @@ scripts/game/car_spawner.gd       # player car, opponent and AI-driver instantia
 scripts/race/race_manager.gd      # countdown, input lock, race start/finish state
 scripts/race/lap_tracker.gd       # participant registration, laps, progress, results
 scripts/ui/race_hud.gd            # UI facade used by GameManager
-scripts/ui/countdown_overlay.gd   # countdown overlay construction and visibility
+scripts/ui/countdown_overlay.gd   # countdown overlay scene binding and visibility
 scripts/ui/lap_position_hud.gd    # lap and race-position display
 scripts/ui/results_screen.gd      # results list and return-to-menu button
 scripts/ui/mobile_drive_controls.gd # temporary Android touch-driving overlay binding
 ```
 
-This is now a validated split compared to the original monolithic coordinator. Remaining cleanup should focus on reducing `car_controller.gd`, converting remaining procedural race UI helpers into scenes, and avoiding new feature work without running the regression test.
+This is now a validated split compared to the original monolithic coordinator. Remaining cleanup should focus on reducing `car_controller.gd`, splitting `generated_track.gd`, improving test/diagnostic APIs, and avoiding new feature work without running the regression test.
 
 ## Track architecture
 
@@ -256,13 +259,15 @@ scripts/race/
 
 ## UI architecture
 
-Current UI approach is mixed:
+Current UI approach is mostly scene-driven for the main race/menu surfaces:
 
-- `speedometer.tscn` is a proper scene with a small binding script;
-- `main_menu.gd` builds menu UI procedurally;
-- `RaceHud` is a facade over procedural countdown, lap/position and results helpers;
-- `MobileDriveControls` is now scene-driven and only binds scene buttons to input actions;
-- `minimap.gd` draws the map and participants manually.
+- `main_menu.tscn` owns the static main menu layout; `main_menu.gd` controls menu state, labels, signals and dynamic option-button creation;
+- `countdown_overlay.tscn` owns the countdown overlay layout; `countdown_overlay.gd` updates text and visibility;
+- `lap_position_hud.tscn` owns the lap/position HUD layout; `lap_position_hud.gd` updates lap and position values;
+- `results_screen.tscn` owns the results screen layout; `results_screen.gd` updates visibility, return-to-menu signaling and dynamic result rows;
+- `mobile_drive_controls.tscn` owns the temporary Android touch overlay layout; `mobile_drive_controls.gd` binds scene buttons to input actions;
+- `speedometer.tscn` owns the speedometer/tachometer layout; `speedometer.gd` binds it to the active car;
+- `minimap.gd` still draws the map and participants manually.
 
 Target direction:
 
@@ -278,6 +283,8 @@ scenes/ui/
 ```
 
 UI layout should be scene-driven. Scripts should update labels, visibility and signals, not construct the whole visual hierarchy unless there is a specific reason.
+
+The current exception is runtime-driven repeated content: main-menu option buttons are still created from the current menu step and car catalog data, and results rows are still created from the race result list. That dynamic construction belongs in scripts until those controls need reusable item scenes.
 
 ## Test architecture
 
@@ -337,18 +344,18 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 | Track generator mixes data and scenery | Medium/High | Adding more tracks will duplicate or complicate logic |
 | Lap tracking is heuristic | Medium/High | Uses racing-line progress rather than physical checkpoints |
 | `GameTestAdapter` knows selected `GameManager` internals | Medium | Better than spreading private access through tests, but a public diagnostic API would be cleaner |
-| Race UI is partly procedural | Medium | Harder to style, animate and maintain |
+| Runtime-created UI rows/buttons are still script-built | Low/Medium | Main layouts are scene-driven, but menu options and results rows still depend on runtime data |
 | Mobile controls are still temporary test UI | Low/Medium | The layout is scene-driven now, but it is still not final configurable input UI |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
 | Car/track lists are hardcoded | Medium | Adding content requires script and scene edits |
 
 ## Preferred next refactor
 
-After the current `VehicleMotionModel` extraction, continue in this order:
+After the UI scene-driven baseline, continue in this order:
 
-1. Run `scenes/tests/full_program_smoke_test.tscn` and record the result.
-2. Move car tuning into `CarSpecs` Resources.
-3. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
-4. Continue converting remaining procedural race/menu UI into scene-driven UI.
+1. Split `scripts/race/generated_track.gd` into track data, surface generation and decoration responsibilities.
+2. Continue reducing `scripts/car/car_controller.gd` without changing driving feel.
+3. Add a cleaner test/diagnostic API so `GameTestAdapter` reads less `GameManager` internal state directly.
+4. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
 
 Do not continue deeper vehicle movement refactors without running the extended smoke test immediately after each step.

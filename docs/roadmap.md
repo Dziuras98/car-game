@@ -15,6 +15,7 @@ The project already has enough gameplay systems to be treated as a playable prot
 - AI opponents;
 - lap/position/results UI;
 - speedometer, tachometer and minimap;
+- scene-driven main race/menu UI: `MainMenu`, `CountdownOverlay`, `LapPositionHud` and `ResultsScreen`;
 - scene-driven mobile controls;
 - Resource-backed 370Z manual/automatic tuning data;
 - extracted vehicle-motion helper for local/global velocity projection;
@@ -76,30 +77,41 @@ Definition of done:
 
 ## Phase 2 — Move race UI into scenes
 
-Status: started. Race UI is split into helper scripts, but still builds controls procedurally. Mobile driving controls have already been converted to a scene.
+Status: implemented and validated with the full-program smoke test.
 
 Goal: stop building race UI procedurally and make it scene-driven.
 
 Tasks:
 
-- [ ] Create `scenes/ui/race_hud.tscn`.
+- [ ] Create `scenes/ui/race_hud.tscn`, if a single wrapper scene becomes useful later.
 - [x] Create `scripts/ui/race_hud.gd`.
-- [ ] Create `scenes/ui/countdown_overlay.tscn`.
+- [x] Create `scenes/ui/countdown_overlay.tscn`.
 - [x] Create `scripts/ui/countdown_overlay.gd`.
-- [ ] Create `scenes/ui/lap_position_hud.tscn`.
+- [x] Create `scenes/ui/lap_position_hud.tscn`.
 - [x] Create `scripts/ui/lap_position_hud.gd`.
-- [ ] Create `scenes/ui/results_screen.tscn`.
+- [x] Create `scenes/ui/results_screen.tscn`.
 - [x] Create `scripts/ui/results_screen.gd`.
+- [x] Create `scenes/ui/main_menu.tscn`.
+- [x] Bind `scripts/ui/main_menu.gd` to the scene layout while keeping dynamic option buttons script-driven.
 - [x] Create `scenes/ui/mobile_drive_controls.tscn`.
 - [x] Bind `scripts/ui/mobile_drive_controls.gd` to scene buttons instead of constructing controls in script.
-- [ ] Wire race UI scenes from `main.tscn` or instantiate them from `game_manager.gd`.
+- [x] Wire race/menu UI scenes through their existing script facades.
 - [x] Remove procedural UI construction from the race/game manager.
+- [x] Keep runtime-generated option buttons and result rows in scripts because they depend on current menu/catalog/result data.
+- [x] Run `scenes/tests/full_program_smoke_test.tscn` and record 79 passing checks.
 
 Definition of done:
 
 - UI layout is editable in Godot scenes;
 - scripts only update values and visibility;
+- dynamic option buttons and result rows may still be created in scripts from runtime data;
 - existing visual behavior remains equivalent or better.
+
+Recommended next architecture steps after this phase:
+
+- split `scripts/race/generated_track.gd` into track layout data, surface generation and decoration responsibilities;
+- continue reducing `scripts/car/car_controller.gd` before adding handling or drivetrain features;
+- improve test/diagnostic APIs so `GameTestAdapter` does not need to read selected `GameManager` internals directly.
 
 ## Phase 3 — Extract non-driving effects from the car controller
 

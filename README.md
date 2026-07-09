@@ -20,7 +20,7 @@ The project currently contains:
 - generated oval track geometry;
 - free-drive and race menu flow with model -> variant car selection;
 - AI opponents following the generated racing line;
-- lap, position and results UI;
+- scene-driven main race/menu UI: `MainMenu`, `CountdownOverlay`, `LapPositionHud` and `ResultsScreen`;
 - speedometer, gear display and tachometer;
 - scene-driven mobile touch controls for Android playtesting;
 - extended full-program smoke test scene for automated regression checks;
@@ -120,6 +120,10 @@ Mobile overlay buttons:
 | `scenes/cars/370z.tscn` | Base 370Z-style car scene |
 | `scenes/cars/370zat.tscn` | Automatic transmission 370Z variant |
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
+| `scenes/ui/main_menu.tscn` | Scene-driven main menu layout |
+| `scenes/ui/countdown_overlay.tscn` | Scene-driven race countdown overlay layout |
+| `scenes/ui/lap_position_hud.tscn` | Scene-driven lap and race-position HUD layout |
+| `scenes/ui/results_screen.tscn` | Scene-driven race results screen layout |
 | `scenes/ui/mobile_drive_controls.tscn` | Android touch-driving overlay scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
 | `resources/cars/catalog.tres` | Root car catalog Resource |
@@ -138,10 +142,10 @@ Mobile overlay buttons:
 | `scripts/race/ai_race_driver.gd` | Prototype AI driver |
 | `scripts/race/generated_track.gd` | Procedural track and scenery generator |
 | `scripts/ui/race_hud.gd` | Race HUD facade used by the game manager |
-| `scripts/ui/countdown_overlay.gd` | Procedural countdown overlay helper |
-| `scripts/ui/lap_position_hud.gd` | Procedural lap and race-position HUD helper |
-| `scripts/ui/results_screen.gd` | Procedural results screen helper |
-| `scripts/ui/main_menu.gd` | Main menu flow |
+| `scripts/ui/countdown_overlay.gd` | Countdown overlay scene binding and visibility logic |
+| `scripts/ui/lap_position_hud.gd` | Lap and race-position scene binding logic |
+| `scripts/ui/results_screen.gd` | Results screen scene binding and dynamic result-row logic |
+| `scripts/ui/main_menu.gd` | Main menu flow and dynamic option-button logic |
 | `scripts/ui/mobile_drive_controls.gd` | Binds the Android touch overlay scene buttons to input actions |
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
@@ -175,7 +179,7 @@ The project works as a prototype, but some scripts still have too many responsib
 - `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement, although local/global velocity projection and car tuning data have been partly extracted.
 - `resources/cars/catalog.tres` now drives model -> variant menu selection; future catalog work should keep that data flow in `GameManager`, not in `MainMenu` or `CarSpawner`.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
-- Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
+- Main race/menu UI layout is now scene-driven for `MainMenu`, `CountdownOverlay`, `LapPositionHud` and `ResultsScreen`; scripts still create dynamic option buttons and result rows where runtime data requires it.
 - Mobile controls are now scene-driven, but they are still a temporary Android testing overlay rather than final input UI.
 - `GameTestAdapter` still knows selected `GameManager` internals; this is centralized now, but a future production-facing diagnostic API would be cleaner.
 
@@ -191,6 +195,7 @@ See:
 - `docs/vehicle_model.md` for the current vehicle-model behavior baseline and regression checklist;
 - `docs/test_reports/2026-07-09-android-and-smoke-baseline.md` for the current validated baseline report.
 - `docs/test_reports/2026-07-09-model-variant-menu-selection.md` for the model -> variant menu selection refactor report.
+- `docs/test_reports/2026-07-09-ui-scene-driven-baseline.md` for the current scene-driven race/menu UI baseline.
 
 ## Working rule for future changes
 
