@@ -31,6 +31,12 @@ func reset_menu() -> void:
 	_show_mode_step()
 
 
+func set_car_names(next_car_names: PackedStringArray) -> void:
+	car_names = next_car_names
+	if _current_step == STEP_CAR and _options != null:
+		_show_car_step()
+
+
 func _build_ui() -> void:
 	var root: Control = Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
