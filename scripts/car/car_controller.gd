@@ -79,13 +79,8 @@ var _shift_timer: float = 0.0
 var _throttle_input: float = 0.0
 var _brake_input: float = 0.0
 var _tire_slip_intensity: float = 0.0
+var _car_input: CarInput = CarInput.new()
 var _skid_mark_emitter: SkidMarkEmitter
-var _player_input_enabled: bool = true
-var _external_input_enabled: bool = false
-var _external_throttle: float = 0.0
-var _external_brake: float = 0.0
-var _external_steering: float = 0.0
-var _external_handbrake: bool = false
 
 
 func _ready() -> void:
@@ -147,46 +142,32 @@ func get_gear_text() -> String:
 
 
 func set_player_input_enabled(enabled: bool) -> void:
-	_player_input_enabled = enabled
+	_car_input.set_player_input_enabled(enabled)
 	if not enabled:
 		_throttle_input = 0.0
 		_brake_input = 0.0
 
 
 func set_external_input_enabled(enabled: bool) -> void:
-	_external_input_enabled = enabled
-	if not enabled:
-		set_external_drive_inputs(0.0, 0.0, 0.0, false)
+	_car_input.set_external_input_enabled(enabled)
 
 
 func set_external_drive_inputs(throttle: float, brake: float, steering: float, handbrake_active: bool = false) -> void:
-	_external_throttle = clampf(throttle, 0.0, 1.0)
-	_external_brake = clampf(brake, 0.0, 1.0)
-	_external_steering = clampf(steering, -1.0, 1.0)
-	_external_handbrake = handbrake_active
+	_car_input.set_external_drive_inputs(throttle, brake, steering, handbrake_active)
 
 
 func _physics_process(delta: float) -> void:
-	if not _external_input_enabled and _player_input_enabled and Input.is_action_just_pressed("reset-car"):
+	if _car_input.should_reset_car():
 		_reset_to_start()
 		return
 
 	_update_shift_timer(delta)
+	_car_input.read_drive_input()
 
-	var throttle: float = 0.0
-	var brake: float = 0.0
-	var steering: float = 0.0
-	var handbrake_active: bool = false
-	if _external_input_enabled:
-		throttle = _external_throttle
-		brake = _external_brake
-		steering = _external_steering
-		handbrake_active = _external_handbrake
-	elif _player_input_enabled:
-		throttle = Input.get_action_strength("accelerate")
-		brake = Input.get_action_strength("brake")
-		steering = Input.get_action_strength("steer-right") - Input.get_action_strength("steer-left")
-		handbrake_active = Input.is_action_pressed("handbrake")
+	var throttle: float = _car_input.throttle
+	var brake: float = _car_input.brake
+	var steering: float = _car_input.steering
+	var handbrake_active: bool = _car_input.handbrake_active
 	_throttle_input = throttle
 	_brake_input = brake
 
