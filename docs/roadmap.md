@@ -21,7 +21,7 @@ The next phase should focus on stabilizing architecture.
 
 ## Phase 0 — Documentation and baseline freeze
 
-Status: started.
+Status: mostly complete.
 
 Goal: document the current structure so future Codex tasks have stable context.
 
@@ -43,20 +43,22 @@ Definition of done:
 
 ## Phase 1 — Split the high-level game coordinator
 
-Goal: remove unrelated responsibilities from `scripts/race/car_switcher.gd` without changing gameplay behavior.
+Status: implemented, pending full local regression testing.
 
-Recommended order:
+Goal: remove unrelated responsibilities from the original high-level coordinator without changing gameplay behavior.
 
-1. Create `scripts/game/game_manager.gd`.
-2. Move menu-selection flow and game-state transitions there.
-3. Create `scripts/game/car_spawner.gd`.
-4. Move player/opponent car instantiation there.
-5. Create `scripts/race/race_manager.gd`.
-6. Move race start, countdown, finish and opponent enable/disable logic there.
-7. Create `scripts/race/lap_tracker.gd`.
-8. Move lap, participant progress, position and result-order logic there.
-9. Keep `ai_race_driver.gd` focused only on driving.
-10. Remove or reduce `car_switcher.gd` after equivalent behavior is preserved.
+Completed split:
+
+- [x] Create `scripts/game/game_manager.gd`.
+- [x] Move menu-selection flow and game-state transitions there.
+- [x] Create `scripts/game/car_spawner.gd`.
+- [x] Move player/opponent car instantiation there.
+- [x] Create `scripts/race/race_manager.gd`.
+- [x] Move race start, countdown, finish and opponent enable/disable logic there.
+- [x] Create `scripts/race/lap_tracker.gd`.
+- [x] Move lap, participant progress, position and result-order logic there.
+- [x] Keep `ai_race_driver.gd` focused only on driving.
+- [x] Remove the old `scripts/race/car_switcher.gd` name after equivalent behavior was preserved.
 
 Definition of done:
 
@@ -71,18 +73,20 @@ Definition of done:
 
 ## Phase 2 — Move race UI into scenes
 
+Status: started. `scripts/ui/race_hud.gd` exists, but still builds UI procedurally.
+
 Goal: stop building race UI procedurally inside race/game logic.
 
 Tasks:
 
 - [ ] Create `scenes/ui/race_hud.tscn`.
-- [ ] Create `scripts/ui/race_hud.gd`.
+- [x] Create `scripts/ui/race_hud.gd`.
 - [ ] Create `scenes/ui/countdown_overlay.tscn`.
 - [ ] Create `scripts/ui/countdown_overlay.gd`.
 - [ ] Create `scenes/ui/results_screen.tscn`.
 - [ ] Create `scripts/ui/results_screen.gd`.
 - [ ] Wire these scenes from `main.tscn` or instantiate them from `game_manager.gd`.
-- [ ] Remove procedural UI construction from the race/game manager.
+- [x] Remove procedural UI construction from the race/game manager.
 
 Definition of done:
 
@@ -225,4 +229,4 @@ Candidate features:
 
 ## Current rule
 
-Do not add new cars, tracks or major gameplay systems until Phase 1 and Phase 2 are complete.
+Do not add new cars, tracks or major gameplay systems until Phase 1 is locally regression-tested and Phase 2 is complete.
