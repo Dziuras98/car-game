@@ -12,14 +12,14 @@ func get_current_car() -> PlayerCarController:
 	if _main == null:
 		return null
 
-	return _main.get("_current_car") as PlayerCarController
+	return _main.call("get_current_car") as PlayerCarController
 
 
 func get_opponents() -> Array:
 	if _main == null:
 		return []
 
-	var opponents: Variant = _main.get("_opponents")
+	var opponents: Variant = _main.call("get_opponents")
 	if opponents is Array:
 		return opponents
 
@@ -30,28 +30,28 @@ func get_configured_opponent_count() -> int:
 	if _main == null:
 		return 0
 
-	return int(_main.get("opponent_count"))
+	return int(_main.call("get_configured_opponent_count"))
 
 
 func get_selected_mode_id() -> String:
 	if _main == null:
 		return ""
 
-	return str(_main.get("selected_mode_id"))
+	return str(_main.call("get_selected_mode_id"))
 
 
 func get_selected_track_id() -> String:
 	if _main == null:
 		return ""
 
-	return str(_main.get("selected_track_id"))
+	return str(_main.call("get_selected_track_id"))
 
 
 func get_selected_car_variant_id() -> StringName:
 	if _main == null:
 		return &""
 
-	return StringName(str(_main.get("selected_car_variant_id")))
+	return StringName(str(_main.call("get_selected_car_variant_id")))
 
 
 func get_menu() -> Node:

@@ -105,6 +105,30 @@ func _physics_process(_delta: float) -> void:
 		_update_lap_ui()
 
 
+func get_current_car() -> PlayerCarController:
+	return _current_car
+
+
+func get_opponents() -> Array[PlayerCarController]:
+	return _opponents
+
+
+func get_configured_opponent_count() -> int:
+	return opponent_count
+
+
+func get_selected_mode_id() -> String:
+	return selected_mode_id
+
+
+func get_selected_track_id() -> String:
+	return selected_track_id
+
+
+func get_selected_car_variant_id() -> StringName:
+	return selected_car_variant_id
+
+
 func _prepare_car_selection_data() -> void:
 	_available_car_variants.clear()
 	_available_car_scenes.clear()
