@@ -80,6 +80,7 @@ var _throttle_input: float = 0.0
 var _brake_input: float = 0.0
 var _tire_slip_intensity: float = 0.0
 var _car_input: CarInput = CarInput.new()
+var _manual_transmission_model: ManualTransmissionModel = ManualTransmissionModel.new()
 var _engine_model: EngineModel = EngineModel.new()
 var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
@@ -189,11 +190,9 @@ func _physics_process(delta: float) -> void:
 
 func _update_transmission_input(throttle: float, brake: float) -> void:
 	if manual_transmission_enabled:
-		if Input.is_action_just_pressed("gear-up"):
-			_set_manual_gear(mini(_current_gear + 1, gear_ratios.size()))
-
-		if Input.is_action_just_pressed("gear-down"):
-			_set_manual_gear(maxi(_current_gear - 1, -1))
+		var requested_gear: int = _manual_transmission_model.get_requested_gear(_current_gear, gear_ratios.size())
+		if requested_gear != _current_gear:
+			_set_transmission_gear(requested_gear)
 		return
 
 	if automatic_transmission_enabled:
@@ -244,10 +243,6 @@ func _update_automatic_transmission(throttle: float, brake: float) -> void:
 func _update_shift_timer(delta: float) -> void:
 	if _shift_timer > 0.0:
 		_shift_timer = maxf(_shift_timer - delta, 0.0)
-
-
-func _set_manual_gear(next_gear: int) -> void:
-	_set_transmission_gear(next_gear)
 
 
 func _set_transmission_gear(next_gear: int) -> void:
