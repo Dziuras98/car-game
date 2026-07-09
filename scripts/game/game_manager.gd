@@ -31,7 +31,7 @@ var _mobile_drive_controls: CanvasLayer
 
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
-const MOBILE_DRIVE_CONTROLS_SCRIPT: Script = preload("res://scripts/ui/mobile_drive_controls.gd")
+const MOBILE_DRIVE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile_drive_controls.tscn")
 
 
 func _ready() -> void:
@@ -335,6 +335,6 @@ func _build_mobile_drive_controls() -> void:
 	if _mobile_drive_controls != null:
 		return
 
-	_mobile_drive_controls = MOBILE_DRIVE_CONTROLS_SCRIPT.new() as CanvasLayer
+	_mobile_drive_controls = MOBILE_DRIVE_CONTROLS_SCENE.instantiate() as CanvasLayer
 	if _mobile_drive_controls != null:
 		add_child(_mobile_drive_controls)
