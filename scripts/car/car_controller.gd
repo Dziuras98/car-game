@@ -87,6 +87,7 @@ var _engine_model: EngineModel = EngineModel.new()
 var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
 var _torque_converter_model: TorqueConverterModel = TorqueConverterModel.new()
+var _tire_model: TireModel = TireModel.new()
 var _skid_mark_emitter: SkidMarkEmitter
 
 
@@ -285,16 +286,22 @@ func _update_speed(throttle: float, brake: float, handbrake_active: bool, delta:
 
 
 func _update_tire_model(steering: float, handbrake_active: bool, delta: float) -> void:
-	var absolute_forward_speed: float = absf(_forward_speed)
-	var grip_multiplier: float = handbrake_lateral_grip_multiplier if handbrake_active else 1.0
-	var active_lateral_grip: float = maxf(lateral_grip * grip_multiplier, 0.1)
-
-	_lateral_speed = move_toward(_lateral_speed, 0.0, active_lateral_grip * delta)
-
-	var lateral_ratio: float = absf(_lateral_speed) / maxf(slip_speed_threshold, 0.1)
-	var steering_load: float = absf(steering) * absolute_forward_speed * steering_slip_gain / maxf(max_forward_speed, 1.0)
-	var handbrake_bonus: float = 0.35 if handbrake_active and absolute_forward_speed > 4.0 else 0.0
-	_tire_slip_intensity = clampf(lateral_ratio + steering_load + handbrake_bonus, 0.0, 1.0)
+	_lateral_speed = _tire_model.recover_lateral_speed(
+		_lateral_speed,
+		lateral_grip,
+		handbrake_lateral_grip_multiplier,
+		handbrake_active,
+		delta
+	)
+	_tire_slip_intensity = _tire_model.calculate_slip_intensity(
+		_lateral_speed,
+		_forward_speed,
+		steering,
+		steering_slip_gain,
+		slip_speed_threshold,
+		max_forward_speed,
+		handbrake_active
+	)
 
 	if not is_on_floor():
 		_tire_slip_intensity = 0.0
