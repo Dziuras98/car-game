@@ -1,6 +1,11 @@
 extends CharacterBody3D
 class_name PlayerCarController
 
+const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/370z_manual.tres")
+
+@export_group("Specs")
+@export var car_specs: CarSpecs = DEFAULT_CAR_SPECS
+
 @export_group("Driving")
 @export var acceleration: float = 22.0
 @export var brake_deceleration: float = 34.0
@@ -93,6 +98,7 @@ var _skid_mark_emitter: SkidMarkEmitter
 
 
 func _ready() -> void:
+	_apply_car_specs()
 	_start_transform = global_transform
 	_prepare_engine_model()
 	_prepare_resistance_model()
@@ -458,6 +464,67 @@ func _reset_to_start() -> void:
 	_tire_slip_intensity = 0.0
 	if _skid_mark_emitter != null:
 		_skid_mark_emitter.reset_timer()
+
+
+func _apply_car_specs() -> void:
+	if car_specs == null:
+		return
+
+	acceleration = car_specs.acceleration
+	brake_deceleration = car_specs.brake_deceleration
+	reverse_acceleration = car_specs.reverse_acceleration
+	coast_deceleration = car_specs.coast_deceleration
+	handbrake_deceleration = car_specs.handbrake_deceleration
+	max_forward_speed = car_specs.max_forward_speed
+	max_reverse_speed = car_specs.max_reverse_speed
+	steering_speed = car_specs.steering_speed
+	wheel_base = car_specs.wheel_base
+	max_steering_angle_degrees = car_specs.max_steering_angle_degrees
+	idle_rpm = car_specs.idle_rpm
+	peak_torque_rpm = car_specs.peak_torque_rpm
+	redline_rpm = car_specs.redline_rpm
+	rev_limiter_rpm = car_specs.rev_limiter_rpm
+	low_rpm_torque_multiplier = car_specs.low_rpm_torque_multiplier
+	mid_rpm_torque_multiplier = car_specs.mid_rpm_torque_multiplier
+	redline_torque_multiplier = car_specs.redline_torque_multiplier
+	engine_force = car_specs.engine_force
+	engine_brake_force = car_specs.engine_brake_force
+	rpm_response = car_specs.rpm_response
+	manual_transmission_enabled = car_specs.manual_transmission_enabled
+	automatic_transmission_enabled = car_specs.automatic_transmission_enabled
+	gear_ratios = car_specs.gear_ratios.duplicate()
+	reverse_gear_ratio = car_specs.reverse_gear_ratio
+	final_drive_ratio = car_specs.final_drive_ratio
+	peak_engine_torque = car_specs.peak_engine_torque
+	wheel_radius = car_specs.wheel_radius
+	drivetrain_efficiency = car_specs.drivetrain_efficiency
+	shift_delay = car_specs.shift_delay
+	automatic_upshift_rpm = car_specs.automatic_upshift_rpm
+	automatic_downshift_rpm = car_specs.automatic_downshift_rpm
+	automatic_kickdown_throttle = car_specs.automatic_kickdown_throttle
+	automatic_kickdown_rpm = car_specs.automatic_kickdown_rpm
+	automatic_shift_delay = car_specs.automatic_shift_delay
+	torque_converter_stall_rpm = car_specs.torque_converter_stall_rpm
+	torque_converter_coupling_rpm = car_specs.torque_converter_coupling_rpm
+	torque_converter_stall_torque_multiplier = car_specs.torque_converter_stall_torque_multiplier
+	vehicle_mass = car_specs.vehicle_mass
+	drag_coefficient = car_specs.drag_coefficient
+	frontal_area = car_specs.frontal_area
+	air_density = car_specs.air_density
+	rolling_resistance_coefficient = car_specs.rolling_resistance_coefficient
+	lateral_grip = car_specs.lateral_grip
+	handbrake_lateral_grip_multiplier = car_specs.handbrake_lateral_grip_multiplier
+	steering_slip_gain = car_specs.steering_slip_gain
+	slip_speed_threshold = car_specs.slip_speed_threshold
+	slip_steering_lock_threshold = car_specs.slip_steering_lock_threshold
+	slip_steering_same_direction_multiplier = car_specs.slip_steering_same_direction_multiplier
+	skid_mark_min_slip = car_specs.skid_mark_min_slip
+	skid_mark_interval = car_specs.skid_mark_interval
+	skid_mark_lifetime = car_specs.skid_mark_lifetime
+	skid_mark_width = car_specs.skid_mark_width
+	skid_mark_length = car_specs.skid_mark_length
+	gravity = car_specs.gravity
+	floor_stick_force = car_specs.floor_stick_force
 
 
 func _prepare_engine_model() -> void:
