@@ -121,7 +121,7 @@ Definition of done:
 
 ## Phase 4 — Extract drivetrain model
 
-Status: started. Engine RPM/torque/limiter, resistance logic and drivetrain helper calculations are split out. Transmission selection and torque converter behavior remain in `PlayerCarController`.
+Status: started. Engine RPM/torque/limiter, resistance logic, drivetrain helper calculations and torque converter helper calculations are split out. Transmission selection remains in `PlayerCarController`.
 
 Goal: separate engine/transmission simulation from movement and steering.
 
@@ -136,9 +136,11 @@ Tasks:
 - [x] Create `scripts/car/drivetrain_model.gd`.
 - [x] Move gear-ratio and wheel-coupled RPM helper calculations.
 - [x] Move wheel force and drive-acceleration helper calculations.
+- [x] Create `scripts/car/torque_converter_model.gd`.
+- [x] Move torque converter RPM-coupling helper calculation.
+- [x] Move torque converter torque-multiplication helper calculation.
 - [ ] Move manual transmission logic.
 - [ ] Move automatic transmission logic.
-- [ ] Move torque converter approximation.
 - [ ] Expose a small API returning wheel drive acceleration/force, RPM, load and gear text.
 
 Definition of done:
