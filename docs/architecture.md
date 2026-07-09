@@ -54,6 +54,7 @@ scripts/
     engine_model.gd
     resistance_model.gd
     skid_mark_emitter.gd
+    tire_model.gd
     tire_squeal_audio.gd
     torque_converter_model.gd
   game/
@@ -103,10 +104,9 @@ Responsibilities currently inside the controller:
 - forward/reverse speed model;
 - applying selected gears;
 - steering model;
-- lateral slip approximation;
-- handbrake behavior;
-- tire slip intensity output;
+- grounding behavior;
 - reset-to-start behavior;
+- skid-mark dispatch;
 - movement through `move_and_slide()`.
 
 Player/external drive input is handled by `scripts/car/car_input.gd`.
@@ -124,6 +124,8 @@ Gear-ratio lookup, wheel-coupled RPM, wheel-force and drive-acceleration helper 
 Torque converter RPM coupling and torque multiplication are handled by `scripts/car/torque_converter_model.gd`.
 
 Aerodynamic drag and rolling resistance are handled by `scripts/car/resistance_model.gd`.
+
+Lateral grip recovery and tire slip-intensity calculation are handled by `scripts/car/tire_model.gd`.
 
 Skid mark visual effects are handled by `scripts/car/skid_mark_emitter.gd`.
 
@@ -151,7 +153,7 @@ scripts/car/
   tire_squeal_audio.gd
 ```
 
-The next substantial car refactor should continue vehicle-controller cleanup, because gear application, tire behavior and movement are still coupled to the controller.
+The next substantial car refactor should continue vehicle-controller cleanup, because gear application, steering and movement are still coupled to the controller.
 
 ## Race/game architecture
 
@@ -273,7 +275,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 | Risk | Severity | Reason |
 |---|---:|---|
-| `car_controller.gd` is still large | High | Gear application, tires and movement are still coupled |
+| `car_controller.gd` is still large | High | Gear application, steering and movement are still coupled |
 | Lap tracking is heuristic | Medium | Uses racing-line progress rather than physical checkpoints |
 | Track generator mixes data and scenery | Medium | Adding more tracks will duplicate or complicate logic |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
@@ -285,7 +287,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 After local validation of the current race/menu/UI split, continue with one of these:
 
 1. Convert procedural UI helpers into scene-driven UI.
-2. Extract tire model logic from `car_controller.gd` in small, behavior-preserving changes.
+2. Extract movement/velocity binding from `car_controller.gd` in small, behavior-preserving changes.
 3. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
 
 Do not change car handling while race/menu/UI refactors remain untested locally.
