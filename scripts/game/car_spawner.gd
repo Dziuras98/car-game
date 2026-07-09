@@ -45,6 +45,10 @@ func get_current_car() -> PlayerCarController:
 	return _current_car
 
 
+func get_current_car_index() -> int:
+	return _current_car_index
+
+
 func get_opponents() -> Array[PlayerCarController]:
 	return _opponents
 
