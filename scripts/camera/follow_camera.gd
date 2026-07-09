@@ -11,15 +11,20 @@ extends Camera3D
 
 func set_target_node(target: Node3D) -> void:
 	_target = target
-	if is_inside_tree() and target != null:
+	if not is_inside_tree():
+		return
+	if target != null and is_instance_valid(target) and target.is_inside_tree():
 		target_path = get_path_to(target)
 
 
 func _process(delta: float) -> void:
+	if not is_inside_tree():
+		return
+
 	if not is_instance_valid(_target):
 		_target = get_node_or_null(target_path) as Node3D
 
-	if _target == null:
+	if not is_instance_valid(_target) or not _target.is_inside_tree():
 		return
 
 	var target_transform: Transform3D = _target.global_transform
