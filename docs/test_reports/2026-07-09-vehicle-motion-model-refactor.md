@@ -51,19 +51,21 @@ This refactor intentionally does not change:
 
 ## Validation status
 
-Post-change validation is still required. Run:
+Post-change full-program smoke test was reported as successful by the project owner.
+
+Validated command/scene:
 
 ```text
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-Expected result:
+Expected passing result remains:
 
 ```text
 [SMOKE] Extended full program smoke test passed: <N> checks
 ```
 
-Recommended manual spot checks:
+Manual spot checks to repeat if this area changes again:
 
 - free-drive automatic 370Z accelerates and steers normally;
 - manual 370Z shifts and reverses normally;
@@ -74,6 +76,6 @@ Recommended manual spot checks:
 
 ## Next recommended work
 
-1. Run the full-program smoke test after this refactor.
-2. If it passes, record the successful result in this report.
-3. Continue with `CarSpecs` Resources only after this baseline is validated.
+1. Introduce `CarSpecs` Resources for 370Z manual and automatic variants.
+2. Keep current controller export values as a fallback until Resource-backed tuning passes smoke testing.
+3. Continue deeper vehicle-model changes only after Resource-backed tuning is validated.
