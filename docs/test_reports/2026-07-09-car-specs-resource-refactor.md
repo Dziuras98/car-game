@@ -49,19 +49,21 @@ Existing exported values in the scenes are intentionally kept for now as fallbac
 
 ## Validation status
 
-Post-change validation is still required. Run:
+Post-change full-program smoke test was reported as successful by the project owner.
+
+Validated command/scene:
 
 ```text
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-Expected result:
+Expected passing result remains:
 
 ```text
 [SMOKE] Extended full program smoke test passed: <N> checks
 ```
 
-Recommended manual spot checks:
+Manual spot checks to repeat if this area changes again:
 
 - menu still lists both 370Z variants;
 - automatic 370Z still starts in automatic drive behavior and can reverse from near stop;
@@ -71,6 +73,6 @@ Recommended manual spot checks:
 
 ## Next recommended work
 
-1. Run the full-program smoke test after this refactor.
-2. If it passes, record the successful result in this report.
-3. Only then consider removing duplicated tuning values from car scene overrides.
+1. Prepare a model/variant/catalog data layer so each car model can contain many variants.
+2. Keep `CarSpecs` as the tuning payload for each variant.
+3. Wire menu selection to the catalog in a separate refactor.
