@@ -81,6 +81,7 @@ var _brake_input: float = 0.0
 var _tire_slip_intensity: float = 0.0
 var _car_input: CarInput = CarInput.new()
 var _manual_transmission_model: ManualTransmissionModel = ManualTransmissionModel.new()
+var _automatic_transmission_model: AutomaticTransmissionModel = AutomaticTransmissionModel.new()
 var _engine_model: EngineModel = EngineModel.new()
 var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
@@ -200,44 +201,28 @@ func _update_transmission_input(throttle: float, brake: float) -> void:
 
 
 func _update_automatic_transmission(throttle: float, brake: float) -> void:
-	if gear_ratios.is_empty():
-		return
+	var lower_gear_rpm: float = idle_rpm
+	if _current_gear > 1:
+		lower_gear_rpm = _get_coupled_engine_rpm_for_gear(_current_gear - 1)
 
-	var local_forward_speed: float = _forward_speed
-	if brake > 0.0 and throttle <= 0.0 and local_forward_speed < 0.25:
-		_set_transmission_gear(-1)
-		return
+	var requested_gear: int = _automatic_transmission_model.get_requested_gear(
+		_current_gear,
+		gear_ratios.size(),
+		_forward_speed,
+		_engine_rpm,
+		throttle,
+		brake,
+		_shift_timer,
+		redline_rpm,
+		automatic_upshift_rpm,
+		automatic_downshift_rpm,
+		automatic_kickdown_throttle,
+		automatic_kickdown_rpm,
+		lower_gear_rpm
+	)
 
-	if throttle > 0.0 and _current_gear < 1:
-		_set_transmission_gear(1)
-
-	if _current_gear < 1 or _shift_timer > 0.0:
-		return
-
-	var throttle_ratio: float = clampf(throttle, 0.0, 1.0)
-
-	if brake > 0.0 and throttle_ratio <= 0.0 and local_forward_speed > 0.25 and _current_gear > 1:
-		var brake_downshift_rpm: float = _get_coupled_engine_rpm_for_gear(_current_gear - 1)
-		if brake_downshift_rpm < redline_rpm * 0.97:
-			_set_transmission_gear(_current_gear - 1)
-			return
-
-	if throttle_ratio >= automatic_kickdown_throttle and _current_gear > 1 and _engine_rpm < automatic_kickdown_rpm:
-		var kickdown_rpm: float = _get_coupled_engine_rpm_for_gear(_current_gear - 1)
-		if kickdown_rpm < redline_rpm * 0.97:
-			_set_transmission_gear(_current_gear - 1)
-			return
-
-	var upshift_rpm: float = lerpf(automatic_upshift_rpm, redline_rpm * 0.98, throttle_ratio)
-	if _engine_rpm >= upshift_rpm and _current_gear < gear_ratios.size():
-		_set_transmission_gear(_current_gear + 1)
-		return
-
-	var downshift_rpm: float = automatic_downshift_rpm + throttle_ratio * 900.0
-	if _engine_rpm <= downshift_rpm and _current_gear > 1:
-		var lower_gear_rpm: float = _get_coupled_engine_rpm_for_gear(_current_gear - 1)
-		if lower_gear_rpm < redline_rpm * 0.97:
-			_set_transmission_gear(_current_gear - 1)
+	if requested_gear != _current_gear:
+		_set_transmission_gear(requested_gear)
 
 
 func _update_shift_timer(delta: float) -> void:
