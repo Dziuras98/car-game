@@ -2,7 +2,7 @@
 
 This document describes the current vehicle model before deeper drivetrain, tire and motion refactors.
 
-It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
+It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
 
 ## Current model boundaries
 
@@ -22,9 +22,10 @@ Current main files:
 
 | Path | Responsibility |
 |---|---|
-| `scripts/car/car_controller.gd` | Main movement coordinator, transmission, wheel force, steering, tire slip and reset |
+| `scripts/car/car_controller.gd` | Main movement coordinator, transmission selection, torque converter, steering, tire slip and reset |
 | `scripts/car/car_input.gd` | Player/external drive input sampling and input state |
 | `scripts/car/engine_model.gd` | RPM state, free-rev blending, torque multiplier and rev limiter multiplier |
+| `scripts/car/drivetrain_model.gd` | Gear-ratio lookup, wheel-coupled RPM, wheel force and drive acceleration helper calculations |
 | `scripts/car/resistance_model.gd` | Aerodynamic drag and rolling resistance |
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual effect emission |
 | `scripts/car/engine_audio.gd` | Procedural engine audio driven by controller telemetry |
@@ -121,7 +122,7 @@ The current controller keeps tuning values in exported fields so car scenes can 
 - `engine_brake_force`
 - `rpm_response`
 
-### Transmission
+### Transmission / drivetrain
 
 - `manual_transmission_enabled`
 - `automatic_transmission_enabled`
@@ -206,6 +207,8 @@ Reset input is only accepted when external input is disabled and player input is
 
 The controller calculates wheel-driven RPM and passes it to `EngineModel.update(throttle, wheel_rpm, delta)`.
 
+For geared transmissions, wheel-driven RPM comes from `DrivetrainModel.get_coupled_engine_rpm_for_gear(gear, forward_speed)`. For non-geared fallback behavior, the controller still maps speed ratio directly to RPM.
+
 The engine model then calculates:
 
 ```text
@@ -240,7 +243,9 @@ If `rev_limiter_rpm <= redline_rpm`, multiplier becomes `0.0` once redline is re
 
 ## Transmission and wheel RPM
 
-Transmission logic is still inside `PlayerCarController`.
+Manual and automatic gear-selection logic is still inside `PlayerCarController`.
+
+`DrivetrainModel` owns gear-ratio lookup and wheel-coupled RPM helper calculations.
 
 ### Gear conventions
 
@@ -266,6 +271,26 @@ Fallback non-geared display:
 - negative forward speed => `R`
 - positive forward speed => `D`
 - otherwise => `N`
+
+### Gear-ratio lookup
+
+`DrivetrainModel.get_gear_ratio_for_gear(gear)` returns:
+
+- `reverse_gear_ratio` when gear is negative;
+- `1.0` when `gear_ratios` is empty;
+- otherwise `gear_ratios[clamped_gear_index]`.
+
+### Wheel-coupled engine RPM
+
+`DrivetrainModel.get_coupled_engine_rpm_for_gear(gear, forward_speed)` calculates:
+
+```text
+wheel_circumference = TAU * wheel_radius
+wheel_rpm = abs(forward_speed) / wheel_circumference * 60.0
+coupled_rpm = max(idle_rpm, wheel_rpm * gear_ratio * final_drive_ratio)
+```
+
+If wheel circumference is invalid, it returns `idle_rpm`.
 
 ### Manual transmission
 
@@ -309,7 +334,7 @@ engine_rpm = lerp(unlocked_rpm, coupled_rpm, coupling_ratio)
 
 ### Torque multiplication
 
-For automatic transmission, wheel force uses torque converter torque multiplication:
+For automatic transmission, drive force uses torque converter torque multiplication:
 
 ```text
 coupling_ratio = clamp((engine_rpm - idle_rpm) / (torque_converter_coupling_rpm - idle_rpm), 0.0, 1.0)
@@ -320,6 +345,8 @@ converter_multiplier = lerp(1.0, slipping_multiplier, drive_input)
 Manual and non-automatic modes use multiplier `1.0`.
 
 ## Drive force model
+
+`DrivetrainModel` owns wheel-force and geared drive-acceleration helper calculations.
 
 For geared transmission, drive acceleration is calculated as:
 
@@ -341,7 +368,7 @@ Drive direction is `-1.0` in reverse gear and `1.0` otherwise.
 
 If `gear_ratios` is empty, current gear is neutral, or manual shift delay is active, geared drive acceleration is `0.0`.
 
-For non-geared fallback behavior, forward acceleration uses:
+For non-geared fallback behavior, forward acceleration still remains in `PlayerCarController` and uses:
 
 ```text
 forward_speed += throttle * engine_force * torque_multiplier * rev_limiter_multiplier * delta
@@ -552,7 +579,7 @@ Preferred sequence for stabilization:
 Recommended next code extraction:
 
 ```text
-scripts/car/drivetrain_model.gd
+scripts/car/torque_converter_model.gd
 ```
 
-First drivetrain PR should move only gear-ratio, wheel-force and drive-acceleration helper calculations. Manual/automatic gear-selection logic should remain in `PlayerCarController` until that smaller extraction is tested.
+The next drivetrain PR should move only the torque converter RPM-coupling and torque-multiplication helpers. Manual/automatic gear-selection logic should remain in `PlayerCarController` until that smaller extraction is tested.

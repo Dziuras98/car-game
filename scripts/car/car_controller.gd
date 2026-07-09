@@ -82,6 +82,7 @@ var _tire_slip_intensity: float = 0.0
 var _car_input: CarInput = CarInput.new()
 var _engine_model: EngineModel = EngineModel.new()
 var _resistance_model: ResistanceModel = ResistanceModel.new()
+var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
 var _skid_mark_emitter: SkidMarkEmitter
 
 
@@ -89,6 +90,7 @@ func _ready() -> void:
 	_start_transform = global_transform
 	_prepare_engine_model()
 	_prepare_resistance_model()
+	_prepare_drivetrain_model()
 	_prepare_skid_marks()
 
 
@@ -344,13 +346,7 @@ func _get_wheel_driven_rpm() -> float:
 
 
 func _get_coupled_engine_rpm_for_gear(gear: int) -> float:
-	var wheel_circumference: float = TAU * wheel_radius
-	if wheel_circumference <= 0.0:
-		return idle_rpm
-
-	var wheel_rpm: float = absf(_forward_speed) / wheel_circumference * 60.0
-	var gear_ratio: float = _get_gear_ratio_for_gear(gear)
-	return maxf(idle_rpm, wheel_rpm * gear_ratio * final_drive_ratio)
+	return _drivetrain_model.get_coupled_engine_rpm_for_gear(gear, _forward_speed)
 
 
 func _get_torque_converter_rpm(coupled_rpm: float) -> float:
@@ -364,27 +360,14 @@ func _get_torque_converter_rpm(coupled_rpm: float) -> float:
 
 
 func _get_transmission_drive_acceleration(throttle: float) -> float:
-	if gear_ratios.is_empty() or _current_gear == 0:
-		return 0.0
-
-	if manual_transmission_enabled and _shift_timer > 0.0:
-		return 0.0
-
-	var wheel_force: float = _get_wheel_drive_force(throttle)
-	if vehicle_mass <= 0.0:
-		return 0.0
-
-	return wheel_force / vehicle_mass
-
-
-func _get_wheel_drive_force(throttle: float) -> float:
-	var converter_multiplier: float = _get_torque_converter_torque_multiplier(throttle)
-	var engine_torque: float = peak_engine_torque * _get_torque_multiplier() * _get_rev_limiter_multiplier() * throttle * converter_multiplier
-	var gear_ratio: float = _get_current_gear_ratio()
-	var wheel_torque: float = engine_torque * gear_ratio * final_drive_ratio * drivetrain_efficiency
-	var safe_wheel_radius: float = maxf(wheel_radius, 0.01)
-
-	return wheel_torque / safe_wheel_radius * _get_drive_direction()
+	return _drivetrain_model.get_drive_acceleration(
+		throttle,
+		_current_gear,
+		manual_transmission_enabled and _shift_timer > 0.0,
+		_get_torque_multiplier(),
+		_get_rev_limiter_multiplier(),
+		_get_torque_converter_torque_multiplier(throttle)
+	)
 
 
 func _get_torque_converter_torque_multiplier(drive_input: float) -> float:
@@ -399,26 +382,12 @@ func _get_torque_converter_torque_multiplier(drive_input: float) -> float:
 	return lerpf(1.0, slipping_multiplier, clampf(drive_input, 0.0, 1.0))
 
 
-func _get_drive_direction() -> float:
-	if _uses_geared_transmission() and _current_gear < 0:
-		return -1.0
-
-	return 1.0
-
-
 func _get_current_gear_ratio() -> float:
 	return _get_gear_ratio_for_gear(_current_gear)
 
 
 func _get_gear_ratio_for_gear(gear: int) -> float:
-	if _uses_geared_transmission() and gear < 0:
-		return reverse_gear_ratio
-
-	if gear_ratios.is_empty():
-		return 1.0
-
-	var gear_index: int = clampi(gear - 1, 0, gear_ratios.size() - 1)
-	return gear_ratios[gear_index]
+	return _drivetrain_model.get_gear_ratio_for_gear(gear)
 
 
 func _uses_geared_transmission() -> bool:
@@ -535,6 +504,19 @@ func _prepare_resistance_model() -> void:
 		frontal_area,
 		air_density,
 		rolling_resistance_coefficient
+	)
+
+
+func _prepare_drivetrain_model() -> void:
+	_drivetrain_model.configure(
+		idle_rpm,
+		gear_ratios,
+		reverse_gear_ratio,
+		final_drive_ratio,
+		peak_engine_torque,
+		wheel_radius,
+		drivetrain_efficiency,
+		vehicle_mass
 	)
 
 
