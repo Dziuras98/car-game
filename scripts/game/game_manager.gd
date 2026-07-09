@@ -20,6 +20,7 @@ var _lap_tracker: LapTracker
 var _car_spawner: CarSpawner
 var _race_manager: RaceManager
 var _race_hud: RaceHud
+var _mobile_drive_controls: CanvasLayer
 
 @onready var _car_spawn: Node3D = get_node(car_spawn_path) as Node3D
 @onready var _camera: Node = get_node_or_null(camera_path)
@@ -29,6 +30,7 @@ var _race_hud: RaceHud
 @onready var _track: Node3D = get_node_or_null(track_path) as Node3D
 
 const MODE_RACE: String = "race"
+const MOBILE_DRIVE_CONTROLS_SCRIPT: Script = preload("res://scripts/ui/mobile_drive_controls.gd")
 
 
 func _ready() -> void:
@@ -46,6 +48,7 @@ func _ready() -> void:
 	)
 
 	_race_hud = RaceHud.new()
+	_build_mobile_drive_controls()
 
 	_race_manager = RaceManager.new()
 	_race_manager.countdown_changed.connect(_show_countdown)
@@ -320,3 +323,12 @@ func _return_to_main_menu() -> void:
 func _update_minimap_opponents() -> void:
 	if _minimap != null and _minimap.has_method("set_opponents"):
 		_minimap.call("set_opponents", _opponents)
+
+
+func _build_mobile_drive_controls() -> void:
+	if _mobile_drive_controls != null:
+		return
+
+	_mobile_drive_controls = MOBILE_DRIVE_CONTROLS_SCRIPT.new() as CanvasLayer
+	if _mobile_drive_controls != null:
+		add_child(_mobile_drive_controls)
