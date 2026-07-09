@@ -1,6 +1,7 @@
 extends Node3D
 
 const DEFAULT_CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
+const MenuOptionsBuilder = preload("res://scripts/game/menu_options_builder.gd")
 
 @export_group("Cars")
 @export var car_catalog: CarCatalog = DEFAULT_CAR_CATALOG
@@ -42,7 +43,6 @@ var _mobile_drive_controls: CanvasLayer
 
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
-const TRACK_SIMPLE_OVAL: String = "simple_oval"
 const MOBILE_DRIVE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile_drive_controls.tscn")
 
 
@@ -183,18 +183,18 @@ func _configure_menu_car_options() -> void:
 		return
 
 	if _menu.has_method("set_car_models"):
-		_menu.call("set_car_models", _get_menu_car_models())
+		_menu.call(
+			"set_car_models",
+			MenuOptionsBuilder.build_car_models(car_catalog, _available_car_scenes)
+		)
 		return
 
 	if _menu.has_method("set_car_names"):
-		var car_names: PackedStringArray = PackedStringArray()
-		if car_catalog != null and not _available_car_variants.is_empty():
-			for variant: CarVariantDefinition in _available_car_variants:
-				car_names.append(variant.get_menu_name())
-		else:
-			for car_index: int in range(_available_car_scenes.size()):
-				car_names.append("Samochod %d" % (car_index + 1))
-
+		var car_names: PackedStringArray = MenuOptionsBuilder.build_fallback_car_names(
+			car_catalog,
+			_available_car_variants,
+			_available_car_scenes
+		)
 		_menu.call("set_car_names", car_names)
 
 
@@ -202,48 +202,8 @@ func _configure_menu_track_options() -> void:
 	if _menu == null or not _menu.has_method("set_track_options"):
 		return
 
-	var track_options: Array[Dictionary] = [{
-		"label": "Prosty owal",
-		"track_id": TRACK_SIMPLE_OVAL,
-	}]
+	var track_options: Array[Dictionary] = MenuOptionsBuilder.build_track_options()
 	_menu.call("set_track_options", track_options)
-
-
-func _get_menu_car_models() -> Array[Dictionary]:
-	var menu_models: Array[Dictionary] = []
-	if car_catalog != null:
-		for model: CarModelDefinition in car_catalog.get_models():
-			var variants: Array[Dictionary] = []
-			for variant: CarVariantDefinition in model.get_variants():
-				variants.append({
-					"label": variant.get_menu_name(),
-					"variant_id": variant.variant_id,
-				})
-			if not variants.is_empty():
-				menu_models.append({
-					"label": model.get_model_name(),
-					"model_id": model.model_id,
-					"variants": variants,
-				})
-
-	if not menu_models.is_empty():
-		return menu_models
-
-	var fallback_variants: Array[Dictionary] = []
-	for car_index: int in range(_available_car_scenes.size()):
-		fallback_variants.append({
-			"label": "Samochod %d" % (car_index + 1),
-			"variant_id": StringName(str(car_index)),
-		})
-
-	if not fallback_variants.is_empty():
-		menu_models.append({
-			"label": "Samochody",
-			"model_id": &"fallback_cars",
-			"variants": fallback_variants,
-		})
-
-	return menu_models
 
 
 func _has_available_car_options() -> bool:
