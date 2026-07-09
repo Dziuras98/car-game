@@ -79,9 +79,7 @@ var _shift_timer: float = 0.0
 var _throttle_input: float = 0.0
 var _brake_input: float = 0.0
 var _tire_slip_intensity: float = 0.0
-var _skid_mark_timer: float = 0.0
-var _skid_mark_parent: Node3D
-var _skid_mark_material: StandardMaterial3D
+var _skid_mark_emitter: SkidMarkEmitter
 var _player_input_enabled: bool = true
 var _external_input_enabled: bool = false
 var _external_throttle: float = 0.0
@@ -342,17 +340,8 @@ func _update_tire_model(steering: float, handbrake_active: bool, delta: float) -
 
 
 func _update_skid_marks(delta: float) -> void:
-	if _tire_slip_intensity < skid_mark_min_slip:
-		_skid_mark_timer = 0.0
-		return
-
-	_skid_mark_timer -= delta
-	if _skid_mark_timer > 0.0:
-		return
-
-	_skid_mark_timer = skid_mark_interval
-	_spawn_skid_mark(Vector3(-0.9, 0.03, 1.25))
-	_spawn_skid_mark(Vector3(0.9, 0.03, 1.25))
+	if _skid_mark_emitter != null:
+		_skid_mark_emitter.update(delta, _tire_slip_intensity, global_transform)
 
 
 func _apply_resistance(delta: float) -> void:
@@ -575,35 +564,17 @@ func _reset_to_start() -> void:
 	_throttle_input = 0.0
 	_brake_input = 0.0
 	_tire_slip_intensity = 0.0
-	_skid_mark_timer = 0.0
+	if _skid_mark_emitter != null:
+		_skid_mark_emitter.reset_timer()
 
 
 func _prepare_skid_marks() -> void:
-	_skid_mark_parent = Node3D.new()
-	_skid_mark_parent.name = "SkidMarks"
-	var skid_mark_owner: Node = get_tree().current_scene
-	if skid_mark_owner == null:
-		skid_mark_owner = get_tree().root
-	skid_mark_owner.call_deferred("add_child", _skid_mark_parent)
-
-	_skid_mark_material = StandardMaterial3D.new()
-	_skid_mark_material.albedo_color = Color(0.015, 0.014, 0.012, 0.72)
-	_skid_mark_material.roughness = 0.96
-	_skid_mark_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-
-
-func _spawn_skid_mark(local_position: Vector3) -> void:
-	if _skid_mark_parent == null or _skid_mark_material == null:
-		return
-
-	var skid_mark: MeshInstance3D = MeshInstance3D.new()
-	var mark_mesh: BoxMesh = BoxMesh.new()
-	mark_mesh.size = Vector3(skid_mark_width, 0.012, skid_mark_length)
-	skid_mark.mesh = mark_mesh
-	skid_mark.material_override = _skid_mark_material
-	skid_mark.global_transform = global_transform * Transform3D(Basis(), local_position)
-	_skid_mark_parent.add_child(skid_mark)
-
-	var tween: Tween = skid_mark.create_tween()
-	tween.tween_property(skid_mark, "transparency", 1.0, skid_mark_lifetime)
-	tween.finished.connect(skid_mark.queue_free)
+	_skid_mark_emitter = SkidMarkEmitter.new()
+	_skid_mark_emitter.configure(
+		self,
+		skid_mark_min_slip,
+		skid_mark_interval,
+		skid_mark_lifetime,
+		skid_mark_width,
+		skid_mark_length
+	)
