@@ -44,6 +44,9 @@ func update(delta: float, slip_intensity: float, source_transform: Transform3D) 
 
 
 func _prepare_parent(owner_node: Node) -> void:
+	if is_instance_valid(_parent):
+		return
+
 	_parent = Node3D.new()
 	_parent.name = "SkidMarks"
 
@@ -58,6 +61,9 @@ func _prepare_parent(owner_node: Node) -> void:
 
 
 func _prepare_material() -> void:
+	if _material != null:
+		return
+
 	_material = StandardMaterial3D.new()
 	_material.albedo_color = Color(0.015, 0.014, 0.012, 0.72)
 	_material.roughness = 0.96
