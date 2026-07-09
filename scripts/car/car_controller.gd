@@ -95,7 +95,6 @@ var _skid_mark_emitter: SkidMarkEmitter
 func _ready() -> void:
 	_reconfigure_drive_runtime(false)
 	_reset_controller.capture_start_transform(_runtime_state, global_transform)
-	_prepare_skid_marks()
 
 
 func get_forward_speed() -> float:
@@ -180,6 +179,7 @@ func _reconfigure_drive_runtime(preserve_motion_state: bool = true) -> void:
 	_drive_config.sanitize()
 	_powertrain_controller.configure(_drive_config)
 	_chassis_controller.configure(_drive_config)
+	_configure_skid_mark_emitter()
 
 	if preserve_motion_state:
 		_clamp_runtime_gear_to_config()
@@ -210,8 +210,13 @@ func _reset_to_start() -> void:
 	)
 
 
-func _prepare_skid_marks() -> void:
-	_skid_mark_emitter = SkidMarkEmitter.new()
+func _configure_skid_mark_emitter() -> void:
+	if _drive_config == null:
+		return
+
+	if _skid_mark_emitter == null:
+		_skid_mark_emitter = SkidMarkEmitter.new()
+
 	_skid_mark_emitter.configure(
 		self,
 		_drive_config.skid_mark_min_slip,
