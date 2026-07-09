@@ -16,6 +16,7 @@ The project already has enough gameplay systems to be treated as a playable prot
 - lap/position/results UI;
 - speedometer, tachometer and minimap;
 - scene-driven mobile controls;
+- Resource-backed 370Z manual/automatic tuning data;
 - extracted vehicle-motion helper for local/global velocity projection;
 - procedural engine and tire audio.
 
@@ -182,7 +183,7 @@ Definition of done:
 
 ## Phase 4.75 — Extract vehicle motion projection helper
 
-Status: implemented, pending local regression testing.
+Status: implemented, validated by project owner with full-program smoke test.
 
 Goal: move local/global horizontal velocity projection out of `PlayerCarController` without changing steering, grounding, gravity or `move_and_slide()`.
 
@@ -192,7 +193,7 @@ Tasks:
 - [x] Move local forward/lateral speed to global horizontal velocity projection.
 - [x] Move global horizontal velocity back to local forward/lateral speed projection.
 - [x] Keep `velocity.y`, gravity, floor stick and `move_and_slide()` in `PlayerCarController`.
-- [ ] Run `scenes/tests/full_program_smoke_test.tscn` after checkout.
+- [x] Run `scenes/tests/full_program_smoke_test.tscn` after checkout.
 
 Definition of done:
 
@@ -204,23 +205,29 @@ Definition of done:
 
 ## Phase 5 — Introduce car specs as Resources
 
+Status: started, pending local regression testing.
+
 Goal: stop storing all car tuning directly in scene overrides and controller export variables.
 
 Tasks:
 
-- [ ] Create `scripts/car/car_specs.gd` extending `Resource`.
-- [ ] Add drivetrain fields.
-- [ ] Add mass/resistance fields.
-- [ ] Add tire/steering fields.
-- [ ] Create `resources/cars/370z_manual.tres`.
-- [ ] Create `resources/cars/370z_automatic.tres`.
-- [ ] Let car scenes reference specs.
+- [x] Create `scripts/car/car_specs.gd` extending `Resource`.
+- [x] Add drivetrain fields.
+- [x] Add mass/resistance fields.
+- [x] Add tire/steering fields.
+- [x] Create `resources/cars/370z_manual.tres`.
+- [x] Create `resources/cars/370z_automatic.tres`.
+- [x] Let the base controller use manual 370Z specs by default.
+- [x] Let the automatic 370Z scene reference automatic specs.
+- [ ] Run `scenes/tests/full_program_smoke_test.tscn` after checkout.
+- [ ] Remove duplicated scene override tuning after Resource-backed tuning is validated.
 
 Definition of done:
 
 - adding a new car variant does not require duplicating controller parameters manually;
 - menu can later read car names from car definitions;
-- car tuning can be versioned as data.
+- car tuning can be versioned as data;
+- existing 370Z manual and automatic behavior remains equivalent after smoke testing.
 
 ## Phase 6 — Replace heuristic lap tracking with checkpoints
 
@@ -299,4 +306,4 @@ Candidate features:
 
 ## Current rule
 
-Do not add new cars, tracks or major gameplay systems until the current refactor has passed the full-program smoke test and the remaining architecture tasks have a stable baseline.
+Do not add new cars, tracks or major gameplay systems until the current Resource-backed car tuning path has passed the full-program smoke test.
