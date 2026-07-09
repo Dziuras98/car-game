@@ -83,6 +83,7 @@ var _car_input: CarInput = CarInput.new()
 var _engine_model: EngineModel = EngineModel.new()
 var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
+var _torque_converter_model: TorqueConverterModel = TorqueConverterModel.new()
 var _skid_mark_emitter: SkidMarkEmitter
 
 
@@ -91,6 +92,7 @@ func _ready() -> void:
 	_prepare_engine_model()
 	_prepare_resistance_model()
 	_prepare_drivetrain_model()
+	_prepare_torque_converter_model()
 	_prepare_skid_marks()
 
 
@@ -351,12 +353,7 @@ func _get_coupled_engine_rpm_for_gear(gear: int) -> float:
 
 func _get_torque_converter_rpm(coupled_rpm: float) -> float:
 	var drive_input: float = _brake_input if _current_gear < 0 else _throttle_input
-	var stall_target_rpm: float = lerpf(idle_rpm, torque_converter_stall_rpm, clampf(drive_input, 0.0, 1.0))
-	var unlocked_rpm: float = maxf(coupled_rpm, stall_target_rpm)
-	var coupling_range: float = maxf(torque_converter_coupling_rpm - idle_rpm, 1.0)
-	var coupling_ratio: float = clampf((coupled_rpm - idle_rpm) / coupling_range, 0.0, 1.0)
-
-	return lerpf(unlocked_rpm, coupled_rpm, coupling_ratio)
+	return _torque_converter_model.get_coupled_rpm(coupled_rpm, drive_input)
 
 
 func _get_transmission_drive_acceleration(throttle: float) -> float:
@@ -374,12 +371,7 @@ func _get_torque_converter_torque_multiplier(drive_input: float) -> float:
 	if not automatic_transmission_enabled:
 		return 1.0
 
-	var coupling_range: float = maxf(torque_converter_coupling_rpm - idle_rpm, 1.0)
-	var coupling_ratio: float = clampf((_engine_rpm - idle_rpm) / coupling_range, 0.0, 1.0)
-	var stall_multiplier: float = maxf(torque_converter_stall_torque_multiplier, 1.0)
-	var slipping_multiplier: float = lerpf(stall_multiplier, 1.0, coupling_ratio)
-
-	return lerpf(1.0, slipping_multiplier, clampf(drive_input, 0.0, 1.0))
+	return _torque_converter_model.get_torque_multiplier(_engine_rpm, drive_input)
 
 
 func _get_current_gear_ratio() -> float:
@@ -517,6 +509,15 @@ func _prepare_drivetrain_model() -> void:
 		wheel_radius,
 		drivetrain_efficiency,
 		vehicle_mass
+	)
+
+
+func _prepare_torque_converter_model() -> void:
+	_torque_converter_model.configure(
+		idle_rpm,
+		torque_converter_stall_rpm,
+		torque_converter_coupling_rpm,
+		torque_converter_stall_torque_multiplier
 	)
 
 
