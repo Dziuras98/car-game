@@ -154,6 +154,28 @@ Definition of done:
 - manual and automatic 370Z variants behave at least as before;
 - tuning parameters are still visible in the Godot inspector or moved cleanly to a Resource.
 
+## Phase 4.5 — Extract tire model
+
+Status: started, pending local regression testing.
+
+Goal: move tire-specific calculations out of `PlayerCarController` without changing steering, grounding, velocity or movement.
+
+Tasks:
+
+- [x] Create `scripts/car/tire_model.gd`.
+- [x] Move lateral grip recovery helper.
+- [x] Move tire slip-intensity calculation helper.
+- [ ] Move slip-limited steering helper, if local testing confirms the current split is stable.
+- [ ] Keep grounding and skid-mark dispatch in `PlayerCarController` unless a later test proves a cleaner boundary is safe.
+
+Definition of done:
+
+- tire squeal still follows slip intensity;
+- skid marks still appear only under meaningful slip;
+- handbrake still increases slip and reduces lateral grip;
+- steering feel is not obviously changed;
+- airborne behavior still forces tire slip to zero.
+
 ## Phase 5 — Introduce car specs as Resources
 
 Goal: stop storing all car tuning directly in scene overrides and controller export variables.
