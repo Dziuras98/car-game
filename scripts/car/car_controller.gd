@@ -82,6 +82,7 @@ var _tire_slip_intensity: float = 0.0
 var _car_input: CarInput = CarInput.new()
 var _manual_transmission_model: ManualTransmissionModel = ManualTransmissionModel.new()
 var _automatic_transmission_model: AutomaticTransmissionModel = AutomaticTransmissionModel.new()
+var _shift_timer_model: ShiftTimerModel = ShiftTimerModel.new()
 var _engine_model: EngineModel = EngineModel.new()
 var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
@@ -226,8 +227,7 @@ func _update_automatic_transmission(throttle: float, brake: float) -> void:
 
 
 func _update_shift_timer(delta: float) -> void:
-	if _shift_timer > 0.0:
-		_shift_timer = maxf(_shift_timer - delta, 0.0)
+	_shift_timer = _shift_timer_model.update_timer(_shift_timer, delta)
 
 
 func _set_transmission_gear(next_gear: int) -> void:
@@ -235,7 +235,7 @@ func _set_transmission_gear(next_gear: int) -> void:
 		return
 
 	_current_gear = next_gear
-	_shift_timer = automatic_shift_delay if automatic_transmission_enabled else shift_delay
+	_shift_timer = _shift_timer_model.get_shift_delay(automatic_transmission_enabled, automatic_shift_delay, shift_delay)
 
 
 func _update_engine(throttle: float, delta: float) -> void:
