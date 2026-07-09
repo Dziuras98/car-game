@@ -21,6 +21,7 @@ The project currently contains:
 - speedometer, gear display and tachometer;
 - test mobile touch controls for Android playtesting;
 - extended full-program smoke test scene for automated regression checks;
+- game test adapter that centralizes smoke-test access to game state;
 - validated Android and smoke-test baseline report.
 
 The project is still a prototype. The next priority is controlled architectural cleanup, not adding more cars or game modes.
@@ -70,6 +71,8 @@ The test instantiates `scenes/main.tscn`, presses menu buttons, simulates drivin
 
 The extended coverage includes longer automatic/manual acceleration segments, steering left/right, handbrake/slip telemetry, braking, automatic reverse from near stop, manual neutral/reverse gear checks, a longer AI race soak segment and post-race free-drive reentry.
 
+`scripts/tests/game_test_adapter.gd` centralizes smoke-test access to the current car, opponents, selected mode/track, visible buttons and simulated player finish. The test runner should use that adapter instead of directly reading `GameManager` fields.
+
 The test prints `[SMOKE][PASS]` / `[SMOKE][FAIL]` lines to the Output panel and exits with status code `0` on pass or `1` on failure when run from command line.
 
 ## Controls
@@ -116,6 +119,7 @@ Mobile overlay buttons:
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
 | `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner attached to the smoke-test scene |
+| `scripts/tests/game_test_adapter.gd` | Diagnostic adapter used by the smoke test |
 | `scripts/tests/run_full_program_smoke_test.gd` | EditorScript launcher for the full-program smoke test scene |
 | `scripts/game/game_manager.gd` | High-level menu/free-drive/race coordinator |
 | `scripts/game/car_spawner.gd` | Player car, opponent and AI-driver instantiation helper |
@@ -156,7 +160,7 @@ The project works as a prototype, but some scripts still have too many responsib
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 - Mobile controls are a temporary testing overlay and should later become proper scene-driven UI.
-- The smoke test currently uses selected private `GameManager` state and should later move to a small test/diagnostic adapter.
+- `GameTestAdapter` still knows selected `GameManager` internals; this is centralized now, but a future production-facing diagnostic API would be cleaner.
 
 These should be refactored through small changes, followed by the extended smoke test.
 
