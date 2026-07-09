@@ -7,25 +7,28 @@ This roadmap prioritizes making the current prototype maintainable before adding
 The project already has enough gameplay systems to be treated as a playable prototype:
 
 - main menu;
-- free drive mode;
+- free-drive mode;
 - race mode;
 - player car spawning;
 - two 370Z variants;
+- Resource-backed car catalog and 370Z manual/automatic tuning data;
 - generated oval track;
 - AI opponents;
 - lap/position/results UI;
 - speedometer, tachometer and minimap;
 - scene-driven main race/menu UI: `MainMenu`, `CountdownOverlay`, `LapPositionHud` and `ResultsScreen`;
 - scene-driven mobile controls;
-- Resource-backed 370Z manual/automatic tuning data;
-- extracted vehicle-motion helper for local/global velocity projection;
-- procedural engine and tire audio.
+- modular car runtime/powertrain/chassis/reset split;
+- modular generated-track builder split;
+- procedural engine and tire audio;
+- extended full-program smoke test;
+- focused runtime-config test for the car controller helpers.
 
-The next phase should focus on stabilizing architecture.
+The next phase should focus on validation, small correctness fixes and data extraction. Do not add more cars or game modes until the current architecture is stable.
 
 ## Phase 0 — Documentation and baseline freeze
 
-Status: mostly complete.
+Status: refreshed after car-controller and generated-track decomposition.
 
 Goal: document the current structure so future Codex tasks have stable context.
 
@@ -34,8 +37,10 @@ Tasks:
 - [x] Add `README.md`.
 - [x] Add `docs/architecture.md`.
 - [x] Add `docs/roadmap.md`.
-- [ ] Add `docs/controls.md` if controls grow beyond README.
 - [x] Add `docs/vehicle_model.md` before major handling changes.
+- [x] Refresh documentation after car runtime/powertrain/chassis/reset extraction.
+- [x] Refresh documentation after generated-track builder extraction.
+- [ ] Add `docs/controls.md` if controls grow beyond README.
 - [ ] Add `docs/tuning_notes.md` before detailed 370Z tuning.
 
 Definition of done:
@@ -47,20 +52,31 @@ Definition of done:
 
 ## Phase 1 — Split the high-level game coordinator
 
-Status: implemented, pending full local regression testing.
+Status: implemented.
 
 Goal: remove unrelated responsibilities from the original high-level coordinator without changing gameplay behavior.
 
-Completed split:
+Completed:
 
 - [x] Create `scripts/game/game_manager.gd`.
 - [x] Move menu-selection flow and game-state transitions there.
+- [x] Create `scripts/game/car_selection_state.gd`.
+- [x] Move car scene/variant selection state there.
+- [x] Create `scripts/game/menu_options_builder.gd`.
+- [x] Move track and car menu option construction there.
 - [x] Create `scripts/game/car_spawner.gd`.
-- [x] Move player/opponent car instantiation there.
+- [x] Move player/opponent car instantiation behind a spawn facade.
+- [x] Create `scripts/game/car_instance_factory.gd`.
+- [x] Create `scripts/game/player_car_spawn_controller.gd`.
+- [x] Create `scripts/game/opponent_spawn_layout.gd`.
+- [x] Create `scripts/game/opponent_paint_randomizer.gd`.
+- [x] Create `scripts/game/opponent_participant_spawner.gd`.
 - [x] Create `scripts/race/race_manager.gd`.
 - [x] Move race start, countdown, finish and opponent enable/disable logic there.
 - [x] Create `scripts/race/lap_tracker.gd`.
 - [x] Move lap, participant progress, position and result-order logic there.
+- [x] Create `scripts/game/race_session_controller.gd`.
+- [x] Move race-session wiring between spawner, race manager, lap tracker, HUD and minimap there.
 - [x] Keep `ai_race_driver.gd` focused only on driving.
 - [x] Remove the old `scripts/race/car_switcher.gd` name after equivalent behavior was preserved.
 
@@ -75,15 +91,14 @@ Definition of done:
 - results screen still appears after race completion;
 - no car handling/tuning changes are mixed into this phase.
 
-## Phase 2 — Move race UI into scenes
+## Phase 2 — Move race/menu/mobile UI into scenes
 
-Status: implemented and validated with the full-program smoke test.
+Status: implemented and validated by smoke-test reports.
 
-Goal: stop building race UI procedurally and make it scene-driven.
+Goal: stop building major UI layouts procedurally and make them scene-driven.
 
-Tasks:
+Completed:
 
-- [ ] Create `scenes/ui/race_hud.tscn`, if a single wrapper scene becomes useful later.
 - [x] Create `scripts/ui/race_hud.gd`.
 - [x] Create `scenes/ui/countdown_overlay.tscn`.
 - [x] Create `scripts/ui/countdown_overlay.gd`.
@@ -98,24 +113,22 @@ Tasks:
 - [x] Wire race/menu UI scenes through their existing script facades.
 - [x] Remove procedural UI construction from the race/game manager.
 - [x] Keep runtime-generated option buttons and result rows in scripts because they depend on current menu/catalog/result data.
-- [x] Run `scenes/tests/full_program_smoke_test.tscn` and record 79 passing checks.
 
 Definition of done:
 
 - UI layout is editable in Godot scenes;
-- scripts only update values and visibility;
+- scripts only update values, visibility and signals;
 - dynamic option buttons and result rows may still be created in scripts from runtime data;
 - existing visual behavior remains equivalent or better.
 
-Recommended next architecture steps after this phase:
+Optional later work:
 
-- split `scripts/race/generated_track.gd` into track layout data, surface generation and decoration responsibilities;
-- continue reducing `scripts/car/car_controller.gd` before adding handling or drivetrain features;
-- improve test/diagnostic APIs so `GameTestAdapter` does not need to read selected `GameManager` internals directly.
+- [ ] Create `scenes/ui/race_hud.tscn`, if a single wrapper scene becomes useful later.
+- [ ] Create reusable option/result row scenes if the dynamic rows become visually complex.
 
-## Phase 3 — Extract non-driving effects from the car controller
+## Phase 3 — Extract car input and non-driving effects
 
-Status: implemented, pending local regression testing.
+Status: implemented.
 
 Goal: reduce `scripts/car/car_controller.gd` before touching handling or drivetrain math.
 
@@ -136,13 +149,13 @@ Definition of done:
 - tire squeal audio still reacts to slip intensity;
 - `car_controller.gd` loses input and visual-effect responsibilities.
 
-## Phase 4 — Extract drivetrain model
+## Phase 4 — Extract drivetrain, runtime config, chassis and reset controllers
 
-Status: mostly complete for drivetrain/transmission helpers. Engine RPM/torque/limiter, resistance logic, drivetrain helper calculations, torque converter helper calculations, manual gear-request logic, automatic gear-selection decisions and shift-timer helper calculations are split out. Gear application, tire behavior and movement remain in `PlayerCarController`.
+Status: implemented at current architecture level.
 
-Goal: separate engine/transmission simulation from movement and steering.
+Goal: separate engine/transmission simulation, runtime state, steering/tire/movement application and reset coordination from `PlayerCarController`.
 
-Tasks:
+Completed drivetrain and powertrain helpers:
 
 - [x] Create `scripts/car/engine_model.gd`.
 - [x] Move RPM calculation.
@@ -162,86 +175,112 @@ Tasks:
 - [x] Move automatic gear-selection decision helper.
 - [x] Create `scripts/car/shift_timer_model.gd`.
 - [x] Move shift-timer update and delay-selection helper.
-- [ ] Expose a small API returning wheel drive acceleration/force, RPM, load and gear text.
+- [x] Create `scripts/car/car_powertrain_controller.gd`.
+- [x] Move transmission input, shift timer, RPM, resistance and forward-speed update there.
+- [x] Keep public speed/RPM/load/gear telemetry available through `PlayerCarController`.
+
+Completed runtime/chassis/reset helpers:
+
+- [x] Create `scripts/car/car_runtime_state.gd`.
+- [x] Move runtime speed, RPM, gear, input snapshot and start-transform state there.
+- [x] Create `scripts/car/car_drive_config.gd`.
+- [x] Create `scripts/car/car_drive_config_builder.gd`.
+- [x] Build runtime config from `CarSpecs` first and legacy scene exports as fallback.
+- [x] Create `scripts/car/tire_model.gd`.
+- [x] Move lateral grip recovery helper.
+- [x] Move tire slip-intensity calculation helper.
+- [x] Create `scripts/car/vehicle_motion_model.gd`.
+- [x] Move local/global horizontal velocity projection.
+- [x] Create `scripts/car/car_chassis_controller.gd`.
+- [x] Move steering, slip-limited steering, tire/skid update, gravity and `move_and_slide()` there.
+- [x] Create `scripts/car/car_reset_controller.gd`.
+- [x] Move reset-to-start coordination there.
+- [x] Add `scripts/tests/car_controller_runtime_config_test.gd`.
 
 Definition of done:
 
 - speedometer still receives speed, RPM and gear text;
 - engine audio still receives RPM/load/throttle;
 - manual and automatic 370Z variants behave at least as before;
-- tuning parameters are still visible in the Godot inspector or moved cleanly to a Resource.
+- public `PlayerCarController` API used by UI, AI and tests remains available;
+- `PlayerCarController` is a thin coordinator instead of a physics monolith.
 
-## Phase 4.5 — Extract tire model
+Remaining work:
 
-Status: started, pending local regression testing.
+- [ ] Add focused tests for `CarPowertrainController` behavior beyond gear-text checks.
+- [ ] Add focused tests for `CarChassisController` and `VehicleMotionModel` behavior.
+- [ ] Confirm or fix runtime `car_specs` changes so skid-mark configuration stays synchronized.
+- [ ] Remove legacy export tuning after all scenes rely on `CarSpecs`.
 
-Goal: move tire-specific calculations out of `PlayerCarController` without changing steering, grounding, velocity or movement.
+## Phase 5 — Introduce car specs and catalog Resources
 
-Tasks:
-
-- [x] Create `scripts/car/tire_model.gd`.
-- [x] Move lateral grip recovery helper.
-- [x] Move tire slip-intensity calculation helper.
-- [ ] Move slip-limited steering helper, if local testing confirms the current split is stable.
-- [ ] Keep grounding and skid-mark dispatch in `PlayerCarController` unless a later test proves a cleaner boundary is safe.
-
-Definition of done:
-
-- tire squeal still follows slip intensity;
-- skid marks still appear only under meaningful slip;
-- handbrake still increases slip and reduces lateral grip;
-- steering feel is not obviously changed;
-- airborne behavior still forces tire slip to zero.
-
-## Phase 4.75 — Extract vehicle motion projection helper
-
-Status: implemented, validated by project owner with full-program smoke test.
-
-Goal: move local/global horizontal velocity projection out of `PlayerCarController` without changing steering, grounding, gravity or `move_and_slide()`.
-
-Tasks:
-
-- [x] Create `scripts/car/vehicle_motion_model.gd`.
-- [x] Move local forward/lateral speed to global horizontal velocity projection.
-- [x] Move global horizontal velocity back to local forward/lateral speed projection.
-- [x] Keep `velocity.y`, gravity, floor stick and `move_and_slide()` in `PlayerCarController`.
-- [x] Run `scenes/tests/full_program_smoke_test.tscn` after checkout.
-
-Definition of done:
-
-- free-drive automatic acceleration still works;
-- steering still preserves speed projection after yaw rotation;
-- handbrake/slip telemetry still behaves as before;
-- reset still clears local speeds;
-- race and post-race smoke-test flow still pass.
-
-## Phase 5 — Introduce car specs as Resources
-
-Status: started, pending local regression testing.
+Status: implemented for current 370Z variants; cleanup remains.
 
 Goal: stop storing all car tuning directly in scene overrides and controller export variables.
 
-Tasks:
+Completed:
 
 - [x] Create `scripts/car/car_specs.gd` extending `Resource`.
 - [x] Add drivetrain fields.
 - [x] Add mass/resistance fields.
 - [x] Add tire/steering fields.
-- [x] Create `resources/cars/370z_manual.tres`.
-- [x] Create `resources/cars/370z_automatic.tres`.
-- [x] Let the base controller use manual 370Z specs by default.
-- [x] Let the automatic 370Z scene reference automatic specs.
-- [ ] Run `scenes/tests/full_program_smoke_test.tscn` after checkout.
+- [x] Create model/variant Resource types.
+- [x] Create root car catalog Resource.
+- [x] Move 370Z manual and automatic specs into `resources/cars/nissan/370z/specs/`.
+- [x] Move 370Z model and variants into `resources/cars/nissan/370z/`.
+- [x] Let menu model/variant selection come from the catalog.
+- [x] Let `CarInstanceFactory` apply variant specs after scene instantiation.
+
+Remaining work:
+
 - [ ] Remove duplicated scene override tuning after Resource-backed tuning is validated.
+- [ ] Split `CarSpecs` into sub-resources only if the flat file becomes hard to maintain.
+- [ ] Add validation helper/tests for missing specs, missing scenes and duplicate variant IDs.
 
 Definition of done:
 
 - adding a new car variant does not require duplicating controller parameters manually;
-- menu can later read car names from car definitions;
+- menu reads car names from model/variant definitions;
 - car tuning can be versioned as data;
 - existing 370Z manual and automatic behavior remains equivalent after smoke testing.
 
-## Phase 6 — Replace heuristic lap tracking with checkpoints
+## Phase 6 — Split generated track building
+
+Status: implemented at builder level; data extraction remains.
+
+Goal: keep generated-track orchestration small and move geometry, surfaces, collisions and decorations into separate helpers.
+
+Completed:
+
+- [x] Keep `scripts/race/generated_track.gd` as the public scene script and builder orchestrator.
+- [x] Create `scripts/track/track_generated_content_root.gd`.
+- [x] Create `scripts/track/track_geometry_data.gd`.
+- [x] Create `scripts/track/track_layout_builder.gd`.
+- [x] Create `scripts/track/track_surface_mesh_builder.gd`.
+- [x] Create `scripts/track/track_collision_builder.gd`.
+- [x] Create `scripts/track/track_marker_builder.gd`.
+- [x] Create `scripts/track/track_barrier_builder.gd`.
+- [x] Create `scripts/track/track_decoration_builder.gd`.
+- [x] Create `scripts/track/track_material_factory.gd`.
+- [x] Preserve public `get_racing_line_points()` compatibility for AI, minimap and lap tracker.
+
+Remaining work:
+
+- [ ] Add focused tests for `TrackLayoutBuilder` output.
+- [ ] Move hardcoded control points from `TrackLayoutBuilder` into a Resource.
+- [ ] Add track metadata: name, width, scenery options, lap-count suggestion.
+- [ ] Update menu track list to use track data instead of hardcoded options.
+
+Definition of done:
+
+- adding a second track no longer requires editing generated-track internals;
+- minimap and AI still get racing-line points;
+- generated road, barriers and scenery still work;
+- generated content is isolated under `GeneratedContent`.
+
+## Phase 7 — Replace heuristic lap tracking with checkpoints
+
+Status: not started.
 
 Goal: make race progress robust enough for more complex tracks.
 
@@ -249,6 +288,7 @@ Tasks:
 
 - [ ] Add checkpoint/final-line areas to generated track or track scenes.
 - [ ] Create `scripts/race/checkpoint.gd`.
+- [ ] Create a checkpoint sequence model or helper.
 - [ ] Let `lap_tracker.gd` validate checkpoint order.
 - [ ] Add wrong-way or missed-checkpoint handling.
 - [ ] Keep nearest-racing-line progress only as a position-sorting aid.
@@ -259,25 +299,9 @@ Definition of done:
 - driving backwards over the finish line does not count incorrectly;
 - AI and player use the same participant tracking rules.
 
-## Phase 7 — Track data and multiple tracks
-
-Goal: separate track data from procedural generation.
-
-Tasks:
-
-- [ ] Create `scripts/race/track_layout_resource.gd`.
-- [ ] Move control points from `generated_track.gd` into a Resource.
-- [ ] Add track metadata: name, width, scenery options, lap count suggestion.
-- [ ] Create `resources/tracks/simple_oval.tres`.
-- [ ] Update menu track list to use available track data.
-
-Definition of done:
-
-- adding a second track no longer requires editing `generated_track.gd` internals;
-- minimap and AI still get racing-line points;
-- generated road, barriers and scenery still work.
-
 ## Phase 8 — Performance and quality pass
+
+Status: not started.
 
 Goal: make the prototype stable enough for longer sessions.
 
@@ -299,7 +323,7 @@ Definition of done:
 
 ## Phase 9 — Feature expansion
 
-Only start this after the architecture is less coupled.
+Only start this after the architecture is less coupled and the current regression gates are reliable.
 
 Candidate features:
 
@@ -318,4 +342,9 @@ Candidate features:
 
 ## Current rule
 
-Do not add new cars, tracks or major gameplay systems until the current Resource-backed car tuning path has passed the full-program smoke test.
+Do not add new cars, tracks or major gameplay systems until:
+
+1. the Resource-backed car tuning path is validated;
+2. the full-program smoke test passes after checkout;
+3. helper tests cover the subsystem being changed;
+4. the relevant documentation is updated in the same change.
