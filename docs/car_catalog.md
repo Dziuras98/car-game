@@ -69,7 +69,7 @@ Purpose:
 - can return models;
 - can return a flat list of all variants;
 - can return flat variant scenes for compatibility with the current spawn flow;
-- can return variant display names for the menu.
+- can return variant display names for compatibility paths.
 
 ### `CarModelDefinition`
 
@@ -150,8 +150,22 @@ resources/cars/nissan/370z/specs/370z_6mt_specs.tres
 
 The data layer exists and the current 370Z variants are represented in the catalog.
 
-`GameManager` now loads `resources/cars/catalog.tres` and derives the active variant list, menu car names and playable scene list from it. `MainMenu` still emits a simple `car_index`, but that index now refers to the flattened catalog variant list instead of directly referring to the old exported `available_cars` list.
+`GameManager` now loads `resources/cars/catalog.tres` and derives the active model list, active variant list and playable scene list from it. `MainMenu` receives model and variant data from `GameManager`; it does not load the catalog Resource directly.
+
+The menu selection flow is now:
+
+```text
+tryb -> tor -> model auta -> wariant auta
+```
+
+Current visible catalog-backed menu labels:
+
+```text
+Nissan 370Z
+  370Z automat
+  370Z manual
+```
+
+`MainMenu` emits the selected `variant_id`, and `GameManager` maps that ID back to the matching `CarVariantDefinition` index before calling `CarSpawner`.
 
 `CarSpawner` receives both the flat scene list and the flat variant list. When variants are available, it instantiates cars from `CarVariantDefinition` and applies the variant's `CarSpecs` before the car enters the scene tree. The old `available_cars` scene array remains as a fallback for now.
-
-The next safe refactor is a UI change: replace the current one-step car choice with model -> variant selection, while keeping the same catalog data layer.

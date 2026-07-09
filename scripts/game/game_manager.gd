@@ -118,18 +118,60 @@ func _prepare_car_selection_data() -> void:
 
 
 func _configure_menu_car_options() -> void:
-	if _menu == null or not _menu.has_method("set_car_names"):
+	if _menu == null:
 		return
 
-	var car_names: PackedStringArray = PackedStringArray()
-	if car_catalog != null and not _available_car_variants.is_empty():
-		for variant: CarVariantDefinition in _available_car_variants:
-			car_names.append(variant.get_menu_name())
-	else:
-		for car_index: int in range(_available_car_scenes.size()):
-			car_names.append("Samochod %d" % (car_index + 1))
+	if _menu.has_method("set_car_models"):
+		_menu.call("set_car_models", _get_menu_car_models())
+		return
 
-	_menu.call("set_car_names", car_names)
+	if _menu.has_method("set_car_names"):
+		var car_names: PackedStringArray = PackedStringArray()
+		if car_catalog != null and not _available_car_variants.is_empty():
+			for variant: CarVariantDefinition in _available_car_variants:
+				car_names.append(variant.get_menu_name())
+		else:
+			for car_index: int in range(_available_car_scenes.size()):
+				car_names.append("Samochod %d" % (car_index + 1))
+
+		_menu.call("set_car_names", car_names)
+
+
+func _get_menu_car_models() -> Array[Dictionary]:
+	var menu_models: Array[Dictionary] = []
+	if car_catalog != null:
+		for model: CarModelDefinition in car_catalog.get_models():
+			var variants: Array[Dictionary] = []
+			for variant: CarVariantDefinition in model.get_variants():
+				variants.append({
+					"label": variant.get_menu_name(),
+					"variant_id": variant.variant_id,
+				})
+			if not variants.is_empty():
+				menu_models.append({
+					"label": model.get_model_name(),
+					"model_id": model.model_id,
+					"variants": variants,
+				})
+
+	if not menu_models.is_empty():
+		return menu_models
+
+	var fallback_variants: Array[Dictionary] = []
+	for car_index: int in range(_available_car_scenes.size()):
+		fallback_variants.append({
+			"label": "Samochod %d" % (car_index + 1),
+			"variant_id": StringName(str(car_index)),
+		})
+
+	if not fallback_variants.is_empty():
+		menu_models.append({
+			"label": "Samochody",
+			"model_id": &"fallback_cars",
+			"variants": fallback_variants,
+		})
+
+	return menu_models
 
 
 func _has_available_car_options() -> bool:
@@ -156,7 +198,7 @@ func _can_switch_cars() -> bool:
 	return selected_mode_id == MODE_FREE
 
 
-func _on_menu_selection_completed(mode_id: String, track_id: String, car_index: int) -> void:
+func _on_menu_selection_completed(mode_id: String, track_id: String, car_variant_id: StringName) -> void:
 	selected_mode_id = mode_id
 	selected_track_id = track_id
 	_clear_current_car()
@@ -165,7 +207,7 @@ func _on_menu_selection_completed(mode_id: String, track_id: String, car_index: 
 	_hide_results()
 	_clear_race_tracking()
 
-	var selected_car_index: int = _get_valid_car_index(car_index)
+	var selected_car_index: int = _get_car_index_for_variant_id(car_variant_id)
 	selected_car_variant_id = _get_variant_id_for_index(selected_car_index)
 
 	_spawn_car(selected_car_index, _car_spawn.global_transform)
@@ -180,6 +222,17 @@ func _get_valid_car_index(car_index: int) -> int:
 	if available_count <= 0:
 		return 0
 	return clampi(car_index, 0, available_count - 1)
+
+
+func _get_car_index_for_variant_id(car_variant_id: StringName) -> int:
+	if not _available_car_variants.is_empty():
+		for variant_index: int in range(_available_car_variants.size()):
+			var variant: CarVariantDefinition = _available_car_variants[variant_index]
+			if variant != null and variant.variant_id == car_variant_id:
+				return variant_index
+		return 0
+
+	return _get_valid_car_index(int(str(car_variant_id)))
 
 
 func _get_available_car_count() -> int:

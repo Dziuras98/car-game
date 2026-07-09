@@ -18,7 +18,7 @@ The project currently contains:
 - extracted vehicle-motion helper for local/global velocity projection;
 - procedural engine and tire squeal audio;
 - generated oval track geometry;
-- free-drive and race menu flow;
+- free-drive and race menu flow with model -> variant car selection;
 - AI opponents following the generated racing line;
 - lap, position and results UI;
 - speedometer, gear display and tachometer;
@@ -70,9 +70,9 @@ scripts/tests/run_full_program_smoke_test.gd
 
 That launcher is an `@tool EditorScript` and starts the same smoke-test scene from the editor. Do not run `scripts/tests/full_program_smoke_test.gd` directly as a script; it is a normal runtime `Node` script attached to the test scene.
 
-The test instantiates `scenes/main.tscn`, presses menu buttons, simulates driving input through `Input.action_press()` / `Input.action_release()`, checks free-drive automatic/manual flow, checks race setup, verifies that `switch-car` is blocked in race mode, simulates race finish and verifies return-to-menu cleanup.
+The test instantiates `scenes/main.tscn`, presses menu buttons through `tryb -> tor -> model auta -> wariant auta`, simulates driving input through `Input.action_press()` / `Input.action_release()`, checks free-drive automatic/manual flow, checks race setup, verifies that `switch-car` is blocked in race mode, simulates race finish and verifies return-to-menu cleanup.
 
-The extended coverage includes longer automatic/manual acceleration segments, steering left/right, handbrake/slip telemetry, braking, automatic reverse from near stop, manual neutral/reverse gear checks, a longer AI race soak segment and post-race free-drive reentry.
+The extended coverage includes the visible `Nissan 370Z` model step, variant ID checks for `nissan_370z_7at` and `nissan_370z_6mt`, longer automatic/manual acceleration segments, steering left/right, handbrake/slip telemetry, braking, automatic reverse from near stop, manual neutral/reverse gear checks, a longer AI race soak segment and post-race free-drive reentry.
 
 `scripts/tests/game_test_adapter.gd` centralizes smoke-test access to the current car, opponents, selected mode/track, selected car variant, visible buttons and simulated player finish. The test runner should use that adapter instead of directly reading `GameManager` fields.
 
@@ -173,7 +173,7 @@ Mobile overlay buttons:
 The project works as a prototype, but some scripts still have too many responsibilities:
 
 - `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement, although local/global velocity projection and car tuning data have been partly extracted.
-- `resources/cars/catalog.tres` now drives car selection data, but the menu still displays a flat variant list; model -> variant UI is a separate later refactor.
+- `resources/cars/catalog.tres` now drives model -> variant menu selection; future catalog work should keep that data flow in `GameManager`, not in `MainMenu` or `CarSpawner`.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 - Mobile controls are now scene-driven, but they are still a temporary Android testing overlay rather than final input UI.
@@ -190,6 +190,7 @@ See:
 - `docs/roadmap.md` for the recommended implementation order;
 - `docs/vehicle_model.md` for the current vehicle-model behavior baseline and regression checklist;
 - `docs/test_reports/2026-07-09-android-and-smoke-baseline.md` for the current validated baseline report.
+- `docs/test_reports/2026-07-09-model-variant-menu-selection.md` for the model -> variant menu selection refactor report.
 
 ## Working rule for future changes
 

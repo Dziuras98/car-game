@@ -60,17 +60,24 @@ Opponent spawning prefers automatic variants when catalog variants are available
 
 ## Validation status
 
-Post-change validation is still required. Run:
+Pre-refactor validation for the catalog-driven selection baseline was run on
+2026-07-09 before changing the menu to model -> variant selection.
+
+Command:
 
 ```text
-scenes/tests/full_program_smoke_test.tscn
+C:\Dev\Tools\Godot\Godot_v4.7-stable_win64_console.exe --headless --path . --scene res://scenes/tests/full_program_smoke_test.tscn
 ```
 
-Expected result:
+Result:
 
 ```text
-[SMOKE] Extended full program smoke test passed: <N> checks
+[SMOKE] Extended full program smoke test passed: 62 checks
 ```
+
+Note: an initial run before `--import` reported unresolved global class names.
+After running Godot import, the same smoke scene passed. The final validation
+above is the result used as the baseline for the next refactor.
 
 Recommended manual spot checks:
 
@@ -82,8 +89,10 @@ Recommended manual spot checks:
 - race opponents spawn and move after countdown;
 - return-to-menu still clears the current car and opponents.
 
-## Next recommended work
+## Follow-up
 
-1. Run the full-program smoke test after this refactor.
-2. If it passes, record the successful result in this report.
-3. In a separate UI refactor, change the car-selection step from one flat list to model -> variant selection.
+The follow-up UI refactor has been completed and recorded in:
+
+```text
+docs/test_reports/2026-07-09-model-variant-menu-selection.md
+```

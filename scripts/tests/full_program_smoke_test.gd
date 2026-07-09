@@ -5,6 +5,9 @@ const GAME_TEST_ADAPTER_SCRIPT: Script = preload("res://scripts/tests/game_test_
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
 const TRACK_SIMPLE_OVAL: String = "simple_oval"
+const MODEL_NISSAN_370Z: String = "Nissan 370Z"
+const VARIANT_NISSAN_370Z_7AT: StringName = &"nissan_370z_7at"
+const VARIANT_NISSAN_370Z_6MT: StringName = &"nissan_370z_6mt"
 const SHORT_DRIVE_DURATION: float = 0.85
 const LONG_DRIVE_DURATION: float = 2.4
 const STEERING_DURATION: float = 1.0
@@ -41,6 +44,7 @@ func _exit_tree() -> void:
 func _run() -> void:
 	print("[SMOKE] Starting extended full program smoke test")
 	await _load_main_scene()
+	await _test_menu_back_navigation()
 	await _test_free_drive_automatic()
 	await _return_to_main_menu()
 	await _test_free_drive_manual()
@@ -62,12 +66,29 @@ func _load_main_scene() -> void:
 	_expect(_current_car() == null, "no player car is spawned before menu selection")
 
 
+func _test_menu_back_navigation() -> void:
+	print("[SMOKE] Testing menu back navigation")
+	await _press_button_with_text("Dowolny")
+	await _press_button_with_text("Prosty owal")
+	await _press_button_with_text(MODEL_NISSAN_370Z)
+	await _press_button_with_text("Wstecz")
+	_expect(_find_visible_button_with_text(_main, MODEL_NISSAN_370Z) != null, "back from variant selection returns to model selection")
+
+	await _press_button_with_text("Wstecz")
+	_expect(_find_visible_button_with_text(_main, "Prosty owal") != null, "back from model selection returns to track selection")
+
+	await _press_button_with_text("Wstecz")
+	_expect(_find_visible_button_with_text(_main, "Dowolny") != null, "back from track selection returns to mode selection")
+	_expect(_find_visible_button_with_text(_main, "Wyscig") != null, "race mode remains visible after backing to mode selection")
+
+
 func _test_free_drive_automatic() -> void:
 	print("[SMOKE] Testing extended free drive automatic flow")
-	await _select_menu_path("Dowolny", "370Z automat")
+	await _select_menu_path("Dowolny", MODEL_NISSAN_370Z, "370Z automat")
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected")
 	_expect(_selected_track_id() == TRACK_SIMPLE_OVAL, "simple oval track is selected")
+	_expect(_selected_car_variant_id() == VARIANT_NISSAN_370Z_7AT, "automatic variant id is selected")
 	_expect(_current_car() != null, "automatic car is spawned")
 	_expect(_is_child_visible("Speedometer"), "speedometer is visible after free-drive spawn")
 	_expect(_is_child_visible("Minimap"), "minimap is visible after free-drive spawn")
@@ -116,9 +137,10 @@ func _test_free_drive_automatic() -> void:
 
 func _test_free_drive_manual() -> void:
 	print("[SMOKE] Testing extended free drive manual flow")
-	await _select_menu_path("Dowolny", "370Z manual")
+	await _select_menu_path("Dowolny", MODEL_NISSAN_370Z, "370Z manual")
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected for manual car")
+	_expect(_selected_car_variant_id() == VARIANT_NISSAN_370Z_6MT, "manual variant id is selected")
 	_expect(_current_car() != null, "manual car is spawned")
 
 	var manual_car: PlayerCarController = _current_car()
@@ -161,9 +183,10 @@ func _test_free_drive_manual() -> void:
 
 func _test_race_mode() -> void:
 	print("[SMOKE] Testing extended race flow")
-	await _select_menu_path("Wyscig", "370Z automat")
+	await _select_menu_path("Wyscig", MODEL_NISSAN_370Z, "370Z automat")
 
 	_expect(_selected_mode_id() == MODE_RACE, "race mode is selected")
+	_expect(_selected_car_variant_id() == VARIANT_NISSAN_370Z_7AT, "race automatic variant id is selected")
 	_expect(_current_car() != null, "race player car is spawned")
 	_expect(_opponents().size() == _configured_opponent_count(), "race opponents are spawned")
 	_expect(_is_child_visible("Speedometer"), "speedometer is visible in race mode")
@@ -204,7 +227,7 @@ func _test_race_mode() -> void:
 
 func _test_post_race_free_drive_reentry() -> void:
 	print("[SMOKE] Testing post-race free-drive reentry")
-	await _select_menu_path("Dowolny", "370Z automat")
+	await _select_menu_path("Dowolny", MODEL_NISSAN_370Z, "370Z automat")
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode can be selected again after race cleanup")
 	_expect(_current_car() != null, "player car respawns after race cleanup")
 	var car_after_reentry: PlayerCarController = _current_car()
@@ -212,9 +235,10 @@ func _test_post_race_free_drive_reentry() -> void:
 		await _expect_car_accelerates_for(car_after_reentry, SHORT_DRIVE_DURATION, "car accelerates after post-race free-drive reentry")
 
 
-func _select_menu_path(mode_label: String, car_label: String) -> void:
+func _select_menu_path(mode_label: String, model_label: String, car_label: String) -> void:
 	await _press_button_with_text(mode_label)
 	await _press_button_with_text("Prosty owal")
+	await _press_button_with_text(model_label)
 	await _press_button_with_text(car_label)
 	await _frames(8)
 
@@ -310,6 +334,13 @@ func _selected_track_id() -> String:
 		return ""
 
 	return _test_adapter.get_selected_track_id()
+
+
+func _selected_car_variant_id() -> StringName:
+	if _test_adapter == null:
+		return &""
+
+	return _test_adapter.get_selected_car_variant_id()
 
 
 func _get_menu() -> Node:
