@@ -18,16 +18,16 @@ var _selected_track_id: String = ""
 var _selected_model_index: int = -1
 var _current_step: int = STEP_MODE
 var _car_models: Array[Dictionary] = []
-var _title_label: Label
-var _subtitle_label: Label
-var _options: VBoxContainer
-var _back_button: Button
+@onready var _title_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleLabel
+@onready var _subtitle_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SubtitleLabel
+@onready var _options: VBoxContainer = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Options
+@onready var _back_button: Button = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
 
 func _ready() -> void:
 	if _car_models.is_empty():
 		_build_flat_car_model()
-	_build_ui()
+	_back_button.pressed.connect(_on_back_pressed)
 	_show_mode_step()
 
 
@@ -53,56 +53,6 @@ func set_car_models(next_car_models: Array[Dictionary]) -> void:
 		_show_model_step()
 	elif _current_step == STEP_VARIANT and _options != null:
 		_show_variant_step()
-
-
-func _build_ui() -> void:
-	var root: Control = Control.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(root)
-
-	var background: ColorRect = ColorRect.new()
-	background.color = Color(0.04, 0.055, 0.07, 0.96)
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(background)
-
-	var center: CenterContainer = CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(center)
-
-	var panel: PanelContainer = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(460, 0)
-	center.add_child(panel)
-
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 32)
-	margin.add_theme_constant_override("margin_top", 28)
-	margin.add_theme_constant_override("margin_right", 32)
-	margin.add_theme_constant_override("margin_bottom", 28)
-	panel.add_child(margin)
-
-	var content: VBoxContainer = VBoxContainer.new()
-	content.add_theme_constant_override("separation", 14)
-	margin.add_child(content)
-
-	_title_label = Label.new()
-	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", 34)
-	content.add_child(_title_label)
-
-	_subtitle_label = Label.new()
-	_subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content.add_child(_subtitle_label)
-
-	_options = VBoxContainer.new()
-	_options.add_theme_constant_override("separation", 10)
-	content.add_child(_options)
-
-	_back_button = Button.new()
-	_back_button.text = "Wstecz"
-	_back_button.custom_minimum_size = Vector2(0, 42)
-	_back_button.pressed.connect(_on_back_pressed)
-	content.add_child(_back_button)
 
 
 func _show_mode_step() -> void:
