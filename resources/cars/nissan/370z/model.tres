@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_model_definition.gd" id="1_model"]
+[ext_resource type="Resource" path="res://resources/cars/nissan/370z/variants/370z_7at.tres" id="2_7at"]
+[ext_resource type="Resource" path="res://resources/cars/nissan/370z/variants/370z_6mt.tres" id="3_6mt"]
+
+[resource]
+script = ExtResource("1_model")
+manufacturer = "Nissan"
+model_id = &"nissan_370z"
+display_name = "370Z"
+generation = "Z34"
+production_year_start = 2009
+production_year_end = 2020
+variants = Array[Resource]([ExtResource("2_7at"), ExtResource("3_6mt")])
