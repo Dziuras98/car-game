@@ -23,11 +23,9 @@ var _lap_label: Label
 var _position_label: Label
 var _results_layer: CanvasLayer
 var _results_list: VBoxContainer
-var _player_controls_locked: bool = false
-var _race_in_progress: bool = false
-var _race_completed: bool = false
 var _lap_tracker: LapTracker
 var _car_spawner: CarSpawner
+var _race_manager: RaceManager
 
 @onready var _car_spawn: Node3D = get_node(car_spawn_path) as Node3D
 @onready var _camera: Node = get_node_or_null(camera_path)
@@ -42,6 +40,7 @@ const MODE_RACE: String = "race"
 func _ready() -> void:
 	_lap_tracker = LapTracker.new()
 	_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
+
 	_car_spawner = CarSpawner.new()
 	_car_spawner.configure(
 		self,
@@ -51,6 +50,14 @@ func _ready() -> void:
 		opponent_lane_spacing,
 		opponent_row_spacing
 	)
+
+	_race_manager = RaceManager.new()
+	_race_manager.countdown_changed.connect(_show_countdown)
+	_race_manager.countdown_hidden.connect(_hide_countdown)
+	_race_manager.player_input_enabled_changed.connect(_set_player_input_enabled)
+	_race_manager.ai_enabled_changed.connect(_set_ai_enabled)
+	_race_manager.opponent_should_stop.connect(_stop_participant_car)
+	_race_manager.race_finished.connect(_on_race_finished)
 
 	if available_cars.is_empty():
 		return
@@ -79,20 +86,22 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if _race_in_progress and not _race_completed and _lap_tracker != null:
+	if _race_manager != null and _race_manager.should_update_race_positions() and _lap_tracker != null:
 		_lap_tracker.update_positions()
 		_update_lap_ui()
 
 
 func _switch_to_next_car() -> void:
-	if available_cars.is_empty() or _race_in_progress or _car_spawner == null:
+	if available_cars.is_empty() or _car_spawner == null:
+		return
+	if _race_manager != null and _race_manager.is_race_in_progress():
 		return
 
 	var spawn_transform: Transform3D = _car_spawn.global_transform
 	if is_instance_valid(_current_car):
 		spawn_transform = _current_car.global_transform
 
-	_current_car = _car_spawner.switch_to_next_car(spawn_transform, not _player_controls_locked)
+	_current_car = _car_spawner.switch_to_next_car(spawn_transform, _is_player_input_enabled_for_spawn())
 	_show_driving_ui_if_needed()
 	_update_car_targets()
 
@@ -121,9 +130,15 @@ func _spawn_car(car_index: int, spawn_transform: Transform3D) -> void:
 	if _car_spawner == null:
 		return
 
-	_current_car = _car_spawner.spawn_player_car(car_index, spawn_transform, not _player_controls_locked)
+	_current_car = _car_spawner.spawn_player_car(car_index, spawn_transform, _is_player_input_enabled_for_spawn())
 	_show_driving_ui_if_needed()
 	_update_car_targets()
+
+
+func _is_player_input_enabled_for_spawn() -> bool:
+	if _race_manager == null:
+		return true
+	return not _race_manager.are_player_controls_locked()
 
 
 func _show_driving_ui_if_needed() -> void:
@@ -153,16 +168,10 @@ func _update_car_targets() -> void:
 
 
 func _start_race() -> void:
-	_race_completed = false
-	_race_in_progress = false
-	_player_controls_locked = true
-	if _current_car != null:
-		_current_car.set_player_input_enabled(false)
-
 	_spawn_opponents()
 	_prepare_race_tracking()
-	_set_ai_enabled(false)
-	_run_countdown()
+	if _race_manager != null:
+		_race_manager.start_race(_current_car, get_tree())
 
 
 func _spawn_opponents() -> void:
@@ -178,27 +187,14 @@ func _set_ai_enabled(enabled: bool) -> void:
 		_car_spawner.set_ai_enabled(enabled)
 
 
-func _run_countdown() -> void:
-	_show_countdown("3")
-	await get_tree().create_timer(1.0).timeout
-	if _race_completed:
-		return
-	_show_countdown("2")
-	await get_tree().create_timer(1.0).timeout
-	if _race_completed:
-		return
-	_show_countdown("1")
-	await get_tree().create_timer(1.0).timeout
-	if _race_completed:
-		return
-	_show_countdown("START")
-	_player_controls_locked = false
-	_race_in_progress = true
+func _set_player_input_enabled(enabled: bool) -> void:
 	if _current_car != null:
-		_current_car.set_player_input_enabled(true)
-	_set_ai_enabled(true)
-	await get_tree().create_timer(0.8).timeout
-	_hide_countdown()
+		_current_car.set_player_input_enabled(enabled)
+
+
+func _stop_participant_car(car: PlayerCarController) -> void:
+	if is_instance_valid(car):
+		car.set_external_drive_inputs(0.0, 0.85, 0.0)
 
 
 func _build_countdown_ui() -> void:
@@ -360,12 +356,12 @@ func _hide_results() -> void:
 
 
 func _clear_race_opponents() -> void:
+	if _race_manager != null:
+		_race_manager.reset_to_idle()
 	if _car_spawner != null:
 		_car_spawner.clear_opponents()
 	_opponents.clear()
 	_update_minimap_opponents()
-	_player_controls_locked = false
-	_race_in_progress = false
 
 
 func _clear_current_car() -> void:
@@ -391,20 +387,15 @@ func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
 	if car == _current_car:
 		_finish_race()
 	elif is_instance_valid(car):
-		car.set_external_drive_inputs(0.0, 0.85, 0.0)
+		_stop_participant_car(car)
 
 
 func _finish_race() -> void:
-	_race_completed = true
-	_race_in_progress = false
-	_player_controls_locked = true
-	if _current_car != null:
-		_current_car.set_player_input_enabled(false)
-	_set_ai_enabled(false)
-	for opponent: PlayerCarController in _opponents:
-		if is_instance_valid(opponent):
-			opponent.set_external_drive_inputs(0.0, 0.85, 0.0)
-	_hide_countdown()
+	if _race_manager != null:
+		_race_manager.finish_race(_current_car, _opponents)
+
+
+func _on_race_finished() -> void:
 	_hide_lap_ui()
 	_show_results()
 
