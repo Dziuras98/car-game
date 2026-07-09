@@ -98,35 +98,43 @@ Definition of done:
 
 ## Phase 3 — Extract non-driving effects from the car controller
 
-Status: first extraction implemented, pending local regression testing.
+Status: implemented, pending local regression testing.
 
 Goal: reduce `scripts/car/car_controller.gd` before touching handling or drivetrain math.
 
 Completed:
 
+- [x] Create `scripts/car/car_input.gd`.
+- [x] Move player/external drive input state and sampling there.
 - [x] Create `scripts/car/skid_mark_emitter.gd`.
 - [x] Move skid mark material creation, parent creation and mark spawning there.
 - [x] Let `PlayerCarController` report tire slip and delegate skid mark emission.
 
 Definition of done:
 
+- player and AI input still work;
+- reset still works;
 - skid marks still appear under the same conditions;
 - car movement is unchanged;
 - tire squeal audio still reacts to slip intensity;
-- `car_controller.gd` loses visual-effect responsibilities.
+- `car_controller.gd` loses input and visual-effect responsibilities.
 
 ## Phase 4 — Extract drivetrain model
+
+Status: started. Engine RPM/torque/limiter logic is split out, but transmission and wheel-force logic remain in `PlayerCarController`.
 
 Goal: separate engine/transmission simulation from movement and steering.
 
 Tasks:
 
+- [x] Create `scripts/car/engine_model.gd`.
+- [x] Move RPM calculation.
+- [x] Move torque curve calculation.
 - [ ] Create `scripts/car/drivetrain_model.gd`.
-- [ ] Move RPM calculation.
-- [ ] Move torque curve calculation.
 - [ ] Move manual transmission logic.
 - [ ] Move automatic transmission logic.
 - [ ] Move torque converter approximation.
+- [ ] Move wheel force calculation.
 - [ ] Expose a small API returning wheel drive acceleration/force, RPM, load and gear text.
 
 Definition of done:
