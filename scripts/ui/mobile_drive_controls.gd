@@ -3,9 +3,18 @@ class_name MobileDriveControls
 
 @export var force_visible: bool = false
 @export var show_on_android: bool = true
-@export var button_size: Vector2 = Vector2(112.0, 88.0)
-@export var button_gap: float = 18.0
-@export var screen_margin: float = 28.0
+
+@export_group("Scene Nodes")
+@export var root_path: NodePath = NodePath("Root")
+@export var accelerate_button_path: NodePath = NodePath("Root/Accelerate")
+@export var brake_button_path: NodePath = NodePath("Root/Brake")
+@export var steer_left_button_path: NodePath = NodePath("Root/SteerLeft")
+@export var steer_right_button_path: NodePath = NodePath("Root/SteerRight")
+@export var handbrake_button_path: NodePath = NodePath("Root/Handbrake")
+@export var gear_up_button_path: NodePath = NodePath("Root/GearUp")
+@export var gear_down_button_path: NodePath = NodePath("Root/GearDown")
+@export var reset_button_path: NodePath = NodePath("Root/Reset")
+@export var camera_back_button_path: NodePath = NodePath("Root/CameraBack")
 
 var _root: Control
 var _pending_tap_releases: Array[String] = []
@@ -14,7 +23,8 @@ var _held_actions: Array[String] = []
 
 func _ready() -> void:
 	layer = 30
-	_build_controls()
+	_root = get_node_or_null(root_path) as Control
+	_bind_buttons()
 	_apply_visibility()
 
 
@@ -36,132 +46,35 @@ func _notification(what: int) -> void:
 		_release_all_actions()
 
 
-func _build_controls() -> void:
-	_root = Control.new()
-	_root.name = "MobileDriveControlsRoot"
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_root)
-
-	_build_left_controls()
-	_build_right_controls()
-	_build_utility_controls()
-
-
-func _build_left_controls() -> void:
-	var left_button: Button = _create_hold_button("◀", "steer-left")
-	_position_bottom_left(left_button, 0, 0)
-	_root.add_child(left_button)
-
-	var right_button: Button = _create_hold_button("▶", "steer-right")
-	_position_bottom_left(right_button, 1, 0)
-	_root.add_child(right_button)
+func _bind_buttons() -> void:
+	_bind_hold_button(accelerate_button_path, "accelerate")
+	_bind_hold_button(brake_button_path, "brake")
+	_bind_hold_button(steer_left_button_path, "steer-left")
+	_bind_hold_button(steer_right_button_path, "steer-right")
+	_bind_hold_button(handbrake_button_path, "handbrake")
+	_bind_tap_button(gear_up_button_path, "gear-up")
+	_bind_tap_button(gear_down_button_path, "gear-down")
+	_bind_tap_button(reset_button_path, "reset-car")
+	_bind_tap_button(camera_back_button_path, "camera-back")
 
 
-func _build_right_controls() -> void:
-	var brake_button: Button = _create_hold_button("BRAKE", "brake")
-	_position_bottom_right(brake_button, 1, 0)
-	_root.add_child(brake_button)
+func _bind_hold_button(button_path: NodePath, action_name: String) -> void:
+	var button: Button = get_node_or_null(button_path) as Button
+	if button == null:
+		push_warning("MobileDriveControls could not find hold button for action '%s': %s" % [action_name, button_path])
+		return
 
-	var accelerate_button: Button = _create_hold_button("GAS", "accelerate")
-	_position_bottom_right(accelerate_button, 0, 0)
-	_root.add_child(accelerate_button)
-
-	var handbrake_button: Button = _create_hold_button("HB", "handbrake", Vector2(button_size.x, button_size.y * 0.72))
-	_position_bottom_right(handbrake_button, 0, 1)
-	_root.add_child(handbrake_button)
-
-
-func _build_utility_controls() -> void:
-	var gear_down_button: Button = _create_tap_button("G-", "gear-down", Vector2(button_size.x * 0.72, button_size.y * 0.62))
-	_position_top_right(gear_down_button, 1, 0)
-	_root.add_child(gear_down_button)
-
-	var gear_up_button: Button = _create_tap_button("G+", "gear-up", Vector2(button_size.x * 0.72, button_size.y * 0.62))
-	_position_top_right(gear_up_button, 0, 0)
-	_root.add_child(gear_up_button)
-
-	var reset_button: Button = _create_tap_button("RESET", "reset-car", Vector2(button_size.x * 1.1, button_size.y * 0.62))
-	_position_top_left(reset_button, 0, 0)
-	_root.add_child(reset_button)
-
-	var camera_button: Button = _create_tap_button("CAM", "camera-back", Vector2(button_size.x * 0.82, button_size.y * 0.62))
-	_position_top_left(camera_button, 1, 0)
-	_root.add_child(camera_button)
-
-
-func _create_hold_button(label_text: String, action_name: String, size: Vector2 = Vector2.ZERO) -> Button:
-	var button: Button = _create_base_button(label_text, _get_button_size(size))
 	button.button_down.connect(_press_action.bind(action_name))
 	button.button_up.connect(_release_action.bind(action_name))
-	return button
 
 
-func _create_tap_button(label_text: String, action_name: String, size: Vector2 = Vector2.ZERO) -> Button:
-	var button: Button = _create_base_button(label_text, _get_button_size(size))
+func _bind_tap_button(button_path: NodePath, action_name: String) -> void:
+	var button: Button = get_node_or_null(button_path) as Button
+	if button == null:
+		push_warning("MobileDriveControls could not find tap button for action '%s': %s" % [action_name, button_path])
+		return
+
 	button.button_down.connect(_tap_action.bind(action_name))
-	return button
-
-
-func _create_base_button(label_text: String, size: Vector2) -> Button:
-	var button: Button = Button.new()
-	button.text = label_text
-	button.custom_minimum_size = size
-	button.size = size
-	button.focus_mode = Control.FOCUS_NONE
-	button.mouse_filter = Control.MOUSE_FILTER_STOP
-	return button
-
-
-func _get_button_size(size: Vector2) -> Vector2:
-	if size == Vector2.ZERO:
-		return button_size
-
-	return size
-
-
-func _position_bottom_left(button: Control, column: int, row: int) -> void:
-	button.anchor_left = 0.0
-	button.anchor_right = 0.0
-	button.anchor_top = 1.0
-	button.anchor_bottom = 1.0
-	button.offset_left = screen_margin + column * (button_size.x + button_gap)
-	button.offset_right = button.offset_left + button.size.x
-	button.offset_bottom = -screen_margin - row * (button_size.y + button_gap)
-	button.offset_top = button.offset_bottom - button.size.y
-
-
-func _position_bottom_right(button: Control, column_from_right: int, row: int) -> void:
-	button.anchor_left = 1.0
-	button.anchor_right = 1.0
-	button.anchor_top = 1.0
-	button.anchor_bottom = 1.0
-	button.offset_right = -screen_margin - column_from_right * (button_size.x + button_gap)
-	button.offset_left = button.offset_right - button.size.x
-	button.offset_bottom = -screen_margin - row * (button_size.y + button_gap)
-	button.offset_top = button.offset_bottom - button.size.y
-
-
-func _position_top_left(button: Control, column: int, row: int) -> void:
-	button.anchor_left = 0.0
-	button.anchor_right = 0.0
-	button.anchor_top = 0.0
-	button.anchor_bottom = 0.0
-	button.offset_left = screen_margin + column * (button.size.x + button_gap)
-	button.offset_right = button.offset_left + button.size.x
-	button.offset_top = screen_margin + row * (button.size.y + button_gap)
-	button.offset_bottom = button.offset_top + button.size.y
-
-
-func _position_top_right(button: Control, column_from_right: int, row: int) -> void:
-	button.anchor_left = 1.0
-	button.anchor_right = 1.0
-	button.anchor_top = 0.0
-	button.anchor_bottom = 0.0
-	button.offset_right = -screen_margin - column_from_right * (button.size.x + button_gap)
-	button.offset_left = button.offset_right - button.size.x
-	button.offset_top = screen_margin + row * (button.size.y + button_gap)
-	button.offset_bottom = button.offset_top + button.size.y
 
 
 func _apply_visibility() -> void:
