@@ -20,9 +20,10 @@ The project currently contains:
 - lap, position and results UI;
 - speedometer, gear display and tachometer;
 - test mobile touch controls for Android playtesting;
-- extended full-program smoke test scene for automated regression checks.
+- extended full-program smoke test scene for automated regression checks;
+- validated Android and smoke-test baseline report.
 
-The project is still a prototype. The next priority is architectural cleanup, not adding more cars or game modes.
+The project is still a prototype. The next priority is controlled architectural cleanup, not adding more cars or game modes.
 
 ## Engine and project setup
 
@@ -143,7 +144,9 @@ Mobile overlay buttons:
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual-effect emitter |
 | `scripts/car/engine_audio.gd` | Procedural engine audio |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
+| `docs/architecture.md` | Current validated architecture baseline and target cleanup direction |
 | `docs/vehicle_model.md` | Current vehicle-model behavior baseline and regression checklist |
+| `docs/test_reports/2026-07-09-android-and-smoke-baseline.md` | Validated Android and extended-smoke-test baseline report |
 
 ## Current architectural warning
 
@@ -153,16 +156,18 @@ The project works as a prototype, but some scripts still have too many responsib
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 - Mobile controls are a temporary testing overlay and should later become proper scene-driven UI.
+- The smoke test currently uses selected private `GameManager` state and should later move to a small test/diagnostic adapter.
 
-These should be refactored before adding more gameplay systems.
+These should be refactored through small changes, followed by the extended smoke test.
 
 ## Documentation
 
 See:
 
-- `docs/architecture.md` for the current structure and target architecture;
+- `docs/architecture.md` for the current validated structure and target architecture;
 - `docs/roadmap.md` for the recommended implementation order;
-- `docs/vehicle_model.md` for the current vehicle-model behavior baseline and regression checklist.
+- `docs/vehicle_model.md` for the current vehicle-model behavior baseline and regression checklist;
+- `docs/test_reports/2026-07-09-android-and-smoke-baseline.md` for the current validated baseline report.
 
 ## Working rule for future changes
 
@@ -170,6 +175,6 @@ Prefer small, reviewable changes:
 
 1. one architectural concern per branch;
 2. no gameplay feature additions during structural refactors;
-3. after every refactor, run the project in Godot and verify free drive and race mode;
+3. after every refactor, run `scenes/tests/full_program_smoke_test.tscn`;
 4. keep car tuning changes separate from architecture changes;
 5. keep generated assets and procedural logic documented.
