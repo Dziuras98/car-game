@@ -1,51 +1,66 @@
 # Architecture baseline
 
-This document describes the current architecture of the Godot car game prototype and the intended direction for cleanup.
+This document describes the current architecture of the Godot car game prototype and the intended cleanup direction.
 
-It is not a final architecture. It is a validated baseline snapshot intended to guide incremental refactoring.
+It is not a final architecture. It is a baseline snapshot for incremental refactoring. When responsibilities move between scripts, update this document in the same change.
 
 ## Validation status
 
-The current baseline has been manually validated in Godot Android Editor and with the extended full-program smoke test.
+The project has an extended full-program smoke test at:
 
-Validated areas:
+```text
+scenes/tests/full_program_smoke_test.tscn
+```
 
-- project opens without parse errors;
-- main menu flow works;
-- free-drive mode works;
-- race mode works;
-- AI opponents move after countdown;
-- player input lock/unlock works during race flow;
-- `switch-car` is allowed only in free-drive mode;
-- automatic transmission car can accelerate, brake and reverse;
-- manual transmission car can shift through forward, neutral and reverse states;
-- mobile touch controls work on Android;
-- engine and tire audio work on Android;
-- results screen and return-to-menu cleanup work;
-- post-race free-drive reentry works.
+The smoke test can also be launched through:
 
-The current regression gate is `scenes/tests/full_program_smoke_test.tscn`, optionally launched through `scripts/tests/run_full_program_smoke_test.gd`.
+```text
+scripts/tests/run_full_program_smoke_test.gd
+```
 
-The mobile-controls scene refactor has been reported as passing the full-program smoke test. The later `VehicleMotionModel` extraction is behavior-preserving by design, but still requires the same smoke test after checkout.
+Current documented smoke-test coverage includes:
+
+- project/main scene instantiation;
+- main menu flow and back navigation;
+- free-drive automatic flow;
+- free-drive manual flow;
+- car switching in free drive;
+- `switch-car` blocked in race mode;
+- race countdown and input lock/unlock;
+- AI opponents moving after countdown;
+- speedometer/minimap visibility;
+- result screen after simulated finish;
+- return-to-menu cleanup;
+- post-race free-drive reentry.
+
+This documentation cleanup did not intentionally change runtime code. It does not replace a local Godot smoke-test run after future code changes.
 
 ## Current composition
 
-The current main scene is `scenes/main.tscn`.
+The current main scene is:
+
+```text
+scenes/main.tscn
+```
 
 At runtime, it composes:
 
-- generated track scene;
-- car spawn point;
+- generated oval track scene;
+- player car spawn point;
 - directional light;
-- camera with follow script;
+- follow camera;
 - world environment;
-- speedometer HUD;
+- speedometer/tachometer HUD;
 - minimap;
 - main menu;
-- high-level game/free-drive/race logic attached to the root node;
-- temporary Android mobile driving overlay instantiated by `GameManager` from `scenes/ui/mobile_drive_controls.tscn`.
+- high-level game/free-drive/race flow on the root node;
+- temporary Android mobile driving overlay instantiated by `GameManager`.
 
-The root node currently uses `scripts/game/game_manager.gd`.
+The root node currently uses:
+
+```text
+scripts/game/game_manager.gd
+```
 
 ## Current module map
 
@@ -71,33 +86,74 @@ scenes/
     results_screen.tscn
     speedometer.tscn
 
+resources/
+  cars/
+    catalog.tres
+    nissan/370z/
+      model.tres
+      specs/
+        370z_6mt_specs.tres
+        370z_7at_specs.tres
+      variants/
+        370z_6mt.tres
+        370z_7at.tres
+
 scripts/
   camera/
     follow_camera.gd
   car/
-    car_controller.gd
-    car_input.gd
-    manual_transmission_model.gd
     automatic_transmission_model.gd
-    shift_timer_model.gd
+    car_catalog.gd
+    car_chassis_controller.gd
+    car_controller.gd
+    car_drive_config.gd
+    car_drive_config_builder.gd
+    car_input.gd
+    car_model_definition.gd
+    car_powertrain_controller.gd
+    car_reset_controller.gd
+    car_runtime_state.gd
+    car_specs.gd
+    car_variant_definition.gd
     drivetrain_model.gd
     engine_audio.gd
     engine_model.gd
+    manual_transmission_model.gd
     resistance_model.gd
+    shift_timer_model.gd
     skid_mark_emitter.gd
     tire_model.gd
     tire_squeal_audio.gd
     torque_converter_model.gd
     vehicle_motion_model.gd
   game/
-    game_manager.gd
+    car_instance_factory.gd
+    car_selection_state.gd
     car_spawner.gd
+    game_manager.gd
+    menu_options_builder.gd
+    opponent_paint_randomizer.gd
+    opponent_participant_spawner.gd
+    opponent_spawn_layout.gd
+    player_car_spawn_controller.gd
+    race_session_controller.gd
   race/
     ai_race_driver.gd
     generated_track.gd
     lap_tracker.gd
     race_manager.gd
+  track/
+    track_barrier_builder.gd
+    track_collision_builder.gd
+    track_decoration_builder.gd
+    track_generated_content_root.gd
+    track_geometry_data.gd
+    track_layout_builder.gd
+    track_marker_builder.gd
+    track_material_factory.gd
+    track_surface_mesh_builder.gd
   tests/
+    car_controller_runtime_config_test.gd
     full_program_smoke_test.gd
     game_test_adapter.gd
     run_full_program_smoke_test.gd
@@ -105,8 +161,8 @@ scripts/
     countdown_overlay.gd
     lap_position_hud.gd
     main_menu.gd
-    mobile_drive_controls.gd
     minimap.gd
+    mobile_drive_controls.gd
     race_hud.gd
     results_screen.gd
     speedometer.gd
@@ -119,147 +175,208 @@ Current flow:
 
 1. Godot loads `scenes/main.tscn`.
 2. The root node runs `scripts/game/game_manager.gd`.
-3. `GameManager` instantiates the temporary mobile drive controls scene.
-4. The main menu is shown.
-5. The player selects mode, track and car.
-6. `GameManager` receives the menu signal.
-7. `CarSpawner` instantiates the selected car at `CarSpawn`.
-8. Camera, speedometer and minimap are pointed at the active car.
-9. In free-drive mode, player input is enabled immediately and car switching is allowed.
-10. In race mode, car switching is blocked.
-11. In race mode, `CarSpawner` creates opponents and AI drivers.
-12. `RaceManager` runs the countdown and unlocks player/AI input after `START`.
-13. `LapTracker` updates lap/progress/position logic each physics tick.
-14. `RaceHud` delegates countdown, lap/position and results UI to specialized helpers.
+3. `GameManager` builds car-selection state from `resources/cars/catalog.tres`, with scene-list fallback from `available_cars`.
+4. `GameManager` configures the menu with track options and car model/variant options.
+5. `GameManager` configures `CarSpawner` and `RaceSessionController`.
+6. `GameManager` instantiates the temporary mobile drive controls scene.
+7. The main menu is shown.
+8. The player selects mode, track, model and variant.
+9. `GameManager` receives the menu signal.
+10. `CarSpawner` instantiates the selected car at `CarSpawn`.
+11. Camera, speedometer and minimap are pointed at the active car.
+12. In free-drive mode, player input is enabled immediately and car switching is allowed.
+13. In race mode, car switching is blocked.
+14. In race mode, `RaceSessionController` asks `CarSpawner` to create opponents and AI drivers.
+15. `RaceManager` runs the countdown and unlocks player/AI input after `START`.
+16. `LapTracker` updates lap/progress/position logic each physics tick during the race.
+17. `RaceHud` delegates countdown, lap/position and results UI to specialized UI scripts.
 
-## Car architecture
+## Game/menu architecture
 
-Current car root type: `CharacterBody3D`.
-
-Current main controller: `scripts/car/car_controller.gd`.
-
-Responsibilities currently inside the controller:
-
-- forward/reverse speed model;
-- applying selected gears;
-- steering model;
-- grounding behavior;
-- reset-to-start behavior;
-- skid-mark dispatch;
-- movement through `move_and_slide()`.
-
-Specialized car helpers:
+Current high-level coordinator:
 
 ```text
-scripts/car/car_input.gd                    # player/external input abstraction
-scripts/car/manual_transmission_model.gd    # manual gear-up/gear-down requests
-scripts/car/automatic_transmission_model.gd # automatic gear-selection decisions
-scripts/car/shift_timer_model.gd            # shift timer update and delay selection
-scripts/car/engine_model.gd                 # RPM, torque curve and limiter
-scripts/car/drivetrain_model.gd             # gear ratios, wheel RPM, wheel force and drive acceleration
-scripts/car/torque_converter_model.gd       # automatic RPM coupling and torque multiplication
-scripts/car/resistance_model.gd             # drag and rolling resistance
-scripts/car/tire_model.gd                   # lateral grip recovery and tire slip intensity
-scripts/car/vehicle_motion_model.gd         # local/global velocity projection helpers
-scripts/car/skid_mark_emitter.gd            # skid mark visual effect
+scripts/game/game_manager.gd
 ```
-
-This is acceptable for a prototype and has passed the current regression test before the latest vehicle-motion extraction. The controller should still be split further before drivetrain and tire behavior are expanded.
-
-### Target car architecture
-
-Recommended direction:
-
-```text
-scripts/car/
-  player_car_controller.gd      # thin coordinator for movement and public API
-  car_input.gd                  # player/external input abstraction
-  manual_transmission_model.gd  # manual gear input helper
-  automatic_transmission_model.gd # automatic gear selection
-  shift_timer_model.gd          # shift-timer update and delay selection
-  drivetrain_model.gd           # gearbox, wheel force
-  torque_converter_model.gd     # automatic torque converter helper
-  engine_model.gd               # RPM, torque curve, limiter
-  resistance_model.gd           # drag and rolling resistance
-  tire_model.gd                 # lateral grip, slip, handbrake, tire state
-  vehicle_motion_model.gd       # local/global velocity projection helpers
-  skid_mark_emitter.gd          # skid mark visual effect
-  car_specs.gd                  # Resource with tunable car data
-  engine_audio.gd
-  tire_squeal_audio.gd
-```
-
-`vehicle_motion_model.gd` now exists and is intentionally narrow. It only converts between local forward/lateral speed and global horizontal velocity using the car transform. It does not apply gravity, grounding, steering or `move_and_slide()`.
-
-## Race/game architecture
-
-Current high-level coordinator: `scripts/game/game_manager.gd`.
 
 Current responsibilities of `GameManager`:
 
 - receiving menu selection;
-- storing selected mode and track IDs;
+- storing selected mode, track and car variant IDs;
+- configuring menu options;
+- configuring car-selection state;
 - delegating player/opponent spawn to `CarSpawner`;
 - wiring camera, speedometer and minimap targets;
 - instantiating the temporary mobile drive controls scene;
 - starting free-drive or race mode;
 - allowing car switching only in free-drive mode;
-- delegating race lifecycle to `RaceManager`;
-- delegating lap/progress/result-order logic to `LapTracker`;
-- delegating countdown/lap/results UI to `RaceHud`;
+- delegating race lifecycle to `RaceSessionController`;
 - return-to-menu flow.
 
 Specialized helpers:
 
 ```text
-scripts/game/car_spawner.gd       # player car, opponent and AI-driver instantiation
-scripts/race/race_manager.gd      # countdown, input lock, race start/finish state
-scripts/race/lap_tracker.gd       # participant registration, laps, progress, results
-scripts/ui/race_hud.gd            # UI facade used by GameManager
-scripts/ui/countdown_overlay.gd   # countdown overlay scene binding and visibility
-scripts/ui/lap_position_hud.gd    # lap and race-position display
-scripts/ui/results_screen.gd      # results list and return-to-menu button
-scripts/ui/mobile_drive_controls.gd # temporary Android touch-driving overlay binding
+scripts/game/car_selection_state.gd        # available scene/variant selection state
+scripts/game/menu_options_builder.gd       # menu dictionaries from catalog/track options
+scripts/game/car_spawner.gd                # spawn facade
+scripts/game/car_instance_factory.gd       # instantiate car scenes and apply variant specs
+scripts/game/player_car_spawn_controller.gd # current player-car lifecycle
+scripts/game/opponent_spawn_layout.gd      # opponent spawn transforms/lane offsets
+scripts/game/opponent_paint_randomizer.gd  # opponent paint variation
+scripts/game/opponent_participant_spawner.gd # opponent car and AI driver creation
+scripts/game/race_session_controller.gd    # race-session facade
 ```
 
-This is now a validated split compared to the original monolithic coordinator. Remaining cleanup should focus on reducing `car_controller.gd`, splitting `generated_track.gd`, improving test/diagnostic APIs, and avoiding new feature work without running the regression test.
+Target direction:
+
+- keep `GameManager` as a coordinator;
+- do not add new car physics, race rules or UI construction directly to `GameManager`;
+- move future mode-specific state into explicit session/mode controllers;
+- keep the menu consuming prepared option data instead of reading catalog Resources directly.
+
+## Race architecture
+
+Current race facade:
+
+```text
+scripts/game/race_session_controller.gd
+```
+
+Specialized race helpers:
+
+```text
+scripts/race/race_manager.gd   # countdown, input lock, race start/finish state
+scripts/race/lap_tracker.gd    # participant registration, laps, progress, result order
+scripts/race/ai_race_driver.gd # prototype racing-line follower
+scripts/ui/race_hud.gd         # UI facade used by RaceSessionController/GameManager
+```
+
+Current limitations:
+
+- `LapTracker` uses nearest racing-line progress and index wrapping to count laps.
+- This is acceptable for the current simple oval but not robust against shortcuts, reversing across the line or complex track layouts.
+- Checkpoint validation should replace lap-counting heuristics before multiple tracks or serious race rules are added.
+
+Target direction:
+
+```text
+scripts/race/
+  checkpoint.gd
+  checkpoint_sequence.gd
+  lap_tracker.gd              # validates checkpoint order, keeps progress sorting
+scripts/track/
+  checkpoint_builder.gd       # generated checkpoint/final-line volumes
+```
+
+## Car architecture
+
+Current car root type:
+
+```text
+CharacterBody3D
+```
+
+Current public controller:
+
+```text
+scripts/car/car_controller.gd
+class_name PlayerCarController
+```
+
+`PlayerCarController` is now a runtime coordinator. It keeps the scene-compatible export fields, `car_specs`, input helper ownership, skid-mark emitter ownership, public telemetry/control API, `_physics_process()` orchestration, runtime reconfiguration and reset delegation.
+
+Current per-physics-frame pipeline:
+
+1. reset check through `CarInput`;
+2. input read;
+3. runtime input snapshot;
+4. powertrain update;
+5. steering update;
+6. tire/slip update and skid-mark dispatch;
+7. velocity/gravity application through `move_and_slide()`.
+
+Specialized car helpers:
+
+```text
+scripts/car/car_runtime_state.gd          # speed/RPM/gear/input/start-transform state
+scripts/car/car_drive_config.gd           # sanitized runtime copy of drive tuning
+scripts/car/car_drive_config_builder.gd   # CarSpecs or legacy export -> CarDriveConfig
+scripts/car/car_powertrain_controller.gd  # transmission, engine, torque, resistance, forward speed
+scripts/car/car_chassis_controller.gd     # steering, tire slip, skid dispatch, gravity, move_and_slide
+scripts/car/car_reset_controller.gd       # reset-to-start behavior
+scripts/car/car_input.gd                  # player/external input abstraction
+scripts/car/manual_transmission_model.gd  # manual gear input helper
+scripts/car/automatic_transmission_model.gd # automatic gear selection
+scripts/car/shift_timer_model.gd          # shift-timer update and delay selection
+scripts/car/drivetrain_model.gd           # gearbox, wheel RPM, wheel force
+scripts/car/torque_converter_model.gd     # automatic torque converter helper
+scripts/car/engine_model.gd               # RPM, torque curve, limiter
+scripts/car/resistance_model.gd           # drag and rolling resistance
+scripts/car/tire_model.gd                 # lateral grip and slip intensity
+scripts/car/vehicle_motion_model.gd       # local/global velocity projection
+scripts/car/skid_mark_emitter.gd          # skid mark visual effect
+scripts/car/engine_audio.gd
+scripts/car/tire_squeal_audio.gd
+```
+
+Current data source:
+
+- Preferred path: `CarVariantDefinition -> CarSpecs -> CarDriveConfig`.
+- Fallback path: legacy exported tuning fields on `PlayerCarController -> CarDriveConfig` when `car_specs == null`.
+
+Current cleanup direction:
+
+- keep `PlayerCarController` thin;
+- do not change driving feel during architecture cleanup;
+- add unit/helper tests before deeper physics changes;
+- remove legacy exported tuning only after all scenes and variants rely on `CarSpecs`;
+- split `CarSpecs` into sub-resources only after the current Resource-backed path is validated.
 
 ## Track architecture
 
-Current track generator: `scripts/race/generated_track.gd`.
+Current generated track entry point:
 
-Current responsibilities:
+```text
+scripts/race/generated_track.gd
+```
 
-- stores hardcoded control points;
-- samples Catmull-Rom points;
-- exposes `get_racing_line_points()`;
-- generates grass;
-- generates road shoulders;
-- generates asphalt mesh;
-- generates trimesh collisions;
-- generates finish line visuals;
-- generates edge markers;
-- generates barriers;
-- optionally generates stadium scenery.
+`generated_track.gd` is now a thin orchestrator. It owns exported track parameters, rebuild triggers, builder instances, the last-built `TrackGeometryData`, and the public `get_racing_line_points()` method.
 
-This is effective for fast prototyping but should later be split into track data and visual generation.
+Specialized track builders:
 
-### Target track architecture
+```text
+scripts/track/track_generated_content_root.gd # stable GeneratedContent node and generated-child cleanup
+scripts/track/track_geometry_data.gd          # generated geometry data container
+scripts/track/track_layout_builder.gd         # control points, Catmull-Rom sampling, widths, edges, racing line
+scripts/track/track_surface_mesh_builder.gd   # grass, roadside and asphalt mesh/body creation
+scripts/track/track_collision_builder.gd      # grass, roadside and asphalt collisions
+scripts/track/track_marker_builder.gd         # finish line and edge markers
+scripts/track/track_barrier_builder.gd        # barrier visuals
+scripts/track/track_decoration_builder.gd     # optional stadium/scenery/lights
+scripts/track/track_material_factory.gd       # generated materials
+```
+
+Current limitations:
+
+- track layout control points are still hardcoded inside `TrackLayoutBuilder`;
+- track options are still hardcoded in `MenuOptionsBuilder`;
+- no physical checkpoint sequence exists yet;
+- barrier visuals are generated, but strong gameplay collision consequences are not a finished system.
+
+Target direction:
 
 ```text
 resources/tracks/
   simple_oval.tres              # TrackLayoutResource
 
-scripts/race/
+scripts/track/
   track_layout_resource.gd      # control points, width, racing line, metadata
-  generated_track.gd            # builds drivable surface from layout
-  track_decoration_builder.gd   # barriers, stadium, lights, scenery
   checkpoint_builder.gd         # physical checkpoint and lap-validation volumes
 ```
 
 ## UI architecture
 
-Current UI approach is mostly scene-driven for the main race/menu surfaces:
+Current UI approach is mostly scene-driven:
 
 - `main_menu.tscn` owns the static main menu layout; `main_menu.gd` controls menu state, labels, signals and dynamic option-button creation;
 - `countdown_overlay.tscn` owns the countdown overlay layout; `countdown_overlay.gd` updates text and visibility;
@@ -269,45 +386,42 @@ Current UI approach is mostly scene-driven for the main race/menu surfaces:
 - `speedometer.tscn` owns the speedometer/tachometer layout; `speedometer.gd` binds it to the active car;
 - `minimap.gd` still draws the map and participants manually.
 
+Runtime-created UI remains acceptable for repeated data-driven content:
+
+- main-menu option buttons depend on current mode/track/model/variant data;
+- result rows depend on the race result list.
+
 Target direction:
 
-```text
-scenes/ui/
-  main_menu.tscn
-  race_hud.tscn
-  countdown_overlay.tscn
-  results_screen.tscn
-  mobile_drive_controls.tscn
-  speedometer.tscn
-  minimap.tscn
-```
-
-UI layout should be scene-driven. Scripts should update labels, visibility and signals, not construct the whole visual hierarchy unless there is a specific reason.
-
-The current exception is runtime-driven repeated content: main-menu option buttons are still created from the current menu step and car catalog data, and results rows are still created from the race result list. That dynamic construction belongs in scripts until those controls need reusable item scenes.
+- keep layout in scenes;
+- keep scripts focused on values, visibility, signals and data-driven repeated items;
+- introduce reusable option/result row scenes only when dynamic rows become complex.
 
 ## Test architecture
 
-Current automated runtime test:
+Current automated runtime tests:
 
 ```text
 scenes/tests/full_program_smoke_test.tscn
 scripts/tests/full_program_smoke_test.gd
 scripts/tests/game_test_adapter.gd
 scripts/tests/run_full_program_smoke_test.gd
+scripts/tests/car_controller_runtime_config_test.gd
 ```
 
-The test is an extended full-program smoke/regression test. It instantiates `scenes/main.tscn`, presses visible menu buttons, simulates input through `Input.action_press()` / `Input.action_release()`, verifies free-drive automatic/manual behavior, verifies race setup, checks `switch-car` blocking in race mode, waits through a longer AI race soak segment, simulates player finish and verifies return-to-menu cleanup.
+`full_program_smoke_test.gd` is a broad regression test. It instantiates `scenes/main.tscn`, navigates visible menu buttons, simulates input through `Input.action_press()` / `Input.action_release()`, verifies free-drive automatic/manual behavior, verifies race setup, checks `switch-car` blocking in race mode, waits through an AI race soak segment, simulates player finish and verifies return-to-menu cleanup.
 
-`GameTestAdapter` centralizes smoke-test access to the current car, opponent list, configured opponent count, selected mode/track, node visibility, visible menu/results buttons, return-to-menu flow and simulated player finish. The test runner should use the adapter instead of directly reading `GameManager` fields.
+`GameTestAdapter` centralizes smoke-test access to game state. It is acceptable for the prototype, but a production-facing diagnostic API on `GameManager` would be cleaner than test-specific accessors.
 
-Current limitation: `GameTestAdapter` still knows selected `GameManager` internals. This is acceptable for the current prototype because the coupling is centralized, but a future production-facing diagnostic API on `GameManager` would be cleaner.
+`car_controller_runtime_config_test.gd` covers runtime config construction, geared-transmission checks, runtime-state reset and basic manual/automatic gear text formatting.
+
+Target direction:
+
+- keep the smoke test as the broad regression gate;
+- add smaller helper tests for `TrackLayoutBuilder`, `CarDriveConfigBuilder`, `CarPowertrainController` and lap/checkpoint logic;
+- avoid using smoke tests as the only guard for detailed math behavior.
 
 ## Data architecture
-
-Current data is mostly stored in exported variables on scenes and scripts.
-
-This is acceptable now, but it will become awkward when adding more cars and tracks.
 
 Current car data model:
 
@@ -325,9 +439,13 @@ resources/cars/
         370z_7at.tres
 ```
 
-Cars are cataloged through `CarCatalog -> CarModelDefinition -> CarVariantDefinition -> CarSpecs`.
+Cars are cataloged through:
 
-Recommended future track and mode data model:
+```text
+CarCatalog -> CarModelDefinition -> CarVariantDefinition -> CarSpecs
+```
+
+Recommended future data model:
 
 ```text
 resources/tracks/
@@ -340,36 +458,35 @@ resources/game_modes/
 
 Use Resources for reusable car, track and mode definitions. Scenes should instantiate visuals and behavior; Resources should carry tunable data.
 
-## Refactoring rules
-
-1. Keep one architectural concern per change.
-2. Run `scenes/tests/full_program_smoke_test.tscn` after every gameplay, race, UI or input change.
-3. Keep car handling changes separate from race/menu/UI refactors.
-4. Do not add new cars while extracting car systems.
-5. Keep UI extraction separate from race logic extraction.
-6. Keep procedural track changes separate from car physics changes.
-7. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
-
 ## Current technical risks
 
 | Risk | Severity | Reason |
 |---|---:|---|
-| `car_controller.gd` is still large | High | Gear application, steering, grounding and movement are still coupled, although local/global velocity projection has been extracted |
-| Track generator mixes data and scenery | Medium/High | Adding more tracks will duplicate or complicate logic |
-| Lap tracking is heuristic | Medium/High | Uses racing-line progress rather than physical checkpoints |
-| `GameTestAdapter` knows selected `GameManager` internals | Medium | Better than spreading private access through tests, but a public diagnostic API would be cleaner |
-| Runtime-created UI rows/buttons are still script-built | Low/Medium | Main layouts are scene-driven, but menu options and results rows still depend on runtime data |
-| Mobile controls are still temporary test UI | Low/Medium | The layout is scene-driven now, but it is still not final configurable input UI |
+| `GameManager` remains a broad coordinator | Medium | Acceptable now, but it should not absorb new gameplay systems |
+| Lap tracking is heuristic | High | Nearest racing-line progress is not robust for complex tracks or shortcuts |
+| Track layout data is hardcoded | Medium/High | Adding tracks still requires code edits |
+| `CarSpecs`, `CarDriveConfig` and legacy exports duplicate tuning fields | Medium | New tuning fields must be copied through several paths until legacy exports are removed |
+| Runtime `car_specs` reconfiguration needs more focused tests | Medium | Existing smoke tests are broad; edge cases need smaller tests |
+| `GameTestAdapter` knows selected `GameManager` internals | Medium | Better than scattered test coupling, but a cleaner diagnostic API would be preferable |
+| Runtime-created UI rows/buttons are still script-built | Low/Medium | Acceptable for data-driven repeated items, but may need item scenes later |
+| Mobile controls are still temporary test UI | Low/Medium | Scene-driven now, but not final configurable input UI |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
-| Car/track lists are hardcoded | Medium | Adding content requires script and scene edits |
 
-## Preferred next refactor
+## Preferred next refactor order
 
-After the UI scene-driven baseline, continue in this order:
+1. Add focused helper tests for current car runtime/config behavior.
+2. Fix small runtime config edge cases, such as keeping skid-mark emitter configuration in sync when `car_specs` changes at runtime.
+3. Add focused helper tests for track layout/builder behavior.
+4. Move track layout data toward a Resource-backed representation.
+5. Replace lap-counting heuristics with checkpoint-based validation.
+6. Add new cars or imported car models only after the current architecture and tests are stable.
 
-1. Split `scripts/race/generated_track.gd` into track data, surface generation and decoration responsibilities.
-2. Continue reducing `scripts/car/car_controller.gd` without changing driving feel.
-3. Add a cleaner test/diagnostic API so `GameTestAdapter` reads less `GameManager` internal state directly.
-4. Replace lap-tracking heuristics with checkpoint-based validation when adding more tracks.
+## Refactoring rules
 
-Do not continue deeper vehicle movement refactors without running the extended smoke test immediately after each step.
+1. Keep one architectural concern per change.
+2. Run `scenes/tests/full_program_smoke_test.tscn` after every gameplay, race, UI, input, vehicle or track-generation change.
+3. Keep car handling/tuning changes separate from architecture changes.
+4. Keep generated-track changes separate from car physics changes.
+5. Keep UI extraction separate from race logic extraction.
+6. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
+7. Keep `README.md`, this file and `docs/roadmap.md` aligned after each responsibility-moving refactor.
