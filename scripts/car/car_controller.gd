@@ -88,6 +88,7 @@ var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
 var _torque_converter_model: TorqueConverterModel = TorqueConverterModel.new()
 var _tire_model: TireModel = TireModel.new()
+var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
 var _skid_mark_emitter: SkidMarkEmitter
 
 
@@ -435,16 +436,13 @@ func _apply_velocity(delta: float) -> void:
 
 
 func _get_horizontal_velocity_vector() -> Vector3:
-	var forward: Vector3 = -global_transform.basis.z.normalized()
-	var right: Vector3 = global_transform.basis.x.normalized()
-	return forward * _forward_speed + right * _lateral_speed
+	return _vehicle_motion_model.get_horizontal_velocity_vector(global_transform, _forward_speed, _lateral_speed)
 
 
 func _set_local_speeds_from_horizontal_velocity(horizontal_velocity: Vector3) -> void:
-	var forward: Vector3 = -global_transform.basis.z.normalized()
-	var right: Vector3 = global_transform.basis.x.normalized()
-	_forward_speed = horizontal_velocity.dot(forward)
-	_lateral_speed = horizontal_velocity.dot(right)
+	var local_speeds: Vector2 = _vehicle_motion_model.get_local_speeds_from_horizontal_velocity(global_transform, horizontal_velocity)
+	_forward_speed = local_speeds.x
+	_lateral_speed = local_speeds.y
 
 
 func _reset_to_start() -> void:
