@@ -20,7 +20,7 @@ The project currently contains:
 - lap, position and results UI;
 - speedometer, gear display and tachometer;
 - test mobile touch controls for Android playtesting;
-- full-program smoke test scene for automated regression checks.
+- extended full-program smoke test scene for automated regression checks.
 
 The project is still a prototype. The next priority is architectural cleanup, not adding more cars or game modes.
 
@@ -45,7 +45,7 @@ The game starts from the main scene and displays the menu before spawning the se
 
 ## Automated smoke test
 
-A full-program smoke test is available at:
+An extended full-program smoke test is available at:
 
 ```text
 scenes/tests/full_program_smoke_test.tscn
@@ -66,6 +66,8 @@ scripts/tests/run_full_program_smoke_test.gd
 That launcher is an `@tool EditorScript` and starts the same smoke-test scene from the editor. Do not run `scripts/tests/full_program_smoke_test.gd` directly as a script; it is a normal runtime `Node` script attached to the test scene.
 
 The test instantiates `scenes/main.tscn`, presses menu buttons, simulates driving input through `Input.action_press()` / `Input.action_release()`, checks free-drive automatic/manual flow, checks race setup, verifies that `switch-car` is blocked in race mode, simulates race finish and verifies return-to-menu cleanup.
+
+The extended coverage includes longer automatic/manual acceleration segments, steering left/right, handbrake/slip telemetry, braking, automatic reverse from near stop, manual neutral/reverse gear checks, a longer AI race soak segment and post-race free-drive reentry.
 
 The test prints `[SMOKE][PASS]` / `[SMOKE][FAIL]` lines to the Output panel and exits with status code `0` on pass or `1` on failure when run from command line.
 
