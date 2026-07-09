@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/cars/370z.tscn" id="1_370z"]
+[ext_resource type="Resource" path="res://resources/cars/370z_automatic.tres" id="2_specs"]
 
 [node name="370ZAT" instance=ExtResource("1_370z")]
+car_specs = ExtResource("2_specs")
 manual_transmission_enabled = false
 automatic_transmission_enabled = true
 gear_ratios = Array[float]([4.923, 3.193, 2.042, 1.411, 1.0, 0.862, 0.771])
