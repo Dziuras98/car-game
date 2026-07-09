@@ -73,18 +73,20 @@ Definition of done:
 
 ## Phase 2 — Move race UI into scenes
 
-Status: started. `scripts/ui/race_hud.gd` exists, but still builds UI procedurally.
+Status: started. Race UI is split into helper scripts, but still builds controls procedurally.
 
-Goal: stop building race UI procedurally inside race/game logic.
+Goal: stop building race UI procedurally and make it scene-driven.
 
 Tasks:
 
 - [ ] Create `scenes/ui/race_hud.tscn`.
 - [x] Create `scripts/ui/race_hud.gd`.
 - [ ] Create `scenes/ui/countdown_overlay.tscn`.
-- [ ] Create `scripts/ui/countdown_overlay.gd`.
+- [x] Create `scripts/ui/countdown_overlay.gd`.
+- [ ] Create `scenes/ui/lap_position_hud.tscn`.
+- [x] Create `scripts/ui/lap_position_hud.gd`.
 - [ ] Create `scenes/ui/results_screen.tscn`.
-- [ ] Create `scripts/ui/results_screen.gd`.
+- [x] Create `scripts/ui/results_screen.gd`.
 - [ ] Wire these scenes from `main.tscn` or instantiate them from `game_manager.gd`.
 - [x] Remove procedural UI construction from the race/game manager.
 
