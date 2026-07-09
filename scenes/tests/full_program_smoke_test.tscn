@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://fullprogramsmokescene"]
+
+[ext_resource type="Script" uid="uid://fullprogramsmoketest" path="res://scripts/tests/full_program_smoke_test.gd" id="1_smoke"]
+
+[node name="FullProgramSmokeTest" type="Node"]
+script = ExtResource("1_smoke")
