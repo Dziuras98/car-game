@@ -13,6 +13,7 @@ The project currently contains:
 - a Nissan 370Z-inspired prototype car scene;
 - separate manual and automatic transmission variants;
 - Resource-backed `CarSpecs` data for the 370Z manual and automatic variants;
+- model/variant/catalog Resources for future multi-variant car selection;
 - a character-body based car controller;
 - extracted vehicle-motion helper for local/global velocity projection;
 - procedural engine and tire squeal audio;
@@ -121,8 +122,12 @@ Mobile overlay buttons:
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
 | `scenes/ui/mobile_drive_controls.tscn` | Android touch-driving overlay scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
-| `resources/cars/370z_manual.tres` | Manual 370Z tuning data Resource |
-| `resources/cars/370z_automatic.tres` | Automatic 370Z tuning data Resource |
+| `resources/cars/catalog.tres` | Root car catalog Resource |
+| `resources/cars/nissan/370z/model.tres` | Nissan 370Z model definition Resource |
+| `resources/cars/nissan/370z/variants/370z_7at.tres` | Automatic 370Z variant definition |
+| `resources/cars/nissan/370z/variants/370z_6mt.tres` | Manual 370Z variant definition |
+| `resources/cars/nissan/370z/specs/370z_7at_specs.tres` | Automatic 370Z tuning data Resource |
+| `resources/cars/nissan/370z/specs/370z_6mt_specs.tres` | Manual 370Z tuning data Resource |
 | `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner attached to the smoke-test scene |
 | `scripts/tests/game_test_adapter.gd` | Diagnostic adapter used by the smoke test |
 | `scripts/tests/run_full_program_smoke_test.gd` | EditorScript launcher for the full-program smoke test scene |
@@ -141,6 +146,9 @@ Mobile overlay buttons:
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
 | `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
+| `scripts/car/car_catalog.gd` | Root Resource type for available car models |
+| `scripts/car/car_model_definition.gd` | Resource type for one model and its variants |
+| `scripts/car/car_variant_definition.gd` | Resource type for one selectable model variant |
 | `scripts/car/car_specs.gd` | Resource class for car tuning data |
 | `scripts/car/car_input.gd` | Player/external drive input helper |
 | `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
@@ -156,6 +164,7 @@ Mobile overlay buttons:
 | `scripts/car/engine_audio.gd` | Procedural engine audio |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
 | `docs/architecture.md` | Current validated architecture baseline and target cleanup direction |
+| `docs/car_catalog.md` | Car model/variant/catalog structure and rules |
 | `docs/vehicle_model.md` | Current vehicle-model behavior baseline and regression checklist |
 | `docs/test_reports/2026-07-09-android-and-smoke-baseline.md` | Validated Android and extended-smoke-test baseline report |
 
@@ -164,7 +173,7 @@ Mobile overlay buttons:
 The project works as a prototype, but some scripts still have too many responsibilities:
 
 - `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement, although local/global velocity projection and car tuning data have been partly extracted.
-- `resources/cars/*.tres` now hold 370Z tuning data, but old exported scene values are intentionally kept as a fallback while this path is validated.
+- `resources/cars/catalog.tres` now defines model/variant structure, but the menu and `main.tscn` still use the existing flat `available_cars` array until the next UI/data refactor.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
 - Mobile controls are now scene-driven, but they are still a temporary Android testing overlay rather than final input UI.
@@ -177,6 +186,7 @@ These should be refactored through small changes, followed by the extended smoke
 See:
 
 - `docs/architecture.md` for the current validated structure and target architecture;
+- `docs/car_catalog.md` for the model/variant/specs catalog structure;
 - `docs/roadmap.md` for the recommended implementation order;
 - `docs/vehicle_model.md` for the current vehicle-model behavior baseline and regression checklist;
 - `docs/test_reports/2026-07-09-android-and-smoke-baseline.md` for the current validated baseline report.
