@@ -196,6 +196,7 @@ Completed runtime/chassis/reset helpers:
 - [x] Create `scripts/car/car_reset_controller.gd`.
 - [x] Move reset-to-start coordination there.
 - [x] Add `scripts/tests/car_controller_runtime_config_test.gd`.
+- [x] Reconfigure `SkidMarkEmitter` when runtime `car_specs` changes.
 
 Definition of done:
 
@@ -209,7 +210,7 @@ Remaining work:
 
 - [ ] Add focused tests for `CarPowertrainController` behavior beyond gear-text checks.
 - [ ] Add focused tests for `CarChassisController` and `VehicleMotionModel` behavior.
-- [ ] Confirm or fix runtime `car_specs` changes so skid-mark configuration stays synchronized.
+- [ ] Add focused tests for runtime `car_specs` reconfiguration behavior.
 - [ ] Remove legacy export tuning after all scenes rely on `CarSpecs`.
 
 ## Phase 5 — Introduce car specs and catalog Resources
