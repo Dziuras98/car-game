@@ -42,11 +42,13 @@ var _mobile_drive_controls: CanvasLayer
 
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
+const TRACK_SIMPLE_OVAL: String = "simple_oval"
 const MOBILE_DRIVE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile_drive_controls.tscn")
 
 
 func _ready() -> void:
 	_prepare_car_selection_data()
+	_configure_menu_track_options()
 	_configure_menu_car_options()
 
 	_lap_tracker = LapTracker.new()
@@ -194,6 +196,17 @@ func _configure_menu_car_options() -> void:
 				car_names.append("Samochod %d" % (car_index + 1))
 
 		_menu.call("set_car_names", car_names)
+
+
+func _configure_menu_track_options() -> void:
+	if _menu == null or not _menu.has_method("set_track_options"):
+		return
+
+	var track_options: Array[Dictionary] = [{
+		"label": "Prosty owal",
+		"track_id": TRACK_SIMPLE_OVAL,
+	}]
+	_menu.call("set_track_options", track_options)
 
 
 func _get_menu_car_models() -> Array[Dictionary]:

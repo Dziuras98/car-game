@@ -18,6 +18,7 @@ var _selected_track_id: String = ""
 var _selected_model_index: int = -1
 var _current_step: int = STEP_MODE
 var _car_models: Array[Dictionary] = []
+var _track_options: Array[Dictionary] = []
 @onready var _title_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleLabel
 @onready var _subtitle_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SubtitleLabel
 @onready var _options: VBoxContainer = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Options
@@ -27,6 +28,8 @@ var _car_models: Array[Dictionary] = []
 func _ready() -> void:
 	if _car_models.is_empty():
 		_build_flat_car_model()
+	if _track_options.is_empty():
+		_build_fallback_track_options()
 	_back_button.pressed.connect(_on_back_pressed)
 	_show_mode_step()
 
@@ -55,6 +58,16 @@ func set_car_models(next_car_models: Array[Dictionary]) -> void:
 		_show_variant_step()
 
 
+func set_track_options(next_track_options: Array[Dictionary]) -> void:
+	_track_options = next_track_options.duplicate(true)
+	if _track_options.is_empty():
+		_build_fallback_track_options()
+	if _current_step == STEP_TRACK and _options != null:
+		_show_track_step()
+	elif _current_step == STEP_MODEL and _options != null:
+		_show_model_step()
+
+
 func _show_mode_step() -> void:
 	_current_step = STEP_MODE
 	_selected_mode_id = ""
@@ -77,9 +90,12 @@ func _show_track_step() -> void:
 	_back_button.visible = true
 	_clear_options()
 
-	for track_index: int in range(track_names.size()):
-		var track_label: String = track_names[track_index]
-		var track_id: String = TRACK_SIMPLE_OVAL
+	if _track_options.is_empty():
+		_build_fallback_track_options()
+
+	for track_data: Dictionary in _track_options:
+		var track_label: String = str(track_data.get("label", "Prosty owal"))
+		var track_id: String = str(track_data.get("track_id", TRACK_SIMPLE_OVAL))
 		_add_option_button(track_label, Callable(self, "_on_track_pressed").bind(track_id))
 
 
@@ -160,9 +176,27 @@ func _get_mode_label(mode_id: String) -> String:
 
 
 func _get_track_label(track_id: String) -> String:
+	if _track_options.is_empty():
+		_build_fallback_track_options()
+
+	for track_data: Dictionary in _track_options:
+		if str(track_data.get("track_id", "")) == track_id:
+			return str(track_data.get("label", "Prosty owal"))
+
 	if track_id == TRACK_SIMPLE_OVAL and not track_names.is_empty():
 		return track_names[0]
 	return "Prosty owal"
+
+
+func _build_fallback_track_options() -> void:
+	var fallback_label: String = "Prosty owal"
+	if not track_names.is_empty():
+		fallback_label = track_names[0]
+
+	_track_options = [{
+		"label": fallback_label,
+		"track_id": TRACK_SIMPLE_OVAL,
+	}]
 
 
 func _build_flat_car_model() -> void:
