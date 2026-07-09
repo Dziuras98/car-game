@@ -129,6 +129,17 @@ func get_selected_car_variant_id() -> StringName:
 	return selected_car_variant_id
 
 
+func request_return_to_main_menu_for_test() -> void:
+	_return_to_main_menu()
+
+
+func simulate_current_player_finish_for_test() -> void:
+	if _current_car == null:
+		return
+
+	_on_lap_tracker_participant_finished(_current_car)
+
+
 func _prepare_car_selection_data() -> void:
 	_available_car_variants.clear()
 	_available_car_scenes.clear()

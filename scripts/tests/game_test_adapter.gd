@@ -94,14 +94,13 @@ func get_moving_opponent_count() -> int:
 
 
 func return_to_main_menu() -> void:
-	if _main != null and _main.has_method("_return_to_main_menu"):
-		_main.call("_return_to_main_menu")
+	if _main != null and _main.has_method("request_return_to_main_menu_for_test"):
+		_main.call("request_return_to_main_menu_for_test")
 
 
 func simulate_player_finish() -> void:
-	var player_car: PlayerCarController = get_current_car()
-	if _main != null and player_car != null and _main.has_method("_on_lap_tracker_participant_finished"):
-		_main.call("_on_lap_tracker_participant_finished", player_car)
+	if _main != null and _main.has_method("simulate_current_player_finish_for_test"):
+		_main.call("simulate_current_player_finish_for_test")
 
 
 func find_visible_button_with_text(root_node: Node, label_text: String) -> Button:
