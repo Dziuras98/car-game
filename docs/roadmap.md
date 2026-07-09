@@ -98,13 +98,15 @@ Definition of done:
 
 ## Phase 3 — Extract non-driving effects from the car controller
 
+Status: first extraction implemented, pending local regression testing.
+
 Goal: reduce `scripts/car/car_controller.gd` before touching handling or drivetrain math.
 
-Recommended first extraction:
+Completed:
 
-- [ ] Create `scripts/car/skid_mark_emitter.gd`.
-- [ ] Move skid mark material creation, parent creation and mark spawning there.
-- [ ] Let `PlayerCarController` only report tire slip and call/emits mark events.
+- [x] Create `scripts/car/skid_mark_emitter.gd`.
+- [x] Move skid mark material creation, parent creation and mark spawning there.
+- [x] Let `PlayerCarController` report tire slip and delegate skid mark emission.
 
 Definition of done:
 
