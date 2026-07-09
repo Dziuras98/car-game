@@ -140,6 +140,21 @@ func simulate_current_player_finish_for_test() -> void:
 	_on_lap_tracker_participant_finished(_current_car)
 
 
+func is_child_visible_for_test(node_name: String) -> bool:
+	var target: Node = get_node_or_null(node_name)
+	if target == null:
+		return false
+
+	var visible_value: Variant = target.get("visible")
+	if visible_value is bool:
+		return bool(visible_value)
+
+	if target is CanvasItem:
+		return (target as CanvasItem).is_visible_in_tree()
+
+	return false
+
+
 func _prepare_car_selection_data() -> void:
 	_available_car_variants.clear()
 	_available_car_scenes.clear()

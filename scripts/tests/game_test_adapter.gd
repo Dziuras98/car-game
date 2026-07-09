@@ -65,18 +65,7 @@ func is_child_visible(node_name: String) -> bool:
 	if _main == null:
 		return false
 
-	var target: Node = _main.get_node_or_null(node_name)
-	if target == null:
-		return false
-
-	var visible_value: Variant = target.get("visible")
-	if visible_value is bool:
-		return bool(visible_value)
-
-	if target is CanvasItem:
-		return (target as CanvasItem).is_visible_in_tree()
-
-	return false
+	return bool(_main.call("is_child_visible_for_test", node_name))
 
 
 func has_moving_opponent() -> bool:
