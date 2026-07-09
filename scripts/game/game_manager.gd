@@ -248,13 +248,12 @@ func _get_variant_id_for_index(car_index: int) -> StringName:
 
 
 func _get_variant_id_for_current_spawner_index() -> StringName:
-	if _current_car == null:
-		return &""
-	for variant_index: int in range(_available_car_variants.size()):
-		var variant: CarVariantDefinition = _available_car_variants[variant_index]
-		if variant != null and variant.get_specs() == _current_car.car_specs:
-			return variant.variant_id
-	return selected_car_variant_id
+	if _car_spawner == null:
+		return selected_car_variant_id
+	var variant_id: StringName = _get_variant_id_for_index(_car_spawner.get_current_car_index())
+	if variant_id.is_empty():
+		return selected_car_variant_id
+	return variant_id
 
 
 func _spawn_car(car_index: int, spawn_transform: Transform3D) -> void:
