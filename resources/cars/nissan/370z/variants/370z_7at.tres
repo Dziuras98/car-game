@@ -1,0 +1,18 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_variant_definition.gd" id="1_variant"]
+[ext_resource type="PackedScene" path="res://scenes/cars/370zat.tscn" id="2_scene"]
+[ext_resource type="Resource" path="res://resources/cars/370z_automatic.tres" id="3_specs"]
+
+[resource]
+script = ExtResource("1_variant")
+variant_id = &"nissan_370z_7at"
+display_name = "370Z 3.7 V6 7AT"
+sort_order = 0
+is_default = true
+car_scene = ExtResource("2_scene")
+specs = ExtResource("3_specs")
+engine_label = "VQ37VHR 3.7 V6"
+transmission_label = "7-speed automatic"
+drivetrain_label = "RWD"
+mass_kg = 1495.0
