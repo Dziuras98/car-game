@@ -45,6 +45,7 @@ scripts/
     follow_camera.gd
   car/
     car_controller.gd
+    car_input.gd
     engine_audio.gd
     skid_mark_emitter.gd
     tire_squeal_audio.gd
@@ -92,8 +93,6 @@ Current main controller: `scripts/car/car_controller.gd`.
 
 Responsibilities currently inside the controller:
 
-- player input;
-- external input for AI;
 - forward/reverse speed model;
 - manual and automatic transmission logic;
 - torque converter approximation;
@@ -108,6 +107,8 @@ Responsibilities currently inside the controller:
 - tire slip intensity output;
 - reset-to-start behavior;
 - movement through `move_and_slide()`.
+
+Player/external drive input is handled by `scripts/car/car_input.gd`.
 
 Skid mark visual effects are handled by `scripts/car/skid_mark_emitter.gd`.
 
@@ -251,7 +252,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 | Risk | Severity | Reason |
 |---|---:|---|
-| `car_controller.gd` is still large | High | Input, drivetrain, tires and movement are still coupled |
+| `car_controller.gd` is still large | High | Drivetrain, tires and movement are still coupled |
 | Lap tracking is heuristic | Medium | Uses racing-line progress rather than physical checkpoints |
 | Track generator mixes data and scenery | Medium | Adding more tracks will duplicate or complicate logic |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
