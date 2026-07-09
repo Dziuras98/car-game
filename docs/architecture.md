@@ -46,6 +46,7 @@ scripts/
   car/
     car_controller.gd
     car_input.gd
+    drivetrain_model.gd
     engine_audio.gd
     engine_model.gd
     resistance_model.gd
@@ -96,9 +97,8 @@ Current main controller: `scripts/car/car_controller.gd`.
 Responsibilities currently inside the controller:
 
 - forward/reverse speed model;
-- manual and automatic transmission logic;
+- manual and automatic transmission selection logic;
 - torque converter approximation;
-- wheel force calculation;
 - steering model;
 - lateral slip approximation;
 - handbrake behavior;
@@ -109,6 +109,8 @@ Responsibilities currently inside the controller:
 Player/external drive input is handled by `scripts/car/car_input.gd`.
 
 Engine RPM, torque curve and rev limiter multiplier are handled by `scripts/car/engine_model.gd`.
+
+Gear-ratio lookup, wheel-coupled RPM, wheel-force and drive-acceleration helper calculations are handled by `scripts/car/drivetrain_model.gd`.
 
 Aerodynamic drag and rolling resistance are handled by `scripts/car/resistance_model.gd`.
 
@@ -134,7 +136,7 @@ scripts/car/
   tire_squeal_audio.gd
 ```
 
-The next substantial car refactor should target drivetrain/transmission logic, because gear selection, torque converter and wheel force are still coupled to the controller.
+The next substantial car refactor should continue drivetrain/transmission cleanup, because gear selection and torque converter behavior are still coupled to the controller.
 
 ## Race/game architecture
 
@@ -268,7 +270,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 After local validation of the current race/menu/UI split, continue with one of these:
 
 1. Convert procedural UI helpers into scene-driven UI.
-2. Add `docs/vehicle_model.md` before changing drivetrain or tire behavior.
-3. Extract drivetrain/transmission logic from `car_controller.gd` only after documenting the current vehicle model.
+2. Extract the remaining torque converter or transmission-selection logic from `car_controller.gd` in small, behavior-preserving PRs.
+3. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
 
 Do not change car handling while race/menu/UI refactors remain untested locally.
