@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_variant")
 variant_id = &"nissan_370z_7at"
-display_name = "370Z 3.7 V6 7AT"
+display_name = "370Z automat"
 sort_order = 0
 is_default = true
 car_scene = ExtResource("2_scene")
