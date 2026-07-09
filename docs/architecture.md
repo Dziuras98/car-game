@@ -52,6 +52,7 @@ scripts/
     resistance_model.gd
     skid_mark_emitter.gd
     tire_squeal_audio.gd
+    torque_converter_model.gd
   game/
     game_manager.gd
     car_spawner.gd
@@ -98,7 +99,6 @@ Responsibilities currently inside the controller:
 
 - forward/reverse speed model;
 - manual and automatic transmission selection logic;
-- torque converter approximation;
 - steering model;
 - lateral slip approximation;
 - handbrake behavior;
@@ -111,6 +111,8 @@ Player/external drive input is handled by `scripts/car/car_input.gd`.
 Engine RPM, torque curve and rev limiter multiplier are handled by `scripts/car/engine_model.gd`.
 
 Gear-ratio lookup, wheel-coupled RPM, wheel-force and drive-acceleration helper calculations are handled by `scripts/car/drivetrain_model.gd`.
+
+Torque converter RPM coupling and torque multiplication are handled by `scripts/car/torque_converter_model.gd`.
 
 Aerodynamic drag and rolling resistance are handled by `scripts/car/resistance_model.gd`.
 
@@ -126,7 +128,8 @@ Recommended direction:
 scripts/car/
   player_car_controller.gd      # thin coordinator for movement and public API
   car_input.gd                  # player/external input abstraction
-  drivetrain_model.gd           # gearbox, torque converter, wheel force
+  drivetrain_model.gd           # gearbox, wheel force
+  torque_converter_model.gd     # automatic torque converter helper
   engine_model.gd               # RPM, torque curve, limiter
   resistance_model.gd           # drag and rolling resistance
   tire_model.gd                 # lateral grip, slip, handbrake, tire state
@@ -136,7 +139,7 @@ scripts/car/
   tire_squeal_audio.gd
 ```
 
-The next substantial car refactor should continue drivetrain/transmission cleanup, because gear selection and torque converter behavior are still coupled to the controller.
+The next substantial car refactor should continue drivetrain/transmission cleanup, because gear selection is still coupled to the controller.
 
 ## Race/game architecture
 
@@ -270,7 +273,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 After local validation of the current race/menu/UI split, continue with one of these:
 
 1. Convert procedural UI helpers into scene-driven UI.
-2. Extract the remaining torque converter or transmission-selection logic from `car_controller.gd` in small, behavior-preserving PRs.
+2. Extract manual/automatic transmission-selection logic from `car_controller.gd` in small, behavior-preserving changes.
 3. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
 
 Do not change car handling while race/menu/UI refactors remain untested locally.
