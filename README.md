@@ -19,7 +19,7 @@ The project currently contains:
 - AI opponents following the generated racing line;
 - lap, position and results UI;
 - speedometer, gear display and tachometer;
-- test mobile touch controls for Android playtesting;
+- scene-driven mobile touch controls for Android playtesting;
 - extended full-program smoke test scene for automated regression checks;
 - game test adapter that centralizes smoke-test access to game state;
 - validated Android and smoke-test baseline report.
@@ -93,7 +93,7 @@ Keyboard controls currently configured in `project.godot`:
 | Gear up | `E` / joypad button |
 | Gear down | `Q` / joypad button |
 
-On Android, `scripts/ui/mobile_drive_controls.gd` creates a temporary touch overlay that presses the same existing input actions. It is intended for testing, not final UI.
+On Android, `scenes/ui/mobile_drive_controls.tscn` creates a temporary touch overlay controlled by `scripts/ui/mobile_drive_controls.gd`. The overlay presses the same existing input actions. It is intended for testing, not final UI.
 
 Mobile overlay buttons:
 
@@ -117,6 +117,7 @@ Mobile overlay buttons:
 | `scenes/cars/370z.tscn` | Base 370Z-style car scene |
 | `scenes/cars/370zat.tscn` | Automatic transmission 370Z variant |
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
+| `scenes/ui/mobile_drive_controls.tscn` | Android touch-driving overlay scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
 | `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner attached to the smoke-test scene |
 | `scripts/tests/game_test_adapter.gd` | Diagnostic adapter used by the smoke test |
@@ -132,7 +133,7 @@ Mobile overlay buttons:
 | `scripts/ui/lap_position_hud.gd` | Procedural lap and race-position HUD helper |
 | `scripts/ui/results_screen.gd` | Procedural results screen helper |
 | `scripts/ui/main_menu.gd` | Main menu flow |
-| `scripts/ui/mobile_drive_controls.gd` | Test Android touch-driving overlay |
+| `scripts/ui/mobile_drive_controls.gd` | Binds the Android touch overlay scene buttons to input actions |
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
 | `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
@@ -159,7 +160,7 @@ The project works as a prototype, but some scripts still have too many responsib
 - `scripts/car/car_controller.gd` still manages applying selected gears, steering, grounding, reset and movement.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
 - Race UI helpers still build HUD controls procedurally; they should later become scene-driven UI.
-- Mobile controls are a temporary testing overlay and should later become proper scene-driven UI.
+- Mobile controls are now scene-driven, but they are still a temporary Android testing overlay rather than final input UI.
 - `GameTestAdapter` still knows selected `GameManager` internals; this is centralized now, but a future production-facing diagnostic API would be cleaner.
 
 These should be refactored through small changes, followed by the extended smoke test.
