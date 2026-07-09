@@ -2,7 +2,7 @@
 
 This document describes the current vehicle model before deeper drivetrain, tire and motion refactors.
 
-It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
+It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
 
 ## Current model boundaries
 
@@ -22,8 +22,9 @@ Current main files:
 
 | Path | Responsibility |
 |---|---|
-| `scripts/car/car_controller.gd` | Main movement coordinator, transmission selection, steering, tire slip and reset |
+| `scripts/car/car_controller.gd` | Main movement coordinator, automatic transmission selection, shift timing, steering, tire slip and reset |
 | `scripts/car/car_input.gd` | Player/external drive input sampling and input state |
+| `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
 | `scripts/car/engine_model.gd` | RPM state, free-rev blending, torque multiplier and rev limiter multiplier |
 | `scripts/car/drivetrain_model.gd` | Gear-ratio lookup, wheel-coupled RPM, wheel force and drive acceleration helper calculations |
 | `scripts/car/torque_converter_model.gd` | Torque converter RPM-coupling and torque-multiplication helper calculations |
@@ -244,7 +245,9 @@ If `rev_limiter_rpm <= redline_rpm`, multiplier becomes `0.0` once redline is re
 
 ## Transmission and wheel RPM
 
-Manual and automatic gear-selection logic is still inside `PlayerCarController`.
+Manual gear-up/gear-down requests are handled by `ManualTransmissionModel`.
+
+Automatic gear-selection logic is still inside `PlayerCarController`.
 
 `DrivetrainModel` owns gear-ratio lookup and wheel-coupled RPM helper calculations.
 
@@ -295,12 +298,19 @@ If wheel circumference is invalid, it returns `idle_rpm`.
 
 ### Manual transmission
 
-When `manual_transmission_enabled` is true:
+When `manual_transmission_enabled` is true, `PlayerCarController` asks `ManualTransmissionModel.get_requested_gear(current_gear, gear_ratios.size())` for a requested gear.
 
-- `gear-up` increments gear up to `gear_ratios.size()`;
-- `gear-down` decrements gear down to `-1`;
-- changing gear sets `_shift_timer`;
-- drive force is disabled while `_shift_timer > 0.0`.
+`ManualTransmissionModel`:
+
+- increments gear when `gear-up` is pressed, up to `gear_ratios.size()`;
+- decrements gear when `gear-down` is pressed, down to `-1`;
+- returns unchanged gear when there is no gear request.
+
+`PlayerCarController` still owns:
+
+- applying the requested gear through `_set_transmission_gear()`;
+- shift timing;
+- disabling drive force while `_shift_timer > 0.0`.
 
 ### Automatic transmission
 
@@ -587,7 +597,7 @@ Preferred sequence for stabilization:
 Recommended next code extraction:
 
 ```text
-scripts/car/manual_transmission_model.gd
+scripts/car/automatic_transmission_model.gd
 ```
 
-The next drivetrain change should move only manual transmission gear-up/gear-down and shift-timer helpers. Automatic gear selection should remain in `PlayerCarController` until that smaller extraction is tested.
+The next drivetrain change should move only automatic gear-selection decision helpers. Applying the selected gear, shift timing and movement should remain in `PlayerCarController` until that smaller extraction is tested.
