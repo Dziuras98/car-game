@@ -56,7 +56,7 @@ Keyboard controls currently configured in `project.godot`:
 | Reset car | `R` |
 | Camera back | `C` |
 | Pause | Esc |
-| Switch car | `T` |
+| Switch car | `T` — free-drive mode only |
 | Gear up | `E` / joypad button |
 | Gear down | `Q` / joypad button |
 
