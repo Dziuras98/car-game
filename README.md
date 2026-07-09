@@ -69,23 +69,27 @@ Keyboard controls currently configured in `project.godot`:
 | `scenes/cars/370zat.tscn` | Automatic transmission 370Z variant |
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
 | `scenes/ui/speedometer.tscn` | HUD speedometer and tachometer scene |
-| `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
-| `scripts/car/engine_audio.gd` | Procedural engine audio |
-| `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
-| `scripts/race/car_switcher.gd` | Current high-level game/race coordinator |
+| `scripts/game/game_manager.gd` | High-level menu/free-drive/race coordinator |
+| `scripts/game/car_spawner.gd` | Player car, opponent and AI-driver instantiation helper |
+| `scripts/race/race_manager.gd` | Race lifecycle, countdown and input lock helper |
+| `scripts/race/lap_tracker.gd` | Lap, progress, position and result-order tracking |
 | `scripts/race/ai_race_driver.gd` | Prototype AI driver |
 | `scripts/race/generated_track.gd` | Procedural track and scenery generator |
+| `scripts/ui/race_hud.gd` | Procedural countdown, lap/position and results HUD helper |
 | `scripts/ui/main_menu.gd` | Main menu flow |
 | `scripts/ui/minimap.gd` | Minimap drawing logic |
 | `scripts/ui/speedometer.gd` | HUD binding to active car |
+| `scripts/car/car_controller.gd` | Main car controller and drivetrain prototype |
+| `scripts/car/engine_audio.gd` | Procedural engine audio |
+| `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
 
 ## Current architectural warning
 
-The project works as a prototype, but several scripts now have too many responsibilities:
+The project works as a prototype, but some scripts still have too many responsibilities:
 
-- `scripts/race/car_switcher.gd` manages car spawning, menu events, race lifecycle, opponents, countdown UI, lap UI, results UI and minimap updates.
 - `scripts/car/car_controller.gd` manages input, drivetrain, transmission, resistance, steering, tire slip, skid marks, reset and movement.
 - `scripts/race/generated_track.gd` contains track layout data, mesh generation, collision generation and scenery generation.
+- `scripts/ui/race_hud.gd` still builds HUD controls procedurally; it should later become scene-driven UI.
 
 These should be refactored before adding more gameplay systems.
 
