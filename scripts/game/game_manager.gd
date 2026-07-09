@@ -230,6 +230,7 @@ func _get_car_index_for_variant_id(car_variant_id: StringName) -> int:
 			var variant: CarVariantDefinition = _available_car_variants[variant_index]
 			if variant != null and variant.variant_id == car_variant_id:
 				return variant_index
+		push_warning("Car variant id '%s' was not found; falling back to car index 0." % str(car_variant_id))
 		return 0
 
 	return _get_valid_car_index(int(str(car_variant_id)))
