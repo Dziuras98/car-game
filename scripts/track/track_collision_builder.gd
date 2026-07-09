@@ -1,0 +1,51 @@
+extends RefCounted
+class_name TrackCollisionBuilder
+
+
+func build_collisions(parent: Node3D, geometry: TrackGeometryData, config: Dictionary) -> void:
+	_add_grass_collision(parent, config)
+	_add_shoulder_collision(parent, geometry)
+	_add_track_collision(parent, geometry)
+
+
+func _add_grass_collision(parent: Node3D, config: Dictionary) -> void:
+	var grass_body: StaticBody3D = parent.get_node_or_null("Grass") as StaticBody3D
+	if grass_body == null:
+		return
+
+	var grass_size: Vector2 = config.get("grass_size", Vector2(260.0, 190.0))
+	var grass_shape: BoxShape3D = BoxShape3D.new()
+	grass_shape.size = Vector3(grass_size.x, 0.4, grass_size.y)
+
+	var collision: CollisionShape3D = CollisionShape3D.new()
+	collision.name = "CollisionShape3D"
+	collision.shape = grass_shape
+	grass_body.add_child(collision)
+	grass_body.move_child(collision, 0)
+	collision.owner = parent.owner
+
+
+func _add_shoulder_collision(parent: Node3D, geometry: TrackGeometryData) -> void:
+	var shoulder_body: StaticBody3D = parent.get_node_or_null("RoadsideTerrain") as StaticBody3D
+	if shoulder_body == null:
+		return
+
+	var collision: CollisionShape3D = CollisionShape3D.new()
+	collision.name = "CollisionShape3D"
+	collision.shape = TrackSurfaceMeshBuilder.create_shoulder_mesh(geometry).create_trimesh_shape()
+	shoulder_body.add_child(collision)
+	shoulder_body.move_child(collision, 0)
+	collision.owner = parent.owner
+
+
+func _add_track_collision(parent: Node3D, geometry: TrackGeometryData) -> void:
+	var track_body: StaticBody3D = parent.get_node_or_null("TrackSurface") as StaticBody3D
+	if track_body == null:
+		return
+
+	var collision: CollisionShape3D = CollisionShape3D.new()
+	collision.name = "CollisionShape3D"
+	collision.shape = TrackSurfaceMeshBuilder.create_track_mesh(geometry).create_trimesh_shape()
+	track_body.add_child(collision)
+	track_body.move_child(collision, 0)
+	collision.owner = parent.owner
