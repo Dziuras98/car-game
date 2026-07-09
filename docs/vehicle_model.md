@@ -39,7 +39,7 @@ Current main files:
 | `scripts/car/tire_model.gd` | Lateral grip recovery and tire slip-intensity helper calculations |
 | `scripts/car/resistance_model.gd` | Aerodynamic drag and rolling resistance |
 | `scripts/car/vehicle_motion_model.gd` | Local forward/lateral speed to global horizontal velocity projection and reverse projection |
-| `scripts/car/skid_mark_emitter.gd` | Skid mark visual effect emission |
+| `scripts/car/skid_mark_emitter.gd` | Skid mark visual effect emission and reconfigurable mark parameters |
 | `scripts/car/car_specs.gd` | Resource-backed tuning data |
 | `scripts/car/engine_audio.gd` | Procedural engine audio driven by controller telemetry |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire audio driven by tire slip intensity |
@@ -126,6 +126,8 @@ PlayerCarController legacy exports -> CarDriveConfig -> runtime controllers
 ```
 
 `CarSpecs` is the Resource-backed source used by the current catalog-driven 370Z variants. Legacy export fields remain on `PlayerCarController` for scene compatibility and fallback behavior when `car_specs == null`.
+
+When `car_specs` changes while the car is inside the scene tree, `PlayerCarController` rebuilds `CarDriveConfig`, reconfigures the powertrain and chassis controllers, clamps the runtime gear if needed and reconfigures the existing `SkidMarkEmitter` with the new skid-mark thresholds and dimensions.
 
 Current `CarSpecs`/`CarDriveConfig` groups:
 
@@ -323,7 +325,7 @@ Current design choice: reset returns the current gear to first gear. This is arc
 - Steering is bicycle-model inspired but simplified.
 - Tire slip is a scalar gameplay signal, not a full tire-force model.
 - `CarSpecs`, `CarDriveConfig` and legacy exports duplicate tuning fields until legacy scene overrides are removed.
-- Runtime `car_specs` reconfiguration should get more focused tests, especially around non-powertrain side effects such as skid mark configuration.
+- Runtime `car_specs` reconfiguration now updates existing skid-mark emitter parameters; focused tests for runtime reconfiguration are still recommended.
 
 ## Regression checklist for vehicle changes
 
@@ -348,7 +350,7 @@ Recommended order:
 
 1. add focused tests for `CarPowertrainController` forward/reverse/manual/automatic behavior;
 2. add focused tests for `CarChassisController` and `VehicleMotionModel` projection behavior;
-3. fix runtime `car_specs` reconfiguration edge cases;
+3. add focused tests for runtime `car_specs` reconfiguration behavior;
 4. remove legacy export fallback only after all scenes and catalog variants use `CarSpecs`;
 5. split `CarSpecs` into sub-resources only after the flat Resource becomes difficult to maintain.
 
