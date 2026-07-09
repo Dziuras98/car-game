@@ -89,6 +89,7 @@ Keyboard controls currently configured in `project.godot`:
 | `scripts/car/skid_mark_emitter.gd` | Skid mark visual-effect emitter |
 | `scripts/car/engine_audio.gd` | Procedural engine audio |
 | `scripts/car/tire_squeal_audio.gd` | Procedural tire slip audio |
+| `docs/vehicle_model.md` | Current vehicle-model behavior baseline and regression checklist |
 
 ## Current architectural warning
 
@@ -105,7 +106,8 @@ These should be refactored before adding more gameplay systems.
 See:
 
 - `docs/architecture.md` for the current structure and target architecture;
-- `docs/roadmap.md` for the recommended implementation order.
+- `docs/roadmap.md` for the recommended implementation order;
+- `docs/vehicle_model.md` for the current vehicle-model behavior baseline and regression checklist.
 
 ## Working rule for future changes
 
