@@ -1,7 +1,7 @@
 extends CharacterBody3D
 class_name PlayerCarController
 
-const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/370z_manual.tres")
+const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 
 @export_group("Specs")
 @export var car_specs: CarSpecs = DEFAULT_CAR_SPECS
