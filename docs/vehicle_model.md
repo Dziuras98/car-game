@@ -2,7 +2,7 @@
 
 This document describes the current vehicle model before deeper drivetrain, tire and motion refactors.
 
-It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/automatic_transmission_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
+It is a behavior-preservation reference, not a physics-design document. Use it when reviewing future changes to `scripts/car/car_controller.gd`, `scripts/car/engine_model.gd`, `scripts/car/drivetrain_model.gd`, `scripts/car/manual_transmission_model.gd`, `scripts/car/automatic_transmission_model.gd`, `scripts/car/shift_timer_model.gd`, `scripts/car/torque_converter_model.gd`, `scripts/car/resistance_model.gd`, drivetrain code and tire code.
 
 ## Current model boundaries
 
@@ -22,10 +22,11 @@ Current main files:
 
 | Path | Responsibility |
 |---|---|
-| `scripts/car/car_controller.gd` | Main movement coordinator, shift timing, applying selected gears, steering, tire slip and reset |
+| `scripts/car/car_controller.gd` | Main movement coordinator, applying selected gears, steering, tire slip and reset |
 | `scripts/car/car_input.gd` | Player/external drive input sampling and input state |
 | `scripts/car/manual_transmission_model.gd` | Manual gear-up/gear-down request helper |
 | `scripts/car/automatic_transmission_model.gd` | Automatic gear-selection decision helper |
+| `scripts/car/shift_timer_model.gd` | Shift-timer update and delay-selection helper |
 | `scripts/car/engine_model.gd` | RPM state, free-rev blending, torque multiplier and rev limiter multiplier |
 | `scripts/car/drivetrain_model.gd` | Gear-ratio lookup, wheel-coupled RPM, wheel force and drive acceleration helper calculations |
 | `scripts/car/torque_converter_model.gd` | Torque converter RPM-coupling and torque-multiplication helper calculations |
@@ -41,7 +42,7 @@ The current model is intentionally simple and game-oriented. It is not a full ri
 The current `PlayerCarController._physics_process(delta)` flow is:
 
 1. Check reset input through `CarInput`.
-2. Update shift timer.
+2. Update shift timer through `ShiftTimerModel`.
 3. Read player or external AI drive input.
 4. Store throttle and brake telemetry for HUD/audio/engine-load output.
 5. Update transmission input.
@@ -58,7 +59,7 @@ if car_input.should_reset_car():
     reset_to_start()
     return
 
-update_shift_timer(delta)
+shift_timer = shift_timer_model.update_timer(shift_timer, delta)
 car_input.read_drive_input()
 
 throttle = car_input.throttle
@@ -250,7 +251,9 @@ Manual gear-up/gear-down requests are handled by `ManualTransmissionModel`.
 
 Automatic gear-selection decisions are handled by `AutomaticTransmissionModel`.
 
-`PlayerCarController` still owns applying selected gears and shift timing.
+Shift-timer update and shift-delay selection are handled by `ShiftTimerModel`.
+
+`PlayerCarController` still owns applying selected gears.
 
 `DrivetrainModel` owns gear-ratio lookup and wheel-coupled RPM helper calculations.
 
@@ -309,11 +312,7 @@ When `manual_transmission_enabled` is true, `PlayerCarController` asks `ManualTr
 - decrements gear when `gear-down` is pressed, down to `-1`;
 - returns unchanged gear when there is no gear request.
 
-`PlayerCarController` still owns:
-
-- applying the requested gear through `_set_transmission_gear()`;
-- shift timing;
-- disabling drive force while `_shift_timer > 0.0`.
+`PlayerCarController` still owns applying the requested gear through `_set_transmission_gear()`.
 
 ### Automatic transmission
 
@@ -330,7 +329,27 @@ When `automatic_transmission_enabled` is true, `PlayerCarController` calculates 
 - downshift threshold is `automatic_downshift_rpm + throttle * 900.0`;
 - downshifts are blocked if the lower gear would exceed `redline_rpm * 0.97`.
 
-`PlayerCarController` still owns applying the requested gear through `_set_transmission_gear()` and shift timing.
+`PlayerCarController` still owns applying the requested gear through `_set_transmission_gear()`.
+
+### Shift timing
+
+`ShiftTimerModel.update_timer(current_timer, delta)` handles timer decay:
+
+```text
+if current_timer <= 0.0:
+    return 0.0
+return max(current_timer - delta, 0.0)
+```
+
+`ShiftTimerModel.get_shift_delay(automatic_enabled, automatic_delay, manual_delay)` selects:
+
+```text
+automatic_delay if automatic_enabled else manual_delay
+```
+
+`PlayerCarController` still owns storing `_shift_timer` and deciding when `_set_transmission_gear()` is called.
+
+Drive force is still disabled while `manual_transmission_enabled and _shift_timer > 0.0`.
 
 ## Torque converter model
 
@@ -604,7 +623,7 @@ Preferred sequence for stabilization:
 Recommended next code extraction:
 
 ```text
-scripts/car/shift_timer_model.gd
+scripts/car/tire_model.gd
 ```
 
-The next drivetrain change should move only shift-timer update and delay-selection helpers. Applying the selected gear and movement should remain in `PlayerCarController` until that smaller extraction is tested.
+The next vehicle-model change should move only lateral grip recovery and slip-intensity calculation. Steering, velocity and movement should remain in `PlayerCarController` until that smaller extraction is tested.
