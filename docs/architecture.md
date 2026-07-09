@@ -309,13 +309,27 @@ Current data is mostly stored in exported variables on scenes and scripts.
 
 This is acceptable now, but it will become awkward when adding more cars and tracks.
 
-Recommended future data model:
+Current car data model:
 
 ```text
 resources/cars/
-  370z_manual.tres
-  370z_automatic.tres
+  catalog.tres
+  nissan/
+    370z/
+      model.tres
+      specs/
+        370z_6mt_specs.tres
+        370z_7at_specs.tres
+      variants/
+        370z_6mt.tres
+        370z_7at.tres
+```
 
+Cars are cataloged through `CarCatalog -> CarModelDefinition -> CarVariantDefinition -> CarSpecs`.
+
+Recommended future track and mode data model:
+
+```text
 resources/tracks/
   simple_oval.tres
 
