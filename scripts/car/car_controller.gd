@@ -80,11 +80,13 @@ var _throttle_input: float = 0.0
 var _brake_input: float = 0.0
 var _tire_slip_intensity: float = 0.0
 var _car_input: CarInput = CarInput.new()
+var _engine_model: EngineModel = EngineModel.new()
 var _skid_mark_emitter: SkidMarkEmitter
 
 
 func _ready() -> void:
 	_start_transform = global_transform
+	_prepare_engine_model()
 	_prepare_skid_marks()
 
 
@@ -252,12 +254,7 @@ func _set_transmission_gear(next_gear: int) -> void:
 
 func _update_engine(throttle: float, delta: float) -> void:
 	var wheel_rpm: float = _get_wheel_driven_rpm()
-	var free_rev_rpm: float = idle_rpm + throttle * (redline_rpm - idle_rpm) * 0.35
-	var target_rpm: float = maxf(wheel_rpm, free_rev_rpm)
-	var rpm_blend: float = 1.0 - exp(-rpm_response * delta)
-
-	_engine_rpm = lerpf(_engine_rpm, target_rpm, rpm_blend)
-	_engine_rpm = clampf(_engine_rpm, idle_rpm, rev_limiter_rpm)
+	_engine_rpm = _engine_model.update(throttle, wheel_rpm, delta)
 
 
 func _update_speed(throttle: float, brake: float, handbrake_active: bool, delta: float) -> void:
@@ -440,37 +437,16 @@ func _uses_geared_transmission() -> bool:
 
 
 func _get_torque_multiplier() -> float:
-	var normalized_rpm: float = clampf((_engine_rpm - idle_rpm) / (redline_rpm - idle_rpm), 0.0, 1.0)
-	var peak_rpm_ratio: float = clampf((peak_torque_rpm - idle_rpm) / (redline_rpm - idle_rpm), 0.01, 0.99)
+	return _engine_model.get_torque_multiplier()
 
-	if normalized_rpm <= peak_rpm_ratio:
-		var low_rpm_ratio: float = 0.34
-		if normalized_rpm <= low_rpm_ratio:
-			var low_blend: float = _smoothstep(normalized_rpm / low_rpm_ratio)
-			return lerpf(low_rpm_torque_multiplier, mid_rpm_torque_multiplier, low_blend)
 
-		var peak_blend: float = _smoothstep((normalized_rpm - low_rpm_ratio) / (peak_rpm_ratio - low_rpm_ratio))
-		return lerpf(mid_rpm_torque_multiplier, 1.0, peak_blend)
-
-	var high_rpm_ratio: float = (normalized_rpm - peak_rpm_ratio) / (1.0 - peak_rpm_ratio)
-	var high_blend: float = _smoothstep(high_rpm_ratio)
-	return lerpf(1.0, redline_torque_multiplier, high_blend)
+func _get_rev_limiter_multiplier() -> float:
+	return _engine_model.get_rev_limiter_multiplier()
 
 
 func _smoothstep(value: float) -> float:
 	var clamped_value: float = clampf(value, 0.0, 1.0)
 	return clamped_value * clamped_value * (3.0 - 2.0 * clamped_value)
-
-
-func _get_rev_limiter_multiplier() -> float:
-	if _engine_rpm < redline_rpm:
-		return 1.0
-
-	var limiter_range: float = rev_limiter_rpm - redline_rpm
-	if limiter_range <= 0.0:
-		return 0.0
-
-	return 1.0 - clampf((_engine_rpm - redline_rpm) / limiter_range, 0.0, 1.0)
 
 
 func _update_steering(steering: float, delta: float) -> void:
@@ -539,7 +515,7 @@ func _reset_to_start() -> void:
 	velocity = Vector3.ZERO
 	_forward_speed = 0.0
 	_lateral_speed = 0.0
-	_engine_rpm = idle_rpm
+	_engine_rpm = _engine_model.reset()
 	_current_gear = 1
 	_shift_timer = 0.0
 	_throttle_input = 0.0
@@ -547,6 +523,20 @@ func _reset_to_start() -> void:
 	_tire_slip_intensity = 0.0
 	if _skid_mark_emitter != null:
 		_skid_mark_emitter.reset_timer()
+
+
+func _prepare_engine_model() -> void:
+	_engine_model.configure(
+		idle_rpm,
+		peak_torque_rpm,
+		redline_rpm,
+		rev_limiter_rpm,
+		low_rpm_torque_multiplier,
+		mid_rpm_torque_multiplier,
+		redline_torque_multiplier,
+		rpm_response
+	)
+	_engine_rpm = _engine_model.get_rpm()
 
 
 func _prepare_skid_marks() -> void:
