@@ -29,6 +29,7 @@ var _mobile_drive_controls: CanvasLayer
 @onready var _menu: Node = get_node_or_null(menu_path)
 @onready var _track: Node3D = get_node_or_null(track_path) as Node3D
 
+const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
 const MOBILE_DRIVE_CONTROLS_SCRIPT: Script = preload("res://scripts/ui/mobile_drive_controls.gd")
 
@@ -74,6 +75,7 @@ func _ready() -> void:
 		_menu.connect("selection_completed", Callable(self, "_on_menu_selection_completed"))
 		return
 
+	selected_mode_id = MODE_FREE
 	_spawn_car(0, _car_spawn.global_transform)
 
 
@@ -91,7 +93,7 @@ func _physics_process(_delta: float) -> void:
 func _switch_to_next_car() -> void:
 	if available_cars.is_empty() or _car_spawner == null:
 		return
-	if _race_manager != null and _race_manager.is_race_in_progress():
+	if not _can_switch_cars():
 		return
 
 	var spawn_transform: Transform3D = _car_spawn.global_transform
@@ -101,6 +103,10 @@ func _switch_to_next_car() -> void:
 	_current_car = _car_spawner.switch_to_next_car(spawn_transform, _is_player_input_enabled_for_spawn())
 	_show_driving_ui_if_needed()
 	_update_car_targets()
+
+
+func _can_switch_cars() -> bool:
+	return selected_mode_id == MODE_FREE
 
 
 func _on_menu_selection_completed(mode_id: String, track_id: String, car_index: int) -> void:
