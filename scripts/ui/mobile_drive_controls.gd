@@ -90,15 +90,15 @@ func _build_utility_controls() -> void:
 	_root.add_child(camera_button)
 
 
-func _create_hold_button(label_text: String, action_name: String, size: Vector2 = button_size) -> Button:
-	var button: Button = _create_base_button(label_text, size)
+func _create_hold_button(label_text: String, action_name: String, size: Vector2 = Vector2.ZERO) -> Button:
+	var button: Button = _create_base_button(label_text, _get_button_size(size))
 	button.button_down.connect(_press_action.bind(action_name))
 	button.button_up.connect(_release_action.bind(action_name))
 	return button
 
 
-func _create_tap_button(label_text: String, action_name: String, size: Vector2 = button_size) -> Button:
-	var button: Button = _create_base_button(label_text, size)
+func _create_tap_button(label_text: String, action_name: String, size: Vector2 = Vector2.ZERO) -> Button:
+	var button: Button = _create_base_button(label_text, _get_button_size(size))
 	button.button_down.connect(_tap_action.bind(action_name))
 	return button
 
@@ -111,6 +111,13 @@ func _create_base_button(label_text: String, size: Vector2) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	return button
+
+
+func _get_button_size(size: Vector2) -> Vector2:
+	if size == Vector2.ZERO:
+		return button_size
+
+	return size
 
 
 func _position_bottom_left(button: Control, column: int, row: int) -> void:
