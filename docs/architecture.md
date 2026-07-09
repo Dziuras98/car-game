@@ -46,6 +46,7 @@ scripts/
   car/
     car_controller.gd
     car_input.gd
+    manual_transmission_model.gd
     drivetrain_model.gd
     engine_audio.gd
     engine_model.gd
@@ -98,7 +99,8 @@ Current main controller: `scripts/car/car_controller.gd`.
 Responsibilities currently inside the controller:
 
 - forward/reverse speed model;
-- manual and automatic transmission selection logic;
+- automatic transmission selection logic;
+- shift timing;
 - steering model;
 - lateral slip approximation;
 - handbrake behavior;
@@ -107,6 +109,8 @@ Responsibilities currently inside the controller:
 - movement through `move_and_slide()`.
 
 Player/external drive input is handled by `scripts/car/car_input.gd`.
+
+Manual gear-up/gear-down requests are handled by `scripts/car/manual_transmission_model.gd`.
 
 Engine RPM, torque curve and rev limiter multiplier are handled by `scripts/car/engine_model.gd`.
 
@@ -128,6 +132,8 @@ Recommended direction:
 scripts/car/
   player_car_controller.gd      # thin coordinator for movement and public API
   car_input.gd                  # player/external input abstraction
+  manual_transmission_model.gd  # manual gear input helper
+  automatic_transmission_model.gd # automatic gear selection
   drivetrain_model.gd           # gearbox, wheel force
   torque_converter_model.gd     # automatic torque converter helper
   engine_model.gd               # RPM, torque curve, limiter
@@ -139,7 +145,7 @@ scripts/car/
   tire_squeal_audio.gd
 ```
 
-The next substantial car refactor should continue drivetrain/transmission cleanup, because gear selection is still coupled to the controller.
+The next substantial car refactor should continue drivetrain/transmission cleanup, because automatic gear selection and shift timing are still coupled to the controller.
 
 ## Race/game architecture
 
@@ -261,7 +267,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 
 | Risk | Severity | Reason |
 |---|---:|---|
-| `car_controller.gd` is still large | High | Transmission, tires and movement are still coupled |
+| `car_controller.gd` is still large | High | Automatic transmission, tires and movement are still coupled |
 | Lap tracking is heuristic | Medium | Uses racing-line progress rather than physical checkpoints |
 | Track generator mixes data and scenery | Medium | Adding more tracks will duplicate or complicate logic |
 | Procedural audio may scale poorly with many cars | Medium | Each active car can generate audio samples |
@@ -273,7 +279,7 @@ Use Resources for reusable car, track and mode definitions. Scenes should instan
 After local validation of the current race/menu/UI split, continue with one of these:
 
 1. Convert procedural UI helpers into scene-driven UI.
-2. Extract manual/automatic transmission-selection logic from `car_controller.gd` in small, behavior-preserving changes.
+2. Extract automatic transmission-selection logic from `car_controller.gd` in small, behavior-preserving changes.
 3. Keep `docs/vehicle_model.md` updated before and after vehicle-model changes.
 
 Do not change car handling while race/menu/UI refactors remain untested locally.
