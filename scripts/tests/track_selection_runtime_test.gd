@@ -18,18 +18,17 @@ func _run() -> void:
 		&"simple_oval",
 		"Prosty owal",
 		SIMPLE_OVAL_SCENE,
-		3,
-		true
+		3
 	)
 	var alternate_definition: TrackDefinition = _make_definition(
 		&"alternate_track",
 		"Tor alternatywny",
 		ALTERNATE_TRACK_SCENE,
-		5,
-		false
+		5
 	)
 	var catalog: TrackCatalog = TrackCatalog.new()
 	catalog.tracks = [simple_definition, alternate_definition]
+	catalog.default_track_id = &"simple_oval"
 	_expect(catalog.validate().is_empty(), "two-track runtime catalog is valid")
 
 	var main: Node3D = MAIN_SCENE.instantiate() as Node3D
@@ -43,7 +42,7 @@ func _run() -> void:
 	await get_tree().process_frame
 
 	var initial_track: Node3D = main.call("get_active_track") as Node3D
-	_expect(initial_track != null, "default catalog track is instantiated at startup")
+	_expect(initial_track != null, "explicit default catalog track is instantiated at startup")
 	_expect(main.call("get_active_lap_count") == 3, "default track recommended lap count is applied")
 	var initial_instance_id: int = initial_track.get_instance_id() if initial_track != null else 0
 
@@ -76,15 +75,13 @@ func _make_definition(
 	track_id: StringName,
 	display_name: String,
 	scene: PackedScene,
-	recommended_laps: int,
-	is_default: bool
+	recommended_laps: int
 ) -> TrackDefinition:
 	var definition: TrackDefinition = TrackDefinition.new()
 	definition.track_id = track_id
 	definition.display_name = display_name
 	definition.track_scene = scene
 	definition.recommended_laps = recommended_laps
-	definition.is_default = is_default
 	return definition
 
 
