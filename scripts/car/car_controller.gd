@@ -71,6 +71,10 @@ func get_lateral_speed() -> float:
 	return _runtime_state.lateral_speed
 
 
+func capture_current_transform_as_start() -> void:
+	_reset_controller.capture_start_transform(_runtime_state, global_transform)
+
+
 func set_player_input_enabled(enabled: bool) -> void:
 	_car_input.set_player_input_enabled(enabled)
 	if not enabled:
@@ -120,6 +124,14 @@ func _physics_process(delta: float) -> void:
 	var handbrake_active: bool = _car_input.handbrake_active
 
 	_runtime_state.set_drive_input_snapshot(throttle, brake)
+	_chassis_controller.update_tires(
+		_runtime_state,
+		steering,
+		handbrake_active,
+		self,
+		_skid_mark_emitter,
+		delta
+	)
 	_powertrain_controller.update(
 		_runtime_state,
 		throttle,
@@ -129,7 +141,6 @@ func _physics_process(delta: float) -> void:
 		_car_input.gear_down_pressed,
 		delta
 	)
-	_chassis_controller.update_tires(_runtime_state, steering, handbrake_active, self, _skid_mark_emitter, delta)
 	_chassis_controller.update_steering(_runtime_state, steering, self, delta)
 	_chassis_controller.apply_velocity(_runtime_state, self, delta)
 
