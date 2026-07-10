@@ -20,7 +20,10 @@ func is_valid() -> bool:
 	)
 
 
-func instantiate_track() -> Node3D:
+func instantiate_track() -> GeneratedTrack:
 	if track_scene == null:
 		return null
-	return track_scene.instantiate() as Node3D
+	var track: GeneratedTrack = track_scene.instantiate() as GeneratedTrack
+	if track == null:
+		push_error("Track definition '%s' must instantiate a GeneratedTrack root." % str(track_id))
+	return track
