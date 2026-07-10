@@ -14,6 +14,16 @@ class_name CarVariantDefinition
 @export var engine_label: String = ""
 @export var drivetrain_label: String = ""
 
+# Compatibility accessors retained for callers that used the former duplicated
+# metadata fields. Values are always derived from CarSpecs so they cannot drift.
+var transmission_label: String:
+	get:
+		return get_transmission_label()
+
+var mass_kg: float:
+	get:
+		return get_mass_kg()
+
 
 func get_menu_name() -> String:
 	if display_name != "":
