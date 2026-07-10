@@ -127,11 +127,10 @@ func _validate_variant_scene(variant_id_key: String, variant: CarVariantDefiniti
 	raw_instance.free()
 
 	var factory: CarInstanceFactory = CarInstanceFactory.new()
-	var scenes: Array[PackedScene] = [car_scene]
 	var variants: Array[CarVariantDefinition] = [variant]
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 1
-	factory.configure(scenes, variants, rng)
+	factory.configure(variants, rng)
 	var configured_controller: PlayerCarController = factory.instantiate_indexed_car(0)
 	_expect(configured_controller != null, "variant %s instantiates through the catalog factory" % variant_id_key)
 	if configured_controller != null:
@@ -143,6 +142,8 @@ func _validate_specs(variant_id_key: String, specs: CarSpecs) -> void:
 	if specs == null:
 		return
 
+	var validation_errors: PackedStringArray = specs.validate()
+	_expect(validation_errors.is_empty(), "variant %s specs pass comprehensive validation" % variant_id_key)
 	_expect(specs.display_name != "", "variant %s specs have display name" % variant_id_key)
 	_expect(specs.max_forward_speed > 0.0, "variant %s specs have positive max forward speed" % variant_id_key)
 	_expect(specs.max_reverse_speed >= 0.0, "variant %s specs have non-negative max reverse speed" % variant_id_key)
