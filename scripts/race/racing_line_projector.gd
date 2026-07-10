@@ -4,6 +4,8 @@ class_name RacingLineProjector
 const MIN_SEGMENT_LENGTH_SQUARED: float = 0.000001
 const MIN_LOCAL_SEARCH_RADIUS: int = 2
 const MAX_LOCAL_SEARCH_RADIUS: int = 16
+const TELEPORT_SEGMENT_SPAN: float = 6.0
+const REACQUIRE_SEGMENT_SPAN: float = 3.0
 const MIN_REACQUIRE_DISTANCE: float = 8.0
 const MIN_TELEPORT_DISTANCE: float = 12.0
 
@@ -62,7 +64,7 @@ func project(
 	var displacement: float = position.distance_to(previous_position)
 	var teleport_distance: float = maxf(
 		MIN_TELEPORT_DISTANCE,
-		_average_segment_length * float(MAX_LOCAL_SEARCH_RADIUS)
+		_average_segment_length * TELEPORT_SEGMENT_SPAN
 	)
 	if displacement > teleport_distance:
 		return _search_all_segments(position)
@@ -85,7 +87,7 @@ func project(
 
 	var reacquire_distance: float = maxf(
 		MIN_REACQUIRE_DISTANCE,
-		displacement * 2.0 + _average_segment_length * 2.0
+		_average_segment_length * REACQUIRE_SEGMENT_SPAN
 	)
 	if local_projection.distance_squared > reacquire_distance * reacquire_distance:
 		return _search_all_segments(position)
@@ -106,12 +108,8 @@ func _search_local_segments(
 	radius: int
 ) -> RacingLineProjection:
 	var result: RacingLineProjection = RacingLineProjection.new()
-	var visited_indices: Dictionary = {}
 	for offset: int in range(-radius, radius + 1):
 		var segment_index: int = posmod(center_segment_index + offset, _points.size())
-		if visited_indices.has(segment_index):
-			continue
-		visited_indices[segment_index] = true
 		_consider_segment(result, position, segment_index)
 	return result if result.is_valid() else null
 
