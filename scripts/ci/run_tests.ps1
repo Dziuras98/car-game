@@ -28,7 +28,7 @@ function Get-GodotRuntimeErrorLines {
         '^\s*E\s+\d+:\d{2}:\d{2}(?::\d+)?\s+'
     )
 
-    $matches = [System.Collections.Generic.List[string]]::new()
+    $detectedRuntimeErrors = [System.Collections.Generic.List[string]]::new()
     foreach ($lineValue in $OutputLines) {
         $line = [string]$lineValue
         if ([string]::IsNullOrWhiteSpace($line)) {
@@ -38,13 +38,13 @@ function Get-GodotRuntimeErrorLines {
         $normalizedLine = [regex]::Replace($line, "`e\[[0-9;]*[A-Za-z]", "")
         foreach ($pattern in $errorPatterns) {
             if ($normalizedLine -match $pattern) {
-                $matches.Add($normalizedLine.Trim())
+                $detectedRuntimeErrors.Add($normalizedLine.Trim())
                 break
             }
         }
     }
 
-    return @($matches | Select-Object -Unique)
+    return @($detectedRuntimeErrors | Select-Object -Unique)
 }
 
 function Assert-RuntimeErrorDetector {
