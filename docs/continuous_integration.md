@@ -47,6 +47,7 @@ It executes:
 ```text
 scripts/tests/startup_router_test.gd
 scripts/tests/car_controller_runtime_config_test.gd
+scripts/tests/speedometer_car_binding_test.gd
 scenes/tests/car_catalog_validation_test.tscn
 scenes/tests/car_specs_runtime_reconfiguration_test.tscn
 scenes/tests/car_powertrain_controller_test.tscn
@@ -59,6 +60,8 @@ scenes/tests/full_program_smoke_test.tscn
 ```
 
 The startup-router test verifies the configured project entry scene and both routing outcomes: ordinary arguments select `scenes/main.tscn`, while `--export-smoke-test` selects the packaged smoke scene.
+
+The speedometer binding test instantiates the automatic 370Z and the production speedometer scene, verifies that the car has visible mesh geometry and confirms that the tachometer range comes from the selected variant's `CarSpecs` resource.
 
 Focused geometry, checkpoint and performance tests run before the full-program smoke test so subsystem failures remain isolated.
 
