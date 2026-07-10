@@ -36,13 +36,14 @@ The script:
 1. clears `build/windows`;
 2. exports the `Windows Desktop` release preset;
 3. verifies that both the executable and PCK were created;
-4. starts the exported executable in headless mode;
-5. passes `--export-smoke-test` as a user argument after Godot's `--` separator;
-6. requires a zero process exit code and a success marker in the generated log.
+4. starts the exported executable without user arguments;
+5. waits for `scenes/main.tscn` to report that normal startup completed, then terminates the long-running game process;
+6. starts the executable again and passes `--export-smoke-test` after Godot's `--` separator;
+7. requires a zero exit code and the packaged regression success marker.
 
 The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches and `scenes/tests/exported_build_smoke_test.tscn` when the smoke-test argument is present. The argument-based route is required because official Windows export templates do not support the `--scene` path override.
 
-The exported-build smoke test validates that the release package contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs.
+The normal launch writes `build/windows/normal-startup-smoke.log`. The packaged regression launch writes `build/windows/exported-build-smoke.log` and validates that the release contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs.
 
 ## Continuous integration
 
@@ -58,7 +59,7 @@ as an Actions artifact named:
 car-game-windows-<commit-sha>
 ```
 
-Artifacts are retained for 14 days and contain the executable, PCK and exported-build smoke log.
+Artifacts are retained for 14 days and contain the executable, PCK and both packaged-startup logs.
 
 ## Distribution status
 
