@@ -13,7 +13,8 @@ func _run() -> void:
 	_test_manual_drive_blocking_and_gears()
 	_test_automatic_reverse_and_drive_selection()
 	_test_automatic_direction_interlock()
-	_test_automatic_upshift_request()
+	_test_automatic_upshift_request_and_torque_cut()
+	_test_airborne_traction_is_disabled()
 	_test_fallback_drive_brake_and_reverse()
 	_finish()
 
@@ -62,16 +63,21 @@ func _test_automatic_reverse_and_drive_selection() -> void:
 	var state: CarRuntimeState = _build_state(config)
 	var powertrain: CarPowertrainController = _build_powertrain(config, state)
 
-	powertrain.update(state, 0.0, 1.0, false, false, false, 0.20)
+	powertrain.update(state, 0.0, 1.0, false, false, false, 0.0)
 	_expect(state.current_gear == -1, "automatic brake from near stop selects reverse")
-	_expect(state.forward_speed < 0.0, "automatic reverse applies backwards drive with brake input")
+	_expect(is_equal_approx(state.forward_speed, 0.0), "automatic direction change does not apply drive before shift delay")
+	_expect(is_equal_approx(state.shift_timer, config.automatic_shift_delay), "automatic reverse selection starts shift delay")
+	_advance_shift(powertrain, state, 0.0, 1.0)
+	_expect(state.forward_speed < 0.0, "automatic reverse applies backwards drive after shift delay")
 	_expect(powertrain.get_gear_text(state) == "R", "automatic gear text reports reverse")
 
 	state.forward_speed = 0.0
 	state.shift_timer = 0.0
-	powertrain.update(state, 1.0, 0.0, false, false, false, 0.20)
+	powertrain.update(state, 1.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 1, "automatic throttle from reverse selects first drive gear")
-	_expect(state.forward_speed > 0.0, "automatic first drive gear applies forward drive with throttle")
+	_expect(is_equal_approx(state.forward_speed, 0.0), "automatic drive selection waits for shift delay")
+	_advance_shift(powertrain, state, 1.0, 0.0)
+	_expect(state.forward_speed > 0.0, "automatic first drive gear applies forward drive after shift delay")
 	_expect(powertrain.get_gear_text(state) == "D1", "automatic gear text reports first drive gear")
 
 
@@ -84,14 +90,15 @@ func _test_automatic_direction_interlock() -> void:
 	state.forward_speed = 8.0
 	state.shift_timer = 0.0
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
-	_expect(state.current_gear == 2, "automatic keeps drive gear while braking from forward motion toward reverse")
+	_expect(state.current_gear == 1, "automatic braking performs a safe forward-gear downshift")
 	_expect(state.forward_speed > 0.0 and state.forward_speed < 8.0, "automatic reverse request brakes forward motion before selecting reverse")
 
 	state.forward_speed = 0.20
 	state.shift_timer = 0.0
-	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
+	powertrain.update(state, 0.0, 1.0, false, false, false, 0.0)
 	_expect(state.current_gear == -1, "automatic selects reverse only near zero forward speed")
-	_expect(state.forward_speed < 0.20, "automatic begins reverse drive after the direction interlock releases")
+	_advance_shift(powertrain, state, 0.0, 1.0)
+	_expect(state.forward_speed < 0.0, "automatic begins reverse drive only after stopping and completing the shift")
 
 	state.current_gear = -1
 	state.forward_speed = -6.0
@@ -102,12 +109,13 @@ func _test_automatic_direction_interlock() -> void:
 
 	state.forward_speed = -0.20
 	state.shift_timer = 0.0
-	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
+	powertrain.update(state, 1.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 1, "automatic selects first drive gear only near zero reverse speed")
-	_expect(state.forward_speed > -0.20, "automatic begins forward drive after the direction interlock releases")
+	_advance_shift(powertrain, state, 1.0, 0.0)
+	_expect(state.forward_speed > 0.0, "automatic begins forward drive only after stopping and completing the shift")
 
 
-func _test_automatic_upshift_request() -> void:
+func _test_automatic_upshift_request_and_torque_cut() -> void:
 	var config: CarDriveConfig = _build_automatic_config()
 	var state: CarRuntimeState = _build_state(config)
 	var powertrain: CarPowertrainController = _build_powertrain(config, state)
@@ -119,6 +127,29 @@ func _test_automatic_upshift_request() -> void:
 	_expect(state.current_gear == 2, "automatic high RPM requests upshift")
 	_expect(is_equal_approx(state.shift_timer, config.automatic_shift_delay), "automatic upshift applies automatic shift delay")
 	_expect(powertrain.get_gear_text(state) == "D2", "automatic gear text reports second drive gear")
+
+	var speed_before_shift: float = state.forward_speed
+	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
+	_expect(is_equal_approx(state.forward_speed, speed_before_shift), "automatic shift delay cuts wheel torque")
+	_advance_shift(powertrain, state, 1.0, 0.0)
+	_expect(state.forward_speed > speed_before_shift, "automatic drive torque resumes after shift delay")
+
+
+func _test_airborne_traction_is_disabled() -> void:
+	var config: CarDriveConfig = _build_fallback_config()
+	var state: CarRuntimeState = _build_state(config)
+	state.ground_contact_count = 0
+	state.forward_speed = 5.0
+	var powertrain: CarPowertrainController = _build_powertrain(config, state)
+
+	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
+	_expect(is_equal_approx(state.forward_speed, 5.0), "airborne throttle cannot accelerate vehicle translation")
+	_expect(state.engine_rpm > config.idle_rpm, "airborne engine can still free-rev")
+
+	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
+	_expect(is_equal_approx(state.forward_speed, 5.0), "airborne service brake cannot change vehicle translation")
+	powertrain.update(state, 0.0, 0.0, true, false, false, 0.10)
+	_expect(is_equal_approx(state.forward_speed, 5.0), "airborne handbrake cannot change vehicle translation")
 
 
 func _test_fallback_drive_brake_and_reverse() -> void:
@@ -140,9 +171,20 @@ func _test_fallback_drive_brake_and_reverse() -> void:
 	_expect(powertrain.get_gear_text(state) == "R", "fallback gear text reports reverse while moving backwards")
 
 
+func _advance_shift(
+	powertrain: CarPowertrainController,
+	state: CarRuntimeState,
+	throttle: float,
+	brake: float
+) -> void:
+	for step: int in range(4):
+		powertrain.update(state, throttle, brake, false, false, false, 0.10)
+
+
 func _build_state(config: CarDriveConfig) -> CarRuntimeState:
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.reset_drive_state(config.idle_rpm)
+	state.ground_contact_count = 4
 	return state
 
 
