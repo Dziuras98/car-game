@@ -9,6 +9,7 @@ class_name FollowCamera
 @export var position_smoothing: float = 8.0
 
 @onready var _target: Node3D = get_node_or_null(target_path) as Node3D
+var _rear_view_override: bool = false
 
 
 func _ready() -> void:
@@ -24,6 +25,10 @@ func set_target_node(target: Node3D) -> void:
 		target_path = get_path_to(target)
 
 
+func set_rear_view_active(active: bool) -> void:
+	_rear_view_override = active
+
+
 func _process(delta: float) -> void:
 	if not is_instance_valid(_target) or not _target.is_inside_tree():
 		set_process(false)
@@ -32,7 +37,7 @@ func _process(delta: float) -> void:
 	var target_transform: Transform3D = _target.global_transform
 	var target_position: Vector3 = target_transform.origin
 	var behind: Vector3 = target_transform.basis.z.normalized()
-	var rear_view_active: bool = Input.is_action_pressed("camera-back")
+	var rear_view_active: bool = _rear_view_override or Input.is_action_pressed("camera-back")
 	var desired_position: Vector3
 	var look_target: Vector3
 	if rear_view_active:
