@@ -56,6 +56,7 @@ $sceneTests = @(
     "scenes/tests/car_specs_runtime_reconfiguration_test.tscn",
     "scenes/tests/car_powertrain_controller_test.tscn",
     "scenes/tests/car_chassis_motion_test.tscn",
+    "scenes/tests/track_layout_builder_test.tscn",
     "scenes/tests/full_program_smoke_test.tscn"
 )
 
