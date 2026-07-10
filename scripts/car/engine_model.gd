@@ -23,14 +23,14 @@ func configure(
 	target_redline_torque_multiplier: float,
 	target_rpm_response: float
 ) -> void:
-	idle_rpm = target_idle_rpm
-	peak_torque_rpm = target_peak_torque_rpm
-	redline_rpm = target_redline_rpm
-	rev_limiter_rpm = target_rev_limiter_rpm
-	low_rpm_torque_multiplier = target_low_rpm_torque_multiplier
-	mid_rpm_torque_multiplier = target_mid_rpm_torque_multiplier
-	redline_torque_multiplier = target_redline_torque_multiplier
-	rpm_response = target_rpm_response
+	idle_rpm = maxf(target_idle_rpm, 1.0)
+	peak_torque_rpm = maxf(target_peak_torque_rpm, idle_rpm)
+	redline_rpm = maxf(target_redline_rpm, peak_torque_rpm)
+	rev_limiter_rpm = maxf(target_rev_limiter_rpm, redline_rpm)
+	low_rpm_torque_multiplier = maxf(target_low_rpm_torque_multiplier, 0.0)
+	mid_rpm_torque_multiplier = maxf(target_mid_rpm_torque_multiplier, 0.0)
+	redline_torque_multiplier = maxf(target_redline_torque_multiplier, 0.0)
+	rpm_response = maxf(target_rpm_response, 0.01)
 	reset()
 
 
@@ -49,9 +49,10 @@ func get_rpm() -> float:
 
 
 func update(throttle: float, wheel_rpm: float, delta: float) -> float:
-	var free_rev_rpm: float = idle_rpm + throttle * (redline_rpm - idle_rpm) * 0.35
+	var safe_throttle: float = clampf(throttle, 0.0, 1.0)
+	var free_rev_rpm: float = lerpf(idle_rpm, rev_limiter_rpm, safe_throttle)
 	var target_rpm: float = maxf(wheel_rpm, free_rev_rpm)
-	var rpm_blend: float = 1.0 - exp(-rpm_response * delta)
+	var rpm_blend: float = 1.0 - exp(-rpm_response * maxf(delta, 0.0))
 
 	_current_rpm = lerpf(_current_rpm, target_rpm, rpm_blend)
 	_current_rpm = clampf(_current_rpm, idle_rpm, rev_limiter_rpm)
@@ -68,7 +69,6 @@ func get_torque_multiplier() -> float:
 		if normalized_rpm <= low_rpm_ratio:
 			var low_blend: float = _smoothstep(normalized_rpm / low_rpm_ratio)
 			return lerpf(low_rpm_torque_multiplier, mid_rpm_torque_multiplier, low_blend)
-
 		var peak_blend: float = _smoothstep((normalized_rpm - low_rpm_ratio) / (peak_rpm_ratio - low_rpm_ratio))
 		return lerpf(mid_rpm_torque_multiplier, 1.0, peak_blend)
 
@@ -80,11 +80,9 @@ func get_torque_multiplier() -> float:
 func get_rev_limiter_multiplier() -> float:
 	if _current_rpm < redline_rpm:
 		return 1.0
-
 	var limiter_range: float = rev_limiter_rpm - redline_rpm
 	if limiter_range <= 0.0:
 		return 0.0
-
 	return 1.0 - clampf((_current_rpm - redline_rpm) / limiter_range, 0.0, 1.0)
 
 
