@@ -6,3 +6,4 @@
 [resource]
 script = ExtResource("1_catalog")
 tracks = Array[Resource]([ExtResource("2_simple_oval")])
+default_track_id = &"simple_oval"
