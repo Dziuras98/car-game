@@ -8,17 +8,15 @@ func build_barriers(
 	parent: Node3D,
 	geometry: TrackGeometryData,
 	material_factory: TrackMaterialFactory,
-	config: Dictionary
+	config: TrackGenerationConfig
 ) -> void:
 	var barriers: StaticBody3D = StaticBody3D.new()
 	barriers.name = "Barriers"
 	parent.add_child(barriers)
 	barriers.owner = parent.owner
 
-	var transforms: Array[Transform3D] = _build_segment_transforms(
-		geometry,
-		float(config.get("barrier_distance_from_road", 12.0))
-	)
+	var barrier_distance: float = config.barrier_distance_from_road if config != null else 12.0
+	var transforms: Array[Transform3D] = _build_segment_transforms(geometry, barrier_distance)
 	if transforms.is_empty():
 		return
 
