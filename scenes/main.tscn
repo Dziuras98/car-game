@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://dlu8ihf75elrs"]
+[gd_scene load_steps=11 format=3 uid="uid://dlu8ihf75elrs"]
 
 [ext_resource type="PackedScene" path="res://scenes/tracks/simple_oval.tscn" id="1_track"]
 [ext_resource type="PackedScene" path="res://scenes/cars/370zat.tscn" id="2_car"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/cars/370z.tscn" id="6_manual_car"]
 [ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="7_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/minimap.tscn" id="8_minimap"]
+[ext_resource type="Script" path="res://scripts/game/main_scene_startup_marker.gd" id="9_startup_marker"]
 
 [sub_resource type="Environment" id="Environment_sky"]
 background_mode = 1
@@ -24,6 +25,9 @@ speedometer_path = NodePath("Speedometer")
 minimap_path = NodePath("Minimap")
 menu_path = NodePath("MainMenu")
 track_path = NodePath("ProstyOwal")
+
+[node name="StartupReadyMarker" type="Node" parent="."]
+script = ExtResource("9_startup_marker")
 
 [node name="ProstyOwal" parent="." instance=ExtResource("1_track")]
 
