@@ -2,6 +2,7 @@ extends Node
 
 const SIMPLE_OVAL_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 const SIMPLE_OVAL_SCENE: PackedScene = preload("res://scenes/tracks/simple_oval.tscn")
+const TEST_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -38,6 +39,7 @@ func _test_checkpoint_gate_direction() -> void:
 	add_child(gate)
 
 	var car: PlayerCarController = PlayerCarController.new()
+	car.car_specs = TEST_CAR_SPECS
 	add_child(car)
 
 	car.velocity = Vector3(0.0, 0.0, -10.0)
@@ -65,6 +67,7 @@ func _test_generated_gates_and_lap_sequence() -> void:
 	_expect(int(track.call("get_checkpoint_gate_count_for_test")) == 4, "generated track builds finish and checkpoint areas")
 
 	var car: PlayerCarController = PlayerCarController.new()
+	car.car_specs = TEST_CAR_SPECS
 	add_child(car)
 	await get_tree().process_frame
 
