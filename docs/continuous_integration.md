@@ -82,13 +82,15 @@ build/windows/car-game.pck
 build/windows/exported-build-smoke.log
 ```
 
-The exported executable runs:
+The exported executable starts through:
 
 ```text
-scenes/tests/exported_build_smoke_test.tscn
+scenes/startup.tscn
 ```
 
-This confirms that the release package can load project settings, the car catalog, both 370Z scenes, the main scene and the generated track/checkpoint runtime. A successful process exit without the expected log marker is still treated as failure.
+For ordinary launches, `scripts/game/startup_router.gd` opens `scenes/main.tscn`. The smoke runner passes the user argument `--export-smoke-test` after Godot's `--` separator, causing the router to open `scenes/tests/exported_build_smoke_test.tscn` instead. This avoids the unsupported `--scene` path override in official Windows export templates.
+
+The smoke scene confirms that the release package can load project settings, the car catalog, both 370Z scenes, the main scene and the generated track/checkpoint runtime. A successful process exit without the expected log marker is still treated as failure.
 
 Godot export templates are cached by engine version. On a cache miss, the workflow downloads the official `Godot_v4.7-stable_export_templates.tpz` archive and installs its templates under the normal Windows Godot data directory.
 
