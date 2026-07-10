@@ -1,6 +1,8 @@
 extends RefCounted
 class_name CarChassisController
 
+const PROBE_END_MARGIN: float = 0.05
+
 var _tire_model: TireModel = TireModel.new()
 var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
 var _ground_contact_model: GroundContactModel = GroundContactModel.new()
@@ -116,7 +118,12 @@ func _update_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> voi
 		_config.suspension_probe_height
 	)
 	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
-	var maximum_probe_length: float = _config.suspension_rest_length + _config.suspension_travel
+	var maximum_probe_length: float = (
+		_config.suspension_probe_height
+		+ _config.suspension_rest_length
+		+ _config.suspension_travel
+		+ PROBE_END_MARGIN
+	)
 	var normals: Array[Vector3] = []
 	var grip_values: Array[float] = []
 	var support_acceleration: float = 0.0
