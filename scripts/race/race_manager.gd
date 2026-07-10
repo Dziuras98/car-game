@@ -40,7 +40,7 @@ func start_race(player_car: PlayerCarController, scene_tree: SceneTree) -> void:
 
 	for countdown_text: String in ["3", "2", "1"]:
 		countdown_changed.emit(countdown_text)
-		await scene_tree.create_timer(_countdown_step_duration).timeout
+		await scene_tree.create_timer(_countdown_step_duration, false).timeout
 		if _should_cancel_countdown(sequence):
 			return
 
@@ -50,7 +50,7 @@ func start_race(player_car: PlayerCarController, scene_tree: SceneTree) -> void:
 		player_input_enabled_changed.emit(true)
 	ai_enabled_changed.emit(true)
 
-	await scene_tree.create_timer(_start_banner_duration).timeout
+	await scene_tree.create_timer(_start_banner_duration, false).timeout
 	if _should_cancel_countdown(sequence):
 		return
 	countdown_hidden.emit()
