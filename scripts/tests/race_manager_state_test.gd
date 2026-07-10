@@ -1,6 +1,7 @@
 extends Node
 
 const TEST_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
+const STATE_WAIT_FRAMES: int = 60
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -34,12 +35,22 @@ func _run() -> void:
 	manager.start_race(player, get_tree())
 	_expect(manager.get_state() == RaceManager.State.COUNTDOWN, "start request enters COUNTDOWN immediately")
 	_expect(manager.are_player_controls_locked(), "countdown locks player controls")
-	await get_tree().create_timer(0.06).timeout
-	_expect(manager.get_state() == RaceManager.State.RUNNING, "completed countdown enters RUNNING")
+	var running_reached: bool = await _wait_for_state(manager, RaceManager.State.RUNNING)
+	_expect(running_reached, "completed countdown enters RUNNING")
 	_expect(not manager.are_player_controls_locked(), "running state unlocks player controls")
 	_expect(_countdown_history == ["3", "2", "1", "START"], "countdown emits the complete ordered sequence")
-	_expect(_player_input_history[0] == false and _player_input_history[-1] == true, "countdown disables and then restores player input")
-	_expect(_ai_history[0] == false and _ai_history[-1] == true, "countdown disables and then enables AI")
+	_expect(
+		_player_input_history.size() >= 2
+		and _player_input_history[0] == false
+		and _player_input_history[-1] == true,
+		"countdown disables and then restores player input"
+	)
+	_expect(
+		_ai_history.size() >= 2
+		and _ai_history[0] == false
+		and _ai_history[-1] == true,
+		"countdown disables and then enables AI"
+	)
 
 	var opponents: Array[PlayerCarController] = []
 	manager.finish_race(player, opponents)
@@ -52,13 +63,13 @@ func _run() -> void:
 	manager.reset_to_idle()
 	_expect(manager.get_state() == RaceManager.State.IDLE, "reset returns the manager to IDLE")
 	_expect(not manager.are_player_controls_locked(), "reset unlocks controls")
-	_expect(_ai_history[-1] == false, "reset leaves AI disabled")
+	_expect(not _ai_history.is_empty() and _ai_history[-1] == false, "reset leaves AI disabled")
 
 	_countdown_history.clear()
 	manager.start_race(player, get_tree())
-	await get_tree().create_timer(0.005).timeout
+	await get_tree().process_frame
 	manager.reset_to_idle()
-	await get_tree().create_timer(0.06).timeout
+	await _wait_frames(8)
 	_expect(manager.get_state() == RaceManager.State.IDLE, "reset cancels an in-flight countdown")
 	_expect(not _countdown_history.has("START"), "cancelled countdown cannot emit START")
 
@@ -72,6 +83,19 @@ func _run() -> void:
 	player.queue_free()
 	await get_tree().process_frame
 	_finish()
+
+
+func _wait_for_state(manager: RaceManager, target_state: int) -> bool:
+	for _frame_index: int in range(STATE_WAIT_FRAMES):
+		if manager.get_state() == target_state:
+			return true
+		await get_tree().process_frame
+	return manager.get_state() == target_state
+
+
+func _wait_frames(frame_count: int) -> void:
+	for _frame_index: int in range(frame_count):
+		await get_tree().process_frame
 
 
 func _on_state_changed(state: int) -> void:
