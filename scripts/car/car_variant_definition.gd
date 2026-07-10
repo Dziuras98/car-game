@@ -5,7 +5,6 @@ class_name CarVariantDefinition
 @export var variant_id: StringName = &""
 @export var display_name: String = ""
 @export var sort_order: int = 0
-@export var is_default: bool = false
 
 @export_group("Runtime")
 @export var car_scene: PackedScene
@@ -14,20 +13,6 @@ class_name CarVariantDefinition
 @export_group("Metadata")
 @export var engine_label: String = ""
 @export var drivetrain_label: String = ""
-
-# Compatibility accessors absorb legacy serialized values but always expose
-# values derived from the authoritative physics specification.
-var transmission_label: String:
-	set(_value):
-		pass
-	get:
-		return get_transmission_label()
-
-var mass_kg: float:
-	set(_value):
-		pass
-	get:
-		return get_mass_kg()
 
 
 func get_menu_name() -> String:
