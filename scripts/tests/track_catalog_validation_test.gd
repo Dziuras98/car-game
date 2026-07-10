@@ -17,41 +17,34 @@ func _initialize() -> void:
 	)
 
 	var explicit_default_catalog: TrackCatalog = TrackCatalog.new()
-	explicit_default_catalog.tracks = [_build_definition(&"explicit", false)]
+	explicit_default_catalog.tracks = [_build_definition(&"explicit")]
 	explicit_default_catalog.default_track_id = &"explicit"
-	_expect(explicit_default_catalog.validate().is_empty(), "explicit default id does not require a legacy boolean")
+	_expect(explicit_default_catalog.validate().is_empty(), "explicit default id validates")
 	_expect(explicit_default_catalog.get_default_track().track_id == &"explicit", "explicit default id resolves correctly")
 
 	var missing_explicit_default: TrackCatalog = TrackCatalog.new()
-	missing_explicit_default.tracks = [_build_definition(&"available", false)]
+	missing_explicit_default.tracks = [_build_definition(&"available")]
 	missing_explicit_default.default_track_id = &"missing"
 	_expect(
 		_contains_error(missing_explicit_default.validate(), "does not reference"),
 		"missing explicit default id is rejected"
 	)
+	_expect(missing_explicit_default.get_default_track() == null, "missing explicit default cannot resolve a fallback track")
 
 	var no_default_catalog: TrackCatalog = TrackCatalog.new()
-	no_default_catalog.tracks = [_build_definition(&"no_default", false)]
+	no_default_catalog.tracks = [_build_definition(&"no_default")]
 	_expect(
-		_contains_error(no_default_catalog.validate(), "default_track_id"),
-		"legacy catalog without a default track is rejected"
+		_contains_error(no_default_catalog.validate(), "must define default_track_id"),
+		"catalog without an explicit default id is rejected"
 	)
-
-	var two_defaults_catalog: TrackCatalog = TrackCatalog.new()
-	two_defaults_catalog.tracks = [
-		_build_definition(&"first_default", true),
-		_build_definition(&"second_default", true),
-	]
-	_expect(
-		_contains_error(two_defaults_catalog.validate(), "default_track_id"),
-		"legacy catalog with two default tracks is rejected"
-	)
+	_expect(no_default_catalog.get_default_track() == null, "catalog without an explicit default does not select the first entry")
 
 	var duplicate_id_catalog: TrackCatalog = TrackCatalog.new()
 	duplicate_id_catalog.tracks = [
-		_build_definition(&"duplicate", true),
-		_build_definition(&"duplicate", false),
+		_build_definition(&"duplicate"),
+		_build_definition(&"duplicate"),
 	]
+	duplicate_id_catalog.default_track_id = &"duplicate"
 	_expect(
 		_contains_error(duplicate_id_catalog.validate(), "duplicated"),
 		"catalog with duplicate track ids is rejected"
@@ -59,11 +52,10 @@ func _initialize() -> void:
 	_finish()
 
 
-func _build_definition(track_id: StringName, legacy_default: bool) -> TrackDefinition:
+func _build_definition(track_id: StringName) -> TrackDefinition:
 	var definition: TrackDefinition = TrackDefinition.new()
 	definition.track_id = track_id
 	definition.display_name = str(track_id)
-	definition.is_default = legacy_default
 	definition.recommended_laps = 3
 	definition.track_scene = SIMPLE_OVAL_SCENE
 	return definition
