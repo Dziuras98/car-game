@@ -28,6 +28,7 @@ func _test_manual_powertrain_integration() -> void:
 	var config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(MANUAL_SPECS)
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.reset_drive_state(config.idle_rpm)
+	state.ground_contact_count = 4
 	var controller: CarPowertrainController = CarPowertrainController.new()
 	controller.configure(config)
 	controller.reset(state)
@@ -36,7 +37,7 @@ func _test_manual_powertrain_integration() -> void:
 	for update_index: int in range(30):
 		controller.update(state, 1.0, 0.0, false, false, false, 1.0 / 60.0)
 	_expect(state.clutch_engagement > 0.2 and state.clutch_engagement < 1.0, "launch progressively engages the clutch")
-	_expect(state.forward_speed > 0.0, "partial clutch engagement transmits launch torque")
+	_expect(state.forward_speed > 0.0, "partial clutch engagement transmits launch torque through grounded tires")
 
 	var speed_before_shift: float = state.forward_speed
 	controller.update(state, 1.0, 0.0, false, true, false, 1.0 / 60.0)
