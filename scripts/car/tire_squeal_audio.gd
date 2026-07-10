@@ -22,9 +22,11 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _ready() -> void:
 	_car = get_parent() as PlayerCarController
 	_rng.randomize()
+	procedural_voice_group = &"tire"
+	max_procedural_voices = mini(max_procedural_voices, 4)
 
 	var generator: AudioStreamGenerator = AudioStreamGenerator.new()
-	generator.mix_rate = mix_rate
+	generator.mix_rate = maxi(mix_rate, 8000)
 	generator.buffer_length = 0.06
 	stream = generator
 	unit_size = 5.0
@@ -41,19 +43,20 @@ func _process(delta: float) -> void:
 
 	var target_slip: float = _car.get_tire_slip_intensity()
 	_smoothed_slip = lerpf(_smoothed_slip, target_slip, 1.0 - exp(-slip_smoothing * delta))
-
 	if _smoothed_slip < minimum_slip:
 		volume_db = quiet_volume_db
+		release_procedural_voice()
 		return
 	if not should_generate_procedural_audio(delta):
 		return
 
-	var audible_slip: float = clampf((_smoothed_slip - minimum_slip) / (1.0 - minimum_slip), 0.0, 1.0)
+	var audible_slip: float = clampf((_smoothed_slip - minimum_slip) / maxf(1.0 - minimum_slip, 0.01), 0.0, 1.0)
 	volume_db = lerpf(quiet_volume_db, loud_volume_db, audible_slip)
 	_fill_audio_buffer()
 
 
 func _exit_tree() -> void:
+	release_procedural_voice()
 	stop()
 	_playback = null
 	stream = null
@@ -62,9 +65,8 @@ func _exit_tree() -> void:
 func _fill_audio_buffer() -> void:
 	if _playback == null:
 		return
-
 	var frames_available: int = _playback.get_frames_available()
-	for frame_index in frames_available:
+	for frame_index: int in frames_available:
 		var sample: float = _generate_sample()
 		_playback.push_frame(Vector2(sample, sample))
 
@@ -90,7 +92,6 @@ func _generate_sample() -> float:
 		+ _scrape_state * scrape_amount
 		+ _rumble_state * rumble_amount
 	)
-
 	return clampf(surface_noise * slip_gain * speed_gain * flutter * 0.58, -0.85, 0.85)
 
 
