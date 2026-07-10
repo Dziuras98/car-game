@@ -44,6 +44,9 @@ func configure(
 	if not profile_errors.is_empty():
 		push_error("AiRaceDriver received an invalid profile: %s" % "; ".join(profile_errors))
 		return false
+	if not _has_usable_racing_line(track):
+		push_error("AiRaceDriver requires at least three finite racing-line points.")
+		return false
 
 	_car = car
 	_track = track
@@ -67,7 +70,7 @@ func _ready() -> void:
 
 	_connect_track_geometry_signal()
 	if not _refresh_points():
-		push_error("AiRaceDriver requires at least three finite racing-line points.")
+		push_error("AiRaceDriver could not refresh its validated racing line.")
 		_neutralize_car_input(true)
 		return
 
@@ -275,6 +278,16 @@ func _get_lane_point(index: int) -> Vector3:
 	var tangent: Vector3 = (next - previous).normalized()
 	var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
 	return current + side * _profile.lane_offset + Vector3.UP * 0.05
+
+
+func _has_usable_racing_line(track: GeneratedTrack) -> bool:
+	var local_points: Array[Vector3] = track.get_racing_line_points()
+	if local_points.size() < MIN_RACING_LINE_POINT_COUNT:
+		return false
+	for local_point: Vector3 in local_points:
+		if not _is_finite_vector3(track.to_global(local_point)):
+			return false
+	return true
 
 
 func _is_finite_vector3(value: Vector3) -> bool:
