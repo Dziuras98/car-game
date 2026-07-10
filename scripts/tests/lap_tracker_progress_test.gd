@@ -12,7 +12,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	var track: Node3D = SIMPLE_OVAL_SCENE.instantiate() as Node3D
+	var track: GeneratedTrack = SIMPLE_OVAL_SCENE.instantiate() as GeneratedTrack
 	add_child(track)
 	await get_tree().process_frame
 
@@ -22,7 +22,7 @@ func _run() -> void:
 	add_child(opponent)
 	await get_tree().process_frame
 
-	var points: Array = track.call("get_racing_line_points")
+	var points: Array[Vector3] = track.get_racing_line_points()
 	_expect(points.size() >= 2, "progress fixture exposes at least two racing-line points")
 	if points.size() < 2:
 		_finish()
@@ -50,6 +50,40 @@ func _run() -> void:
 	tracker.update_positions()
 	_expect(tracker.get_race_position(player) == 1, "classification updates when the player advances continuously")
 
+	_complete_lap(tracker, player, 3)
+	_expect(tracker.get_completed_laps(player) == 1, "checkpoint authority records a completed lap before rebuild")
+	_expect(tracker.register_checkpoint_crossing(player, 1, true), "next lap accepts its first checkpoint")
+	_expect(tracker.get_expected_checkpoint_index(player) == 2, "partial checkpoint sequence is armed before rebuild")
+
+	var shape_revision: int = track.get_geometry_revision()
+	var shape_layout: TrackLayoutResource = track.get_track_layout().duplicate(true) as TrackLayoutResource
+	shape_layout.samples_per_segment = mini(shape_layout.samples_per_segment + 1, 64)
+	track.track_layout = shape_layout
+	var shape_rebuilt: bool = await _wait_for_geometry_revision(track, shape_revision)
+	_expect(shape_rebuilt, "sampling-only layout change rebuilds committed geometry")
+	_expect(tracker.get_completed_laps(player) == 1, "shape rebuild preserves already completed laps")
+	_expect(tracker.get_expected_checkpoint_index(player) == 2, "shape rebuild preserves a compatible checkpoint sequence")
+	_expect(
+		tracker.get_progress_distance(player) >= 0.0
+		and tracker.get_progress_distance(player) <= tracker.get_track_length(),
+		"shape rebuild globally reacquires a bounded progress distance"
+	)
+
+	var topology_revision: int = track.get_geometry_revision()
+	var topology_layout: TrackLayoutResource = track.get_track_layout().duplicate(true) as TrackLayoutResource
+	topology_layout.checkpoint_progresses = PackedFloat32Array([0.2, 0.4, 0.6, 0.8])
+	track.track_layout = topology_layout
+	var topology_rebuilt: bool = await _wait_for_geometry_revision(track, topology_revision)
+	_expect(topology_rebuilt, "checkpoint topology change rebuilds committed geometry")
+	_expect(track.get_checkpoint_count() == 4, "rebuilt track exposes the new checkpoint topology")
+	_expect(tracker.get_completed_laps(player) == 1, "checkpoint topology change preserves completed laps")
+	_expect(tracker.get_expected_checkpoint_index(player) == 1, "checkpoint topology change resets the partial sequence safely")
+	_expect(
+		not tracker.register_checkpoint_crossing(player, 2, true),
+		"crossing from the obsolete partial sequence cannot advance the rebuilt topology"
+	)
+	_expect(tracker.register_checkpoint_crossing(player, 1, true), "rebuilt checkpoint sequence restarts from checkpoint one")
+
 	opponent.queue_free()
 	await get_tree().process_frame
 	tracker.update_positions()
@@ -61,6 +95,20 @@ func _run() -> void:
 	track.queue_free()
 	await get_tree().process_frame
 	_finish()
+
+
+func _complete_lap(tracker: LapTracker, car: PlayerCarController, checkpoint_count: int) -> void:
+	for checkpoint_index: int in range(1, checkpoint_count + 1):
+		tracker.register_checkpoint_crossing(car, checkpoint_index, true)
+	tracker.register_checkpoint_crossing(car, 0, true)
+
+
+func _wait_for_geometry_revision(track: GeneratedTrack, previous_revision: int) -> bool:
+	for _frame_index: int in range(12):
+		await get_tree().process_frame
+		if track.get_geometry_revision() > previous_revision:
+			return true
+	return false
 
 
 func _make_car(node_name: String) -> PlayerCarController:
