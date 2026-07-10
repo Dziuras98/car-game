@@ -2,6 +2,9 @@ extends RefCounted
 class_name TrackSurfaceMeshBuilder
 
 const TEXTURE_METERS_PER_REPEAT: float = 8.0
+const ASPHALT_GRIP: float = 1.0
+const SHOULDER_GRIP: float = 0.68
+const GRASS_GRIP: float = 0.52
 
 
 func build_surfaces(
@@ -175,6 +178,7 @@ func _create_grass(parent: Node3D, material_factory: TrackMaterialFactory, grass
 
 	var grass_body: StaticBody3D = StaticBody3D.new()
 	grass_body.name = "Grass"
+	grass_body.set_meta("surface_grip_multiplier", GRASS_GRIP)
 	parent.add_child(grass_body)
 	grass_body.owner = parent.owner
 	grass_body.position.y = -0.25
@@ -190,6 +194,7 @@ func _create_grass(parent: Node3D, material_factory: TrackMaterialFactory, grass
 func _create_shoulders(parent: Node3D, mesh: ArrayMesh, material_factory: TrackMaterialFactory) -> void:
 	var shoulder_body: StaticBody3D = StaticBody3D.new()
 	shoulder_body.name = "RoadsideTerrain"
+	shoulder_body.set_meta("surface_grip_multiplier", SHOULDER_GRIP)
 	parent.add_child(shoulder_body)
 	shoulder_body.owner = parent.owner
 
@@ -204,6 +209,7 @@ func _create_shoulders(parent: Node3D, mesh: ArrayMesh, material_factory: TrackM
 func _create_track(parent: Node3D, mesh: ArrayMesh, material_factory: TrackMaterialFactory) -> void:
 	var track_body: StaticBody3D = StaticBody3D.new()
 	track_body.name = "TrackSurface"
+	track_body.set_meta("surface_grip_multiplier", ASPHALT_GRIP)
 	parent.add_child(track_body)
 	track_body.owner = parent.owner
 
