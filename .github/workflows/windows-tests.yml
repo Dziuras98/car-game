@@ -1,0 +1,66 @@
+name: Windows Godot tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-godot-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7-stable
+  GODOT_ARCHIVE: Godot_v4.7-stable_win64.exe.zip
+  GODOT_EXECUTABLE: Godot_v4.7-stable_win64.exe
+
+jobs:
+  tests:
+    name: Godot 4.7 headless suite
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Download Godot
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ProgressPreference = "SilentlyContinue"
+
+          $toolsDirectory = Join-Path $PWD "tools/godot"
+          New-Item -ItemType Directory -Path $toolsDirectory -Force | Out-Null
+
+          $downloadUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION/$env:GODOT_ARCHIVE"
+          $archivePath = Join-Path $PWD $env:GODOT_ARCHIVE
+
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $toolsDirectory -Force
+
+          $godotPath = Join-Path $toolsDirectory $env:GODOT_EXECUTABLE
+          if (-not (Test-Path -LiteralPath $godotPath -PathType Leaf)) {
+            throw "Godot executable was not found after extraction: $godotPath"
+          }
+
+          "GODOT_BIN=$godotPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Godot version
+        shell: pwsh
+        run: |
+          & $env:GODOT_BIN --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "Godot version check failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Run automated tests
+        shell: pwsh
+        run: ./scripts/ci/run_tests.ps1 -GodotBinary $env:GODOT_BIN
