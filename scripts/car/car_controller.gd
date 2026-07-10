@@ -169,8 +169,8 @@ func _physics_process(delta: float) -> void:
 		_car_input.gear_down_pressed,
 		delta
 	)
-	_chassis_controller.update_steering(_runtime_state, steering, self, delta)
 	_chassis_controller.update_tires(_runtime_state, steering, handbrake_active, self, _skid_mark_emitter, delta)
+	_chassis_controller.update_steering(_runtime_state, steering, self, delta)
 	_chassis_controller.apply_velocity(_runtime_state, self, delta)
 
 
