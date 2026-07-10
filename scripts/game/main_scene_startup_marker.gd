@@ -9,12 +9,11 @@ func _ready() -> void:
 
 
 func _report_ready() -> void:
-	print(READY_MARKER)
-
 	var marker_path: String = OS.get_environment(STARTUP_SMOKE_MARKER_ENV)
 	if marker_path.is_empty():
 		return
 
+	print(READY_MARKER)
 	var marker_file: FileAccess = FileAccess.open(marker_path, FileAccess.WRITE)
 	if marker_file == null:
 		push_error(
