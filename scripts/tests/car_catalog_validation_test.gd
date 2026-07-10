@@ -121,13 +121,22 @@ func _validate_variant_scene(variant_id_key: String, variant: CarVariantDefiniti
 	if car_scene == null:
 		return
 
-	var instance: Node = car_scene.instantiate()
-	var car_controller: PlayerCarController = instance as PlayerCarController
-	_expect(car_controller != null, "variant %s scene root is PlayerCarController" % variant_id_key)
-	if car_controller != null:
-		_expect(car_controller.car_specs != null, "variant %s scene provides CarSpecs" % variant_id_key)
-		_expect(car_controller.car_specs == variant.get_specs(), "variant %s scene and catalog reference the same CarSpecs" % variant_id_key)
-	instance.free()
+	var raw_instance: Node = car_scene.instantiate()
+	var raw_controller: PlayerCarController = raw_instance as PlayerCarController
+	_expect(raw_controller != null, "variant %s scene root is PlayerCarController" % variant_id_key)
+	raw_instance.free()
+
+	var factory: CarInstanceFactory = CarInstanceFactory.new()
+	var scenes: Array[PackedScene] = [car_scene]
+	var variants: Array[CarVariantDefinition] = [variant]
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 1
+	factory.configure(scenes, variants, rng)
+	var configured_controller: PlayerCarController = factory.instantiate_indexed_car(0)
+	_expect(configured_controller != null, "variant %s instantiates through the catalog factory" % variant_id_key)
+	if configured_controller != null:
+		_expect(configured_controller.car_specs == variant.get_specs(), "variant %s receives authoritative catalog CarSpecs before tree entry" % variant_id_key)
+		configured_controller.free()
 
 
 func _validate_specs(variant_id_key: String, specs: CarSpecs) -> void:
