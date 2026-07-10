@@ -2,44 +2,46 @@ extends RefCounted
 class_name MenuOptionsBuilder
 
 
-static func build_track_options(track_catalog: TrackCatalog) -> Array[Dictionary]:
-	var track_options: Array[Dictionary] = []
+static func build_track_options(track_catalog: TrackCatalog) -> Array[TrackMenuOption]:
+	var track_options: Array[TrackMenuOption] = []
 	if track_catalog == null:
 		return track_options
 
 	for definition: TrackDefinition in track_catalog.get_tracks():
 		if definition == null or not definition.is_valid():
 			continue
-		track_options.append({
-			"label": definition.display_name,
-			"track_id": str(definition.track_id),
-			"recommended_laps": definition.recommended_laps,
-		})
+		track_options.append(TrackMenuOption.new(
+			definition.track_id,
+			definition.display_name,
+			definition.recommended_laps
+		))
 	return track_options
 
 
-static func build_car_models(car_catalog: CarCatalog) -> Array[Dictionary]:
-	var menu_models: Array[Dictionary] = []
+static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOption]:
+	var menu_models: Array[CarModelMenuOption] = []
 	if car_catalog == null:
 		return menu_models
 
 	for model: CarModelDefinition in car_catalog.get_models():
-		var variants: Array[Dictionary] = []
+		if model == null:
+			continue
+		var variants: Array[CarVariantMenuOption] = []
 		for variant: CarVariantDefinition in model.get_variants():
 			if variant == null or variant.get_car_scene() == null:
 				continue
 			var specs: CarSpecs = variant.get_specs()
 			if specs == null or not specs.is_valid():
 				continue
-			variants.append({
-				"label": variant.get_menu_name(),
-				"variant_id": variant.variant_id,
-			})
+			variants.append(CarVariantMenuOption.new(
+				variant.variant_id,
+				variant.get_menu_name()
+			))
 		if not variants.is_empty():
-			menu_models.append({
-				"label": model.get_model_name(),
-				"model_id": model.model_id,
-				"variants": variants,
-			})
+			menu_models.append(CarModelMenuOption.new(
+				model.model_id,
+				model.get_model_name(),
+				variants
+			))
 
 	return menu_models
