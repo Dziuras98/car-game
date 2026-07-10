@@ -26,6 +26,7 @@ func _ready() -> void:
 	_root = get_node_or_null(root_path) as Control
 	_bind_buttons()
 	_apply_visibility()
+	set_process(false)
 
 
 func _exit_tree() -> void:
@@ -33,12 +34,10 @@ func _exit_tree() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _pending_tap_releases.is_empty():
-		return
-
 	for action_name: String in _pending_tap_releases:
 		Input.action_release(action_name)
 	_pending_tap_releases.clear()
+	set_process(false)
 
 
 func _notification(what: int) -> void:
@@ -63,7 +62,6 @@ func _bind_hold_button(button_path: NodePath, action_name: String) -> void:
 	if button == null:
 		push_warning("MobileDriveControls could not find hold button for action '%s': %s" % [action_name, button_path])
 		return
-
 	button.button_down.connect(_press_action.bind(action_name))
 	button.button_up.connect(_release_action.bind(action_name))
 
@@ -73,14 +71,12 @@ func _bind_tap_button(button_path: NodePath, action_name: String) -> void:
 	if button == null:
 		push_warning("MobileDriveControls could not find tap button for action '%s': %s" % [action_name, button_path])
 		return
-
 	button.button_down.connect(_tap_action.bind(action_name))
 
 
 func _apply_visibility() -> void:
 	if _root == null:
 		return
-
 	_root.visible = force_visible or (show_on_android and OS.has_feature("android"))
 	if not _root.visible:
 		_release_all_actions()
@@ -101,13 +97,14 @@ func _tap_action(action_name: String) -> void:
 	Input.action_press(action_name)
 	if not _pending_tap_releases.has(action_name):
 		_pending_tap_releases.append(action_name)
+	set_process(true)
 
 
 func _release_all_actions() -> void:
 	for action_name: String in _held_actions:
 		Input.action_release(action_name)
 	_held_actions.clear()
-
 	for action_name: String in _pending_tap_releases:
 		Input.action_release(action_name)
 	_pending_tap_releases.clear()
+	set_process(false)
