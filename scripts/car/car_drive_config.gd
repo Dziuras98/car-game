@@ -14,6 +14,7 @@ var max_forward_speed: float = 30.0
 var max_reverse_speed: float = 10.0
 var steering_speed: float = 2.7
 var wheel_base: float = 2.65
+var axle_track_width: float = 1.55
 var max_steering_angle_degrees: float = 32.0
 
 var idle_rpm: float = 900.0
@@ -83,6 +84,11 @@ var skid_mark_length: float = 0.9
 
 var gravity: float = 30.0
 var floor_stick_force: float = 0.5
+var suspension_probe_height: float = 0.42
+var suspension_rest_length: float = 0.28
+var suspension_travel: float = 0.18
+var suspension_stiffness: float = 32.0
+var suspension_damping: float = 5.0
 
 
 func is_manual_transmission() -> bool:
@@ -118,9 +124,15 @@ func sanitize() -> void:
 	max_forward_speed = maxf(max_forward_speed, 0.1)
 	max_reverse_speed = maxf(max_reverse_speed, 0.0)
 	wheel_base = maxf(wheel_base, 0.1)
+	axle_track_width = maxf(axle_track_width, 0.1)
 	vehicle_mass = maxf(vehicle_mass, 1.0)
 	wheel_radius = maxf(wheel_radius, 0.01)
 	drivetrain_efficiency = clampf(drivetrain_efficiency, 0.0001, 1.0)
+	suspension_probe_height = maxf(suspension_probe_height, 0.0)
+	suspension_rest_length = maxf(suspension_rest_length, 0.01)
+	suspension_travel = maxf(suspension_travel, 0.01)
+	suspension_stiffness = maxf(suspension_stiffness, 0.0)
+	suspension_damping = maxf(suspension_damping, 0.0)
 	if transmission_type < CarSpecs.TransmissionType.DIRECT_DRIVE or transmission_type > CarSpecs.TransmissionType.AUTOMATIC:
 		transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	if uses_geared_transmission() and gear_ratios.is_empty():
