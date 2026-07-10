@@ -41,14 +41,15 @@ Rules:
 - each instantiated car receives its variant specs before entering the scene tree;
 - `CarDriveConfigBuilder` rejects null or invalid specs;
 - the runtime config is a defensive copy and sanitizes unsafe values;
+- `CarSpecs.transmission_type` is the sole transmission-mode state;
 - consumers use `PlayerCarController` telemetry/control methods rather than reading tuning fields directly;
 - switching `car_specs` at runtime reconfigures the existing controller safely.
 
-### Remaining legacy scene cleanup
+### Scene ownership
 
-The old tuning exports are no longer active and do not appear in the normal `PlayerCarController` property list. The large base visual scene `scenes/cars/370z.tscn` still serializes several keys written by an older controller version. A temporary `_set()` compatibility dictionary accepts and discards only those known keys so the scene remains loadable.
+`scenes/cars/370z.tscn` owns visual meshes, collision structure and audio child nodes only. It does not serialize vehicle tuning values. `PlayerCarController` exposes only the `car_specs` Resource for persistent tuning and does not intercept or ignore unknown properties.
 
-These serialized values never enter `CarDriveConfig`. The remaining cleanup is to resave or replace the base scene without those keys and then remove the compatibility dictionary and `_set()` override.
+This separation ensures that changing a variant resource changes runtime behavior, while editing or replacing the visual scene cannot silently override physics configuration.
 
 ## Runtime state
 
@@ -217,8 +218,10 @@ A null or invalid specs resource disables physics processing and reports an erro
 | Method | Purpose |
 |---|---|
 | `get_forward_speed()` | Local longitudinal speed in m/s |
+| `get_lateral_speed()` | Local lateral speed in m/s |
 | `get_speed_kmh()` | Absolute display conversion source (`m/s * 3.6`) |
 | `get_engine_rpm()` | Current engine RPM |
+| `get_current_gear()` | Current signed gear index |
 | `get_throttle_input()` | Current throttle telemetry |
 | `get_engine_load()` | Load approximation for procedural audio |
 | `get_tire_slip_intensity()` | Slip signal for audio/effects |
@@ -257,5 +260,4 @@ Run the complete Windows suite rather than relying on one focused scene, because
 - scalar slip rather than combined per-wheel slip ratios/angles;
 - arcade automatic gearbox logic rather than a complete TCU;
 - no drivetrain damage, stalling or mechanical failure;
-- base 370Z visual scene still contains inert legacy serialized tuning keys;
 - `CarSpecs` remains a flat resource until its maintenance cost justifies sub-resources.
