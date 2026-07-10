@@ -187,9 +187,13 @@ func _update_speed(
 	if throttle > 0.0:
 		if _config.uses_geared_transmission():
 			if _config.automatic_transmission_enabled and state.current_gear < 1:
-				_set_transmission_gear(state, 1)
-
-			state.forward_speed += _get_transmission_drive_acceleration(state, throttle) * delta
+				state.forward_speed = move_toward(
+					state.forward_speed,
+					0.0,
+					_config.brake_deceleration * throttle * delta
+				)
+			else:
+				state.forward_speed += _get_transmission_drive_acceleration(state, throttle) * delta
 		else:
 			var torque_multiplier: float = get_torque_multiplier()
 			var limiter_multiplier: float = get_rev_limiter_multiplier()
@@ -199,13 +203,21 @@ func _update_speed(
 		if _config.manual_transmission_enabled:
 			state.forward_speed = move_toward(state.forward_speed, 0.0, _config.brake_deceleration * brake * delta)
 		elif _config.automatic_transmission_enabled:
-			if state.forward_speed > 0.25 or throttle > 0.0:
-				state.forward_speed = move_toward(state.forward_speed, 0.0, _config.brake_deceleration * brake * delta)
+			if state.current_gear < 0:
+				if state.forward_speed > AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
+					state.forward_speed = move_toward(
+						state.forward_speed,
+						0.0,
+						_config.brake_deceleration * brake * delta
+					)
+				else:
+					state.forward_speed += _get_transmission_drive_acceleration(state, brake) * delta
 			else:
-				if state.current_gear >= 0:
-					_set_transmission_gear(state, -1)
-
-				state.forward_speed += _get_transmission_drive_acceleration(state, brake) * delta
+				state.forward_speed = move_toward(
+					state.forward_speed,
+					0.0,
+					_config.brake_deceleration * brake * delta
+				)
 		elif state.forward_speed > 0.25:
 			state.forward_speed = move_toward(state.forward_speed, 0.0, _config.brake_deceleration * brake * delta)
 		else:
