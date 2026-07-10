@@ -7,6 +7,5 @@
 script = ExtResource("1_definition")
 track_id = &"simple_oval"
 display_name = "Prosty owal"
-is_default = true
 recommended_laps = 3
 track_scene = ExtResource("2_scene")
