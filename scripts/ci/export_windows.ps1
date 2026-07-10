@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$GodotBinary,
 
-    [string]$OutputDirectory = ""
+    [string]$OutputDirectory = "",
+    [string]$TestOutputDirectory = ""
 )
 
 Set-StrictMode -Version Latest
@@ -18,155 +19,205 @@ if (-not (Test-Path -LiteralPath $presetPath -PathType Leaf)) {
     throw "Windows export preset was not found: $presetPath"
 }
 
-if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    $OutputDirectory = Join-Path $projectRoot "build/windows"
-} elseif (-not [System.IO.Path]::IsPathRooted($OutputDirectory)) {
-    $OutputDirectory = Join-Path $projectRoot $OutputDirectory
+function Resolve-OutputPath {
+    param(
+        [string]$ConfiguredPath,
+        [string]$DefaultRelativePath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ConfiguredPath)) {
+        return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $DefaultRelativePath))
+    }
+    if (-not [System.IO.Path]::IsPathRooted($ConfiguredPath)) {
+        $ConfiguredPath = Join-Path $projectRoot $ConfiguredPath
+    }
+    return [System.IO.Path]::GetFullPath($ConfiguredPath)
 }
 
-$outputPath = [System.IO.Path]::GetFullPath($OutputDirectory)
-New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
-Get-ChildItem -LiteralPath $outputPath -Force | Remove-Item -Recurse -Force
-
-$executablePath = Join-Path $outputPath "car-game.exe"
-$packPath = Join-Path $outputPath "car-game.pck"
-$normalStartupLogPath = Join-Path $outputPath "normal-startup-smoke.log"
-$normalStartupMarkerPath = Join-Path $outputPath "normal-startup-ready.marker"
-$smokeLogPath = Join-Path $outputPath "exported-build-smoke.log"
-
-Write-Host ""
-Write-Host "=== Export Windows release ==="
-Write-Host "Output: $executablePath"
-
-& $GodotBinary `
-    --headless `
-    --path $projectRoot `
-    --export-release "Windows Desktop" $executablePath
-$exportExitCode = $LASTEXITCODE
-
-if ($exportExitCode -ne 0) {
-    throw "Windows release export failed with exit code $exportExitCode."
-}
-if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
-    throw "Windows release executable was not created: $executablePath"
-}
-if ((Get-Item -LiteralPath $executablePath).Length -le 0) {
-    throw "Windows release executable is empty: $executablePath"
-}
-if (-not (Test-Path -LiteralPath $packPath -PathType Leaf)) {
-    throw "Windows release data pack was not created: $packPath"
+function Reset-OutputDirectory {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    New-Item -ItemType Directory -Path $Path -Force | Out-Null
+    Get-ChildItem -LiteralPath $Path -Force | Remove-Item -Recurse -Force
 }
 
-Write-Host ""
-Write-Host "=== Run normal packaged startup smoke test ==="
+function Assert-ExportFiles {
+    param(
+        [Parameter(Mandatory = $true)][string]$ExecutablePath,
+        [Parameter(Mandatory = $true)][string]$PackPath,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
 
-$normalStartupMarker = "[NORMAL_STARTUP_SMOKE] Main scene ready"
-$normalStartupMarkerEnvName = "CAR_GAME_NORMAL_STARTUP_MARKER_PATH"
-Remove-Item -LiteralPath $normalStartupMarkerPath -Force -ErrorAction SilentlyContinue
+    if (-not (Test-Path -LiteralPath $ExecutablePath -PathType Leaf)) {
+        throw "$Label executable was not created: $ExecutablePath"
+    }
+    if ((Get-Item -LiteralPath $ExecutablePath).Length -le 0) {
+        throw "$Label executable is empty: $ExecutablePath"
+    }
+    if (-not (Test-Path -LiteralPath $PackPath -PathType Leaf)) {
+        throw "$Label data pack was not created: $PackPath"
+    }
+}
 
-$normalStartupArguments = @(
-    "--headless",
-    "--log-file",
-    ('"' + $normalStartupLogPath + '"')
-)
-$previousMarkerPath = [Environment]::GetEnvironmentVariable(
-    $normalStartupMarkerEnvName,
-    [EnvironmentVariableTarget]::Process
-)
-[Environment]::SetEnvironmentVariable(
-    $normalStartupMarkerEnvName,
-    $normalStartupMarkerPath,
-    [EnvironmentVariableTarget]::Process
-)
-try {
-    $normalStartupProcess = Start-Process `
-        -FilePath $executablePath `
-        -ArgumentList $normalStartupArguments `
-        -WorkingDirectory $outputPath `
-        -PassThru
-} finally {
-    [Environment]::SetEnvironmentVariable(
+function Invoke-MainSceneReadinessCheck {
+    param(
+        [Parameter(Mandatory = $true)][string]$ExecutablePath,
+        [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+        [Parameter(Mandatory = $true)][string]$LogPath,
+        [Parameter(Mandatory = $true)][string]$MarkerPath,
+        [string[]]$AdditionalArguments = @()
+    )
+
+    $normalStartupMarker = "[NORMAL_STARTUP_SMOKE] Main scene ready"
+    $normalStartupMarkerEnvName = "CAR_GAME_NORMAL_STARTUP_MARKER_PATH"
+    Remove-Item -LiteralPath $MarkerPath -Force -ErrorAction SilentlyContinue
+
+    $arguments = @(
+        "--headless",
+        "--log-file",
+        ('"' + $LogPath + '"')
+    ) + $AdditionalArguments
+
+    $previousMarkerPath = [Environment]::GetEnvironmentVariable(
         $normalStartupMarkerEnvName,
-        $previousMarkerPath,
         [EnvironmentVariableTarget]::Process
     )
-}
-
-$normalStartupCompleted = $normalStartupProcess.WaitForExit(30000)
-if (-not $normalStartupCompleted) {
-    $normalStartupProcess.Kill($true)
-    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
-        Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+    [Environment]::SetEnvironmentVariable(
+        $normalStartupMarkerEnvName,
+        $MarkerPath,
+        [EnvironmentVariableTarget]::Process
+    )
+    try {
+        $process = Start-Process `
+            -FilePath $ExecutablePath `
+            -ArgumentList $arguments `
+            -WorkingDirectory $WorkingDirectory `
+            -PassThru
+    } finally {
+        [Environment]::SetEnvironmentVariable(
+            $normalStartupMarkerEnvName,
+            $previousMarkerPath,
+            [EnvironmentVariableTarget]::Process
+        )
     }
-    throw "Normal packaged startup did not complete its readiness handshake within 30 seconds."
-}
-if ($normalStartupProcess.ExitCode -ne 0) {
-    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
-        Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+
+    $completed = $process.WaitForExit(30000)
+    if (-not $completed) {
+        $process.Kill($true)
+        throw "Packaged startup did not complete its readiness handshake within 30 seconds."
     }
-    throw "Normal packaged startup failed with exit code $($normalStartupProcess.ExitCode)."
-}
-if (-not (Test-Path -LiteralPath $normalStartupMarkerPath -PathType Leaf)) {
-    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
-        Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+    if ($process.ExitCode -ne 0) {
+        if (Test-Path -LiteralPath $LogPath -PathType Leaf) {
+            Get-Content -LiteralPath $LogPath | Write-Host
+        }
+        throw "Packaged startup failed with exit code $($process.ExitCode)."
     }
-    throw "Normal packaged startup exited successfully but did not create its readiness marker file."
+    if (-not (Test-Path -LiteralPath $MarkerPath -PathType Leaf)) {
+        throw "Packaged startup exited successfully but did not create its readiness marker file."
+    }
+
+    $markerContent = Get-Content -LiteralPath $MarkerPath -Raw
+    if (-not $markerContent.Contains($normalStartupMarker)) {
+        throw "Packaged startup marker did not contain the expected readiness text."
+    }
+    if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
+        throw "Packaged startup log was not created: $LogPath"
+    }
+
+    $logContent = Get-Content -LiteralPath $LogPath -Raw
+    Get-Content -LiteralPath $LogPath | Write-Host
+    if (-not $logContent.Contains($normalStartupMarker)) {
+        throw "Packaged startup log did not contain the expected readiness text."
+    }
+
+    Remove-Item -LiteralPath $MarkerPath -Force
 }
 
-$normalStartupMarkerContent = Get-Content -LiteralPath $normalStartupMarkerPath -Raw
-if (-not $normalStartupMarkerContent.Contains($normalStartupMarker)) {
-    throw "Normal packaged startup marker file did not contain the expected readiness marker."
-}
-if (-not (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf)) {
-    throw "Normal packaged startup log was not created: $normalStartupLogPath"
-}
+$productionOutputPath = Resolve-OutputPath -ConfiguredPath $OutputDirectory -DefaultRelativePath "build/windows"
+$testOutputPath = Resolve-OutputPath -ConfiguredPath $TestOutputDirectory -DefaultRelativePath "build/windows-test"
+Reset-OutputDirectory -Path $productionOutputPath
+Reset-OutputDirectory -Path $testOutputPath
 
-$normalStartupLog = Get-Content -LiteralPath $normalStartupLogPath -Raw
-Get-Content -LiteralPath $normalStartupLogPath | Write-Host
-if (-not $normalStartupLog.Contains($normalStartupMarker)) {
-    throw "Normal packaged startup log did not contain the expected readiness marker."
-}
-
-Remove-Item -LiteralPath $normalStartupMarkerPath -Force
-Write-Host "Normal packaged startup reached the main scene without user arguments."
+$productionExecutable = Join-Path $productionOutputPath "car-game.exe"
+$productionPack = Join-Path $productionOutputPath "car-game.pck"
+$normalStartupLog = Join-Path $productionOutputPath "normal-startup-smoke.log"
+$normalStartupMarker = Join-Path $productionOutputPath "normal-startup-ready.marker"
+$productionSmokeArgumentLog = Join-Path $productionOutputPath "production-smoke-argument.log"
+$productionSmokeArgumentMarker = Join-Path $productionOutputPath "production-smoke-argument.marker"
 
 Write-Host ""
-Write-Host "=== Run exported build smoke test ==="
+Write-Host "=== Export production Windows release ==="
+& $GodotBinary --headless --path $projectRoot --export-release "Windows Desktop" $productionExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Production Windows export failed with exit code $LASTEXITCODE."
+}
+Assert-ExportFiles -ExecutablePath $productionExecutable -PackPath $productionPack -Label "Production Windows"
 
+Write-Host ""
+Write-Host "=== Validate production startup ==="
+Invoke-MainSceneReadinessCheck `
+    -ExecutablePath $productionExecutable `
+    -WorkingDirectory $productionOutputPath `
+    -LogPath $normalStartupLog `
+    -MarkerPath $normalStartupMarker
+
+Write-Host ""
+Write-Host "=== Validate production build ignores private smoke argument ==="
+Invoke-MainSceneReadinessCheck `
+    -ExecutablePath $productionExecutable `
+    -WorkingDirectory $productionOutputPath `
+    -LogPath $productionSmokeArgumentLog `
+    -MarkerPath $productionSmokeArgumentMarker `
+    -AdditionalArguments @("--", "--export-smoke-test")
+
+$testExecutable = Join-Path $testOutputPath "car-game-test.exe"
+$testPack = Join-Path $testOutputPath "car-game-test.pck"
+$smokeLog = Join-Path $testOutputPath "exported-build-smoke.log"
+
+Write-Host ""
+Write-Host "=== Export packaged regression build ==="
+& $GodotBinary --headless --path $projectRoot --export-release "Windows Test" $testExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Windows test export failed with exit code $LASTEXITCODE."
+}
+Assert-ExportFiles -ExecutablePath $testExecutable -PackPath $testPack -Label "Windows test"
+
+Write-Host ""
+Write-Host "=== Run packaged regression build ==="
 $smokeArguments = @(
     "--headless",
     "--log-file",
-    ('"' + $smokeLogPath + '"'),
+    ('"' + $smokeLog + '"'),
     "--",
     "--export-smoke-test"
 )
 $smokeProcess = Start-Process `
-    -FilePath $executablePath `
+    -FilePath $testExecutable `
     -ArgumentList $smokeArguments `
-    -WorkingDirectory $outputPath `
+    -WorkingDirectory $testOutputPath `
     -PassThru
 
-$completed = $smokeProcess.WaitForExit(90000)
-if (-not $completed) {
+$smokeCompleted = $smokeProcess.WaitForExit(90000)
+if (-not $smokeCompleted) {
     $smokeProcess.Kill($true)
     throw "Exported build smoke test exceeded the 90-second timeout."
 }
 if ($smokeProcess.ExitCode -ne 0) {
-    if (Test-Path -LiteralPath $smokeLogPath -PathType Leaf) {
-        Get-Content -LiteralPath $smokeLogPath | Write-Host
+    if (Test-Path -LiteralPath $smokeLog -PathType Leaf) {
+        Get-Content -LiteralPath $smokeLog | Write-Host
     }
     throw "Exported build smoke test failed with exit code $($smokeProcess.ExitCode)."
 }
-if (-not (Test-Path -LiteralPath $smokeLogPath -PathType Leaf)) {
-    throw "Exported build smoke log was not created: $smokeLogPath"
+if (-not (Test-Path -LiteralPath $smokeLog -PathType Leaf)) {
+    throw "Exported build smoke log was not created: $smokeLog"
 }
 
-$smokeLog = Get-Content -LiteralPath $smokeLogPath -Raw
-Get-Content -LiteralPath $smokeLogPath | Write-Host
-if (-not $smokeLog.Contains("[EXPORTED_BUILD_SMOKE_TEST] Passed:")) {
+$smokeLogContent = Get-Content -LiteralPath $smokeLog -Raw
+Get-Content -LiteralPath $smokeLog | Write-Host
+if (-not $smokeLogContent.Contains("[EXPORTED_BUILD_SMOKE_TEST] Passed:")) {
     throw "Exported build exited successfully but did not write the expected smoke-test success marker."
 }
 
 Write-Host ""
-Write-Host "Windows release export and packaged startup smoke tests passed."
-Write-Host "Artifact directory: $outputPath"
+Write-Host "Production and packaged regression Windows exports passed."
+Write-Host "Production artifact directory: $productionOutputPath"
+Write-Host "Test artifact directory: $testOutputPath"
