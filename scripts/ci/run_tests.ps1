@@ -27,7 +27,6 @@ function Invoke-GodotCommand {
 
     & $GodotBinary @CommandArguments
     $exitCode = $LASTEXITCODE
-
     if ($exitCode -ne 0) {
         throw "$Name failed with exit code $exitCode."
     }
@@ -57,6 +56,7 @@ $sceneTests = @(
     "scenes/tests/car_powertrain_controller_test.tscn",
     "scenes/tests/car_chassis_motion_test.tscn",
     "scenes/tests/track_layout_builder_test.tscn",
+    "scenes/tests/track_layout_resource_test.tscn",
     "scenes/tests/full_program_smoke_test.tscn"
 )
 

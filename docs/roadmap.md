@@ -9,7 +9,7 @@ The repository currently provides:
 - main menu;
 - free-drive and race modes;
 - catalog-driven 370Z manual and automatic variants;
-- generated oval track;
+- Resource-backed generated oval track;
 - AI opponents;
 - lap, position and results UI;
 - speedometer, tachometer and minimap;
@@ -18,10 +18,9 @@ The repository currently provides:
 - modular powertrain, chassis, tire, reset and input code;
 - Resource-backed vehicle tuning;
 - modular generated-track builders;
-- focused generated-layout regression coverage;
 - Windows GitHub Actions regression suite.
 
-Do not add more cars or major game modes until the remaining track-validation and performance work is complete.
+Do not add more cars or major game modes until the remaining checkpoint-validation and performance work is complete.
 
 ## Phase 0 — Documentation and baseline freeze
 
@@ -121,9 +120,9 @@ Minor cleanup:
 
 The inert base-scene keys are no longer an active tuning path and cannot affect runtime configuration.
 
-## Phase 6 — Generated-track decomposition
+## Phase 6 — Resource-backed generated track
 
-Status: builder split and layout regression baseline complete; data extraction remains.
+Status: complete for the current simple oval.
 
 Completed:
 
@@ -134,13 +133,12 @@ Completed:
 - [x] stable `get_racing_line_points()` API;
 - [x] focused `TrackLayoutBuilder` topology and geometry tests;
 - [x] deterministic rebuild checks;
-- [x] track-width, width-variation and shoulder-width input sanitization.
-
-Next tasks:
-
-- [ ] move hardcoded control points into a track Resource;
-- [ ] add track metadata such as name, width and lap suggestion;
-- [ ] make the menu consume track Resources.
+- [x] track-width, width-variation and shoulder-width input sanitization;
+- [x] `TrackLayoutResource` with control points and sampling density;
+- [x] simple-oval metadata, road and decoration data moved into a Resource;
+- [x] generated-track scenes reference the Resource instead of scene overrides;
+- [x] menu track options use Resource ID, label and recommended-lap metadata;
+- [x] Resource-to-builder-to-scene regression test in Windows CI.
 
 ## Phase 7 — Checkpoint-based lap validation
 

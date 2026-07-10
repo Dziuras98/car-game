@@ -39,10 +39,9 @@ scenes/tests/car_specs_runtime_reconfiguration_test.tscn
 scenes/tests/car_powertrain_controller_test.tscn
 scenes/tests/car_chassis_motion_test.tscn
 scenes/tests/track_layout_builder_test.tscn
+scenes/tests/track_layout_resource_test.tscn
 scenes/tests/full_program_smoke_test.tscn
 ```
-
-`track_layout_builder_test.tscn` verifies the generated loop topology, point-array alignment, center/racing-line consistency, normalized local frames, road and shoulder offsets, width-profile wrapping, invalid-input sanitization and deterministic rebuilds.
 
 The run stops immediately when resource import or any test returns a non-zero exit code.
 

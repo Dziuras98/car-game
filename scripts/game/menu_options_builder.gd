@@ -1,12 +1,36 @@
 extends RefCounted
 class_name MenuOptionsBuilder
 
+const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
+
 
 static func build_track_options() -> Array[Dictionary]:
-	return [{
-		"label": "Prosty owal",
-		"track_id": "simple_oval",
-	}]
+	var track_layouts: Array[TrackLayoutResource] = [DEFAULT_TRACK_LAYOUT]
+	return build_track_options_from_layouts(track_layouts)
+
+
+static func build_track_options_from_layouts(
+	track_layouts: Array[TrackLayoutResource]
+) -> Array[Dictionary]:
+	var track_options: Array[Dictionary] = []
+	var used_track_ids: Dictionary = {}
+
+	for layout: TrackLayoutResource in track_layouts:
+		if layout == null or not layout.is_valid():
+			continue
+
+		var track_id: String = str(layout.track_id)
+		if used_track_ids.has(track_id):
+			continue
+		used_track_ids[track_id] = true
+
+		track_options.append({
+			"label": layout.display_name,
+			"track_id": track_id,
+			"recommended_laps": maxi(layout.recommended_laps, 1),
+		})
+
+	return track_options
 
 
 static func build_car_models(
@@ -38,7 +62,6 @@ static func build_car_models(
 			"label": "Samochod %d" % (car_index + 1),
 			"variant_id": StringName(str(car_index)),
 		})
-
 	if not fallback_variants.is_empty():
 		menu_models.append({
 			"label": "Samochody",
@@ -61,5 +84,4 @@ static func build_fallback_car_names(
 	else:
 		for car_index: int in range(available_car_scenes.size()):
 			car_names.append("Samochod %d" % (car_index + 1))
-
 	return car_names

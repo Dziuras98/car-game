@@ -1,37 +1,11 @@
 @tool
 extends Node3D
 
-@export var track_width: float = 14.0:
+const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
+
+@export var track_layout: TrackLayoutResource = DEFAULT_TRACK_LAYOUT:
 	set(value):
-		track_width = value
-		_rebuild_track()
-@export var grass_size: Vector2 = Vector2(260.0, 190.0):
-	set(value):
-		grass_size = value
-		_rebuild_track()
-@export var shoulder_width: float = 10.0:
-	set(value):
-		shoulder_width = value
-		_rebuild_track()
-@export var barrier_distance_from_road: float = 12.0:
-	set(value):
-		barrier_distance_from_road = value
-		_rebuild_track()
-@export var width_variation: float = 0.28:
-	set(value):
-		width_variation = clampf(value, 0.0, 0.45)
-		_rebuild_track()
-@export var has_stadium: bool = false:
-	set(value):
-		has_stadium = value
-		_rebuild_track()
-@export_range(4, 18, 1) var stadium_section_step: int = 8:
-	set(value):
-		stadium_section_step = maxi(value, 4)
-		_rebuild_track()
-@export var stadium_distance_from_barrier: float = 24.0:
-	set(value):
-		stadium_distance_from_barrier = maxf(value, 8.0)
+		track_layout = value
 		_rebuild_track()
 
 var _content_root: TrackGeneratedContentRoot
@@ -51,7 +25,7 @@ func _ready() -> void:
 
 
 func _rebuild_track() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or track_layout == null:
 		return
 
 	_ensure_builders()
@@ -71,6 +45,10 @@ func get_racing_line_points() -> Array[Vector3]:
 		_ensure_builders()
 		_geometry = _layout_builder.build(_build_track_generation_config())
 	return _geometry.get_racing_line_points_array()
+
+
+func get_track_layout() -> TrackLayoutResource:
+	return track_layout
 
 
 func _ensure_builders() -> void:
@@ -93,13 +71,17 @@ func _ensure_builders() -> void:
 
 
 func _build_track_generation_config() -> Dictionary:
+	if track_layout == null:
+		return {}
+
 	return {
-		"track_width": track_width,
-		"grass_size": grass_size,
-		"shoulder_width": shoulder_width,
-		"barrier_distance_from_road": barrier_distance_from_road,
-		"width_variation": width_variation,
-		"has_stadium": has_stadium,
-		"stadium_section_step": stadium_section_step,
-		"stadium_distance_from_barrier": stadium_distance_from_barrier,
+		"track_layout": track_layout,
+		"track_width": track_layout.track_width,
+		"grass_size": track_layout.grass_size,
+		"shoulder_width": track_layout.shoulder_width,
+		"barrier_distance_from_road": track_layout.barrier_distance_from_road,
+		"width_variation": track_layout.width_variation,
+		"has_stadium": track_layout.has_stadium,
+		"stadium_section_step": track_layout.stadium_section_step,
+		"stadium_distance_from_barrier": track_layout.stadium_distance_from_barrier,
 	}

@@ -1,17 +1,29 @@
 extends RefCounted
 class_name TrackLayoutBuilder
 
+const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 const MIN_TRACK_WIDTH: float = 0.1
 const MAX_WIDTH_VARIATION: float = 0.45
 
 
 func build(config: Dictionary) -> TrackGeometryData:
 	var geometry: TrackGeometryData = TrackGeometryData.new()
-	var points: PackedVector3Array = _get_track_points()
+	var layout: TrackLayoutResource = config.get("track_layout", DEFAULT_TRACK_LAYOUT) as TrackLayoutResource
+	if layout == null or layout.control_points.size() < 4:
+		return geometry
+
+	var points: PackedVector3Array = _sample_track_points(
+		layout.control_points,
+		maxi(layout.samples_per_segment, 1)
+	)
 	var point_count: int = points.size()
-	var track_width: float = maxf(float(config.get("track_width", 14.0)), MIN_TRACK_WIDTH)
-	var width_variation: float = clampf(float(config.get("width_variation", 0.28)), 0.0, MAX_WIDTH_VARIATION)
-	var shoulder_width: float = maxf(float(config.get("shoulder_width", 10.0)), 0.0)
+	var track_width: float = maxf(float(config.get("track_width", layout.track_width)), MIN_TRACK_WIDTH)
+	var width_variation: float = clampf(
+		float(config.get("width_variation", layout.width_variation)),
+		0.0,
+		MAX_WIDTH_VARIATION
+	)
+	var shoulder_width: float = maxf(float(config.get("shoulder_width", layout.shoulder_width)), 0.0)
 
 	geometry.center_points = points
 	geometry.racing_line_points = points
@@ -52,43 +64,33 @@ func get_half_width(index: int, point_count: int, track_width: float, width_vari
 	return safe_track_width * clampf(width_scale, 0.7, 1.45) * 0.5
 
 
-func _get_track_points() -> PackedVector3Array:
-	var control_points: Array[Vector3] = [
-		Vector3(0.0, 0.0, 0.0),
-		Vector3(0.0, 0.0, -90.0),
-		Vector3(0.0, 0.0, -170.0),
-		Vector3(18.0, 0.4, -230.0),
-		Vector3(60.0, 1.2, -270.0),
-		Vector3(105.0, 1.8, -282.0),
-		Vector3(150.0, 1.2, -270.0),
-		Vector3(192.0, 0.4, -230.0),
-		Vector3(210.0, 0.0, -170.0),
-		Vector3(210.0, 0.0, -90.0),
-		Vector3(210.0, 0.0, 0.0),
-		Vector3(210.0, 0.0, 90.0),
-		Vector3(192.0, 0.4, 150.0),
-		Vector3(150.0, 1.2, 190.0),
-		Vector3(105.0, 1.8, 202.0),
-		Vector3(60.0, 1.2, 190.0),
-		Vector3(18.0, 0.4, 150.0),
-		Vector3(0.0, 0.0, 90.0),
-	]
-
+func _sample_track_points(
+	control_points: PackedVector3Array,
+	samples_per_segment: int
+) -> PackedVector3Array:
 	var sampled_points: PackedVector3Array = PackedVector3Array()
-	for index in control_points.size():
-		var p0: Vector3 = control_points[(index - 1 + control_points.size()) % control_points.size()]
-		var p1: Vector3 = control_points[index]
-		var p2: Vector3 = control_points[(index + 1) % control_points.size()]
-		var p3: Vector3 = control_points[(index + 2) % control_points.size()]
+	var control_point_count: int = control_points.size()
+	if control_point_count < 4:
+		return sampled_points
 
-		for step in 6:
-			var t: float = float(step) / 6.0
+	var safe_sample_count: int = maxi(samples_per_segment, 1)
+	for index in control_point_count:
+		var p0: Vector3 = control_points[(index - 1 + control_point_count) % control_point_count]
+		var p1: Vector3 = control_points[index]
+		var p2: Vector3 = control_points[(index + 1) % control_point_count]
+		var p3: Vector3 = control_points[(index + 2) % control_point_count]
+
+		for step in safe_sample_count:
+			var t: float = float(step) / float(safe_sample_count)
 			sampled_points.append(_catmull_rom(p0, p1, p2, p3, t))
 
 	return sampled_points
 
 
 func _get_points_center(points: PackedVector3Array) -> Vector3:
+	if points.is_empty():
+		return Vector3.ZERO
+
 	var center: Vector3 = Vector3.ZERO
 	for point: Vector3 in points:
 		center += point

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/track/track_layout_resource.gd" id="1_layout"]
+
+[resource]
+script = ExtResource("1_layout")
+track_id = &"simple_oval"
+display_name = "Prosty owal"
+recommended_laps = 3
+control_points = PackedVector3Array(0, 0, 0, 0, 0, -90, 0, 0, -170, 18, 0.4, -230, 60, 1.2, -270, 105, 1.8, -282, 150, 1.2, -270, 192, 0.4, -230, 210, 0, -170, 210, 0, -90, 210, 0, 0, 210, 0, 90, 192, 0.4, 150, 150, 1.2, 190, 105, 1.8, 202, 60, 1.2, 190, 18, 0.4, 150, 0, 0, 90)
+samples_per_segment = 6
+track_width = 16.0
+width_variation = 0.12
+shoulder_width = 16.0
+grass_size = Vector2(720, 860)
+barrier_distance_from_road = 18.0
+has_stadium = true
+stadium_section_step = 8
+stadium_distance_from_barrier = 26.0
