@@ -1,4 +1,4 @@
-extends SceneTree
+extends Node
 
 const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 
@@ -6,28 +6,29 @@ var _checks: int = 0
 var _failures: Array[String] = []
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	_run.call_deferred()
 
 
 func _run() -> void:
-	var tree_root: Window = get_root()
+	var tree: SceneTree = get_tree()
+	var tree_root: Window = tree.root
 	var car: PlayerCarController = PlayerCarController.new()
 	tree_root.add_child(car)
-	await process_frame
+	await tree.process_frame
 
 	var initial_emitter: SkidMarkEmitter = car._skid_mark_emitter
 	_expect(initial_emitter != null, "car creates skid mark emitter during ready")
 	if initial_emitter == null:
 		car.queue_free()
-		await process_frame
+		await tree.process_frame
 		_finish()
 		return
 
 	_expect(is_instance_valid(initial_emitter._parent), "skid mark emitter creates a parent container")
 	if not is_instance_valid(initial_emitter._parent):
 		car.queue_free()
-		await process_frame
+		await tree.process_frame
 		_finish()
 		return
 
@@ -41,7 +42,7 @@ func _run() -> void:
 	car._runtime_state.engine_rpm = 3600.0
 	car._runtime_state.current_gear = 6
 	car.car_specs = target_specs
-	await process_frame
+	await tree.process_frame
 
 	_expect(car._drive_config != null, "runtime reconfiguration rebuilds drive config")
 	if car._drive_config != null:
@@ -69,7 +70,7 @@ func _run() -> void:
 	car.queue_free()
 	if is_instance_valid(initial_parent):
 		initial_parent.queue_free()
-	await process_frame
+	await tree.process_frame
 	_finish()
 
 
@@ -107,10 +108,10 @@ func _expect(condition: bool, message: String) -> void:
 func _finish() -> void:
 	if _failures.is_empty():
 		print("[CAR_SPECS_RECONFIG_TEST] Passed: %d checks" % _checks)
-		quit(0)
+		get_tree().quit(0)
 		return
 
 	push_error("[CAR_SPECS_RECONFIG_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[CAR_SPECS_RECONFIG_TEST] - %s" % failure_message)
-	quit(1)
+	get_tree().quit(1)
