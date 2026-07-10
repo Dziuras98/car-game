@@ -19,6 +19,7 @@ enum TransmissionType {
 @export var max_reverse_speed: float = 10.0
 @export var steering_speed: float = 2.7
 @export var wheel_base: float = 2.65
+@export var axle_track_width: float = 1.55
 @export var max_steering_angle_degrees: float = 32.0
 
 # Compatibility accessor for resources created before the force-based model.
@@ -51,8 +52,6 @@ var acceleration: float:
 @export var drivetrain_efficiency: float = 0.85
 @export var shift_delay: float = 0.28
 
-# Compatibility accessors for code and resources written before transmission_type.
-# Assigning true selects that mode; assigning false only clears the same mode.
 var manual_transmission_enabled: bool:
 	set(value):
 		if value:
@@ -104,6 +103,11 @@ var automatic_transmission_enabled: bool:
 @export_group("Grounding")
 @export var gravity: float = 30.0
 @export var floor_stick_force: float = 0.5
+@export var suspension_probe_height: float = 0.42
+@export var suspension_rest_length: float = 0.28
+@export var suspension_travel: float = 0.18
+@export var suspension_stiffness: float = 32.0
+@export var suspension_damping: float = 5.0
 
 
 func is_manual_transmission() -> bool:
@@ -135,6 +139,7 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "max_reverse_speed", max_reverse_speed)
 	_append_positive(errors, "steering_speed", steering_speed)
 	_append_positive(errors, "wheel_base", wheel_base)
+	_append_positive(errors, "axle_track_width", axle_track_width)
 	_append_range(errors, "max_steering_angle_degrees", max_steering_angle_degrees, 0.01, 89.0)
 
 	_append_positive(errors, "idle_rpm", idle_rpm)
@@ -201,6 +206,11 @@ func validate() -> PackedStringArray:
 
 	_append_positive(errors, "gravity", gravity)
 	_append_non_negative(errors, "floor_stick_force", floor_stick_force)
+	_append_non_negative(errors, "suspension_probe_height", suspension_probe_height)
+	_append_positive(errors, "suspension_rest_length", suspension_rest_length)
+	_append_positive(errors, "suspension_travel", suspension_travel)
+	_append_non_negative(errors, "suspension_stiffness", suspension_stiffness)
+	_append_non_negative(errors, "suspension_damping", suspension_damping)
 	return errors
 
 
