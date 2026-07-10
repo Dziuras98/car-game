@@ -32,6 +32,7 @@ func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, playe
 	clear_current_car()
 	_owner.add_child(car_controller)
 	car_controller.global_transform = spawn_global_transform
+	car_controller.capture_current_transform_as_start()
 	car_controller.set_player_input_enabled(player_input_enabled)
 
 	_current_car = car_controller
