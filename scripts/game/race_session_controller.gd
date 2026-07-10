@@ -9,8 +9,8 @@ var _opponents: Array[PlayerCarController] = []
 var _current_car: PlayerCarController
 var _car_spawner: CarSpawner
 var _race_hud: RaceHud
-var _track: Node3D
-var _minimap: Node
+var _track: GeneratedTrack
+var _minimap: Minimap
 var _race_lap_count: int = 1
 var _opponent_count: int = 0
 var _hud_update_frames_remaining: int = 0
@@ -19,8 +19,8 @@ var _hud_update_frames_remaining: int = 0
 func configure(
 	car_spawner: CarSpawner,
 	race_hud: RaceHud,
-	track: Node3D,
-	minimap: Node,
+	track: GeneratedTrack,
+	minimap: Minimap,
 	race_lap_count: int,
 	opponent_count: int
 ) -> void:
@@ -184,7 +184,7 @@ func _update_lap_ui() -> void:
 
 
 func _prepare_race_tracking() -> bool:
-	if _lap_tracker == null:
+	if _lap_tracker == null or _track == null:
 		return false
 	var prepared: bool = _lap_tracker.prepare(_track, _race_lap_count, _current_car, _opponents)
 	if prepared:
@@ -228,5 +228,5 @@ func _get_participant_label(car: PlayerCarController) -> String:
 
 
 func _update_minimap_opponents() -> void:
-	if _minimap != null and _minimap.has_method("set_opponents"):
-		_minimap.call("set_opponents", _opponents)
+	if _minimap != null:
+		_minimap.set_opponents(_opponents)
