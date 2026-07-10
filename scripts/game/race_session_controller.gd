@@ -119,21 +119,6 @@ func get_race_manager() -> RaceManager:
 	return _race_manager
 
 
-func get_moving_opponent_count() -> int:
-	var moving_count: int = 0
-	for opponent: PlayerCarController in _opponents:
-		if is_instance_valid(opponent) and absf(opponent.get_forward_speed()) > 0.05:
-			moving_count += 1
-	return moving_count
-
-
-func simulate_current_player_finish(current_car: PlayerCarController) -> void:
-	if current_car == null:
-		return
-	_current_car = current_car
-	_on_lap_tracker_participant_finished(current_car)
-
-
 func are_player_controls_locked() -> bool:
 	return _race_manager != null and _race_manager.are_player_controls_locked()
 

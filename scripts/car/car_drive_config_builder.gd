@@ -3,9 +3,6 @@ class_name CarDriveConfigBuilder
 
 const NON_RUNTIME_PROPERTIES: Array[StringName] = [
 	&"display_name",
-	&"acceleration",
-	&"manual_transmission_enabled",
-	&"automatic_transmission_enabled",
 ]
 
 

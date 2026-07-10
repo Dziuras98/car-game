@@ -23,7 +23,7 @@ func _run() -> void:
 	_expect(_contains_error(invalid_transmission.validate(), "transmission_type"), "invalid transmission enum values are rejected")
 
 	var compatibility_selection: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
-	compatibility_selection.automatic_transmission_enabled = true
+	compatibility_selection.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
 	_expect(compatibility_selection.is_automatic_transmission(), "compatibility setter selects automatic mode")
 	_expect(not compatibility_selection.is_manual_transmission(), "compatibility setter cannot leave both modes active")
 

@@ -22,14 +22,6 @@ enum TransmissionType {
 @export var axle_track_width: float = 1.55
 @export var max_steering_angle_degrees: float = 32.0
 
-# Compatibility accessor for resources created before the force-based model.
-# It is intentionally hidden from the inspector and is never copied to runtime.
-var acceleration: float:
-	set(_value):
-		pass
-	get:
-		return engine_force
-
 @export_group("Engine")
 @export var idle_rpm: float = 900.0
 @export var peak_torque_rpm: float = 4200.0
@@ -51,24 +43,6 @@ var acceleration: float:
 @export var wheel_radius: float = 0.34
 @export var drivetrain_efficiency: float = 0.85
 @export var shift_delay: float = 0.28
-
-var manual_transmission_enabled: bool:
-	set(value):
-		if value:
-			transmission_type = TransmissionType.MANUAL
-		elif transmission_type == TransmissionType.MANUAL:
-			transmission_type = TransmissionType.DIRECT_DRIVE
-	get:
-		return transmission_type == TransmissionType.MANUAL
-
-var automatic_transmission_enabled: bool:
-	set(value):
-		if value:
-			transmission_type = TransmissionType.AUTOMATIC
-		elif transmission_type == TransmissionType.AUTOMATIC:
-			transmission_type = TransmissionType.DIRECT_DRIVE
-	get:
-		return transmission_type == TransmissionType.AUTOMATIC
 
 @export_group("Automatic Transmission")
 @export var automatic_upshift_rpm: float = 6200.0

@@ -40,7 +40,7 @@ func _get_opponent_variant() -> CarVariantDefinition:
 		if variant == null:
 			continue
 		var specs: CarSpecs = variant.get_specs()
-		if specs != null and specs.is_valid() and specs.automatic_transmission_enabled:
+		if specs != null and specs.is_valid() and specs.is_automatic_transmission():
 			automatic_variants.append(variant)
 
 	var source: Array[CarVariantDefinition] = automatic_variants

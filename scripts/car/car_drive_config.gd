@@ -1,11 +1,6 @@
 extends RefCounted
 class_name CarDriveConfig
 
-const DUPLICATE_SKIP_PROPERTIES: Array[StringName] = [
-	&"manual_transmission_enabled",
-	&"automatic_transmission_enabled",
-]
-
 var brake_deceleration: float = 34.0
 var reverse_acceleration: float = 12.0
 var coast_deceleration: float = 5.0
@@ -36,24 +31,6 @@ var peak_engine_torque: float = 420.0
 var wheel_radius: float = 0.34
 var drivetrain_efficiency: float = 0.85
 var shift_delay: float = 0.28
-
-var manual_transmission_enabled: bool:
-	set(value):
-		if value:
-			transmission_type = CarSpecs.TransmissionType.MANUAL
-		elif transmission_type == CarSpecs.TransmissionType.MANUAL:
-			transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
-	get:
-		return transmission_type == CarSpecs.TransmissionType.MANUAL
-
-var automatic_transmission_enabled: bool:
-	set(value):
-		if value:
-			transmission_type = CarSpecs.TransmissionType.AUTOMATIC
-		elif transmission_type == CarSpecs.TransmissionType.AUTOMATIC:
-			transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
-	get:
-		return transmission_type == CarSpecs.TransmissionType.AUTOMATIC
 
 var automatic_upshift_rpm: float = 6200.0
 var automatic_downshift_rpm: float = 2100.0
@@ -107,7 +84,7 @@ func duplicate_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
 	for property: Dictionary in get_property_list():
 		var property_name: StringName = property.get("name", &"")
-		if property_name == &"" or property_name in [&"script", &"RefCounted"] or property_name in DUPLICATE_SKIP_PROPERTIES:
+		if property_name == &"" or property_name in [&"script", &"RefCounted"]:
 			continue
 		var usage: int = int(property.get("usage", 0))
 		if usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:

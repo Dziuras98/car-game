@@ -63,8 +63,11 @@ func get_menu() -> Node:
 func is_child_visible(node_name: String) -> bool:
 	if _main == null:
 		return false
-
-	return bool(_main.call("is_child_visible", node_name))
+	var target: Node = _main.get_node_or_null(node_name)
+	if target is CanvasItem:
+		return (target as CanvasItem).is_visible_in_tree()
+	var visible_value: Variant = target.get("visible") if target != null else null
+	return visible_value is bool and bool(visible_value)
 
 
 func has_moving_opponent() -> bool:
@@ -72,20 +75,29 @@ func has_moving_opponent() -> bool:
 
 
 func get_moving_opponent_count() -> int:
-	if _main == null:
-		return 0
-
-	return int(_main.call("get_moving_opponent_count"))
+	var moving_count: int = 0
+	for opponent_value: Variant in get_opponents():
+		var opponent: PlayerCarController = opponent_value as PlayerCarController
+		if is_instance_valid(opponent) and absf(opponent.get_forward_speed()) > 0.05:
+			moving_count += 1
+	return moving_count
 
 
 func return_to_main_menu() -> void:
-	if _main != null and _main.has_method("request_return_to_main_menu"):
-		_main.call("request_return_to_main_menu")
+	if _main != null:
+		_main.call("_return_to_main_menu")
 
 
 func simulate_player_finish() -> void:
-	if _main != null and _main.has_method("simulate_current_player_finish"):
-		_main.call("simulate_current_player_finish")
+	if _main == null:
+		return
+	var current_car: PlayerCarController = get_current_car()
+	var session: RaceSessionController = _main.get("_race_session") as RaceSessionController
+	if current_car == null or session == null:
+		return
+	var race_manager: RaceManager = session.get_race_manager()
+	if race_manager != null:
+		race_manager.finish_race(current_car, session.get_opponents())
 
 
 func find_visible_button_with_text(root_node: Node, label_text: String) -> Button:

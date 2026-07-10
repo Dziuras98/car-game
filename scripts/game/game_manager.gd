@@ -122,10 +122,6 @@ func get_opponents() -> Array[PlayerCarController]:
 	return _race_session.get_opponents()
 
 
-func get_moving_opponent_count() -> int:
-	return _race_session.get_moving_opponent_count() if _race_session != null else 0
-
-
 func get_configured_opponent_count() -> int:
 	return opponent_count
 
@@ -140,23 +136,6 @@ func get_selected_track_id() -> String:
 
 func get_selected_car_variant_id() -> StringName:
 	return selected_car_variant_id
-
-
-func request_return_to_main_menu() -> void:
-	_return_to_main_menu()
-
-
-func simulate_current_player_finish() -> void:
-	if _race_session != null:
-		_race_session.simulate_current_player_finish(_current_car)
-
-
-func is_child_visible(node_name: String) -> bool:
-	var target: Node = get_node_or_null(node_name)
-	if target is CanvasItem:
-		return (target as CanvasItem).is_visible_in_tree()
-	var visible_value: Variant = target.get("visible") if target != null else null
-	return visible_value is bool and bool(visible_value)
 
 
 func _validate_scene_contract() -> bool:

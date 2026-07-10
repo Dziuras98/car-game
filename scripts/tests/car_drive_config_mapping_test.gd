@@ -45,8 +45,8 @@ func _run() -> void:
 	_expect(is_equal_approx(automatic_config.gear_ratios[0], automatic_first_ratio), "duplicate_config deep-copies mutable arrays")
 
 	var exclusive_config: CarDriveConfig = CarDriveConfig.new()
-	exclusive_config.manual_transmission_enabled = true
-	exclusive_config.automatic_transmission_enabled = true
+	exclusive_config.transmission_type = CarSpecs.TransmissionType.MANUAL
+	exclusive_config.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
 	_expect(exclusive_config.is_automatic_transmission(), "compatibility setters resolve to the last selected transmission mode")
 	_expect(not exclusive_config.is_manual_transmission(), "runtime configuration cannot expose two transmission modes")
 

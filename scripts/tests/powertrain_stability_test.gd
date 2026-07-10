@@ -70,8 +70,8 @@ func _test_substep_consistency() -> void:
 
 func _build_fallback_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
-	config.manual_transmission_enabled = false
-	config.automatic_transmission_enabled = false
+	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
+	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	config.engine_force = 30.0
 	config.brake_deceleration = 34.0
 	config.reverse_acceleration = 12.0
