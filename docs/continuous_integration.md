@@ -32,7 +32,7 @@ The required job performs these stages in order:
 6. launch the exported executable with `--export-smoke-test` and run the packaged regression scene;
 7. upload any available Windows build and diagnostic files.
 
-The job fails when any test, export or exported executable returns a non-zero exit code or omits an expected readiness marker. The editor/headless runner also captures both output streams and fails when Godot emits a runtime-error line such as `SCRIPT ERROR:`, `ERROR:` or the editor-style `E 0:00:...` prefix, even when Godot incorrectly exits with code `0`. The artifact upload uses `always()` so files already produced by a failed export stage remain available for diagnosis.
+The job fails when any test, export or exported executable returns a non-zero exit code or omits an expected readiness marker. The editor/headless runner also captures both output streams and fails when Godot emits a runtime-error line such as `SCRIPT ERROR:`, `ERROR:` or the editor-style `E 0:00:...` prefix, even when Godot incorrectly exits with code `0`. The artifact upload uses `always()` so files already produced by a failed test or export stage remain available for diagnosis.
 
 ## Editor/headless test runner
 
@@ -69,7 +69,7 @@ The tire-squeal audio test instantiates the automatic 370Z, verifies that proced
 
 The legacy controller-property test scans GDScript source for variables typed or cast as `PlayerCarController` and rejects direct reads of tuning fields removed during the `CarSpecs` refactor. Consumers must use `car_specs` or a public controller method instead. The detector includes positive and negative fixtures so a broken scanner cannot silently pass.
 
-The PowerShell runner performs its own detector self-check and then evaluates the complete stdout/stderr output of every import, script test and scene test. This closes the gap where a GDScript runtime error is printed but the test process still returns a successful exit code.
+The PowerShell runner performs its own detector self-check and then evaluates the complete stdout/stderr output of every import, script test and scene test. This closes the gap where a GDScript runtime error is printed but the test process still returns a successful exit code. Each command receives a separate log under `build/test-logs/`.
 
 Focused geometry, checkpoint and performance tests run before the full-program smoke test so subsystem failures remain isolated.
 
@@ -114,13 +114,13 @@ Godot export templates are cached by engine version. On a cache miss, the workfl
 
 ## Build artifact
 
-The workflow attempts to upload `build/windows/` even when a preceding stage fails, provided that the directory contains files. Successful runs publish it as:
+The workflow attempts to upload the entire `build/` directory even when a preceding stage fails, provided that diagnostic or export files exist. Successful runs publish it as:
 
 ```text
 car-game-windows-<commit-sha>
 ```
 
-The artifact is retained for 14 days and contains the unsigned development executable, its PCK and both smoke-test logs. Failed runs can contain a partial build and whichever diagnostic logs were produced before the failure.
+The artifact is retained for 14 days. It contains the unsigned development executable, its PCK, both packaged smoke-test logs and the per-command editor/headless logs from `build/test-logs/`. Failed runs can contain a partial build, the workflow-wrapper failure report and whichever command logs were produced before the failure.
 
 ## Running locally on Windows
 
