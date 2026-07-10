@@ -50,16 +50,21 @@ func project(
 	position: Vector3,
 	previous_segment_index: int = -1,
 	previous_position: Vector3 = Vector3.ZERO,
-	has_previous_projection: bool = false
+	has_previous_projection: bool = false,
+	result_buffer: RacingLineProjection = null
 ) -> RacingLineProjection:
+	var result: RacingLineProjection = (
+		result_buffer if result_buffer != null else RacingLineProjection.new()
+	)
 	if not is_configured():
+		result.reset()
 		return null
 	if (
 		not has_previous_projection
 		or previous_segment_index < 0
 		or previous_segment_index >= _points.size()
 	):
-		return _search_all_segments(position)
+		return _search_all_segments(position, result)
 
 	var displacement: float = position.distance_to(previous_position)
 	var teleport_distance: float = maxf(
@@ -67,7 +72,7 @@ func project(
 		_average_segment_length * TELEPORT_SEGMENT_SPAN
 	)
 	if displacement > teleport_distance:
-		return _search_all_segments(position)
+		return _search_all_segments(position, result)
 
 	var local_radius: int = clampi(
 		ceili(displacement / maxf(_average_segment_length, 0.1)) + MIN_LOCAL_SEARCH_RADIUS,
@@ -75,28 +80,31 @@ func project(
 		MAX_LOCAL_SEARCH_RADIUS
 	)
 	if local_radius * 2 + 1 >= _points.size():
-		return _search_all_segments(position)
+		return _search_all_segments(position, result)
 
 	var local_projection: RacingLineProjection = _search_local_segments(
 		position,
 		previous_segment_index,
-		local_radius
+		local_radius,
+		result
 	)
 	if local_projection == null:
-		return _search_all_segments(position)
+		return _search_all_segments(position, result)
 
 	var reacquire_distance: float = maxf(
 		MIN_REACQUIRE_DISTANCE,
 		_average_segment_length * REACQUIRE_SEGMENT_SPAN
 	)
 	if local_projection.distance_squared > reacquire_distance * reacquire_distance:
-		return _search_all_segments(position)
+		return _search_all_segments(position, result)
 	return local_projection
 
 
-func _search_all_segments(position: Vector3) -> RacingLineProjection:
-	var result: RacingLineProjection = RacingLineProjection.new()
-	result.used_global_search = true
+func _search_all_segments(
+	position: Vector3,
+	result: RacingLineProjection
+) -> RacingLineProjection:
+	result.reset(true)
 	for segment_index: int in range(_points.size()):
 		_consider_segment(result, position, segment_index)
 	return result if result.is_valid() else null
@@ -105,9 +113,10 @@ func _search_all_segments(position: Vector3) -> RacingLineProjection:
 func _search_local_segments(
 	position: Vector3,
 	center_segment_index: int,
-	radius: int
+	radius: int,
+	result: RacingLineProjection
 ) -> RacingLineProjection:
-	var result: RacingLineProjection = RacingLineProjection.new()
+	result.reset(false)
 	for offset: int in range(-radius, radius + 1):
 		var segment_index: int = posmod(center_segment_index + offset, _points.size())
 		_consider_segment(result, position, segment_index)
