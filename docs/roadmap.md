@@ -24,7 +24,8 @@ The project already has enough gameplay systems to be treated as a playable prot
 - extended full-program smoke test;
 - focused runtime-config test for the car controller helpers;
 - focused runtime `car_specs` reconfiguration test;
-- focused powertrain controller test.
+- focused powertrain controller test;
+- focused chassis/motion test.
 
 The next phase should focus on validation, small correctness fixes and data extraction. Do not add more cars or game modes until the current architecture is stable.
 
@@ -201,6 +202,7 @@ Completed runtime/chassis/reset helpers:
 - [x] Reconfigure `SkidMarkEmitter` when runtime `car_specs` changes.
 - [x] Add scene-runnable focused test for runtime `car_specs` reconfiguration behavior.
 - [x] Add scene-runnable focused test for `CarPowertrainController` behavior beyond gear-text checks.
+- [x] Add scene-runnable focused test for `CarChassisController` and `VehicleMotionModel` behavior.
 
 Definition of done:
 
@@ -212,7 +214,6 @@ Definition of done:
 
 Remaining work:
 
-- [ ] Add focused tests for `CarChassisController` and `VehicleMotionModel` behavior.
 - [ ] Remove legacy export tuning after all scenes rely on `CarSpecs`.
 
 ## Phase 5 — Introduce car specs and catalog Resources
