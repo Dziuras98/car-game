@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $testLogDirectory = Join-Path $projectRoot "build/test-logs"
+$currentCommandPath = Join-Path $testLogDirectory "current-command.log"
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -94,27 +95,62 @@ function Invoke-GodotCommand {
         [string]$Name,
 
         [Parameter(Mandatory = $true)]
-        [string[]]$CommandArguments
+        [string[]]$CommandArguments,
+
+        [int]$TimeoutSeconds = 180
     )
 
     Write-Host ""
     Write-Host "=== $Name ==="
     Write-Host "Godot arguments: $($CommandArguments -join ' ')"
+    Write-Host "Timeout: $TimeoutSeconds second(s)"
+    Set-Content -LiteralPath $currentCommandPath -Value @(
+        "Name: $Name"
+        "Started: $([DateTimeOffset]::UtcNow.ToString('O'))"
+        "Timeout seconds: $TimeoutSeconds"
+        "Command: $GodotBinary $($CommandArguments -join ' ')"
+    ) -Encoding utf8
 
-    $nativeErrorPreferenceWasDefined = Test-Path variable:PSNativeCommandUseErrorActionPreference
-    if ($nativeErrorPreferenceWasDefined) {
-        $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
-        $PSNativeCommandUseErrorActionPreference = $false
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $GodotBinary
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.CreateNoWindow = $true
+    foreach ($argument in $CommandArguments) {
+        [void]$startInfo.ArgumentList.Add($argument)
     }
 
-    try {
-        $outputLines = @(& $GodotBinary @CommandArguments 2>&1)
-        $exitCode = $LASTEXITCODE
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    $started = $process.Start()
+    if (-not $started) {
+        throw "$Name could not start Godot."
     }
-    finally {
-        if ($nativeErrorPreferenceWasDefined) {
-            $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
+    $completed = $process.WaitForExit($TimeoutSeconds * 1000)
+    $timedOut = -not $completed
+    if ($timedOut) {
+        try {
+            $process.Kill($true)
         }
+        catch {
+            Write-Host "Failed to kill timed-out Godot process: $($_.Exception.Message)"
+        }
+        $process.WaitForExit()
+    }
+
+    $stdout = $stdoutTask.GetAwaiter().GetResult()
+    $stderr = $stderrTask.GetAwaiter().GetResult()
+    $exitCode = if ($timedOut) { -1 } else { $process.ExitCode }
+    $outputLines = @()
+    if (-not [string]::IsNullOrEmpty($stdout)) {
+        $outputLines += @($stdout -split "`r?`n")
+    }
+    if (-not [string]::IsNullOrEmpty($stderr)) {
+        $outputLines += @($stderr -split "`r?`n")
     }
 
     foreach ($outputLine in $outputLines) {
@@ -126,6 +162,8 @@ function Invoke-GodotCommand {
     $logContent = @(
         "Command: $GodotBinary $($CommandArguments -join ' ')"
         "Exit code: $exitCode"
+        "Timed out: $timedOut"
+        "Timeout seconds: $TimeoutSeconds"
         ""
         "--- combined stdout/stderr ---"
     ) + @($outputLines | ForEach-Object { [string]$_ })
@@ -141,6 +179,9 @@ function Invoke-GodotCommand {
         Write-Host "Diagnostic log: $logPath"
     }
 
+    if ($timedOut) {
+        throw "$Name exceeded its $TimeoutSeconds-second timeout. Diagnostic log: $logPath"
+    }
     if ($exitCode -ne 0) {
         throw "$Name failed with exit code $exitCode. Diagnostic log: $logPath"
     }
@@ -156,7 +197,7 @@ function Get-ProjectRelativePath {
 
 Assert-RuntimeErrorDetector
 
-Invoke-GodotCommand -Name "Import project resources" -CommandArguments @(
+Invoke-GodotCommand -Name "Import project resources" -TimeoutSeconds 300 -CommandArguments @(
     "--headless",
     "--path", $projectRoot,
     "--import"
@@ -185,7 +226,7 @@ if ($scriptTests.Count -eq 0) {
 }
 
 foreach ($testScript in $scriptTests) {
-    Invoke-GodotCommand -Name "Script test: $testScript" -CommandArguments @(
+    Invoke-GodotCommand -Name "Script test: $testScript" -TimeoutSeconds 120 -CommandArguments @(
         "--headless",
         "--path", $projectRoot,
         "--script", $testScript
@@ -211,13 +252,14 @@ if ($sceneTests.Count -eq 0) {
 }
 
 foreach ($testScene in $sceneTests) {
-    Invoke-GodotCommand -Name "Scene test: $testScene" -CommandArguments @(
+    Invoke-GodotCommand -Name "Scene test: $testScene" -TimeoutSeconds 180 -CommandArguments @(
         "--headless",
         "--path", $projectRoot,
         $testScene
     )
 }
 
+Remove-Item -LiteralPath $currentCommandPath -Force -ErrorAction SilentlyContinue
 Write-Host ""
 Write-Host "All discovered Godot tests passed without runtime errors."
 Write-Host "Standalone script tests: $($scriptTests.Count)"
