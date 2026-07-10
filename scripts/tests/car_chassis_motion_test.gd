@@ -51,8 +51,7 @@ func _test_chassis_projection_helpers() -> void:
 	state.forward_speed = 7.25
 	state.lateral_speed = -2.5
 
-	var car: CharacterBody3D = CharacterBody3D.new()
-	car.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-23.0)), Vector3.ZERO)
+	var car: CharacterBody3D = _create_test_car(Transform3D(Basis(Vector3.UP, deg_to_rad(-23.0)), Vector3.ZERO))
 
 	var horizontal_velocity: Vector3 = chassis.get_horizontal_velocity_vector(state, car.global_transform)
 	state.forward_speed = 0.0
@@ -62,7 +61,7 @@ func _test_chassis_projection_helpers() -> void:
 	_expect(_float_equal_approx(state.forward_speed, 7.25), "chassis helper restores forward speed from horizontal velocity")
 	_expect(_float_equal_approx(state.lateral_speed, -2.5), "chassis helper restores lateral speed from horizontal velocity")
 
-	car.free()
+	car.queue_free()
 
 
 func _test_steering_preserves_horizontal_velocity() -> void:
@@ -75,8 +74,7 @@ func _test_steering_preserves_horizontal_velocity() -> void:
 	state.lateral_speed = 0.0
 	state.tire_slip_intensity = 0.0
 
-	var car: CharacterBody3D = CharacterBody3D.new()
-	car.global_transform = Transform3D.IDENTITY
+	var car: CharacterBody3D = _create_test_car()
 
 	var before_velocity: Vector3 = chassis.get_horizontal_velocity_vector(state, car.global_transform)
 	var before_basis: Basis = car.global_transform.basis
@@ -86,7 +84,7 @@ func _test_steering_preserves_horizontal_velocity() -> void:
 	_expect(not _basis_equal_approx(car.global_transform.basis, before_basis), "chassis steering rotates car when speed and steering are significant")
 	_expect(_vector3_equal_approx(after_velocity, before_velocity), "chassis steering preserves horizontal velocity after yaw rotation")
 
-	car.free()
+	car.queue_free()
 
 
 func _test_steering_ignores_low_speed() -> void:
@@ -99,14 +97,13 @@ func _test_steering_ignores_low_speed() -> void:
 	state.lateral_speed = 0.0
 	state.tire_slip_intensity = 0.0
 
-	var car: CharacterBody3D = CharacterBody3D.new()
-	car.global_transform = Transform3D.IDENTITY
+	var car: CharacterBody3D = _create_test_car()
 	var before_basis: Basis = car.global_transform.basis
 	chassis.update_steering(state, 1.0, car, 0.10)
 
 	_expect(_basis_equal_approx(car.global_transform.basis, before_basis), "chassis steering ignores very low forward speed")
 
-	car.free()
+	car.queue_free()
 
 
 func _test_slip_limited_same_direction_steering() -> void:
@@ -118,8 +115,7 @@ func _test_slip_limited_same_direction_steering() -> void:
 	same_direction_state.forward_speed = 10.0
 	same_direction_state.lateral_speed = 3.0
 	same_direction_state.tire_slip_intensity = 0.0
-	var same_direction_car: CharacterBody3D = CharacterBody3D.new()
-	same_direction_car.global_transform = Transform3D.IDENTITY
+	var same_direction_car: CharacterBody3D = _create_test_car()
 	chassis.update_steering(same_direction_state, 1.0, same_direction_car, 0.10)
 	var same_direction_yaw: float = absf(same_direction_car.rotation.y)
 
@@ -127,15 +123,14 @@ func _test_slip_limited_same_direction_steering() -> void:
 	opposite_direction_state.forward_speed = 10.0
 	opposite_direction_state.lateral_speed = 3.0
 	opposite_direction_state.tire_slip_intensity = 0.0
-	var opposite_direction_car: CharacterBody3D = CharacterBody3D.new()
-	opposite_direction_car.global_transform = Transform3D.IDENTITY
+	var opposite_direction_car: CharacterBody3D = _create_test_car()
 	chassis.update_steering(opposite_direction_state, -1.0, opposite_direction_car, 0.10)
 	var opposite_direction_yaw: float = absf(opposite_direction_car.rotation.y)
 
 	_expect(same_direction_yaw < opposite_direction_yaw, "chassis limits same-direction steering under lateral slip")
 
-	same_direction_car.free()
-	opposite_direction_car.free()
+	same_direction_car.queue_free()
+	opposite_direction_car.queue_free()
 
 
 func _test_tire_lateral_recovery_when_airborne() -> void:
@@ -147,13 +142,13 @@ func _test_tire_lateral_recovery_when_airborne() -> void:
 	state.forward_speed = 12.0
 	state.lateral_speed = 4.0
 
-	var car: CharacterBody3D = CharacterBody3D.new()
+	var car: CharacterBody3D = _create_test_car()
 	chassis.update_tires(state, 1.0, false, car, null, 0.10)
 
 	_expect(_float_equal_approx(state.lateral_speed, 3.0), "chassis tire update recovers lateral speed with normal grip")
 	_expect(_float_equal_approx(state.tire_slip_intensity, 0.0), "chassis tire update clears slip intensity when car is airborne")
 
-	car.free()
+	car.queue_free()
 
 
 func _test_handbrake_reduces_lateral_recovery() -> void:
@@ -164,20 +159,27 @@ func _test_handbrake_reduces_lateral_recovery() -> void:
 	var normal_state: CarRuntimeState = CarRuntimeState.new()
 	normal_state.forward_speed = 12.0
 	normal_state.lateral_speed = 4.0
-	var normal_car: CharacterBody3D = CharacterBody3D.new()
+	var normal_car: CharacterBody3D = _create_test_car()
 	chassis.update_tires(normal_state, 0.0, false, normal_car, null, 0.10)
 
 	var handbrake_state: CarRuntimeState = CarRuntimeState.new()
 	handbrake_state.forward_speed = 12.0
 	handbrake_state.lateral_speed = 4.0
-	var handbrake_car: CharacterBody3D = CharacterBody3D.new()
+	var handbrake_car: CharacterBody3D = _create_test_car()
 	chassis.update_tires(handbrake_state, 0.0, true, handbrake_car, null, 0.10)
 
 	_expect(handbrake_state.lateral_speed > normal_state.lateral_speed, "chassis handbrake reduces lateral grip recovery")
 	_expect(_float_equal_approx(handbrake_state.lateral_speed, 3.75), "chassis handbrake applies configured lateral grip multiplier")
 
-	normal_car.free()
-	handbrake_car.free()
+	normal_car.queue_free()
+	handbrake_car.queue_free()
+
+
+func _create_test_car(target_transform: Transform3D = Transform3D.IDENTITY) -> CharacterBody3D:
+	var car: CharacterBody3D = CharacterBody3D.new()
+	add_child(car)
+	car.global_transform = target_transform
+	return car
 
 
 func _build_chassis_config() -> CarDriveConfig:
