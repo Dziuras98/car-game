@@ -50,6 +50,13 @@ func get_safe_tick_count(step_rpm: float) -> int:
 	return clampi(floori(rpm_span / safe_step) + 1, 1, MAX_TICK_COUNT)
 
 
+func get_tick_counts() -> Vector2i:
+	return Vector2i(
+		get_safe_tick_count(minor_tick_rpm),
+		get_safe_tick_count(major_tick_rpm)
+	)
+
+
 func _request_redraw() -> void:
 	_redraw_request_count += 1
 	queue_redraw()
