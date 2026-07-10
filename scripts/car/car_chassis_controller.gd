@@ -73,6 +73,9 @@ func apply_velocity(state: CarRuntimeState, car: CharacterBody3D, delta: float) 
 
 	car.move_and_slide()
 
+	var resolved_horizontal_velocity: Vector3 = Vector3(car.velocity.x, 0.0, car.velocity.z)
+	set_local_speeds_from_horizontal_velocity(state, car.global_transform, resolved_horizontal_velocity)
+
 
 func get_horizontal_velocity_vector(state: CarRuntimeState, car_transform: Transform3D) -> Vector3:
 	return _vehicle_motion_model.get_horizontal_velocity_vector(
