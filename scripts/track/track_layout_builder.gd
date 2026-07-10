@@ -1,14 +1,17 @@
 extends RefCounted
 class_name TrackLayoutBuilder
 
+const MIN_TRACK_WIDTH: float = 0.1
+const MAX_WIDTH_VARIATION: float = 0.45
+
 
 func build(config: Dictionary) -> TrackGeometryData:
 	var geometry: TrackGeometryData = TrackGeometryData.new()
 	var points: PackedVector3Array = _get_track_points()
 	var point_count: int = points.size()
-	var track_width: float = float(config.get("track_width", 14.0))
-	var width_variation: float = float(config.get("width_variation", 0.28))
-	var shoulder_width: float = float(config.get("shoulder_width", 10.0))
+	var track_width: float = maxf(float(config.get("track_width", 14.0)), MIN_TRACK_WIDTH)
+	var width_variation: float = clampf(float(config.get("width_variation", 0.28)), 0.0, MAX_WIDTH_VARIATION)
+	var shoulder_width: float = maxf(float(config.get("shoulder_width", 10.0)), 0.0)
 
 	geometry.center_points = points
 	geometry.racing_line_points = points
@@ -34,13 +37,19 @@ func build(config: Dictionary) -> TrackGeometryData:
 
 
 func get_half_width(index: int, point_count: int, track_width: float, width_variation: float) -> float:
-	var progress: float = float(index) / float(point_count)
+	var safe_track_width: float = maxf(track_width, MIN_TRACK_WIDTH)
+	var safe_width_variation: float = clampf(width_variation, 0.0, MAX_WIDTH_VARIATION)
+	if point_count <= 0:
+		return safe_track_width * 0.5
+
+	var safe_index: int = posmod(index, point_count)
+	var progress: float = float(safe_index) / float(point_count)
 	var turn_blend: float = maxf(
 		clampf(1.0 - absf(progress - 0.29) / 0.16, 0.0, 1.0),
 		clampf(1.0 - absf(progress - 0.79) / 0.16, 0.0, 1.0)
 	)
-	var width_scale: float = 1.0 + turn_blend * width_variation
-	return track_width * clampf(width_scale, 0.7, 1.45) * 0.5
+	var width_scale: float = 1.0 + turn_blend * safe_width_variation
+	return safe_track_width * clampf(width_scale, 0.7, 1.45) * 0.5
 
 
 func _get_track_points() -> PackedVector3Array:
