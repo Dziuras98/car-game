@@ -22,6 +22,8 @@ It runs:
 
 The workflow downloads the official Godot 4.7 stable Windows editor build, uses its console executable, imports project resources and runs the complete automated test suite in headless mode.
 
+Completed development stages are published to `master` as one atomic commit. This avoids cancelling an in-progress workflow through the workflow concurrency policy.
+
 ## Test runner
 
 The shared Windows test runner is:
@@ -40,10 +42,11 @@ scenes/tests/car_powertrain_controller_test.tscn
 scenes/tests/car_chassis_motion_test.tscn
 scenes/tests/track_layout_builder_test.tscn
 scenes/tests/track_layout_resource_test.tscn
+scenes/tests/lap_tracker_checkpoint_test.tscn
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-The run stops immediately when resource import or any test returns a non-zero exit code.
+The run stops immediately when resource import or any test returns a non-zero exit code. The focused checkpoint test runs before the full-program smoke test so sequence, direction or gate-generation failures are isolated.
 
 ## Running the suite locally on Windows
 

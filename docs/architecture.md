@@ -13,6 +13,8 @@ scenes/tests/car_specs_runtime_reconfiguration_test.tscn
 scenes/tests/car_powertrain_controller_test.tscn
 scenes/tests/car_chassis_motion_test.tscn
 scenes/tests/track_layout_builder_test.tscn
+scenes/tests/track_layout_resource_test.tscn
+scenes/tests/lap_tracker_checkpoint_test.tscn
 scenes/tests/full_program_smoke_test.tscn
 ```
 
@@ -28,7 +30,7 @@ scenes/main.tscn
 
 It composes:
 
-- generated oval track;
+- Resource-backed generated oval track;
 - player spawn point;
 - follow camera;
 - lighting and environment;
@@ -59,6 +61,8 @@ scenes/
     car_powertrain_controller_test.tscn
     car_specs_runtime_reconfiguration_test.tscn
     track_layout_builder_test.tscn
+    track_layout_resource_test.tscn
+    lap_tracker_checkpoint_test.tscn
     full_program_smoke_test.tscn
   tracks/
     simple_oval.tscn
@@ -83,6 +87,8 @@ resources/
       variants/
         370z_6mt.tres
         370z_7at.tres
+  tracks/
+    simple_oval.tres
 
 scripts/
   camera/
@@ -105,7 +111,7 @@ scripts/
 7. Camera, speedometer and minimap bind to the active car.
 8. Free drive enables input immediately and permits car switching.
 9. Race mode spawns opponents, runs the countdown and locks switching.
-10. `LapTracker` updates participant progress and results.
+10. `LapTracker` consumes ordered checkpoint crossings, updates participant progress and produces result ordering.
 
 ## Game and race responsibilities
 
@@ -146,9 +152,9 @@ scripts/race/ai_race_driver.gd
 scripts/ui/race_hud.gd
 ```
 
-`RaceSessionController` wires the spawner, race manager, lap tracker, HUD and minimap. `RaceManager` owns countdown/start/finish state. `LapTracker` owns participant progress and result ordering. `AiRaceDriver` only produces drive input.
+`RaceSessionController` wires the spawner, race manager, lap tracker, HUD and minimap. `RaceManager` owns countdown/start/finish state. `LapTracker` owns ordered checkpoint validation, completed laps, nearest-line position sorting and finish order. `AiRaceDriver` only produces drive input.
 
-Current lap counting still uses racing-line progress and should be replaced by ordered checkpoints before adding complex tracks.
+An intermediate checkpoint sequence must be completed before a forward finish-line crossing can add a lap. Reverse and out-of-order crossings are rejected. Racing-line progress is not authoritative for lap completion.
 
 ## Car architecture
 
@@ -234,24 +240,25 @@ It delegates to:
 ```text
 scripts/track/track_generated_content_root.gd
 scripts/track/track_geometry_data.gd
+scripts/track/track_layout_resource.gd
 scripts/track/track_layout_builder.gd
 scripts/track/track_surface_mesh_builder.gd
 scripts/track/track_collision_builder.gd
 scripts/track/track_marker_builder.gd
 scripts/track/track_barrier_builder.gd
 scripts/track/track_decoration_builder.gd
+scripts/track/track_checkpoint_builder.gd
+scripts/track/track_checkpoint_gate.gd
 scripts/track/track_material_factory.gd
 ```
 
-The public compatibility method `get_racing_line_points()` supplies AI, minimap and lap tracking.
+`resources/tracks/simple_oval.tres` is authoritative for control points, sampling, road dimensions, decoration settings and ordered checkpoint progress values.
 
-`TrackLayoutBuilder` is protected by a focused headless scene test. The test freezes the current 108-point loop topology, array alignment, center/racing-line relationship, local frame normalization, road and shoulder offsets, width-profile wrapping, deterministic rebuilds and sanitization of invalid width inputs.
+`GeneratedTrack` builds finish/checkpoint `Area3D` gates from the sampled geometry and emits `checkpoint_crossed(car, checkpoint_index, is_forward)`. Gate direction is derived from the sampled track tangent and the car's world velocity.
 
-Remaining track work:
+The public `get_racing_line_points()` method supplies AI, minimap and race-position sorting. It does not complete laps.
 
-- move control points and metadata into a Resource;
-- introduce ordered checkpoints;
-- keep nearest-line lookup only for position sorting.
+Focused tests freeze the 108-point geometry, Resource mapping, generated gate count, crossing direction and ordered lap-validation contract.
 
 ## UI architecture
 
@@ -273,6 +280,7 @@ Scripts update values, visibility and signals. Runtime-generated menu buttons an
 
 - Commit helper tests with subsystem changes.
 - Update relevant documentation in the same change.
+- Publish each completed stage to `master` as one atomic commit so CI runs are not cancelled by later commits.
 - Do not mix architecture cleanup with detailed handling tuning or new vehicle imports.
 - Add new cars through catalog/model/variant/spec Resources rather than controller overrides.
-- Do not add major modes or tracks until checkpoint validation and performance work are complete.
+- Do not add major modes or tracks until the performance pass is complete.

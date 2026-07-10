@@ -17,6 +17,12 @@ class_name TrackLayoutResource
 @export var grass_size: Vector2 = Vector2(260.0, 190.0)
 @export var barrier_distance_from_road: float = 12.0
 
+@export_group("Checkpoints")
+@export var checkpoint_progresses: PackedFloat32Array = PackedFloat32Array([0.25, 0.5, 0.75])
+@export var checkpoint_depth: float = 8.0
+@export var checkpoint_height: float = 4.0
+@export var checkpoint_width_margin: float = 1.0
+
 @export_group("Decoration")
 @export var has_stadium: bool = false
 @export_range(4, 18, 1) var stadium_section_step: int = 8
@@ -24,4 +30,35 @@ class_name TrackLayoutResource
 
 
 func is_valid() -> bool:
-	return track_id != &"" and not display_name.strip_edges().is_empty() and control_points.size() >= 4
+	return (
+		track_id != &""
+		and not display_name.strip_edges().is_empty()
+		and control_points.size() >= 4
+		and samples_per_segment > 0
+		and track_width > 0.0
+		and checkpoint_depth > 0.0
+		and checkpoint_height > 0.0
+		and checkpoint_width_margin >= 0.0
+		and has_valid_checkpoint_sequence()
+	)
+
+
+func has_valid_checkpoint_sequence() -> bool:
+	if checkpoint_progresses.is_empty():
+		return false
+
+	var previous_progress: float = 0.0
+	for progress: float in checkpoint_progresses:
+		if progress <= 0.0 or progress >= 1.0 or progress <= previous_progress:
+			return false
+		previous_progress = progress
+
+	return true
+
+
+func get_checkpoint_count() -> int:
+	return checkpoint_progresses.size()
+
+
+func get_checkpoint_gate_count() -> int:
+	return get_checkpoint_count() + 1

@@ -7,11 +7,13 @@ var lap_count: int = 3
 
 var _track: Node3D
 var _race_points: Array[Vector3] = []
+var _checkpoint_count: int = 0
 var _participants: Array[PlayerCarController] = []
 var _participant_laps: Array[int] = []
 var _participant_progress: Array[int] = []
 var _participant_finished: Array[bool] = []
-var _participant_lap_armed: Array[bool] = []
+var _participant_next_checkpoint: Array[int] = []
+var _participant_rejected_crossings: Array[int] = []
 var _finish_order: Array[PlayerCarController] = []
 
 
@@ -25,6 +27,8 @@ func prepare(
 	_track = track
 	lap_count = maxi(target_lap_count, 1)
 	_refresh_race_points()
+	_refresh_checkpoint_count()
+	_connect_track_checkpoint_signal()
 
 	if player_car != null:
 		_register_participant(player_car)
@@ -34,12 +38,16 @@ func prepare(
 
 
 func clear() -> void:
+	_disconnect_track_checkpoint_signal()
+	_track = null
 	_race_points.clear()
+	_checkpoint_count = 0
 	_participants.clear()
 	_participant_laps.clear()
 	_participant_progress.clear()
 	_participant_finished.clear()
-	_participant_lap_armed.clear()
+	_participant_next_checkpoint.clear()
+	_participant_rejected_crossings.clear()
 	_finish_order.clear()
 
 
@@ -54,25 +62,52 @@ func update_positions() -> void:
 		if not is_instance_valid(car) or _participant_finished[participant_index]:
 			continue
 
-		var previous_index: int = _participant_progress[participant_index]
-		var current_index: int = _get_nearest_race_point_index(car.global_position)
-		_participant_progress[participant_index] = current_index
+		_participant_progress[participant_index] = _get_nearest_race_point_index(car.global_position)
 
-		if _is_lap_arming_progress(current_index):
-			_participant_lap_armed[participant_index] = true
 
-		if _participant_lap_armed[participant_index] and _crossed_finish_line(previous_index, current_index):
-			_participant_lap_armed[participant_index] = false
-			_participant_laps[participant_index] += 1
-			if _participant_laps[participant_index] >= lap_count:
-				_mark_participant_finished(participant_index)
+func register_checkpoint_crossing(
+	car: PlayerCarController,
+	checkpoint_index: int,
+	is_forward: bool
+) -> bool:
+	var participant_index: int = _participants.find(car)
+	if participant_index < 0 or _participant_finished[participant_index]:
+		return false
+	if _checkpoint_count <= 0:
+		_reject_crossing(participant_index)
+		return false
+	if not is_forward:
+		_reject_crossing(participant_index)
+		return false
+	if checkpoint_index < 0 or checkpoint_index > _checkpoint_count:
+		_reject_crossing(participant_index)
+		return false
+
+	var expected_checkpoint: int = _participant_next_checkpoint[participant_index]
+	if checkpoint_index != expected_checkpoint:
+		_reject_crossing(participant_index)
+		if checkpoint_index == 0:
+			_participant_next_checkpoint[participant_index] = 1
+		return false
+
+	if checkpoint_index == 0:
+		_participant_next_checkpoint[participant_index] = 1
+		_participant_laps[participant_index] += 1
+		if _participant_laps[participant_index] >= lap_count:
+			_mark_participant_finished(participant_index)
+		return true
+
+	if checkpoint_index >= _checkpoint_count:
+		_participant_next_checkpoint[participant_index] = 0
+	else:
+		_participant_next_checkpoint[participant_index] = checkpoint_index + 1
+	return true
 
 
 func get_completed_laps(car: PlayerCarController) -> int:
 	var participant_index: int = _participants.find(car)
 	if participant_index < 0:
 		return 0
-
 	return _participant_laps[participant_index]
 
 
@@ -112,6 +147,20 @@ func get_result_order() -> Array[PlayerCarController]:
 	return ordered
 
 
+func get_expected_checkpoint_index_for_test(car: PlayerCarController) -> int:
+	var participant_index: int = _participants.find(car)
+	if participant_index < 0:
+		return -1
+	return _participant_next_checkpoint[participant_index]
+
+
+func get_rejected_crossing_count_for_test(car: PlayerCarController) -> int:
+	var participant_index: int = _participants.find(car)
+	if participant_index < 0:
+		return 0
+	return _participant_rejected_crossings[participant_index]
+
+
 func _refresh_race_points() -> void:
 	_race_points.clear()
 	if _track == null or not _track.has_method("get_racing_line_points"):
@@ -123,6 +172,31 @@ func _refresh_race_points() -> void:
 			_race_points.append(_track.to_global(point))
 
 
+func _refresh_checkpoint_count() -> void:
+	_checkpoint_count = 0
+	if _track == null or not _track.has_method("get_checkpoint_count"):
+		return
+	_checkpoint_count = maxi(int(_track.call("get_checkpoint_count")), 0)
+
+
+func _connect_track_checkpoint_signal() -> void:
+	if _track == null or not _track.has_signal("checkpoint_crossed"):
+		return
+
+	var callback: Callable = Callable(self, "_on_track_checkpoint_crossed")
+	if not _track.is_connected("checkpoint_crossed", callback):
+		_track.connect("checkpoint_crossed", callback)
+
+
+func _disconnect_track_checkpoint_signal() -> void:
+	if not is_instance_valid(_track) or not _track.has_signal("checkpoint_crossed"):
+		return
+
+	var callback: Callable = Callable(self, "_on_track_checkpoint_crossed")
+	if _track.is_connected("checkpoint_crossed", callback):
+		_track.disconnect("checkpoint_crossed", callback)
+
+
 func _register_participant(car: PlayerCarController) -> void:
 	if car == null:
 		return
@@ -131,7 +205,8 @@ func _register_participant(car: PlayerCarController) -> void:
 	_participant_laps.append(0)
 	_participant_progress.append(_get_nearest_race_point_index(car.global_position))
 	_participant_finished.append(false)
-	_participant_lap_armed.append(false)
+	_participant_next_checkpoint.append(1)
+	_participant_rejected_crossings.append(0)
 
 
 func _get_nearest_race_point_index(position: Vector3) -> int:
@@ -147,22 +222,8 @@ func _get_nearest_race_point_index(position: Vector3) -> int:
 	return nearest_index
 
 
-func _crossed_finish_line(previous_index: int, current_index: int) -> bool:
-	if _race_points.size() < 4:
-		return false
-
-	var finish_exit_index: int = floori(float(_race_points.size()) * 0.75)
-	var finish_entry_index: int = ceili(float(_race_points.size()) * 0.25)
-	return previous_index >= finish_exit_index and current_index <= finish_entry_index
-
-
-func _is_lap_arming_progress(current_index: int) -> bool:
-	if _race_points.size() < 4:
-		return false
-
-	var arming_start_index: int = floori(float(_race_points.size()) * 0.35)
-	var arming_end_index: int = ceili(float(_race_points.size()) * 0.85)
-	return current_index >= arming_start_index and current_index <= arming_end_index
+func _reject_crossing(participant_index: int) -> void:
+	_participant_rejected_crossings[participant_index] += 1
 
 
 func _mark_participant_finished(participant_index: int) -> void:
@@ -182,3 +243,11 @@ func _get_race_distance_score(car: PlayerCarController) -> int:
 		return -1
 
 	return _participant_laps[participant_index] * maxi(_race_points.size(), 1) + _participant_progress[participant_index]
+
+
+func _on_track_checkpoint_crossed(
+	car: PlayerCarController,
+	checkpoint_index: int,
+	is_forward: bool
+) -> void:
+	register_checkpoint_crossing(car, checkpoint_index, is_forward)

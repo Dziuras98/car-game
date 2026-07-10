@@ -1,6 +1,8 @@
 @tool
 extends Node3D
 
+signal checkpoint_crossed(car: PlayerCarController, checkpoint_index: int, is_forward: bool)
+
 const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 
 @export var track_layout: TrackLayoutResource = DEFAULT_TRACK_LAYOUT:
@@ -16,7 +18,9 @@ var _collision_builder: TrackCollisionBuilder
 var _marker_builder: TrackMarkerBuilder
 var _barrier_builder: TrackBarrierBuilder
 var _decoration_builder: TrackDecorationBuilder
+var _checkpoint_builder: TrackCheckpointBuilder
 var _geometry: TrackGeometryData
+var _checkpoint_gates: Array[TrackCheckpointGate] = []
 
 
 func _ready() -> void:
@@ -38,6 +42,12 @@ func _rebuild_track() -> void:
 	_marker_builder.build_markers(generated_content, _geometry, _material_factory, config)
 	_barrier_builder.build_barriers(generated_content, _geometry, _material_factory, config)
 	_decoration_builder.build_decorations(generated_content, _geometry, _material_factory, config)
+	_checkpoint_gates = _checkpoint_builder.build(
+		generated_content,
+		_geometry,
+		track_layout,
+		Callable(self, "_on_checkpoint_gate_crossed")
+	)
 
 
 func get_racing_line_points() -> Array[Vector3]:
@@ -49,6 +59,20 @@ func get_racing_line_points() -> Array[Vector3]:
 
 func get_track_layout() -> TrackLayoutResource:
 	return track_layout
+
+
+func get_checkpoint_count() -> int:
+	if track_layout == null:
+		return 0
+	return track_layout.get_checkpoint_count()
+
+
+func get_checkpoint_gate_count_for_test() -> int:
+	var valid_gate_count: int = 0
+	for gate: TrackCheckpointGate in _checkpoint_gates:
+		if is_instance_valid(gate):
+			valid_gate_count += 1
+	return valid_gate_count
 
 
 func _ensure_builders() -> void:
@@ -68,6 +92,8 @@ func _ensure_builders() -> void:
 		_barrier_builder = TrackBarrierBuilder.new()
 	if _decoration_builder == null:
 		_decoration_builder = TrackDecorationBuilder.new()
+	if _checkpoint_builder == null:
+		_checkpoint_builder = TrackCheckpointBuilder.new()
 
 
 func _build_track_generation_config() -> Dictionary:
@@ -85,3 +111,11 @@ func _build_track_generation_config() -> Dictionary:
 		"stadium_section_step": track_layout.stadium_section_step,
 		"stadium_distance_from_barrier": track_layout.stadium_distance_from_barrier,
 	}
+
+
+func _on_checkpoint_gate_crossed(
+	car: PlayerCarController,
+	checkpoint_index: int,
+	is_forward: bool
+) -> void:
+	checkpoint_crossed.emit(car, checkpoint_index, is_forward)

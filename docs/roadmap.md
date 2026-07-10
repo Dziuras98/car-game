@@ -10,6 +10,8 @@ The repository currently provides:
 - free-drive and race modes;
 - catalog-driven 370Z manual and automatic variants;
 - Resource-backed generated oval track;
+- generated finish/checkpoint gates;
+- ordered checkpoint-based lap validation;
 - AI opponents;
 - lap, position and results UI;
 - speedometer, tachometer and minimap;
@@ -20,7 +22,7 @@ The repository currently provides:
 - modular generated-track builders;
 - Windows GitHub Actions regression suite.
 
-Do not add more cars or major game modes until the remaining checkpoint-validation and performance work is complete.
+Do not add more cars or major game modes until the remaining performance work is complete.
 
 ## Phase 0 — Documentation and baseline freeze
 
@@ -142,16 +144,19 @@ Completed:
 
 ## Phase 7 — Checkpoint-based lap validation
 
-Status: not started.
+Status: complete for the current race flow.
 
-Tasks:
+Completed:
 
-- [ ] add checkpoint and finish-line areas;
-- [ ] add checkpoint sequence data/helper;
-- [ ] validate checkpoint order in `LapTracker`;
-- [ ] reject reverse finish-line crossings and track cuts;
-- [ ] add wrong-way or missed-checkpoint handling;
-- [ ] keep racing-line progress only for position sorting.
+- [x] generated finish-line and checkpoint `Area3D` gates;
+- [x] ordered checkpoint progress stored in `TrackLayoutResource`;
+- [x] checkpoint crossing direction derived from car velocity and gate tangent;
+- [x] `LapTracker` validates `1 -> 2 -> 3 -> finish` order;
+- [x] reverse finish-line crossings are rejected;
+- [x] skipped checkpoints and track cuts cannot complete a lap;
+- [x] unexpected finish crossings reset the sequence to checkpoint one;
+- [x] racing-line progress is used only for position sorting;
+- [x] focused checkpoint/lap regression test in Windows CI.
 
 ## Phase 8 — Performance and export quality
 
@@ -168,7 +173,7 @@ Tasks:
 
 ## Phase 9 — Feature expansion
 
-Start only after checkpoint validation and the performance pass.
+Start only after the performance pass.
 
 Candidates:
 
@@ -190,4 +195,5 @@ Every subsystem change should include:
 1. focused regression coverage;
 2. full smoke-test compatibility;
 3. relevant documentation updates;
-4. no unrelated handling or feature changes in the same commit series.
+4. no unrelated handling or feature changes in the same commit;
+5. one atomic `master` commit per completed stage so CI runs are not cancelled by later pushes.
