@@ -7,6 +7,12 @@ const EXPORT_SMOKE_FEATURE: String = "export_smoke_test"
 
 
 func _ready() -> void:
+	var localization_errors: PackedStringArray = LocalizationCatalogLoader.ensure_loaded()
+	if not localization_errors.is_empty():
+		push_error(
+			"[STARTUP_ROUTER] Failed to initialize localization catalogs: %s"
+			% "; ".join(localization_errors)
+		)
 	call_deferred("_route_startup")
 
 
