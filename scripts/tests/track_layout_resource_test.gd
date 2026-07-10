@@ -2,6 +2,7 @@ extends Node
 
 const SIMPLE_OVAL_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 const SIMPLE_OVAL_SCENE: PackedScene = preload("res://scenes/tracks/simple_oval.tscn")
+const TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
 const EXPECTED_CONTROL_POINT_COUNT: int = 18
 const EXPECTED_SAMPLE_COUNT: int = 108
 const EPSILON: float = 0.001
@@ -17,7 +18,7 @@ func _ready() -> void:
 func _run() -> void:
 	_test_resource_metadata()
 	_test_builder_uses_resource_layout()
-	_test_menu_options_use_resource_metadata()
+	_test_menu_options_use_catalog_metadata()
 	_test_track_scene_uses_resource()
 	await _test_atomic_generated_content_replacement()
 	_finish()
@@ -59,23 +60,18 @@ func _test_builder_uses_resource_layout() -> void:
 	_expect(shoulders_match_resource, "resource shoulder width drives generated shoulders")
 
 
-func _test_menu_options_use_resource_metadata() -> void:
-	var invalid_layout: TrackLayoutResource = TrackLayoutResource.new()
-	var layouts: Array[TrackLayoutResource] = [
-		invalid_layout,
-		SIMPLE_OVAL_LAYOUT,
-		SIMPLE_OVAL_LAYOUT,
-	]
-	var track_options: Array[Dictionary] = MenuOptionsBuilder.build_track_options_from_layouts(layouts)
-
-	_expect(track_options.size() == 1, "menu filters invalid and duplicate track resources")
+func _test_menu_options_use_catalog_metadata() -> void:
+	_expect(TRACK_CATALOG != null and TRACK_CATALOG.is_valid(), "production track catalog is valid")
+	var track_options: Array[Dictionary] = MenuOptionsBuilder.build_track_options(TRACK_CATALOG)
+	_expect(track_options.size() == TRACK_CATALOG.get_tracks().size(), "menu exposes one option per valid catalog track")
 	if track_options.is_empty():
 		return
 
+	var definition: TrackDefinition = TRACK_CATALOG.get_default_track()
 	var option: Dictionary = track_options[0]
-	_expect(str(option.get("track_id", "")) == str(SIMPLE_OVAL_LAYOUT.track_id), "menu track id comes from resource")
-	_expect(str(option.get("label", "")) == SIMPLE_OVAL_LAYOUT.display_name, "menu label comes from resource")
-	_expect(int(option.get("recommended_laps", 0)) == SIMPLE_OVAL_LAYOUT.recommended_laps, "menu lap metadata comes from resource")
+	_expect(str(option.get("track_id", "")) == str(definition.track_id), "menu track id comes from the track definition")
+	_expect(str(option.get("label", "")) == definition.display_name, "menu label comes from the track definition")
+	_expect(int(option.get("recommended_laps", 0)) == definition.recommended_laps, "menu lap metadata comes from the track definition")
 
 
 func _test_track_scene_uses_resource() -> void:
@@ -106,7 +102,6 @@ func _test_atomic_generated_content_replacement() -> void:
 	var first_instance_id: int = first_content.get_instance_id() if first_content != null else 0
 
 	mutable_layout.track_width += 0.5
-	mutable_layout.emit_changed()
 	await get_tree().process_frame
 	await get_tree().process_frame
 
