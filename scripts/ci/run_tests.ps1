@@ -12,6 +12,51 @@ if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
 }
 
+function Get-GodotRuntimeErrorLines {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$OutputLines
+    )
+
+    $errorPatterns = @(
+        '^\s*SCRIPT ERROR:',
+        '^\s*ERROR:',
+        '^\s*E\s+\d+:\d{2}:\d{2}(?::\d+)?\s+'
+    )
+
+    $matches = [System.Collections.Generic.List[string]]::new()
+    foreach ($lineValue in $OutputLines) {
+        $line = [string]$lineValue
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
+
+        $normalizedLine = [regex]::Replace($line, "`e\[[0-9;]*[A-Za-z]", "")
+        foreach ($pattern in $errorPatterns) {
+            if ($normalizedLine -match $pattern) {
+                $matches.Add($normalizedLine.Trim())
+                break
+            }
+        }
+    }
+
+    return @($matches | Select-Object -Unique)
+}
+
+function Assert-RuntimeErrorDetector {
+    $probeLines = @(
+        "Godot Engine v4.7.stable",
+        "E 0:00:09:109 _generate_sample: Invalid access to property or key",
+        "SCRIPT ERROR: Invalid access to property or key",
+        "ERROR: Failed loading resource"
+    )
+
+    $detectedLines = @(Get-GodotRuntimeErrorLines -OutputLines $probeLines)
+    if ($detectedLines.Count -ne 3) {
+        throw "Godot runtime-error detector self-check failed. Expected 3 matches, found $($detectedLines.Count)."
+    }
+}
+
 function Invoke-GodotCommand {
     param(
         [Parameter(Mandatory = $true)]
@@ -25,12 +70,69 @@ function Invoke-GodotCommand {
     Write-Host "=== $Name ==="
     Write-Host "Godot arguments: $($CommandArguments -join ' ')"
 
-    & $GodotBinary @CommandArguments
-    $exitCode = $LASTEXITCODE
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $GodotBinary
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    foreach ($argument in $CommandArguments) {
+        [void]$startInfo.ArgumentList.Add($argument)
+    }
+
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+
+    try {
+        if (-not $process.Start()) {
+            throw "$Name could not start Godot."
+        }
+
+        $standardOutputTask = $process.StandardOutput.ReadToEndAsync()
+        $standardErrorTask = $process.StandardError.ReadToEndAsync()
+        $process.WaitForExit()
+
+        $standardOutput = $standardOutputTask.GetAwaiter().GetResult()
+        $standardError = $standardErrorTask.GetAwaiter().GetResult()
+        $exitCode = $process.ExitCode
+    }
+    finally {
+        $process.Dispose()
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($standardOutput)) {
+        Write-Host $standardOutput.TrimEnd()
+    }
+    if (-not [string]::IsNullOrWhiteSpace($standardError)) {
+        Write-Host $standardError.TrimEnd()
+    }
+
+    $combinedOutputLines = @()
+    if ($null -ne $standardOutput) {
+        $combinedOutputLines += @($standardOutput -split "\r?\n")
+    }
+    if ($null -ne $standardError) {
+        $combinedOutputLines += @($standardError -split "\r?\n")
+    }
+
+    $runtimeErrorLines = @(Get-GodotRuntimeErrorLines -OutputLines $combinedOutputLines)
+    if ($runtimeErrorLines.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Godot emitted runtime errors during '$Name':"
+        foreach ($runtimeErrorLine in $runtimeErrorLines) {
+            Write-Host "  $runtimeErrorLine"
+        }
+    }
+
     if ($exitCode -ne 0) {
         throw "$Name failed with exit code $exitCode."
     }
+    if ($runtimeErrorLines.Count -gt 0) {
+        throw "$Name emitted $($runtimeErrorLines.Count) Godot runtime error(s) despite exit code 0."
+    }
 }
+
+Assert-RuntimeErrorDetector
 
 Invoke-GodotCommand -Name "Import project resources" -CommandArguments @(
     "--headless",
@@ -42,7 +144,8 @@ $scriptTests = @(
     "scripts/tests/startup_router_test.gd",
     "scripts/tests/car_controller_runtime_config_test.gd",
     "scripts/tests/speedometer_car_binding_test.gd",
-    "scripts/tests/tire_squeal_audio_binding_test.gd"
+    "scripts/tests/tire_squeal_audio_binding_test.gd",
+    "scripts/tests/legacy_controller_property_access_test.gd"
 )
 
 foreach ($testScript in $scriptTests) {
@@ -74,4 +177,4 @@ foreach ($testScene in $sceneTests) {
 }
 
 Write-Host ""
-Write-Host "All Godot tests passed."
+Write-Host "All Godot tests passed without runtime errors."
