@@ -22,7 +22,6 @@ func get_opponents() -> Array:
 	var opponents: Variant = _main.call("get_opponents")
 	if opponents is Array:
 		return opponents
-
 	return []
 
 
@@ -90,17 +89,40 @@ func simulate_player_finish() -> void:
 
 
 func find_visible_button_with_text(root_node: Node, label_text: String) -> Button:
+	return _find_visible_button_with_labels(root_node, _get_label_candidates(label_text))
+
+
+func _find_visible_button_with_labels(root_node: Node, label_candidates: Array[String]) -> Button:
 	if root_node == null:
 		return null
 
 	if root_node is Button:
 		var button: Button = root_node as Button
-		if button.text == label_text and button.is_visible_in_tree():
+		if label_candidates.has(button.text) and button.is_visible_in_tree():
 			return button
 
 	for child: Node in root_node.get_children():
-		var found_button: Button = find_visible_button_with_text(child, label_text)
+		var found_button: Button = _find_visible_button_with_labels(child, label_candidates)
 		if found_button != null:
 			return found_button
-
 	return null
+
+
+func _get_label_candidates(label_text: String) -> Array[String]:
+	var candidates: Array[String] = []
+	_append_unique_label(candidates, label_text)
+	_append_unique_label(candidates, TranslationServer.translate(label_text))
+
+	match label_text:
+		"Dowolny":
+			_append_unique_label(candidates, "Jazda swobodna")
+			_append_unique_label(candidates, TranslationServer.translate("Jazda swobodna"))
+		"Wyscig":
+			_append_unique_label(candidates, "Wyścig")
+			_append_unique_label(candidates, TranslationServer.translate("Wyścig"))
+	return candidates
+
+
+func _append_unique_label(labels: Array[String], label: String) -> void:
+	if not labels.has(label):
+		labels.append(label)
