@@ -55,6 +55,7 @@ func _validate_batches(track: Node3D, stage: String) -> void:
 		return
 
 	var edge_markers: MultiMeshInstance3D = generated.get_node_or_null("EdgeMarkers") as MultiMeshInstance3D
+	var barrier_root: Node = generated.get_node_or_null("Barriers")
 	var barrier_visuals: MultiMeshInstance3D = generated.get_node_or_null("Barriers/BarrierVisuals") as MultiMeshInstance3D
 	_expect(edge_markers != null and edge_markers.multimesh != null, "%s batches edge markers into one MultiMesh" % stage)
 	_expect(barrier_visuals != null and barrier_visuals.multimesh != null, "%s batches barriers into one MultiMesh" % stage)
@@ -62,10 +63,28 @@ func _validate_batches(track: Node3D, stage: String) -> void:
 		_expect(edge_markers.multimesh.instance_count > 2, "%s preserves all edge marker instances inside the batch" % stage)
 	if barrier_visuals != null and barrier_visuals.multimesh != null:
 		_expect(barrier_visuals.multimesh.instance_count > 2, "%s preserves all barrier instances inside the batch" % stage)
-	_expect(_count_nodes_of_type(generated, "MultiMeshInstance3D") == 2, "%s uses exactly two MultiMesh nodes for barriers and edge markers" % stage)
+
+	_expect(
+		_count_direct_named_batches(generated, "EdgeMarkers") == 1,
+		"%s keeps exactly one edge-marker render batch" % stage
+	)
+	_expect(
+		barrier_root != null and _count_nodes_of_type(barrier_root, "MultiMeshInstance3D") == 1,
+		"%s keeps exactly one barrier render batch" % stage
+	)
+
+
+func _count_direct_named_batches(root: Node, node_name: String) -> int:
+	var count: int = 0
+	for child: Node in root.get_children():
+		if child is MultiMeshInstance3D and child.name == node_name:
+			count += 1
+	return count
 
 
 func _count_nodes_of_type(root: Node, class_name_text: String) -> int:
+	if root == null:
+		return 0
 	var count: int = 1 if root.get_class() == class_name_text else 0
 	for child: Node in root.get_children():
 		count += _count_nodes_of_type(child, class_name_text)
