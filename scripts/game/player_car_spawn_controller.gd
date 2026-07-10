@@ -20,7 +20,7 @@ func get_current_car_index() -> int:
 	return _current_car_index
 
 
-func spawn_player_car(car_index: int, spawn_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
+func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
 	if _owner == null or _factory == null or not _factory.has_available_cars():
 		return null
 
@@ -30,8 +30,8 @@ func spawn_player_car(car_index: int, spawn_transform: Transform3D, player_input
 		return null
 
 	clear_current_car()
-	car_controller.transform = spawn_transform
 	_owner.add_child(car_controller)
+	car_controller.global_transform = spawn_global_transform
 	car_controller.set_player_input_enabled(player_input_enabled)
 
 	_current_car = car_controller
@@ -39,12 +39,12 @@ func spawn_player_car(car_index: int, spawn_transform: Transform3D, player_input
 	return _current_car
 
 
-func switch_to_next_car(spawn_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
+func switch_to_next_car(spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
 	if _factory == null or not _factory.has_available_cars():
 		return null
 
 	var next_index: int = (_current_car_index + 1) % _factory.get_available_count()
-	return spawn_player_car(next_index, spawn_transform, player_input_enabled)
+	return spawn_player_car(next_index, spawn_global_transform, player_input_enabled)
 
 
 func clear_current_car() -> void:
