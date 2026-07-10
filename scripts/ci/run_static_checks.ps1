@@ -32,6 +32,19 @@ function Assert-DoesNotContain {
     }
 }
 
+function Assert-DoesNotMatch {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string[]]$ForbiddenPatterns
+    )
+    $content = Read-Text $RelativePath
+    foreach ($pattern in $ForbiddenPatterns) {
+        if ($content -match $pattern) {
+            Add-Failure "$RelativePath matches forbidden pattern: $pattern"
+        }
+    }
+}
+
 function Assert-Contains {
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -68,23 +81,23 @@ Assert-Contains "scripts/car/car_specs.gd" @(
     "transmission_type",
     "func validate() -> PackedStringArray"
 )
-Assert-DoesNotContain "resources/cars/nissan/370z/specs/370z_6mt_specs.tres" @(
-    "acceleration =",
-    "manual_transmission_enabled =",
-    "automatic_transmission_enabled ="
+foreach ($specPath in @(
+    "resources/cars/nissan/370z/specs/370z_6mt_specs.tres",
+    "resources/cars/nissan/370z/specs/370z_7at_specs.tres"
+)) {
+    Assert-DoesNotMatch $specPath @(
+        '(?m)^\s*acceleration\s*=',
+        '(?m)^\s*manual_transmission_enabled\s*=',
+        '(?m)^\s*automatic_transmission_enabled\s*='
+    )
+}
+Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_6mt.tres" @(
+    '(?m)^\s*mass_kg\s*=',
+    '(?m)^\s*transmission_label\s*='
 )
-Assert-DoesNotContain "resources/cars/nissan/370z/specs/370z_7at_specs.tres" @(
-    "acceleration =",
-    "manual_transmission_enabled =",
-    "automatic_transmission_enabled ="
-)
-Assert-DoesNotContain "resources/cars/nissan/370z/variants/370z_6mt.tres" @(
-    "mass_kg =",
-    "transmission_label ="
-)
-Assert-DoesNotContain "resources/cars/nissan/370z/variants/370z_7at.tres" @(
-    "mass_kg =",
-    "transmission_label ="
+Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_7at.tres" @(
+    '(?m)^\s*mass_kg\s*=',
+    '(?m)^\s*transmission_label\s*='
 )
 
 Assert-Contains "scripts/track/track_generation_config.gd" @(
@@ -114,11 +127,15 @@ Assert-Contains "scripts/track/track_surface_mesh_builder.gd" @(
     ") -> TrackGeneratedMeshes:"
 )
 
+Assert-Contains "project.godot" @(
+    "textures/vram_compression/import_etc2_astc=true"
+)
 Assert-Contains "export_presets.cfg" @(
     'name="Windows Desktop"',
     'name="Windows Test"',
     'name="Android"',
     'platform="Android"',
+    'texture_format/etc2_astc=true',
     'package/unique_name="com.dziuras98.cargame"'
 )
 Assert-Contains "scripts/ci/export_android.sh" @(
@@ -132,11 +149,12 @@ Assert-Contains "scripts/ci/run_tests.ps1" @(
 )
 
 if ($failures.Count -gt 0) {
-    Write-Host "Static repository checks failed:"
+    $details = $failures -join [Environment]::NewLine
+    Write-Output "Static repository checks failed:"
     foreach ($failure in $failures) {
-        Write-Host "  - $failure"
+        Write-Output "  - $failure"
     }
-    throw "Static repository checks failed with $($failures.Count) issue(s)."
+    throw "Static repository checks failed with $($failures.Count) issue(s):$([Environment]::NewLine)$details"
 }
 
-Write-Host "Static repository checks passed."
+Write-Output "Static repository checks passed."
