@@ -6,7 +6,7 @@ This roadmap prioritizes correctness, maintainability and reproducible exports b
 
 The following remediation stages are complete for the present prototype:
 
-- catalog-driven car models, variants and specs;
+- catalog-driven car models, variants and specs with typed exported arrays;
 - catalog-driven track selection with an explicit default track ID;
 - modular game, spawning, race and vehicle coordinators;
 - scene-driven menu, race, pause, HUD, minimap and mobile UI;
@@ -15,6 +15,7 @@ The following remediation stages are complete for the present prototype:
 - plane-crossing checkpoints and ordered lap validation;
 - continuous participant progress and race positions;
 - manual clutch abstraction and automatic transmission/torque converter;
+- `TransmissionType` as the sole transmission-mode state;
 - bounded powertrain substeps;
 - four-point ground contact, surface grip and friction-circle coupling;
 - collision-resolved velocity synchronization;
@@ -56,23 +57,22 @@ Status: complete for current content.
 ### Cars
 
 - [x] `CarCatalog`, model, variant and `CarSpecs` resources;
+- [x] typed `CarModelDefinition` and `CarVariantDefinition` catalog arrays;
 - [x] 370Z 6MT and 7AT variants;
 - [x] `CarSpecs -> CarDriveConfig` as the only active tuning path;
+- [x] `TransmissionType` enum as the only transmission-mode source;
 - [x] variant specs assigned before scene-tree entry;
-- [x] catalog/scene/spec consistency validation.
+- [x] catalog/scene/spec consistency validation;
+- [x] `scenes/cars/370z.tscn` contains visual and structural data only;
+- [x] removed-property interception deleted from `PlayerCarController`.
 
 ### Tracks
 
 - [x] `TrackCatalog` and `TrackDefinition` resources;
+- [x] typed `TrackDefinition` catalog array;
 - [x] `default_track_id` as the sole default declaration;
 - [x] `TrackLayoutResource` for geometry and decoration parameters;
 - [x] menu options and recommended laps sourced from track metadata.
-
-Remaining cleanup:
-
-- [ ] resave or replace `scenes/cars/370z.tscn` without inert serialized tuning keys;
-- [ ] remove `PlayerCarController`'s ignored-property compatibility list after that scene migration;
-- [ ] consider typed exported catalog arrays when Godot serialization remains stable across editor/export builds.
 
 ## Phase 3 — Vehicle runtime
 
@@ -170,7 +170,7 @@ Distribution work remains deferred until required:
 
 ## Phase 7 — Test and repository hygiene
 
-Status: active maintenance.
+Status: complete for this remediation PR; maintained continuously afterward.
 
 Completed:
 
@@ -181,7 +181,10 @@ Completed:
 - [x] canonical full-program smoke scene;
 - [x] orphaned test-script detection;
 - [x] removal of the duplicate smoke-test implementation;
-- [x] explicit default-track regression coverage.
+- [x] explicit default-track regression coverage;
+- [x] no test-only suffixes in production GDScript APIs;
+- [x] no test simulation facades in production coordinators;
+- [x] static guards for completed scene, catalog and transmission migrations.
 
 Ongoing rules:
 
@@ -192,7 +195,7 @@ Ongoing rules:
 
 ## Phase 8 — Feature expansion
 
-Status: ready for prioritization after this PR is considered reviewable.
+Status: outside this remediation PR and ready for separate prioritization.
 
 Candidates:
 
@@ -213,4 +216,4 @@ Every subsystem change should include:
 2. compatibility with the canonical full-program smoke test;
 3. relevant documentation updates;
 4. no unrelated handling-tuning changes in the same commit;
-5. verification of both required workflows before the PR is marked ready.
+5. verification of both required workflows before a PR is marked ready.
