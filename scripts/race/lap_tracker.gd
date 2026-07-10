@@ -13,6 +13,7 @@ var _checkpoint_count: int = 0
 var _participant_states: Dictionary = {}
 var _participant_order: Array[int] = []
 var _finish_order: Array[PlayerCarController] = []
+var _projector: RacingLineProjector = RacingLineProjector.new()
 
 
 func prepare(
@@ -47,6 +48,7 @@ func clear() -> void:
 	_participant_states.clear()
 	_participant_order.clear()
 	_finish_order.clear()
+	_projector.clear()
 
 
 func update_positions() -> void:
@@ -184,12 +186,14 @@ func _refresh_race_points() -> void:
 	_race_points.clear()
 	_cumulative_distances.clear()
 	_track_length = 0.0
+	_projector.clear()
 	if _track == null:
 		return
 
 	for local_point: Vector3 in _track.get_racing_line_points():
 		_race_points.append(_track.to_global(local_point))
 	_rebuild_distance_cache()
+	_projector.configure(_race_points, _cumulative_distances, _track_length)
 
 
 func _rebuild_distance_cache() -> void:
@@ -257,37 +261,26 @@ func _remove_invalid_participants() -> void:
 
 
 func _update_participant_projection(state: ParticipantRaceState) -> void:
-	if state == null or not is_instance_valid(state.car) or _race_points.size() < 2:
+	if (
+		state == null
+		or not is_instance_valid(state.car)
+		or not _projector.is_configured()
+	):
 		return
 	var position: Vector3 = state.car.global_position
-	var best_distance_squared: float = INF
-	var best_progress_distance: float = 0.0
-	var best_segment_index: int = 0
-
-	for segment_index: int in range(_race_points.size()):
-		var next_index: int = (segment_index + 1) % _race_points.size()
-		var segment_start: Vector3 = _race_points[segment_index]
-		var segment_vector: Vector3 = _race_points[next_index] - segment_start
-		var segment_length_squared: float = segment_vector.length_squared()
-		if segment_length_squared <= 0.000001:
-			continue
-		var interpolation: float = clampf(
-			(position - segment_start).dot(segment_vector) / segment_length_squared,
-			0.0,
-			1.0
-		)
-		var projected_position: Vector3 = segment_start + segment_vector * interpolation
-		var distance_squared: float = position.distance_squared_to(projected_position)
-		if distance_squared < best_distance_squared:
-			best_distance_squared = distance_squared
-			best_segment_index = segment_index
-			best_progress_distance = (
-				_cumulative_distances[segment_index]
-				+ sqrt(segment_length_squared) * interpolation
-			)
-
-	state.progress_segment_index = best_segment_index
-	state.progress_distance = clampf(best_progress_distance, 0.0, _track_length)
+	var projection: RacingLineProjection = _projector.project(
+		position,
+		state.progress_segment_index,
+		state.last_projection_position,
+		state.has_projection,
+		state.projection_buffer
+	)
+	if projection == null:
+		return
+	state.progress_segment_index = projection.segment_index
+	state.progress_distance = projection.progress_distance
+	state.last_projection_position = position
+	state.has_projection = true
 
 
 func _reject_crossing(state: ParticipantRaceState) -> void:
@@ -322,8 +315,19 @@ func _on_track_checkpoint_crossed(
 
 
 func _on_track_geometry_rebuilt(_revision: int) -> void:
+	var previous_checkpoint_count: int = _checkpoint_count
 	_refresh_track_contract()
+	if not _has_valid_track_contract():
+		return
+	var checkpoint_topology_changed: bool = (
+		previous_checkpoint_count > 0
+		and previous_checkpoint_count != _checkpoint_count
+	)
 	for participant_id: int in _participant_order:
 		var state: ParticipantRaceState = _participant_states.get(participant_id) as ParticipantRaceState
-		if state != null and is_instance_valid(state.car):
-			_update_participant_projection(state)
+		if state == null or not is_instance_valid(state.car):
+			continue
+		state.reset_projection_tracking()
+		if checkpoint_topology_changed and not state.finished:
+			state.reset_checkpoint_sequence()
+		_update_participant_projection(state)
