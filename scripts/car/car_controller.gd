@@ -92,6 +92,11 @@ func _ready() -> void:
 	_reset_controller.capture_start_transform(_runtime_state, global_transform)
 
 
+func _exit_tree() -> void:
+	if _skid_mark_emitter != null:
+		_skid_mark_emitter.dispose()
+
+
 func get_forward_speed() -> float:
 	return _runtime_state.forward_speed
 
@@ -155,7 +160,6 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_car_input.read_drive_input()
-
 	var throttle: float = _car_input.throttle
 	var brake: float = _car_input.brake
 	var steering: float = _car_input.steering
@@ -228,10 +232,8 @@ func _reset_to_start() -> void:
 func _configure_skid_mark_emitter() -> void:
 	if _drive_config == null:
 		return
-
 	if _skid_mark_emitter == null:
 		_skid_mark_emitter = SkidMarkEmitter.new()
-
 	_skid_mark_emitter.configure(
 		self,
 		_drive_config.skid_mark_min_slip,
