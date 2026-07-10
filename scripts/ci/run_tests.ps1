@@ -16,6 +16,10 @@ if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
 Remove-Item -LiteralPath $testLogDirectory -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $testLogDirectory -Force | Out-Null
 
+Write-Host ""
+Write-Host "=== Static repository checks ==="
+& (Join-Path $PSScriptRoot "run_static_checks.ps1")
+
 function Get-GodotRuntimeErrorLines {
     param(
         [Parameter(Mandatory = $true)]
@@ -126,6 +130,11 @@ function Invoke-GodotCommand {
     }
 }
 
+function Get-ProjectRelativePath {
+    param([Parameter(Mandatory = $true)][string]$FullPath)
+    return [System.IO.Path]::GetRelativePath($projectRoot, $FullPath).Replace('\', '/')
+}
+
 Assert-RuntimeErrorDetector
 
 Invoke-GodotCommand -Name "Import project resources" -CommandArguments @(
@@ -134,16 +143,27 @@ Invoke-GodotCommand -Name "Import project resources" -CommandArguments @(
     "--import"
 )
 
-$scriptTests = @(
-    "scripts/tests/startup_router_test.gd",
-    "scripts/tests/car_controller_runtime_config_test.gd",
-    "scripts/tests/car_specs_validation_test.gd",
-    "scripts/tests/track_layout_validation_test.gd",
-    "scripts/tests/procedural_audio_voice_budget_test.gd",
-    "scripts/tests/speedometer_car_binding_test.gd",
-    "scripts/tests/tire_squeal_audio_binding_test.gd",
-    "scripts/tests/legacy_controller_property_access_test.gd"
+$excludedScriptTests = @(
+    "scripts/tests/exported_build_smoke_test.gd",
+    "scripts/tests/full_program_smoke_test.gd",
+    "scripts/tests/game_test_adapter.gd",
+    "scripts/tests/run_full_program_smoke_test.gd"
 )
+$scriptTests = @(
+    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scripts/tests") -Filter "*.gd" -File |
+        ForEach-Object {
+            $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
+            $content = Get-Content -LiteralPath $_.FullName -Raw
+            if ($excludedScriptTests -notcontains $relativePath -and $content -match '(?m)^\s*extends\s+SceneTree\s*$') {
+                $relativePath
+            }
+        } |
+        Sort-Object
+)
+
+if ($scriptTests.Count -eq 0) {
+    throw "No standalone SceneTree tests were discovered in scripts/tests."
+}
 
 foreach ($testScript in $scriptTests) {
     Invoke-GodotCommand -Name "Script test: $testScript" -CommandArguments @(
@@ -153,26 +173,23 @@ foreach ($testScript in $scriptTests) {
     )
 }
 
-$sceneTests = @(
-    "scenes/tests/car_catalog_validation_test.tscn",
-    "scenes/tests/car_spawn_transform_test.tscn",
-    "scenes/tests/car_specs_runtime_reconfiguration_test.tscn",
-    "scenes/tests/car_powertrain_controller_test.tscn",
-    "scenes/tests/powertrain_stability_test.tscn",
-    "scenes/tests/car_chassis_motion_test.tscn",
-    "scenes/tests/skid_mark_buffer_test.tscn",
-    "scenes/tests/follow_camera_runtime_test.tscn",
-    "scenes/tests/track_layout_builder_test.tscn",
-    "scenes/tests/track_layout_resource_test.tscn",
-    "scenes/tests/track_barrier_collision_test.tscn",
-    "scenes/tests/track_selection_runtime_test.tscn",
-    "scenes/tests/track_geometry_consumer_refresh_test.tscn",
-    "scenes/tests/lap_tracker_checkpoint_test.tscn",
-    "scenes/tests/lap_tracker_progress_test.tscn",
-    "scenes/tests/race_manager_state_test.tscn",
-    "scenes/tests/performance_regression_test.tscn",
-    "scenes/tests/full_program_smoke_test.tscn"
+$excludedSceneTests = @(
+    "scenes/tests/exported_build_smoke_test.tscn"
 )
+$sceneTests = @(
+    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scenes/tests") -Filter "*.tscn" -File |
+        ForEach-Object {
+            $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
+            if ($excludedSceneTests -notcontains $relativePath) {
+                $relativePath
+            }
+        } |
+        Sort-Object
+)
+
+if ($sceneTests.Count -eq 0) {
+    throw "No scene tests were discovered in scenes/tests."
+}
 
 foreach ($testScene in $sceneTests) {
     Invoke-GodotCommand -Name "Scene test: $testScene" -CommandArguments @(
@@ -183,4 +200,6 @@ foreach ($testScene in $sceneTests) {
 }
 
 Write-Host ""
-Write-Host "All Godot tests passed without runtime errors."
+Write-Host "All discovered Godot tests passed without runtime errors."
+Write-Host "Standalone script tests: $($scriptTests.Count)"
+Write-Host "Scene tests: $($sceneTests.Count)"
