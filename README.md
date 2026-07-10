@@ -9,13 +9,14 @@ The project is intentionally kept text-heavy and regression-tested so gameplay s
 The repository currently provides:
 
 - free-drive and race modes;
-- catalog-driven track, car model and car variant selection;
+- catalog-driven track, car model and car variant selection through typed resource arrays;
 - Nissan 370Z-style 6MT and 7AT variants backed by `CarSpecs` resources;
 - a modular `CharacterBody3D` vehicle runtime with powertrain, transmission, tire, four-point ground-contact and reset helpers;
+- `TransmissionType` as the sole transmission-mode state;
 - surface-dependent grip and a friction-circle longitudinal-force budget;
 - generated track surfaces, collision, barriers, markers, checkpoints and stadium decoration;
 - ordered checkpoint validation and continuous race-position progress;
-- AI opponents that consume the generated racing line;
+- AI opponents that consume the typed generated-track contract;
 - speedometer, tachometer, minimap, countdown, lap/position HUD, results and pause UI;
 - Polish and English localization resources with explicit startup loading;
 - keyboard, gamepad and independent mobile touch input;
@@ -67,8 +68,8 @@ Android touch controls feed the controller through a dedicated touch-input chann
 
 ```text
 CarCatalog
-  -> CarModelDefinition
-    -> CarVariantDefinition
+  -> Array[CarModelDefinition]
+    -> Array[CarVariantDefinition]
       -> CarSpecs
         -> CarDriveConfig
           -> runtime controllers
@@ -83,14 +84,14 @@ Important paths:
 - `scripts/car/car_controller.gd`
 - `scripts/car/car_drive_config_builder.gd`
 
-`CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems should use the public `PlayerCarController` API instead of reading tuning fields directly.
+`CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The base 370Z scene contains visual, collision and audio structure only and does not serialize tuning values.
 
 ### Tracks
 
 ```text
 TrackCatalog
   -> default_track_id
-  -> TrackDefinition
+  -> Array[TrackDefinition]
     -> GeneratedTrack scene
       -> TrackLayoutResource
         -> TrackGenerationConfig
@@ -117,6 +118,8 @@ Important paths:
 - `PlayerCarController`, powertrain/chassis helpers and `CarInput`;
 - generated-track builders and UI scene controllers.
 
+Production coordinators do not expose test-simulation entry points. Integration tests use the dedicated `GameTestAdapter` and observable runtime state.
+
 See `docs/architecture.md` for the current boundaries.
 
 ## Automated tests
@@ -132,7 +135,7 @@ It performs:
 5. a separate timeout and diagnostic log for every command;
 6. failure on Godot runtime-error output even when the process exits with code `0`.
 
-The static checks also reject orphaned test scripts. A runtime test must be one of:
+The static checks also reject orphaned test scripts, production `_for_test` identifiers, completed-migration regressions and reintroduced fallback paths. A runtime test must be one of:
 
 - a standalone `SceneTree` test;
 - a script referenced by a scene under `scenes/tests/`;
@@ -171,7 +174,7 @@ See `docs/continuous_integration.md` for exact gates and artifact behavior.
 - `docs/architecture.md` — subsystem ownership and dependency boundaries;
 - `docs/car_catalog.md` — car catalog/model/variant/spec rules;
 - `docs/vehicle_model.md` — current handling and powertrain model;
-- `docs/roadmap.md` — completed remediation stages and next priorities;
+- `docs/roadmap.md` — completed remediation stages and separately deferred feature expansion;
 - `docs/continuous_integration.md` — Windows and Android CI;
 - `docs/windows_export.md` — Windows export details.
 
@@ -183,3 +186,4 @@ See `docs/continuous_integration.md` for exact gates and artifact behavior.
 4. Keep detailed handling-tuning changes separate from structural refactors.
 5. Update the relevant documentation when ownership or data flow changes.
 6. Do not introduce an alternate fallback path when an explicit catalog or resource field already owns the decision.
+7. Do not expose test-only suffixes or simulation entry points from production classes.
