@@ -11,6 +11,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUTPUT_DIR="$PROJECT_ROOT/build/android"
 APK_PATH="$OUTPUT_DIR/car-game-debug.apk"
 LOG_PATH="$OUTPUT_DIR/android-export.log"
+VALIDATION_LOG="$OUTPUT_DIR/android-validation.log"
 
 if [[ ! -x "$GODOT_BIN" ]]; then
   echo "Godot binary is not executable: $GODOT_BIN" >&2
@@ -19,21 +20,7 @@ fi
 
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
-
-ADB_BIN=""
-if [[ -n "${ANDROID_HOME:-}" && -x "$ANDROID_HOME/platform-tools/adb" ]]; then
-  ADB_BIN="$ANDROID_HOME/platform-tools/adb"
-elif command -v adb >/dev/null 2>&1; then
-  ADB_BIN="$(command -v adb)"
-fi
-
-if [[ -n "$ADB_BIN" ]]; then
-  export ADB_SERVER_SOCKET="tcp:127.0.0.1:5037"
-  "$ADB_BIN" start-server >/dev/null
-  "$ADB_BIN" devices >/dev/null
-else
-  echo "adb was not found; Godot export will continue without pre-starting an ADB server." | tee "$OUTPUT_DIR/adb-warning.txt"
-fi
+: > "$VALIDATION_LOG"
 
 "$GODOT_BIN" \
   --headless \
@@ -47,26 +34,69 @@ if [[ ! -s "$APK_PATH" ]]; then
 fi
 
 unzip -tq "$APK_PATH" >/dev/null
+echo "APK archive integrity: valid" | tee -a "$VALIDATION_LOG"
 
-AAPT_BIN=""
-if [[ -n "${ANDROID_HOME:-}" && -d "$ANDROID_HOME/build-tools" ]]; then
-  latest_build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-  if [[ -x "$latest_build_tools/aapt" ]]; then
-    AAPT_BIN="$latest_build_tools/aapt"
+find_android_tool() {
+  local tool_name="$1"
+  local discovered=""
+  discovered="$(command -v "$tool_name" 2>/dev/null || true)"
+  if [[ -n "$discovered" && -x "$discovered" ]]; then
+    printf '%s\n' "$discovered"
+    return 0
   fi
+  if [[ -n "${ANDROID_HOME:-}" && -d "$ANDROID_HOME" ]]; then
+    discovered="$(find "$ANDROID_HOME" -type f -name "$tool_name" -perm -111 2>/dev/null | sort -V | tail -n 1)"
+    if [[ -n "$discovered" ]]; then
+      printf '%s\n' "$discovered"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+APK_ANALYZER="$(find_android_tool apkanalyzer || true)"
+if [[ -z "$APK_ANALYZER" ]]; then
+  echo "apkanalyzer was not found; manifest metadata cannot be validated offline." >&2
+  exit 1
 fi
 
-if [[ -n "$AAPT_BIN" ]]; then
-  "$AAPT_BIN" dump badging "$APK_PATH" | tee "$OUTPUT_DIR/aapt-badging.txt"
-  grep -q "package: name='com.dziuras98.cargame'" "$OUTPUT_DIR/aapt-badging.txt"
-  grep -q "application-label:'Car Game'" "$OUTPUT_DIR/aapt-badging.txt"
-else
-  echo "aapt was not found; archive integrity was checked but manifest metadata was not dumped." | tee "$OUTPUT_DIR/aapt-warning.txt"
+APPLICATION_ID="$($APK_ANALYZER manifest application-id "$APK_PATH")"
+VERSION_NAME="$($APK_ANALYZER manifest version-name "$APK_PATH")"
+MIN_SDK="$($APK_ANALYZER manifest min-sdk "$APK_PATH")"
+TARGET_SDK="$($APK_ANALYZER manifest target-sdk "$APK_PATH")"
+$APK_ANALYZER manifest print "$APK_PATH" > "$OUTPUT_DIR/android-manifest.xml"
+
+{
+  echo "application_id=$APPLICATION_ID"
+  echo "version_name=$VERSION_NAME"
+  echo "min_sdk=$MIN_SDK"
+  echo "target_sdk=$TARGET_SDK"
+} | tee -a "$VALIDATION_LOG"
+
+if [[ "$APPLICATION_ID" != "com.dziuras98.cargame" ]]; then
+  echo "Unexpected Android application id: $APPLICATION_ID" >&2
+  exit 1
 fi
+if [[ "$VERSION_NAME" != "0.1.0" ]]; then
+  echo "Unexpected Android version name: $VERSION_NAME" >&2
+  exit 1
+fi
+
+grep -q 'android:label="Car Game"' "$OUTPUT_DIR/android-manifest.xml"
+
+APK_SIGNER="$(find_android_tool apksigner || true)"
+if [[ -z "$APK_SIGNER" ]]; then
+  echo "apksigner was not found; APK signature cannot be verified." >&2
+  exit 1
+fi
+"$APK_SIGNER" verify --verbose --print-certs "$APK_PATH" > "$OUTPUT_DIR/apksigner-verification.txt"
+grep -q 'Verified' "$OUTPUT_DIR/apksigner-verification.txt"
+echo "APK signature: valid" | tee -a "$VALIDATION_LOG"
 
 if strings "$APK_PATH" | grep -E 'res://(scripts|scenes)/tests/' >/dev/null; then
   echo "Production Android APK appears to contain test resource paths." >&2
   exit 1
 fi
+echo "Production APK test-resource scan: clean" | tee -a "$VALIDATION_LOG"
 
-echo "Android debug APK validated: $APK_PATH"
+echo "Android debug APK validated: $APK_PATH" | tee -a "$VALIDATION_LOG"
