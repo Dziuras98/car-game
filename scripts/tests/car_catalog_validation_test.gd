@@ -124,7 +124,10 @@ func _validate_variant_scene(variant_id_key: String, variant: CarVariantDefiniti
 	var instance: Node = car_scene.instantiate()
 	var car_controller: PlayerCarController = instance as PlayerCarController
 	_expect(car_controller != null, "variant %s scene root is PlayerCarController" % variant_id_key)
-	instance.queue_free()
+	if car_controller != null:
+		_expect(car_controller.car_specs != null, "variant %s scene provides CarSpecs" % variant_id_key)
+		_expect(car_controller.car_specs == variant.get_specs(), "variant %s scene and catalog reference the same CarSpecs" % variant_id_key)
+	instance.free()
 
 
 func _validate_specs(variant_id_key: String, specs: CarSpecs) -> void:
