@@ -2,6 +2,20 @@ extends SceneTree
 
 const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 
+const REMOVED_CONTROLLER_TUNING_PROPERTIES: Array[StringName] = [
+	&"acceleration",
+	&"brake_deceleration",
+	&"max_forward_speed",
+	&"idle_rpm",
+	&"redline_rpm",
+	&"manual_transmission_enabled",
+	&"automatic_transmission_enabled",
+	&"gear_ratios",
+	&"vehicle_mass",
+	&"lateral_grip",
+	&"gravity",
+]
+
 var _checks: int = 0
 var _failures: Array[String] = []
 
@@ -12,9 +26,39 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var specs_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(DEFAULT_CAR_SPECS)
-	_expect(not specs_config.gear_ratios.is_empty(), "config built from default specs has gear ratios")
+	_test_specs_config_mapping()
+	_test_controller_exposes_only_specs_tuning()
+	_test_transmission_config_helpers()
+	_test_runtime_state_reset()
+	_test_gear_text()
 
+
+func _test_specs_config_mapping() -> void:
+	var specs_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(DEFAULT_CAR_SPECS)
+	_expect(specs_config != null, "config builder accepts CarSpecs")
+	if specs_config == null:
+		return
+
+	_expect(not specs_config.gear_ratios.is_empty(), "config built from specs has gear ratios")
+	_expect(is_equal_approx(specs_config.max_forward_speed, DEFAULT_CAR_SPECS.max_forward_speed), "config copies max speed from CarSpecs")
+	_expect(is_equal_approx(specs_config.idle_rpm, DEFAULT_CAR_SPECS.idle_rpm), "config copies idle RPM from CarSpecs")
+	_expect(specs_config.manual_transmission_enabled == DEFAULT_CAR_SPECS.manual_transmission_enabled, "config copies transmission mode from CarSpecs")
+
+
+func _test_controller_exposes_only_specs_tuning() -> void:
+	var controller: PlayerCarController = PlayerCarController.new()
+	var property_names: Dictionary = {}
+	for property_info: Dictionary in controller.get_property_list():
+		property_names[StringName(property_info.get("name", ""))] = true
+
+	_expect(property_names.has(&"car_specs"), "controller exposes CarSpecs resource")
+	for removed_property: StringName in REMOVED_CONTROLLER_TUNING_PROPERTIES:
+		_expect(not property_names.has(removed_property), "controller no longer exports legacy tuning property %s" % str(removed_property))
+
+	controller.free()
+
+
+func _test_transmission_config_helpers() -> void:
 	var transmission_config: CarDriveConfig = CarDriveConfig.new()
 	transmission_config.manual_transmission_enabled = true
 	transmission_config.automatic_transmission_enabled = false
@@ -25,6 +69,8 @@ func _run() -> void:
 	transmission_config.automatic_transmission_enabled = false
 	_expect(not transmission_config.uses_geared_transmission(), "non-transmission config does not use geared transmission")
 
+
+func _test_runtime_state_reset() -> void:
 	var runtime_state: CarRuntimeState = CarRuntimeState.new()
 	runtime_state.forward_speed = 12.0
 	runtime_state.lateral_speed = 3.0
@@ -44,6 +90,8 @@ func _run() -> void:
 	_expect(is_equal_approx(runtime_state.brake_input, 0.0), "reset clears brake input")
 	_expect(is_equal_approx(runtime_state.tire_slip_intensity, 0.0), "reset clears tire slip")
 
+
+func _test_gear_text() -> void:
 	_expect(_manual_gear_text(-1) == "R", "manual reverse text is R")
 	_expect(_manual_gear_text(0) == "N", "manual neutral text is N")
 	_expect(_manual_gear_text(1) == "1", "manual first gear text is 1")
