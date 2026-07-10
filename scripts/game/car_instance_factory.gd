@@ -50,7 +50,7 @@ func _get_opponent_variant() -> CarVariantDefinition:
 		if variant == null:
 			continue
 		var specs: CarSpecs = variant.get_specs()
-		if specs != null and specs.automatic_transmission_enabled:
+		if specs != null and specs.is_valid() and specs.automatic_transmission_enabled:
 			automatic_variants.append(variant)
 
 	var source: Array[CarVariantDefinition] = automatic_variants
@@ -90,8 +90,7 @@ func _instantiate_variant(variant: CarVariantDefinition) -> PlayerCarController:
 		return null
 
 	var specs: CarSpecs = variant.get_specs()
-	if specs == null:
-		push_error("Car variant %s must provide CarSpecs." % str(variant.variant_id))
+	if not _validate_specs(specs, "Car variant %s" % str(variant.variant_id)):
 		return null
 
 	# Catalog data is authoritative. A reusable visual/controller scene may be
@@ -116,9 +115,19 @@ func _instantiate_car(car_scene: PackedScene, require_scene_specs: bool) -> Play
 		car_instance.queue_free()
 		return null
 
-	if require_scene_specs and car_controller.car_specs == null:
-		push_error("Fallback car scenes must provide a non-null CarSpecs resource.")
+	if require_scene_specs and not _validate_specs(car_controller.car_specs, "Fallback car scene"):
 		car_instance.queue_free()
 		return null
 
 	return car_controller
+
+
+func _validate_specs(specs: CarSpecs, context: String) -> bool:
+	if specs == null:
+		push_error("%s must provide a non-null CarSpecs resource." % context)
+		return false
+	var validation_errors: PackedStringArray = specs.validate()
+	if validation_errors.is_empty():
+		return true
+	push_error("%s has invalid CarSpecs: %s" % [context, "; ".join(validation_errors)])
+	return false
