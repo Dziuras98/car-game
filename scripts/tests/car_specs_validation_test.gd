@@ -15,10 +15,17 @@ func _initialize() -> void:
 func _run() -> void:
 	_expect(MANUAL_SPECS.validate().is_empty(), "manual production specs pass comprehensive validation")
 	_expect(AUTOMATIC_SPECS.validate().is_empty(), "automatic production specs pass comprehensive validation")
+	_expect(MANUAL_SPECS.is_manual_transmission() and not MANUAL_SPECS.is_automatic_transmission(), "manual specs expose one exclusive transmission mode")
+	_expect(AUTOMATIC_SPECS.is_automatic_transmission() and not AUTOMATIC_SPECS.is_manual_transmission(), "automatic specs expose one exclusive transmission mode")
 
 	var invalid_transmission: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
-	invalid_transmission.automatic_transmission_enabled = true
-	_expect(_contains_error(invalid_transmission.validate(), "exactly one transmission"), "mutually enabled transmission modes are rejected")
+	invalid_transmission.transmission_type = 999
+	_expect(_contains_error(invalid_transmission.validate(), "transmission_type"), "invalid transmission enum values are rejected")
+
+	var compatibility_selection: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
+	compatibility_selection.automatic_transmission_enabled = true
+	_expect(compatibility_selection.is_automatic_transmission(), "compatibility setter selects automatic mode")
+	_expect(not compatibility_selection.is_manual_transmission(), "compatibility setter cannot leave both modes active")
 
 	var invalid_rpm_order: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
 	invalid_rpm_order.redline_rpm = invalid_rpm_order.peak_torque_rpm - 1.0
