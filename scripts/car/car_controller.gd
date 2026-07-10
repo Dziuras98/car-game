@@ -3,6 +3,67 @@ class_name PlayerCarController
 
 const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 
+# The base 370Z scene still contains serialized properties from the removed
+# controller exports. They are accepted only to keep that scene loadable and
+# are deliberately not used as runtime tuning data.
+const REMOVED_LEGACY_TUNING_PROPERTIES: Dictionary = {
+	&"acceleration": true,
+	&"brake_deceleration": true,
+	&"reverse_acceleration": true,
+	&"coast_deceleration": true,
+	&"handbrake_deceleration": true,
+	&"max_forward_speed": true,
+	&"max_reverse_speed": true,
+	&"steering_speed": true,
+	&"wheel_base": true,
+	&"max_steering_angle_degrees": true,
+	&"idle_rpm": true,
+	&"peak_torque_rpm": true,
+	&"redline_rpm": true,
+	&"rev_limiter_rpm": true,
+	&"low_rpm_torque_multiplier": true,
+	&"mid_rpm_torque_multiplier": true,
+	&"redline_torque_multiplier": true,
+	&"engine_force": true,
+	&"engine_brake_force": true,
+	&"rpm_response": true,
+	&"manual_transmission_enabled": true,
+	&"automatic_transmission_enabled": true,
+	&"gear_ratios": true,
+	&"reverse_gear_ratio": true,
+	&"final_drive_ratio": true,
+	&"peak_engine_torque": true,
+	&"wheel_radius": true,
+	&"drivetrain_efficiency": true,
+	&"shift_delay": true,
+	&"automatic_upshift_rpm": true,
+	&"automatic_downshift_rpm": true,
+	&"automatic_kickdown_throttle": true,
+	&"automatic_kickdown_rpm": true,
+	&"automatic_shift_delay": true,
+	&"torque_converter_stall_rpm": true,
+	&"torque_converter_coupling_rpm": true,
+	&"torque_converter_stall_torque_multiplier": true,
+	&"vehicle_mass": true,
+	&"drag_coefficient": true,
+	&"frontal_area": true,
+	&"air_density": true,
+	&"rolling_resistance_coefficient": true,
+	&"lateral_grip": true,
+	&"handbrake_lateral_grip_multiplier": true,
+	&"steering_slip_gain": true,
+	&"slip_speed_threshold": true,
+	&"slip_steering_lock_threshold": true,
+	&"slip_steering_same_direction_multiplier": true,
+	&"skid_mark_min_slip": true,
+	&"skid_mark_interval": true,
+	&"skid_mark_lifetime": true,
+	&"skid_mark_width": true,
+	&"skid_mark_length": true,
+	&"gravity": true,
+	&"floor_stick_force": true,
+}
+
 var _car_specs: CarSpecs = DEFAULT_CAR_SPECS
 
 @export_group("Specs")
@@ -14,75 +75,6 @@ var _car_specs: CarSpecs = DEFAULT_CAR_SPECS
 	get:
 		return _car_specs
 
-@export_group("Driving")
-@export var acceleration: float = 22.0
-@export var brake_deceleration: float = 34.0
-@export var reverse_acceleration: float = 12.0
-@export var coast_deceleration: float = 5.0
-@export var handbrake_deceleration: float = 18.0
-@export var max_forward_speed: float = 30.0
-@export var max_reverse_speed: float = 10.0
-@export var steering_speed: float = 2.7
-@export var wheel_base: float = 2.65
-@export var max_steering_angle_degrees: float = 32.0
-
-@export_group("Engine")
-@export var idle_rpm: float = 900.0
-@export var peak_torque_rpm: float = 4200.0
-@export var redline_rpm: float = 6500.0
-@export var rev_limiter_rpm: float = 6800.0
-@export var low_rpm_torque_multiplier: float = 0.42
-@export var mid_rpm_torque_multiplier: float = 0.82
-@export var redline_torque_multiplier: float = 0.72
-@export var engine_force: float = 30.0
-@export var engine_brake_force: float = 3.0
-@export var rpm_response: float = 8.0
-
-@export_group("Transmission")
-@export var manual_transmission_enabled: bool = false
-@export var automatic_transmission_enabled: bool = false
-@export var gear_ratios: Array[float] = [3.20, 2.10, 1.50, 1.15, 0.92, 0.75]
-@export var reverse_gear_ratio: float = 3.00
-@export var final_drive_ratio: float = 3.70
-@export var peak_engine_torque: float = 420.0
-@export var wheel_radius: float = 0.34
-@export var drivetrain_efficiency: float = 0.85
-@export var shift_delay: float = 0.28
-
-@export_group("Automatic Transmission")
-@export var automatic_upshift_rpm: float = 6200.0
-@export var automatic_downshift_rpm: float = 2100.0
-@export var automatic_kickdown_throttle: float = 0.82
-@export var automatic_kickdown_rpm: float = 5200.0
-@export var automatic_shift_delay: float = 0.22
-@export var torque_converter_stall_rpm: float = 2600.0
-@export var torque_converter_coupling_rpm: float = 4200.0
-@export var torque_converter_stall_torque_multiplier: float = 1.65
-
-@export_group("Resistance")
-@export var vehicle_mass: float = 1200.0
-@export var drag_coefficient: float = 0.30
-@export var frontal_area: float = 2.05
-@export var air_density: float = 1.225
-@export var rolling_resistance_coefficient: float = 0.015
-
-@export_group("Tires")
-@export var lateral_grip: float = 10.0
-@export var handbrake_lateral_grip_multiplier: float = 0.28
-@export var steering_slip_gain: float = 0.85
-@export var slip_speed_threshold: float = 2.2
-@export var slip_steering_lock_threshold: float = 0.55
-@export var slip_steering_same_direction_multiplier: float = 0.12
-@export var skid_mark_min_slip: float = 0.45
-@export var skid_mark_interval: float = 0.055
-@export var skid_mark_lifetime: float = 10.0
-@export var skid_mark_width: float = 0.22
-@export var skid_mark_length: float = 0.9
-
-@export_group("Grounding")
-@export var gravity: float = 30.0
-@export var floor_stick_force: float = 0.5
-
 var _drive_config: CarDriveConfig
 var _runtime_state: CarRuntimeState = CarRuntimeState.new()
 var _powertrain_controller: CarPowertrainController = CarPowertrainController.new()
@@ -90,6 +82,10 @@ var _chassis_controller: CarChassisController = CarChassisController.new()
 var _reset_controller: CarResetController = CarResetController.new()
 var _car_input: CarInput = CarInput.new()
 var _skid_mark_emitter: SkidMarkEmitter
+
+
+func _set(property: StringName, _value: Variant) -> bool:
+	return REMOVED_LEGACY_TUNING_PROPERTIES.has(property)
 
 
 func _ready() -> void:
@@ -148,6 +144,9 @@ func set_external_drive_inputs(throttle: float, brake: float, steering: float, h
 
 
 func _physics_process(delta: float) -> void:
+	if _drive_config == null:
+		return
+
 	if _car_input.should_reset_car():
 		_reset_to_start()
 		return
@@ -175,8 +174,18 @@ func _physics_process(delta: float) -> void:
 
 
 func _reconfigure_drive_runtime(preserve_motion_state: bool = true) -> void:
-	_drive_config = CarDriveConfigBuilder.build_from_specs_or_legacy(car_specs, self)
-	_drive_config.sanitize()
+	if car_specs == null:
+		_drive_config = null
+		set_physics_process(false)
+		push_error("PlayerCarController requires a non-null CarSpecs resource.")
+		return
+
+	_drive_config = CarDriveConfigBuilder.build_from_specs(car_specs)
+	if _drive_config == null:
+		set_physics_process(false)
+		return
+
+	set_physics_process(true)
 	_powertrain_controller.configure(_drive_config)
 	_chassis_controller.configure(_drive_config)
 	_configure_skid_mark_emitter()
@@ -201,6 +210,9 @@ func _clamp_runtime_gear_to_config() -> void:
 
 
 func _reset_to_start() -> void:
+	if _drive_config == null:
+		return
+
 	_reset_controller.reset_to_start(
 		self,
 		_runtime_state,
