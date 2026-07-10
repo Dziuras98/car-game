@@ -22,7 +22,7 @@ func configure(
 	rolling_resistance_coefficient = target_rolling_resistance_coefficient
 
 
-func apply(forward_speed: float, delta: float) -> float:
+func apply(forward_speed: float, delta: float, has_ground_contact: bool = true) -> float:
 	if absf(forward_speed) < 0.01:
 		return forward_speed
 
@@ -30,8 +30,12 @@ func apply(forward_speed: float, delta: float) -> float:
 	var safe_mass: float = maxf(vehicle_mass, 1.0)
 	var drag_force: float = 0.5 * air_density * drag_coefficient * frontal_area * forward_speed * forward_speed
 	var drag_acceleration: float = drag_force / safe_mass
-	var rolling_acceleration: float = rolling_resistance_coefficient * 9.81
-	var resistance_delta: float = (drag_acceleration + rolling_acceleration) * delta
+	var rolling_acceleration: float = (
+		rolling_resistance_coefficient * 9.81
+		if has_ground_contact
+		else 0.0
+	)
+	var resistance_delta: float = (drag_acceleration + rolling_acceleration) * maxf(delta, 0.0)
 
 	if absf(forward_speed) <= resistance_delta:
 		return 0.0
