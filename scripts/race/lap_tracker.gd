@@ -5,7 +5,7 @@ signal participant_finished(car: PlayerCarController)
 
 var lap_count: int = 3
 
-var _track: Node3D
+var _track: GeneratedTrack
 var _race_points: Array[Vector3] = []
 var _cumulative_distances: PackedFloat32Array = PackedFloat32Array()
 var _track_length: float = 0.0
@@ -16,7 +16,7 @@ var _finish_order: Array[PlayerCarController] = []
 
 
 func prepare(
-	track: Node3D,
+	track: GeneratedTrack,
 	target_lap_count: int,
 	player_car: PlayerCarController,
 	opponents: Array[PlayerCarController]
@@ -24,12 +24,11 @@ func prepare(
 	clear()
 	_track = track
 	lap_count = maxi(target_lap_count, 1)
-	_refresh_race_points()
-	_refresh_checkpoint_count()
+	_refresh_track_contract()
 	if not _has_valid_track_contract():
 		clear()
 		return false
-	_connect_track_checkpoint_signal()
+	_connect_track_signals()
 
 	if player_car != null:
 		_register_participant(player_car)
@@ -39,7 +38,7 @@ func prepare(
 
 
 func clear() -> void:
-	_disconnect_track_checkpoint_signal()
+	_disconnect_track_signals()
 	_track = null
 	_race_points.clear()
 	_cumulative_distances.clear()
@@ -52,7 +51,7 @@ func clear() -> void:
 
 func update_positions() -> void:
 	if _race_points.size() < 2:
-		_refresh_race_points()
+		_refresh_track_contract()
 		if _race_points.size() < 2:
 			return
 
@@ -165,31 +164,31 @@ func get_track_length_for_test() -> float:
 
 func _has_valid_track_contract() -> bool:
 	if _track == null:
-		push_error("LapTracker requires a track node.")
+		push_error("LapTracker requires a GeneratedTrack.")
 		return false
-	if not _track.has_method("get_racing_line_points") or _race_points.size() < 2:
+	if _race_points.size() < 2:
 		push_error("LapTracker requires at least two racing-line points.")
 		return false
-	if not _track.has_method("get_checkpoint_count") or _checkpoint_count <= 0:
+	if _checkpoint_count <= 0:
 		push_error("LapTracker requires a positive checkpoint count.")
 		return false
-	if not _track.has_signal("checkpoint_crossed"):
-		push_error("LapTracker requires the checkpoint_crossed signal.")
-		return false
 	return true
+
+
+func _refresh_track_contract() -> void:
+	_refresh_race_points()
+	_refresh_checkpoint_count()
 
 
 func _refresh_race_points() -> void:
 	_race_points.clear()
 	_cumulative_distances.clear()
 	_track_length = 0.0
-	if _track == null or not _track.has_method("get_racing_line_points"):
+	if _track == null:
 		return
 
-	var local_points: Array = _track.call("get_racing_line_points")
-	for point: Variant in local_points:
-		if point is Vector3:
-			_race_points.append(_track.to_global(point))
+	for local_point: Vector3 in _track.get_racing_line_points():
+		_race_points.append(_track.to_global(local_point))
 	_rebuild_distance_cache()
 
 
@@ -205,26 +204,29 @@ func _rebuild_distance_cache() -> void:
 
 
 func _refresh_checkpoint_count() -> void:
-	_checkpoint_count = 0
-	if _track == null or not _track.has_method("get_checkpoint_count"):
+	_checkpoint_count = maxi(_track.get_checkpoint_count(), 0) if _track != null else 0
+
+
+func _connect_track_signals() -> void:
+	if _track == null:
 		return
-	_checkpoint_count = maxi(int(_track.call("get_checkpoint_count")), 0)
+	var checkpoint_callback: Callable = Callable(self, "_on_track_checkpoint_crossed")
+	if not _track.checkpoint_crossed.is_connected(checkpoint_callback):
+		_track.checkpoint_crossed.connect(checkpoint_callback)
+	var geometry_callback: Callable = Callable(self, "_on_track_geometry_rebuilt")
+	if not _track.geometry_rebuilt.is_connected(geometry_callback):
+		_track.geometry_rebuilt.connect(geometry_callback)
 
 
-func _connect_track_checkpoint_signal() -> void:
-	if _track == null or not _track.has_signal("checkpoint_crossed"):
+func _disconnect_track_signals() -> void:
+	if not is_instance_valid(_track):
 		return
-	var callback: Callable = Callable(self, "_on_track_checkpoint_crossed")
-	if not _track.is_connected("checkpoint_crossed", callback):
-		_track.connect("checkpoint_crossed", callback)
-
-
-func _disconnect_track_checkpoint_signal() -> void:
-	if not is_instance_valid(_track) or not _track.has_signal("checkpoint_crossed"):
-		return
-	var callback: Callable = Callable(self, "_on_track_checkpoint_crossed")
-	if _track.is_connected("checkpoint_crossed", callback):
-		_track.disconnect("checkpoint_crossed", callback)
+	var checkpoint_callback: Callable = Callable(self, "_on_track_checkpoint_crossed")
+	if _track.checkpoint_crossed.is_connected(checkpoint_callback):
+		_track.checkpoint_crossed.disconnect(checkpoint_callback)
+	var geometry_callback: Callable = Callable(self, "_on_track_geometry_rebuilt")
+	if _track.geometry_rebuilt.is_connected(geometry_callback):
+		_track.geometry_rebuilt.disconnect(geometry_callback)
 
 
 func _register_participant(car: PlayerCarController) -> void:
@@ -317,3 +319,11 @@ func _on_track_checkpoint_crossed(
 	is_forward: bool
 ) -> void:
 	register_checkpoint_crossing(car, checkpoint_index, is_forward)
+
+
+func _on_track_geometry_rebuilt(_revision: int) -> void:
+	_refresh_track_contract()
+	for participant_id: int in _participant_order:
+		var state: ParticipantRaceState = _participant_states.get(participant_id) as ParticipantRaceState
+		if state != null and is_instance_valid(state.car):
+			_update_participant_projection(state)
