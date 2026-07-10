@@ -19,7 +19,7 @@ concurrency:
 env:
   GODOT_VERSION: 4.7-stable
   GODOT_ARCHIVE: Godot_v4.7-stable_win64.exe.zip
-  GODOT_EXECUTABLE: Godot_v4.7-stable_win64.exe
+  GODOT_EXECUTABLE: Godot_v4.7-stable_win64_console.exe
 
 jobs:
   tests:
