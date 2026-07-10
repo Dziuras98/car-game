@@ -37,8 +37,10 @@ The script:
 2. exports the `Windows Desktop` release preset;
 3. verifies that both the executable and PCK were created;
 4. starts the exported executable in headless mode;
-5. runs `scenes/tests/exported_build_smoke_test.tscn` from the exported package;
+5. passes `--export-smoke-test` as a user argument after Godot's `--` separator;
 6. requires a zero process exit code and a success marker in the generated log.
+
+The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches and `scenes/tests/exported_build_smoke_test.tscn` when the smoke-test argument is present. The argument-based route is required because official Windows export templates do not support the `--scene` path override.
 
 The exported-build smoke test validates that the release package contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs.
 
