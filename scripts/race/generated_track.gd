@@ -68,8 +68,13 @@ func _rebuild_track(force: bool = false) -> void:
 	_geometry = _layout_builder.build(config)
 	var generated_content: Node3D = _content_root.clear(self)
 
-	_surface_builder.build_surfaces(generated_content, _geometry, _material_factory, config)
-	_collision_builder.build_collisions(generated_content, _geometry, config)
+	var surface_meshes: Dictionary = _surface_builder.build_surfaces(
+		generated_content,
+		_geometry,
+		_material_factory,
+		config
+	)
+	_collision_builder.build_collisions(generated_content, _geometry, config, surface_meshes)
 	_marker_builder.build_markers(generated_content, _geometry, _material_factory, config)
 	_barrier_builder.build_barriers(generated_content, _geometry, _material_factory, config)
 	_decoration_builder.build_decorations(generated_content, _geometry, _material_factory, config)
