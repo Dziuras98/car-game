@@ -6,9 +6,9 @@ func build_decorations(
 	parent: Node3D,
 	geometry: TrackGeometryData,
 	material_factory: TrackMaterialFactory,
-	config: Dictionary
+	config: TrackGenerationConfig
 ) -> void:
-	if not bool(config.get("has_stadium", false)):
+	if config == null or not config.has_stadium:
 		return
 
 	_create_stadium(parent, geometry, material_factory, config)
@@ -18,7 +18,7 @@ func _create_stadium(
 	parent: Node3D,
 	geometry: TrackGeometryData,
 	material_factory: TrackMaterialFactory,
-	config: Dictionary
+	config: TrackGenerationConfig
 ) -> void:
 	var stadium: Node3D = Node3D.new()
 	stadium.name = "Stadium"
@@ -38,9 +38,9 @@ func _create_stadium(
 	var seat_material: Material = material_factory.create_stadium_seat_material()
 	var roof_material: Material = material_factory.create_stadium_roof_material()
 	var audience_materials: Array[StandardMaterial3D] = material_factory.create_audience_materials()
-	var stadium_section_step: int = int(config.get("stadium_section_step", 8))
-	var barrier_distance_from_road: float = float(config.get("barrier_distance_from_road", 12.0))
-	var stadium_distance_from_barrier: float = float(config.get("stadium_distance_from_barrier", 24.0))
+	var stadium_section_step: int = maxi(config.stadium_section_step, 1)
+	var barrier_distance_from_road: float = maxf(config.barrier_distance_from_road, 0.0)
+	var stadium_distance_from_barrier: float = maxf(config.stadium_distance_from_barrier, 0.0)
 
 	var section_index: int = 0
 	for index in range(0, geometry.center_points.size(), stadium_section_step):
@@ -65,12 +65,12 @@ func _add_stadium_back_walls(
 	geometry: TrackGeometryData,
 	wall_material: Material,
 	cap_material: Material,
-	config: Dictionary
+	config: TrackGenerationConfig
 ) -> void:
 	var wall_height: float = 13.0
 	var cap_half_width: float = 0.85
-	var barrier_distance_from_road: float = float(config.get("barrier_distance_from_road", 12.0))
-	var stadium_distance_from_barrier: float = float(config.get("stadium_distance_from_barrier", 24.0))
+	var barrier_distance_from_road: float = maxf(config.barrier_distance_from_road, 0.0)
+	var stadium_distance_from_barrier: float = maxf(config.stadium_distance_from_barrier, 0.0)
 	var wall_vertices: PackedVector3Array = PackedVector3Array()
 	var wall_indices: PackedInt32Array = PackedInt32Array()
 	var cap_vertices: PackedVector3Array = PackedVector3Array()
@@ -107,9 +107,14 @@ func _add_stadium_back_walls(
 	_add_array_mesh(parent, cap_vertices, cap_indices, cap_material, "StadiumWallCap")
 
 
-func _add_wall_direction_arrows(parent: Node3D, geometry: TrackGeometryData, arrow_material: Material, config: Dictionary) -> void:
-	var barrier_distance_from_road: float = float(config.get("barrier_distance_from_road", 12.0))
-	var stadium_distance_from_barrier: float = float(config.get("stadium_distance_from_barrier", 24.0))
+func _add_wall_direction_arrows(
+	parent: Node3D,
+	geometry: TrackGeometryData,
+	arrow_material: Material,
+	config: TrackGenerationConfig
+) -> void:
+	var barrier_distance_from_road: float = maxf(config.barrier_distance_from_road, 0.0)
+	var stadium_distance_from_barrier: float = maxf(config.stadium_distance_from_barrier, 0.0)
 	var arrow_vertices: PackedVector3Array = PackedVector3Array()
 	var arrow_indices: PackedInt32Array = PackedInt32Array()
 
