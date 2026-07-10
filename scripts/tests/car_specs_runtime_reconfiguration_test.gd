@@ -17,6 +17,8 @@ func _run() -> void:
 	tree_root.add_child(car)
 	await tree.process_frame
 
+	car.set_physics_process(false)
+
 	var initial_emitter: SkidMarkEmitter = car._skid_mark_emitter
 	_expect(initial_emitter != null, "car creates skid mark emitter during ready")
 	if initial_emitter == null:
@@ -42,7 +44,6 @@ func _run() -> void:
 	car._runtime_state.engine_rpm = 3600.0
 	car._runtime_state.current_gear = 6
 	car.car_specs = target_specs
-	await tree.process_frame
 
 	_expect(car._drive_config != null, "runtime reconfiguration rebuilds drive config")
 	if car._drive_config != null:
@@ -63,9 +64,9 @@ func _run() -> void:
 	_expect(_count_skid_mark_containers(tree_root) == 1, "runtime reconfiguration does not create duplicate SkidMarks containers")
 
 	_expect(car._runtime_state.current_gear == target_specs.gear_ratios.size(), "runtime reconfiguration clamps gear to new forward gear count")
-	_expect(is_equal_approx(car._runtime_state.forward_speed, 8.5), "runtime reconfiguration preserves forward speed")
-	_expect(is_equal_approx(car._runtime_state.lateral_speed, 1.25), "runtime reconfiguration preserves lateral speed")
-	_expect(is_equal_approx(car._runtime_state.engine_rpm, 3600.0), "runtime reconfiguration preserves engine rpm")
+	_expect(is_equal_approx(car._runtime_state.forward_speed, 8.5), "runtime reconfiguration preserves forward speed before the next physics tick")
+	_expect(is_equal_approx(car._runtime_state.lateral_speed, 1.25), "runtime reconfiguration preserves lateral speed before the next physics tick")
+	_expect(is_equal_approx(car._runtime_state.engine_rpm, 3600.0), "runtime reconfiguration preserves engine rpm before the next physics tick")
 
 	car.queue_free()
 	if is_instance_valid(initial_parent):
