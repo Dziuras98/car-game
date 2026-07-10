@@ -1,6 +1,7 @@
 extends SceneTree
 
 const StartupRouter = preload("res://scripts/game/startup_router.gd")
+const STARTUP_SCENE_PATH: String = "res://scenes/startup.tscn"
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -12,6 +13,10 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_expect(
+		ProjectSettings.get_setting("application/run/main_scene", "") == STARTUP_SCENE_PATH,
+		"project main scene points to the startup router"
+	)
 	_expect(
 		StartupRouter.resolve_startup_scene(PackedStringArray()) == StartupRouter.MAIN_SCENE_PATH,
 		"empty user arguments select the normal main scene"
