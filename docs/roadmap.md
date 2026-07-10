@@ -25,7 +25,8 @@ The project already has enough gameplay systems to be treated as a playable prot
 - focused runtime-config test for the car controller helpers;
 - focused runtime `car_specs` reconfiguration test;
 - focused powertrain controller test;
-- focused chassis/motion test.
+- focused chassis/motion test;
+- focused car catalog validation test.
 
 The next phase should focus on validation, small correctness fixes and data extraction. Do not add more cars or game modes until the current architecture is stable.
 
@@ -234,12 +235,12 @@ Completed:
 - [x] Move 370Z model and variants into `resources/cars/nissan/370z/`.
 - [x] Let menu model/variant selection come from the catalog.
 - [x] Let `CarInstanceFactory` apply variant specs after scene instantiation.
+- [x] Add scene-runnable catalog validation test for missing specs, missing scenes and duplicate variant IDs.
 
 Remaining work:
 
 - [ ] Remove duplicated scene override tuning after Resource-backed tuning is validated.
 - [ ] Split `CarSpecs` into sub-resources only if the flat file becomes hard to maintain.
-- [ ] Add validation helper/tests for missing specs, missing scenes and duplicate variant IDs.
 
 Definition of done:
 
