@@ -1,11 +1,16 @@
 extends Resource
 class_name CarSpecs
 
+enum TransmissionType {
+	DIRECT_DRIVE,
+	MANUAL,
+	AUTOMATIC,
+}
+
 @export_group("Identity")
 @export var display_name: String = "Car"
 
 @export_group("Driving")
-@export var acceleration: float = 22.0
 @export var brake_deceleration: float = 34.0
 @export var reverse_acceleration: float = 12.0
 @export var coast_deceleration: float = 5.0
@@ -15,6 +20,14 @@ class_name CarSpecs
 @export var steering_speed: float = 2.7
 @export var wheel_base: float = 2.65
 @export var max_steering_angle_degrees: float = 32.0
+
+# Compatibility accessor for resources created before the force-based model.
+# It is intentionally hidden from the inspector and is never copied to runtime.
+var acceleration: float:
+	set(_value):
+		pass
+	get:
+		return engine_force
 
 @export_group("Engine")
 @export var idle_rpm: float = 900.0
@@ -29,8 +42,7 @@ class_name CarSpecs
 @export var rpm_response: float = 8.0
 
 @export_group("Transmission")
-@export var manual_transmission_enabled: bool = false
-@export var automatic_transmission_enabled: bool = false
+@export_enum("Direct Drive", "Manual", "Automatic") var transmission_type: int = TransmissionType.DIRECT_DRIVE
 @export var gear_ratios: Array[float] = [3.20, 2.10, 1.50, 1.15, 0.92, 0.75]
 @export var reverse_gear_ratio: float = 3.00
 @export var final_drive_ratio: float = 3.70
@@ -38,6 +50,26 @@ class_name CarSpecs
 @export var wheel_radius: float = 0.34
 @export var drivetrain_efficiency: float = 0.85
 @export var shift_delay: float = 0.28
+
+# Compatibility accessors for code and resources written before transmission_type.
+# Assigning true selects that mode; assigning false only clears the same mode.
+var manual_transmission_enabled: bool:
+	set(value):
+		if value:
+			transmission_type = TransmissionType.MANUAL
+		elif transmission_type == TransmissionType.MANUAL:
+			transmission_type = TransmissionType.DIRECT_DRIVE
+	get:
+		return transmission_type == TransmissionType.MANUAL
+
+var automatic_transmission_enabled: bool:
+	set(value):
+		if value:
+			transmission_type = TransmissionType.AUTOMATIC
+		elif transmission_type == TransmissionType.AUTOMATIC:
+			transmission_type = TransmissionType.DIRECT_DRIVE
+	get:
+		return transmission_type == TransmissionType.AUTOMATIC
 
 @export_group("Automatic Transmission")
 @export var automatic_upshift_rpm: float = 6200.0
@@ -74,6 +106,18 @@ class_name CarSpecs
 @export var floor_stick_force: float = 0.5
 
 
+func is_manual_transmission() -> bool:
+	return transmission_type == TransmissionType.MANUAL
+
+
+func is_automatic_transmission() -> bool:
+	return transmission_type == TransmissionType.AUTOMATIC
+
+
+func uses_geared_transmission() -> bool:
+	return is_manual_transmission() or is_automatic_transmission()
+
+
 func is_valid() -> bool:
 	return validate().is_empty()
 
@@ -83,7 +127,6 @@ func validate() -> PackedStringArray:
 	if display_name.strip_edges().is_empty():
 		errors.append("display_name must not be empty")
 
-	_append_non_negative(errors, "acceleration", acceleration)
 	_append_positive(errors, "brake_deceleration", brake_deceleration)
 	_append_non_negative(errors, "reverse_acceleration", reverse_acceleration)
 	_append_non_negative(errors, "coast_deceleration", coast_deceleration)
@@ -111,9 +154,9 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "engine_brake_force", engine_brake_force)
 	_append_positive(errors, "rpm_response", rpm_response)
 
-	if manual_transmission_enabled == automatic_transmission_enabled:
-		errors.append("exactly one transmission mode must be enabled")
-	if gear_ratios.is_empty():
+	if transmission_type < TransmissionType.DIRECT_DRIVE or transmission_type > TransmissionType.AUTOMATIC:
+		errors.append("transmission_type is invalid")
+	if uses_geared_transmission() and gear_ratios.is_empty():
 		errors.append("gear_ratios must contain at least one forward gear")
 	for gear_index: int in range(gear_ratios.size()):
 		_append_positive(errors, "gear_ratios[%d]" % gear_index, gear_ratios[gear_index])
@@ -124,7 +167,7 @@ func validate() -> PackedStringArray:
 	_append_range(errors, "drivetrain_efficiency", drivetrain_efficiency, 0.0001, 1.0)
 	_append_non_negative(errors, "shift_delay", shift_delay)
 
-	if automatic_transmission_enabled:
+	if is_automatic_transmission():
 		_append_positive(errors, "automatic_upshift_rpm", automatic_upshift_rpm)
 		_append_positive(errors, "automatic_downshift_rpm", automatic_downshift_rpm)
 		if automatic_downshift_rpm >= automatic_upshift_rpm:
