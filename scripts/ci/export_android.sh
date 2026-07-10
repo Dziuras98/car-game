@@ -20,6 +20,21 @@ fi
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
+ADB_BIN=""
+if [[ -n "${ANDROID_HOME:-}" && -x "$ANDROID_HOME/platform-tools/adb" ]]; then
+  ADB_BIN="$ANDROID_HOME/platform-tools/adb"
+elif command -v adb >/dev/null 2>&1; then
+  ADB_BIN="$(command -v adb)"
+fi
+
+if [[ -n "$ADB_BIN" ]]; then
+  export ADB_SERVER_SOCKET="tcp:127.0.0.1:5037"
+  "$ADB_BIN" start-server >/dev/null
+  "$ADB_BIN" devices >/dev/null
+else
+  echo "adb was not found; Godot export will continue without pre-starting an ADB server." | tee "$OUTPUT_DIR/adb-warning.txt"
+fi
+
 "$GODOT_BIN" \
   --headless \
   --path "$PROJECT_ROOT" \
