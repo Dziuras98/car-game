@@ -1,6 +1,8 @@
 extends RefCounted
 class_name TrackMarkerBuilder
 
+const EDGE_MARKER_SIZE: Vector3 = Vector3(0.45, 0.2, 1.4)
+
 
 func build_markers(
 	parent: Node3D,
@@ -33,11 +35,11 @@ func _create_finish_line(
 
 	var line_mesh: BoxMesh = BoxMesh.new()
 	line_mesh.size = Vector3(half_width * 2.0, 0.04, 1.6)
+	line_mesh.material = material_factory.create_finish_line_material()
 
 	var line: MeshInstance3D = MeshInstance3D.new()
 	line.name = "Stripe"
 	line.mesh = line_mesh
-	line.material_override = material_factory.create_finish_line_material()
 	line.position = current + Vector3.UP * 0.05
 	line.rotation.y = yaw + PI * 0.5
 	finish_line.add_child(line)
@@ -53,41 +55,41 @@ func _create_edge_markers(
 	geometry: TrackGeometryData,
 	material_factory: TrackMaterialFactory
 ) -> void:
-	var edge_markers: Node3D = Node3D.new()
-	edge_markers.name = "EdgeMarkers"
-	parent.add_child(edge_markers)
-	edge_markers.owner = parent.owner
-
-	var marker_material: Material = material_factory.create_marker_material()
-	for index in range(0, geometry.center_points.size(), 3):
+	var transforms: Array[Transform3D] = []
+	for index: int in range(0, geometry.center_points.size(), 3):
 		var current: Vector3 = geometry.center_points[index]
 		var side: Vector3 = geometry.right_vectors[index]
 		var half_width: float = geometry.half_widths[index]
+		transforms.append(Transform3D(Basis(), current - side * (half_width + 0.45) + Vector3.UP * 0.08))
+		transforms.append(Transform3D(Basis(), current + side * (half_width + 0.45) + Vector3.UP * 0.08))
+	if transforms.is_empty():
+		return
 
-		_add_edge_marker(edge_markers, current - side * (half_width + 0.45), marker_material)
-		_add_edge_marker(edge_markers, current + side * (half_width + 0.45), marker_material)
-
-
-func _add_edge_marker(parent: Node3D, position: Vector3, material: Material) -> void:
 	var marker_mesh: BoxMesh = BoxMesh.new()
-	marker_mesh.size = Vector3(0.45, 0.2, 1.4)
+	marker_mesh.size = EDGE_MARKER_SIZE
+	marker_mesh.material = material_factory.create_marker_material()
+	var multimesh: MultiMesh = MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = marker_mesh
+	multimesh.instance_count = transforms.size()
+	for transform_index: int in range(transforms.size()):
+		multimesh.set_instance_transform(transform_index, transforms[transform_index])
 
-	var marker: MeshInstance3D = MeshInstance3D.new()
-	marker.mesh = marker_mesh
-	marker.material_override = material
-	marker.position = position + Vector3.UP * 0.08
-	parent.add_child(marker)
-	marker.owner = parent.owner
+	var edge_markers: MultiMeshInstance3D = MultiMeshInstance3D.new()
+	edge_markers.name = "EdgeMarkers"
+	edge_markers.multimesh = multimesh
+	parent.add_child(edge_markers)
+	edge_markers.owner = parent.owner
 
 
 func _add_box_mesh(parent: Node3D, position: Vector3, size: Vector3, yaw: float, material: Material, node_name: String) -> void:
 	var mesh: BoxMesh = BoxMesh.new()
 	mesh.size = size
+	mesh.material = material
 
 	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
 	mesh_instance.name = node_name
 	mesh_instance.mesh = mesh
-	mesh_instance.material_override = material
 	mesh_instance.position = position
 	mesh_instance.rotation.y = yaw
 	parent.add_child(mesh_instance)
