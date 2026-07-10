@@ -22,7 +22,9 @@ The project already has enough gameplay systems to be treated as a playable prot
 - modular generated-track builder split;
 - procedural engine and tire audio;
 - extended full-program smoke test;
-- focused runtime-config test for the car controller helpers.
+- focused runtime-config test for the car controller helpers;
+- focused runtime `car_specs` reconfiguration test;
+- focused powertrain controller test.
 
 The next phase should focus on validation, small correctness fixes and data extraction. Do not add more cars or game modes until the current architecture is stable.
 
@@ -197,6 +199,8 @@ Completed runtime/chassis/reset helpers:
 - [x] Move reset-to-start coordination there.
 - [x] Add `scripts/tests/car_controller_runtime_config_test.gd`.
 - [x] Reconfigure `SkidMarkEmitter` when runtime `car_specs` changes.
+- [x] Add scene-runnable focused test for runtime `car_specs` reconfiguration behavior.
+- [x] Add scene-runnable focused test for `CarPowertrainController` behavior beyond gear-text checks.
 
 Definition of done:
 
@@ -208,9 +212,7 @@ Definition of done:
 
 Remaining work:
 
-- [ ] Add focused tests for `CarPowertrainController` behavior beyond gear-text checks.
 - [ ] Add focused tests for `CarChassisController` and `VehicleMotionModel` behavior.
-- [ ] Add focused tests for runtime `car_specs` reconfiguration behavior.
 - [ ] Remove legacy export tuning after all scenes rely on `CarSpecs`.
 
 ## Phase 5 — Introduce car specs and catalog Resources
