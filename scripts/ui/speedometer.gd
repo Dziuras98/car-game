@@ -67,8 +67,12 @@ func _sync_tachometer_range() -> void:
 	if _car == null or _tachometer_gauge == null or _configured_car == _car:
 		return
 
+	var specs: CarSpecs = _car.car_specs
+	if specs == null:
+		return
+
 	_configured_car = _car
-	_tachometer_gauge.configure_range(_car.rev_limiter_rpm, _car.redline_rpm)
+	_tachometer_gauge.configure_range(specs.rev_limiter_rpm, specs.redline_rpm)
 
 
 func _resolve_target_node() -> PlayerCarController:
