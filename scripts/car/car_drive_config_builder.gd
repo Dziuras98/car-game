@@ -1,6 +1,13 @@
 extends RefCounted
 class_name CarDriveConfigBuilder
 
+const NON_RUNTIME_PROPERTIES: Array[StringName] = [
+	&"display_name",
+	&"acceleration",
+	&"manual_transmission_enabled",
+	&"automatic_transmission_enabled",
+]
+
 
 static func build_from_specs(car_specs: CarSpecs) -> CarDriveConfig:
 	if car_specs == null:
@@ -14,7 +21,9 @@ static func build_from_specs(car_specs: CarSpecs) -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
 	for property: Dictionary in car_specs.get_property_list():
 		var property_name: StringName = property.get("name", &"")
-		if property_name == &"" or not _config_has_property(config, property_name):
+		if property_name == &"" or property_name in NON_RUNTIME_PROPERTIES:
+			continue
+		if not _config_has_property(config, property_name):
 			continue
 		var usage: int = int(property.get("usage", 0))
 		if usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
@@ -37,7 +46,7 @@ static func get_unmapped_specs_properties(car_specs: CarSpecs) -> PackedStringAr
 		var usage: int = int(property.get("usage", 0))
 		if usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
 			continue
-		if property_name in [&"display_name", &"manual_transmission_enabled", &"automatic_transmission_enabled"]:
+		if property_name in NON_RUNTIME_PROPERTIES:
 			continue
 		if not _config_has_property(config, property_name):
 			result.append(str(property_name))
