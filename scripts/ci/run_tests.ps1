@@ -41,7 +41,8 @@ Invoke-GodotCommand -Name "Import project resources" -CommandArguments @(
 $scriptTests = @(
     "scripts/tests/startup_router_test.gd",
     "scripts/tests/car_controller_runtime_config_test.gd",
-    "scripts/tests/speedometer_car_binding_test.gd"
+    "scripts/tests/speedometer_car_binding_test.gd",
+    "scripts/tests/tire_squeal_audio_binding_test.gd"
 )
 
 foreach ($testScript in $scriptTests) {
