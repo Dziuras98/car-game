@@ -24,7 +24,7 @@ func _run() -> void:
 	var factory: CarInstanceFactory = CarInstanceFactory.new()
 	factory.configure(CATALOG.get_all_variants(), rng)
 
-	_test_player_spawn(world, factory)
+	_test_player_spawn_and_reset(world, factory)
 	_test_opponent_spawn(world, spawn_marker, factory, rng)
 
 	world.queue_free()
@@ -32,7 +32,7 @@ func _run() -> void:
 	_finish()
 
 
-func _test_player_spawn(world: Node3D, factory: CarInstanceFactory) -> void:
+func _test_player_spawn_and_reset(world: Node3D, factory: CarInstanceFactory) -> void:
 	var target_transform: Transform3D = Transform3D(Basis(Vector3.UP, 0.81), Vector3(-24.0, 2.5, 36.0))
 	var spawner: PlayerCarSpawnController = PlayerCarSpawnController.new()
 	spawner.configure(world, factory)
@@ -40,6 +40,13 @@ func _test_player_spawn(world: Node3D, factory: CarInstanceFactory) -> void:
 	_expect(car != null, "player car spawns under a transformed owner")
 	if car != null:
 		_expect(_transforms_match(car.global_transform, target_transform), "player spawn preserves the requested global transform")
+		car.global_transform = Transform3D(Basis(Vector3.UP, -0.35), Vector3(60.0, 8.0, -40.0))
+		car.velocity = Vector3(4.0, -2.0, 7.0)
+		car.set_player_input_enabled(true)
+		car.request_touch_reset()
+		car._physics_process(1.0 / 60.0)
+		_expect(_transforms_match(car.global_transform, target_transform), "reset returns the player car to the actual spawn transform")
+		_expect(car.velocity.is_zero_approx(), "reset clears world velocity after returning to spawn")
 	spawner.clear_current_car()
 
 
