@@ -126,7 +126,7 @@ PlayerCarController legacy exports -> CarDriveConfig -> runtime controllers
 
 `CarSpecs` is the preferred source for the current 370Z variants. Legacy controller exports remain until all duplicated scene tuning is removed.
 
-When `car_specs` changes at runtime, the controller rebuilds `CarDriveConfig`, reconfigures the powertrain and chassis, clamps the selected gear and updates the existing skid-mark emitter.
+When `car_specs` changes at runtime, the controller rebuilds `CarDriveConfig`, reconfigures the powertrain and chassis, clamps the selected gear and updates the existing skid-mark emitter. The powertrain also synchronizes its internal `EngineModel` RPM with the preserved `CarRuntimeState.engine_rpm`, clamped to the new idle and rev-limiter range.
 
 ## Runtime state
 
@@ -217,6 +217,8 @@ current_rpm = lerp(current_rpm, target_rpm, rpm_blend)
 current_rpm = clamp(current_rpm, idle_rpm, rev_limiter_rpm)
 ```
 
+`EngineModel.set_rpm()` is used during runtime powertrain reconfiguration. `CarPowertrainController` keeps a reference to the active runtime state, restores the preserved RPM after applying the new configuration and writes the same clamped value back to `CarRuntimeState.engine_rpm`. The first subsequent powertrain update therefore continues from the preserved RPM rather than from idle.
+
 ## Chassis model
 
 ### Tire state
@@ -269,8 +271,7 @@ The last step prevents stale pre-collision speed from being reapplied on the nex
 - manual clutch behavior is abstracted;
 - automatic behavior is arcade-oriented rather than a complete TCU simulation;
 - tire slip is a scalar gameplay signal, not a complete tire-force model;
-- `CarSpecs`, `CarDriveConfig` and legacy exports still duplicate tuning values;
-- runtime powertrain reconfiguration can still desynchronize internal engine RPM from public runtime RPM and should be fixed next.
+- `CarSpecs`, `CarDriveConfig` and legacy exports still duplicate tuning values.
 
 ## Regression checklist
 
@@ -288,16 +289,16 @@ After vehicle-model changes, verify:
 10. collisions update runtime forward/lateral speed;
 11. lateral tire recovery occurs only while grounded;
 12. current-frame slip affects steering immediately;
-13. reset clears forward and lateral speed;
-14. AI opponents can still follow the racing line.
+13. runtime `CarSpecs` reconfiguration preserves synchronized engine RPM through the next powertrain update;
+14. reset clears forward and lateral speed;
+15. AI opponents can still follow the racing line.
 
 ## Safe next vehicle tasks
 
 Recommended order:
 
-1. preserve internal engine RPM during runtime `CarSpecs` reconfiguration;
-2. remove legacy tuning exports after all scenes use `CarSpecs` explicitly;
-3. expose active drive-config telemetry to HUD and audio;
-4. split `CarSpecs` into sub-resources only if the flat Resource becomes difficult to maintain.
+1. remove legacy tuning exports after all scenes use `CarSpecs` explicitly;
+2. expose active drive-config telemetry to HUD and audio;
+3. split `CarSpecs` into sub-resources only if the flat Resource becomes difficult to maintain.
 
 Do not mix detailed handling tuning or new vehicle imports with architecture cleanup.
