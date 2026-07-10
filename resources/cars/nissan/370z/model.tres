@@ -13,3 +13,4 @@ generation = "Z34"
 production_year_start = 2009
 production_year_end = 2020
 variants = Array[Resource]([ExtResource("2_7at"), ExtResource("3_6mt")])
+default_variant_id = &"nissan_370z_7at"
