@@ -19,6 +19,7 @@ func _run() -> void:
 	_test_builder_uses_resource_layout()
 	_test_menu_options_use_resource_metadata()
 	_test_track_scene_uses_resource()
+	await _test_atomic_generated_content_replacement()
 	_finish()
 
 
@@ -87,6 +88,58 @@ func _test_track_scene_uses_resource() -> void:
 	if track_instance.has_method("get_track_layout"):
 		_expect(track_instance.call("get_track_layout") == SIMPLE_OVAL_LAYOUT, "scene references the authoritative simple oval resource")
 	track_instance.free()
+
+
+func _test_atomic_generated_content_replacement() -> void:
+	var track: Node3D = SIMPLE_OVAL_SCENE.instantiate() as Node3D
+	_expect(track != null, "track instantiates for rebuild replacement testing")
+	if track == null:
+		return
+
+	var mutable_layout: TrackLayoutResource = SIMPLE_OVAL_LAYOUT.duplicate(true) as TrackLayoutResource
+	track.set("track_layout", mutable_layout)
+	add_child(track)
+	await get_tree().process_frame
+
+	var first_content: Node = track.get_node_or_null("GeneratedContent")
+	_expect(first_content != null, "initial generation creates one GeneratedContent root")
+	var first_instance_id: int = first_content.get_instance_id() if first_content != null else 0
+
+	mutable_layout.track_width += 0.5
+	mutable_layout.emit_changed()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var replacement_content: Node = track.get_node_or_null("GeneratedContent")
+	_expect(replacement_content != null, "rebuild creates a replacement GeneratedContent root")
+	_expect(
+		replacement_content != null and replacement_content.get_instance_id() != first_instance_id,
+		"rebuild atomically replaces the generated subtree"
+	)
+	_expect(_count_named_children(track, "GeneratedContent") == 1, "track exposes exactly one generated subtree after rebuild")
+	_expect(_has_collision_shape(replacement_content, "Grass"), "rebuilt grass keeps its collision shape")
+	_expect(_has_collision_shape(replacement_content, "RoadsideTerrain"), "rebuilt roadside keeps its collision shape")
+	_expect(_has_collision_shape(replacement_content, "TrackSurface"), "rebuilt asphalt keeps its collision shape")
+
+	track.queue_free()
+	await get_tree().process_frame
+
+
+func _count_named_children(parent: Node, child_name: String) -> int:
+	var count: int = 0
+	for child: Node in parent.get_children():
+		if child.name == child_name:
+			count += 1
+	return count
+
+
+func _has_collision_shape(generated_content: Node, body_name: String) -> bool:
+	if generated_content == null:
+		return false
+	var body: Node = generated_content.get_node_or_null(body_name)
+	if body == null:
+		return false
+	return body.get_node_or_null("CollisionShape3D") is CollisionShape3D
 
 
 func _expect(condition: bool, message: String) -> void:
