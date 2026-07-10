@@ -1,0 +1,118 @@
+name: Android export
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-export-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7-stable
+  GODOT_TEMPLATE_VERSION: 4.7.stable
+  GODOT_ARCHIVE: Godot_v4.7-stable_linux.x86_64.zip
+  GODOT_EXECUTABLE: Godot_v4.7-stable_linux.x86_64
+  GODOT_EXPORT_TEMPLATES_ARCHIVE: Godot_v4.7-stable_export_templates.tpz
+
+jobs:
+  android:
+    name: Android debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download and verify Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools_dir="$PWD/tools/godot"
+          mkdir -p "$tools_dir"
+          base_url="https://github.com/godotengine/godot-builds/releases/download/$GODOT_VERSION"
+          curl --fail --location --silent --show-error "$base_url/$GODOT_ARCHIVE" --output "$RUNNER_TEMP/$GODOT_ARCHIVE"
+          curl --fail --location --silent --show-error "$base_url/SHA512-SUMS.txt" --output "$RUNNER_TEMP/SHA512-SUMS.txt"
+          grep "  $GODOT_ARCHIVE$" "$RUNNER_TEMP/SHA512-SUMS.txt" > "$RUNNER_TEMP/godot-checksum.txt"
+          (cd "$RUNNER_TEMP" && sha512sum --check godot-checksum.txt)
+          unzip -q "$RUNNER_TEMP/$GODOT_ARCHIVE" -d "$tools_dir"
+          chmod +x "$tools_dir/$GODOT_EXECUTABLE"
+          echo "GODOT_BIN=$tools_dir/$GODOT_EXECUTABLE" >> "$GITHUB_ENV"
+
+      - name: Restore export templates
+        id: template-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/share/godot/export_templates/${{ env.GODOT_TEMPLATE_VERSION }}
+          key: godot-android-templates-${{ env.GODOT_VERSION }}
+
+      - name: Install and verify export templates
+        if: steps.template-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="https://github.com/godotengine/godot-builds/releases/download/$GODOT_VERSION"
+          archive="$RUNNER_TEMP/$GODOT_EXPORT_TEMPLATES_ARCHIVE"
+          sums="$RUNNER_TEMP/SHA512-SUMS.txt"
+          if [[ ! -f "$sums" ]]; then
+            curl --fail --location --silent --show-error "$base_url/SHA512-SUMS.txt" --output "$sums"
+          fi
+          curl --fail --location --silent --show-error "$base_url/$GODOT_EXPORT_TEMPLATES_ARCHIVE" --output "$archive"
+          grep "  $GODOT_EXPORT_TEMPLATES_ARCHIVE$" "$sums" > "$RUNNER_TEMP/templates-checksum.txt"
+          (cd "$RUNNER_TEMP" && sha512sum --check templates-checksum.txt)
+          extract_dir="$RUNNER_TEMP/godot-export-templates"
+          rm -rf "$extract_dir"
+          mkdir -p "$extract_dir"
+          unzip -q "$archive" -d "$extract_dir"
+          target="$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION"
+          mkdir -p "$target"
+          cp -R "$extract_dir/templates/." "$target/"
+
+      - name: Configure Godot Android SDK paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          settings_dir="$HOME/.config/godot"
+          mkdir -p "$settings_dir"
+          cat > "$settings_dir/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+
+      - name: Import project
+        shell: bash
+        run: "$GODOT_BIN --headless --path \"$PWD\" --import"
+
+      - name: Export and validate Android APK
+        shell: bash
+        run: |
+          chmod +x ./scripts/ci/export_android.sh
+          ./scripts/ci/export_android.sh "$GODOT_BIN"
+
+      - name: Upload Android build and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: car-game-android-${{ github.sha }}
+          path: build/android/
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6
