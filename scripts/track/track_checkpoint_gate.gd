@@ -123,9 +123,11 @@ func _evaluate_segment_crossing(
 	current_position: Vector3,
 	velocity: Vector3
 ) -> int:
-	var previous_distance: float = to_local(previous_position).z
-	var current_distance: float = to_local(current_position).z
-	var velocity_alignment: float = velocity.dot(_get_forward_direction())
+	var evaluation_transform: Transform3D = _get_evaluation_transform()
+	var inverse_transform: Transform3D = evaluation_transform.affine_inverse()
+	var previous_distance: float = (inverse_transform * previous_position).z
+	var current_distance: float = (inverse_transform * current_position).z
+	var velocity_alignment: float = velocity.dot(_get_forward_direction(evaluation_transform))
 
 	if (
 		previous_distance > PLANE_EPSILON
@@ -143,7 +145,8 @@ func _evaluate_segment_crossing(
 
 
 func _get_stable_side(world_position: Vector3) -> int:
-	var plane_distance: float = to_local(world_position).z
+	var inverse_transform: Transform3D = _get_evaluation_transform().affine_inverse()
+	var plane_distance: float = (inverse_transform * world_position).z
 	if plane_distance > PLANE_EPSILON:
 		return 1
 	if plane_distance < -PLANE_EPSILON:
@@ -151,5 +154,14 @@ func _get_stable_side(world_position: Vector3) -> int:
 	return 0
 
 
-func _get_forward_direction() -> Vector3:
-	return (-global_transform.basis.z).normalized()
+func _get_evaluation_transform() -> Transform3D:
+	return global_transform if is_inside_tree() else transform
+
+
+func _get_forward_direction(evaluation_transform: Transform3D = Transform3D.IDENTITY) -> Vector3:
+	var active_transform: Transform3D = evaluation_transform
+	if active_transform == Transform3D.IDENTITY and is_inside_tree():
+		active_transform = global_transform
+	elif active_transform == Transform3D.IDENTITY:
+		active_transform = transform
+	return (-active_transform.basis.z).normalized()
