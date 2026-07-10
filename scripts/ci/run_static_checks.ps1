@@ -198,6 +198,12 @@ Assert-Contains "scripts/ci/run_tests.ps1" @(
     "Get-ChildItem",
     "extends\s+SceneTree"
 )
+Assert-Contains "scenes/tests/full_program_smoke_test.tscn" @(
+    'path="res://scripts/tests/full_program_smoke_test.gd"'
+)
+Assert-DoesNotContain "scenes/tests/full_program_smoke_test.tscn" @(
+    "full_program_smoke_test_v2.gd"
+)
 Assert-TestScriptOwnership
 
 if ($failures.Count -gt 0) {
