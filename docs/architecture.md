@@ -16,7 +16,7 @@ The required pull-request gates are:
 - all scenes under `scenes/tests/` are executed, except explicit packaged-only fixtures;
 - each command receives an independent timeout and log;
 - Godot runtime-error output fails the command even when its exit code is zero;
-- static checks reject architectural fallback paths and orphaned test scripts.
+- static checks reject architectural fallback paths, completed-migration regressions, production test-only identifiers and orphaned test scripts.
 
 The canonical end-to-end test is `scenes/tests/full_program_smoke_test.tscn`, which runs `scripts/tests/full_program_smoke_test.gd`.
 
@@ -69,7 +69,7 @@ The normal main scene composes:
 - free-drive and race session entry/cleanup;
 - pause and mobile-control lifecycle.
 
-It must not accumulate vehicle physics, procedural track construction, detailed lap rules or low-level UI layout logic.
+It must not accumulate vehicle physics, procedural track construction, detailed lap rules, low-level UI layout logic or test-simulation facades.
 
 ### Selection and spawning
 
@@ -88,10 +88,12 @@ scripts/game/opponent_participant_spawner.gd
 Rules:
 
 - catalog IDs are authoritative;
+- car and track catalog arrays are statically typed;
 - `TrackCatalog.default_track_id` is the only default-track mechanism;
 - every car variant supplies a scene and `CarSpecs`;
 - `CarSpecs` is assigned before a car enters the tree;
-- opponents use catalog variants rather than mutating controller tuning fields.
+- opponents use catalog variants rather than mutating controller tuning fields;
+- missing or invalid content fails validation rather than selecting an implicit fallback.
 
 ### Race subsystem
 
@@ -109,7 +111,7 @@ Responsibilities:
 - `RaceSessionController` wires participants, track signals, HUD and lifecycle;
 - `RaceManager` owns IDLE/COUNTDOWN/RUNNING/FINISHED state and input locks;
 - `LapTracker` owns ordered checkpoint state, lap completion, continuous progress, positions and finish order;
-- `AiRaceDriver` only produces drive input from the generated racing line.
+- `AiRaceDriver` consumes a typed `GeneratedTrack` contract and only produces drive input.
 
 Checkpoint crossings, not nearest-line progress, are authoritative for lap completion. Progress is used for position ordering between gates.
 
@@ -121,14 +123,16 @@ The car root is a `CharacterBody3D` controlled by `PlayerCarController`.
 
 ```text
 CarCatalog
-  -> CarModelDefinition
-    -> CarVariantDefinition
+  -> Array[CarModelDefinition]
+    -> Array[CarVariantDefinition]
       -> CarSpecs
         -> CarDriveConfig
           -> runtime controllers
 ```
 
-`CarSpecs` is the persistent tuning resource. `CarDriveConfigBuilder` validates it and creates a sanitized runtime copy. There is no controller-export fallback.
+`CarSpecs` is the persistent tuning resource. `CarDriveConfigBuilder` validates it and creates a sanitized runtime copy. `CarSpecs.transmission_type` is the sole transmission-mode state. There are no legacy boolean transmission selectors and no controller-export fallback.
+
+The base car scene contains visual, collision and audio structure only. It does not serialize tuning fields, and `PlayerCarController` does not intercept unknown properties.
 
 ### Runtime helpers
 
@@ -178,7 +182,7 @@ Changing `car_specs` rebuilds `CarDriveConfig`, reconfigures controllers, clamps
 ```text
 TrackCatalog
   -> default_track_id
-  -> TrackDefinition
+  -> Array[TrackDefinition]
     -> PackedScene
       -> GeneratedTrack
         -> TrackLayoutResource
@@ -232,6 +236,7 @@ Procedural engine and tire audio use bounded voice budgets and listener-distance
 
 - Keep catalog/resource ownership explicit; do not add implicit first-entry fallbacks.
 - Keep `GameManager` and `PlayerCarController` as coordinators.
+- Do not add test-only suffixes or simulation entry points to production classes.
 - Add focused tests with each subsystem change.
 - Ensure every test script is discoverable, scene-referenced or an explicitly allowed helper.
 - Preserve the canonical full-program smoke flow.
