@@ -115,11 +115,11 @@ Assert-Contains "scripts/track/track_surface_mesh_builder.gd" @(
 )
 
 Assert-Contains "export_presets.cfg" @(
-    "name=\"Windows Desktop\"",
-    "name=\"Windows Test\"",
-    "name=\"Android\"",
-    "platform=\"Android\"",
-    "package/unique_name=\"com.dziuras98.cargame\""
+    'name="Windows Desktop"',
+    'name="Windows Test"',
+    'name="Android"',
+    'platform="Android"',
+    'package/unique_name="com.dziuras98.cargame"'
 )
 Assert-Contains "scripts/ci/export_android.sh" @(
     '--export-debug "Android"',
