@@ -72,25 +72,6 @@ rings = 1
 [node name="370Z" type="CharacterBody3D"]
 floor_snap_length = 0.4
 script = ExtResource("1_controller")
-manual_transmission_enabled = true
-max_forward_speed = 69.45
-idle_rpm = 850.0
-peak_torque_rpm = 5200.0
-redline_rpm = 7000.0
-rev_limiter_rpm = 7500.0
-low_rpm_torque_multiplier = 0.5
-mid_rpm_torque_multiplier = 0.86
-redline_torque_multiplier = 0.92
-gear_ratios = Array[float]([3.794, 2.324, 1.624, 1.271, 1.0, 0.794])
-reverse_gear_ratio = 3.446
-final_drive_ratio = 3.692
-peak_engine_torque = 366.0
-wheel_radius = 0.339
-vehicle_mass = 1495.0
-drivetrain_efficiency = 0.86
-drag_coefficient = 0.3
-frontal_area = 2.05
-rolling_resistance_coefficient = 0.015
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
