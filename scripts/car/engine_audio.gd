@@ -35,9 +35,11 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _ready() -> void:
 	_car = get_parent() as PlayerCarController
 	_rng.randomize()
+	procedural_voice_group = &"engine"
+	max_procedural_voices = mini(max_procedural_voices, 6)
 
 	var generator: AudioStreamGenerator = AudioStreamGenerator.new()
-	generator.mix_rate = mix_rate
+	generator.mix_rate = maxi(mix_rate, 8000)
 	generator.buffer_length = 0.08
 	stream = generator
 	unit_size = 6.0
@@ -61,6 +63,7 @@ func _process(delta: float) -> void:
 
 
 func _exit_tree() -> void:
+	release_procedural_voice()
 	stop()
 	_playback = null
 	stream = null
@@ -69,16 +72,16 @@ func _exit_tree() -> void:
 func _fill_audio_buffer() -> void:
 	if _playback == null:
 		return
-
 	var frames_available: int = _playback.get_frames_available()
-	for frame_index in frames_available:
+	for frame_index: int in frames_available:
 		var sample: float = _generate_sample()
 		_playback.push_frame(Vector2(sample, sample))
 
 
 func _generate_sample() -> float:
-	var delta: float = 1.0 / float(mix_rate)
-	var firing_frequency: float = maxf(_smoothed_rpm / 60.0 * float(cylinders) * 0.5, 1.0)
+	var safe_mix_rate: float = float(maxi(mix_rate, 8000))
+	var delta: float = 1.0 / safe_mix_rate
+	var firing_frequency: float = maxf(_smoothed_rpm / 60.0 * float(maxi(cylinders, 1)) * 0.5, 1.0)
 	var crank_frequency: float = maxf(_smoothed_rpm / 60.0, 1.0)
 	var secondary_frequency: float = firing_frequency * 2.0
 	var intake_frequency: float = crank_frequency * 3.0
@@ -92,10 +95,12 @@ func _generate_sample() -> float:
 	_phase_exhaust = fmod(_phase_exhaust + TAU * exhaust_frequency * delta, TAU)
 	_phase_valvetrain = fmod(_phase_valvetrain + TAU * valvetrain_frequency * delta, TAU)
 
-	var rpm_ratio: float = clampf(_smoothed_rpm / 7000.0, 0.0, 1.15)
+	var idle_rpm: float = _get_idle_rpm()
+	var rev_limit_rpm: float = _get_rev_limit_rpm()
+	var rpm_ratio: float = clampf(_smoothed_rpm / rev_limit_rpm, 0.0, 1.15)
 	var load: float = clampf(_smoothed_load, 0.0, 1.0)
 	var throttle: float = clampf(_smoothed_throttle, 0.0, 1.0)
-	var idle_lump: float = 1.0 - clampf((_smoothed_rpm - 850.0) / 1400.0, 0.0, 1.0)
+	var idle_lump: float = 1.0 - clampf((_smoothed_rpm - idle_rpm) / maxf(rev_limit_rpm * 0.2, 1.0), 0.0, 1.0)
 	var high_rpm_blend: float = _smoothstep((rpm_ratio - 0.45) / 0.48)
 
 	var firing_pulse: float = _combustion_pulse(_phase_primary)
@@ -128,16 +133,27 @@ func _generate_sample() -> float:
 		+ rasp
 		+ crackle
 	) * load_gain * rpm_gain * 0.28
-
 	return clampf(sample, -0.92, 0.92)
 
 
 func _update_overrun(delta: float) -> void:
 	var throttle_drop: float = maxf(_previous_throttle - _smoothed_throttle, 0.0)
-	var rpm_overrun: float = clampf((_smoothed_rpm - 3200.0) / 2600.0, 0.0, 1.0)
+	var rpm_overrun: float = clampf((_smoothed_rpm - _get_rev_limit_rpm() * 0.46) / maxf(_get_rev_limit_rpm() * 0.37, 1.0), 0.0, 1.0)
 	var target_overrun: float = rpm_overrun if throttle_drop > 0.018 and _smoothed_load < 0.12 else 0.0
 	_overrun_amount = lerpf(_overrun_amount, target_overrun, 1.0 - exp(-8.0 * delta))
 	_previous_throttle = _smoothed_throttle
+
+
+func _get_idle_rpm() -> float:
+	if _car != null and _car.car_specs != null:
+		return maxf(_car.car_specs.idle_rpm, 1.0)
+	return 900.0
+
+
+func _get_rev_limit_rpm() -> float:
+	if _car != null and _car.car_specs != null:
+		return maxf(_car.car_specs.rev_limiter_rpm, _get_idle_rpm() + 1.0)
+	return 7000.0
 
 
 func _combustion_pulse(phase: float) -> float:
@@ -161,11 +177,11 @@ func _next_rasp_noise() -> float:
 
 func _next_crackle_sample() -> float:
 	if _overrun_amount <= 0.01 or overrun_crackle <= 0.0:
-		_crackle_timer = maxf(_crackle_timer - 1.0 / float(mix_rate), 0.0)
+		_crackle_timer = maxf(_crackle_timer - 1.0 / float(maxi(mix_rate, 8000)), 0.0)
 		_crackle_state = lerpf(_crackle_state, 0.0, 0.2)
 		return _crackle_state
 
-	var delta: float = 1.0 / float(mix_rate)
+	var delta: float = 1.0 / float(maxi(mix_rate, 8000))
 	_crackle_timer -= delta
 	if _crackle_timer <= 0.0:
 		var chance: float = overrun_crackle * _overrun_amount
@@ -176,7 +192,6 @@ func _next_crackle_sample() -> float:
 			_crackle_timer = _rng.randf_range(0.015, 0.04)
 	else:
 		_crackle_state = lerpf(_crackle_state, 0.0, 0.09)
-
 	return _crackle_state * 0.24
 
 
