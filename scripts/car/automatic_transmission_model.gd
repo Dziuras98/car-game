@@ -1,6 +1,12 @@
 extends RefCounted
 class_name AutomaticTransmissionModel
 
+const DIRECTION_CHANGE_SPEED_THRESHOLD: float = 0.25
+
+
+func is_direction_change_safe(forward_speed: float) -> bool:
+	return absf(forward_speed) <= DIRECTION_CHANGE_SPEED_THRESHOLD
+
 
 func get_requested_gear(
 	current_gear: int,
@@ -20,12 +26,17 @@ func get_requested_gear(
 	if forward_gear_count <= 0:
 		return current_gear
 
-	if brake > 0.0 and throttle <= 0.0 and forward_speed < 0.25:
-		return -1
+	if brake > 0.0 and throttle <= 0.0 and current_gear >= 0:
+		if is_direction_change_safe(forward_speed):
+			return -1
+		return current_gear
 
 	var next_gear: int = current_gear
 	if throttle > 0.0 and next_gear < 1:
-		next_gear = 1
+		if is_direction_change_safe(forward_speed):
+			next_gear = 1
+		else:
+			return current_gear
 
 	if next_gear < 1 or shift_timer > 0.0:
 		return next_gear
@@ -33,7 +44,7 @@ func get_requested_gear(
 	var throttle_ratio: float = clampf(throttle, 0.0, 1.0)
 	var safe_lower_gear_rpm: float = lower_gear_rpm
 
-	if brake > 0.0 and throttle_ratio <= 0.0 and forward_speed > 0.25 and next_gear > 1:
+	if brake > 0.0 and throttle_ratio <= 0.0 and forward_speed > DIRECTION_CHANGE_SPEED_THRESHOLD and next_gear > 1:
 		if safe_lower_gear_rpm < redline_rpm * 0.97:
 			return next_gear - 1
 
