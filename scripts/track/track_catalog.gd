@@ -22,16 +22,9 @@ func get_track_by_id(track_id: StringName) -> TrackDefinition:
 
 
 func get_default_track() -> TrackDefinition:
-	if default_track_id != &"":
-		return get_track_by_id(default_track_id)
-
-	var definitions: Array[TrackDefinition] = get_tracks()
-	for definition: TrackDefinition in definitions:
-		if definition.is_default:
-			return definition
-	if definitions.is_empty():
+	if default_track_id == &"":
 		return null
-	return definitions[0]
+	return get_track_by_id(default_track_id)
 
 
 func validate() -> PackedStringArray:
@@ -44,7 +37,6 @@ func validate() -> PackedStringArray:
 		return errors
 
 	var used_ids: Dictionary = {}
-	var legacy_default_count: int = 0
 	for definition: TrackDefinition in definitions:
 		if not definition.is_valid():
 			errors.append("track definition '%s' is invalid" % str(definition.track_id))
@@ -53,14 +45,11 @@ func validate() -> PackedStringArray:
 		if used_ids.has(id_key):
 			errors.append("track id '%s' is duplicated" % id_key)
 		used_ids[id_key] = true
-		if definition.is_default:
-			legacy_default_count += 1
 
-	if default_track_id != &"":
-		if not used_ids.has(str(default_track_id)):
-			errors.append("default_track_id '%s' does not reference a valid track" % str(default_track_id))
-	elif legacy_default_count != 1:
-		errors.append("catalog must define default_track_id or exactly one legacy default track")
+	if default_track_id == &"":
+		errors.append("catalog must define default_track_id")
+	elif not used_ids.has(str(default_track_id)):
+		errors.append("default_track_id '%s' does not reference a valid track" % str(default_track_id))
 	return errors
 
 
