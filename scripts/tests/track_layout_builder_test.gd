@@ -68,6 +68,14 @@ func _test_edge_and_shoulder_geometry() -> void:
 	})
 	var minimum_half_width: float = INF
 	var maximum_half_width: float = 0.0
+	var forward_vectors_normalized: bool = true
+	var right_vectors_normalized: bool = true
+	var frames_perpendicular: bool = true
+	var edges_centered: bool = true
+	var left_edges_match_width: bool = true
+	var right_edges_match_width: bool = true
+	var left_shoulders_match_width: bool = true
+	var right_shoulders_match_width: bool = true
 
 	for index: int in range(geometry.center_points.size()):
 		var center_point: Vector3 = geometry.center_points[index]
@@ -80,15 +88,23 @@ func _test_edge_and_shoulder_geometry() -> void:
 
 		minimum_half_width = minf(minimum_half_width, half_width)
 		maximum_half_width = maxf(maximum_half_width, half_width)
-		_expect(absf(forward.length() - 1.0) <= EPSILON, "forward vector %d is normalized" % index)
-		_expect(absf(right.length() - 1.0) <= EPSILON, "right vector %d is normalized" % index)
-		_expect(absf(forward.dot(right)) <= EPSILON, "forward and right vectors are perpendicular at point %d" % index)
-		_expect(_vector3_equal_approx(midpoint, center_point), "road edges are centered on point %d" % index)
-		_expect(absf(center_point.distance_to(left_edge) - half_width) <= EPSILON, "left edge uses half-width at point %d" % index)
-		_expect(absf(center_point.distance_to(right_edge) - half_width) <= EPSILON, "right edge uses half-width at point %d" % index)
-		_expect(absf(left_edge.distance_to(geometry.left_shoulder_outer_points[index]) - shoulder_width) <= EPSILON, "left shoulder uses configured width at point %d" % index)
-		_expect(absf(right_edge.distance_to(geometry.right_shoulder_outer_points[index]) - shoulder_width) <= EPSILON, "right shoulder uses configured width at point %d" % index)
+		forward_vectors_normalized = forward_vectors_normalized and absf(forward.length() - 1.0) <= EPSILON
+		right_vectors_normalized = right_vectors_normalized and absf(right.length() - 1.0) <= EPSILON
+		frames_perpendicular = frames_perpendicular and absf(forward.dot(right)) <= EPSILON
+		edges_centered = edges_centered and _vector3_equal_approx(midpoint, center_point)
+		left_edges_match_width = left_edges_match_width and absf(center_point.distance_to(left_edge) - half_width) <= EPSILON
+		right_edges_match_width = right_edges_match_width and absf(center_point.distance_to(right_edge) - half_width) <= EPSILON
+		left_shoulders_match_width = left_shoulders_match_width and absf(left_edge.distance_to(geometry.left_shoulder_outer_points[index]) - shoulder_width) <= EPSILON
+		right_shoulders_match_width = right_shoulders_match_width and absf(right_edge.distance_to(geometry.right_shoulder_outer_points[index]) - shoulder_width) <= EPSILON
 
+	_expect(forward_vectors_normalized, "all forward vectors are normalized")
+	_expect(right_vectors_normalized, "all right vectors are normalized")
+	_expect(frames_perpendicular, "all forward and right vectors are perpendicular")
+	_expect(edges_centered, "all road-edge pairs are centered on the sampled line")
+	_expect(left_edges_match_width, "all left edges use the generated half-width")
+	_expect(right_edges_match_width, "all right edges use the generated half-width")
+	_expect(left_shoulders_match_width, "all left shoulders use the configured width")
+	_expect(right_shoulders_match_width, "all right shoulders use the configured width")
 	_expect(minimum_half_width >= 7.0 - EPSILON, "default road never becomes narrower than the base width")
 	_expect(maximum_half_width > minimum_half_width, "width variation widens designated turn sections")
 
@@ -113,11 +129,18 @@ func _test_invalid_config_is_sanitized() -> void:
 		"width_variation": 8.0,
 		"shoulder_width": -4.0,
 	})
+	var widths_are_positive: bool = true
+	var left_shoulders_are_zero: bool = true
+	var right_shoulders_are_zero: bool = true
 
 	for index: int in range(geometry.center_points.size()):
-		_expect(geometry.half_widths[index] >= 0.05 - EPSILON, "invalid track width is clamped at point %d" % index)
-		_expect(geometry.left_edge_points[index].distance_to(geometry.left_shoulder_outer_points[index]) <= EPSILON, "negative left shoulder width is clamped to zero at point %d" % index)
-		_expect(geometry.right_edge_points[index].distance_to(geometry.right_shoulder_outer_points[index]) <= EPSILON, "negative right shoulder width is clamped to zero at point %d" % index)
+		widths_are_positive = widths_are_positive and geometry.half_widths[index] >= 0.05 - EPSILON
+		left_shoulders_are_zero = left_shoulders_are_zero and geometry.left_edge_points[index].distance_to(geometry.left_shoulder_outer_points[index]) <= EPSILON
+		right_shoulders_are_zero = right_shoulders_are_zero and geometry.right_edge_points[index].distance_to(geometry.right_shoulder_outer_points[index]) <= EPSILON
+
+	_expect(widths_are_positive, "invalid track width is clamped for the full layout")
+	_expect(left_shoulders_are_zero, "negative left shoulder width is clamped to zero")
+	_expect(right_shoulders_are_zero, "negative right shoulder width is clamped to zero")
 
 
 func _test_build_is_deterministic() -> void:
