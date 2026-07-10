@@ -128,7 +128,7 @@ Assert-Contains "scripts/ci/export_android.sh" @(
 Assert-Contains "scripts/ci/run_tests.ps1" @(
     "run_static_checks.ps1",
     "Get-ChildItem",
-    "extends\\s+SceneTree"
+    "extends\s+SceneTree"
 )
 
 if ($failures.Count -gt 0) {
