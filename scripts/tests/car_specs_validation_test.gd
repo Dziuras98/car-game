@@ -24,8 +24,8 @@ func _run() -> void:
 
 	var compatibility_selection: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
 	compatibility_selection.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
-	_expect(compatibility_selection.is_automatic_transmission(), "compatibility setter selects automatic mode")
-	_expect(not compatibility_selection.is_manual_transmission(), "compatibility setter cannot leave both modes active")
+	_expect(compatibility_selection.is_automatic_transmission(), "enum assignment selects automatic mode")
+	_expect(not compatibility_selection.is_manual_transmission(), "enum state cannot expose both transmission modes")
 
 	var invalid_rpm_order: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
 	invalid_rpm_order.redline_rpm = invalid_rpm_order.peak_torque_rpm - 1.0

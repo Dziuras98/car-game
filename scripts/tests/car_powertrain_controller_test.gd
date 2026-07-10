@@ -156,20 +156,17 @@ func _build_powertrain(config: CarDriveConfig, state: CarRuntimeState) -> CarPow
 func _build_manual_config() -> CarDriveConfig:
 	var config: CarDriveConfig = _build_base_config()
 	config.transmission_type = CarSpecs.TransmissionType.MANUAL
-	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	return config
 
 
 func _build_automatic_config() -> CarDriveConfig:
 	var config: CarDriveConfig = _build_base_config()
-	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	config.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
 	return config
 
 
 func _build_fallback_config() -> CarDriveConfig:
 	var config: CarDriveConfig = _build_base_config()
-	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	return config
 

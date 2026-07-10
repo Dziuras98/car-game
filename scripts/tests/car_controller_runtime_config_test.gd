@@ -61,9 +61,7 @@ func _test_controller_exposes_only_specs_tuning() -> void:
 func _test_transmission_config_helpers() -> void:
 	var transmission_config: CarDriveConfig = CarDriveConfig.new()
 	transmission_config.transmission_type = CarSpecs.TransmissionType.MANUAL
-	transmission_config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	_expect(transmission_config.uses_geared_transmission(), "manual config uses geared transmission")
-	transmission_config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	transmission_config.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
 	_expect(transmission_config.uses_geared_transmission(), "automatic config uses geared transmission")
 	transmission_config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
@@ -104,7 +102,6 @@ func _test_gear_text() -> void:
 func _manual_gear_text(gear: int) -> String:
 	var config: CarDriveConfig = CarDriveConfig.new()
 	config.transmission_type = CarSpecs.TransmissionType.MANUAL
-	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.current_gear = gear
 	var powertrain: CarPowertrainController = CarPowertrainController.new()
@@ -114,7 +111,6 @@ func _manual_gear_text(gear: int) -> String:
 
 func _automatic_gear_text(gear: int) -> String:
 	var config: CarDriveConfig = CarDriveConfig.new()
-	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	config.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.current_gear = gear
