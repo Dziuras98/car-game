@@ -1,11 +1,10 @@
 extends CharacterBody3D
 class_name PlayerCarController
 
-const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
-
 # The base 370Z scene still contains serialized properties from the removed
 # controller exports. They are accepted only to keep that scene loadable and
-# are deliberately not used as runtime tuning data.
+# are deliberately not used as runtime tuning data. This compatibility list
+# can be removed once the legacy scene is replaced by an imported model scene.
 const REMOVED_LEGACY_TUNING_PROPERTIES: Dictionary = {
 	&"acceleration": true,
 	&"brake_deceleration": true,
@@ -64,10 +63,10 @@ const REMOVED_LEGACY_TUNING_PROPERTIES: Dictionary = {
 	&"floor_stick_force": true,
 }
 
-var _car_specs: CarSpecs = DEFAULT_CAR_SPECS
+var _car_specs: CarSpecs
 
 @export_group("Specs")
-@export var car_specs: CarSpecs = DEFAULT_CAR_SPECS:
+@export var car_specs: CarSpecs:
 	set(value):
 		_car_specs = value
 		if is_inside_tree():
@@ -110,6 +109,8 @@ func get_throttle_input() -> float:
 
 
 func get_engine_load() -> float:
+	if _drive_config == null:
+		return 0.0
 	return _powertrain_controller.get_engine_load(_runtime_state)
 
 
@@ -118,6 +119,8 @@ func get_tire_slip_intensity() -> float:
 
 
 func get_gear_text() -> String:
+	if _drive_config == null:
+		return "N"
 	return _powertrain_controller.get_gear_text(_runtime_state)
 
 
