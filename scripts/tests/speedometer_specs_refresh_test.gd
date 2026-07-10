@@ -22,8 +22,8 @@ func _run() -> void:
 	await get_tree().process_frame
 	speedometer.set_target_node(car)
 	speedometer.call("_process", 1.0)
-	var gauge: TachometerGauge = speedometer.get_node("Root/Panel/Margin/Content/TachometerGauge") as TachometerGauge
-	_expect(gauge != null, "speedometer exposes the tachometer gauge")
+	var gauge: TachometerGauge = speedometer.get_node_or_null("%TachometerGauge") as TachometerGauge
+	_expect(gauge != null, "speedometer exposes the tachometer gauge through its unique scene name")
 	if gauge != null:
 		_expect(is_equal_approx(gauge.max_rpm, BASE_SPECS.rev_limiter_rpm), "initial target specs configure the tachometer maximum")
 		_expect(is_equal_approx(gauge.redline_rpm, BASE_SPECS.redline_rpm), "initial target specs configure the redline")
