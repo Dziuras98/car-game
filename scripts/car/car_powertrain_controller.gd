@@ -12,6 +12,7 @@ var _engine_model: EngineModel = EngineModel.new()
 var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
 var _torque_converter_model: TorqueConverterModel = TorqueConverterModel.new()
+var _tire_model: TireModel = TireModel.new()
 var _config: CarDriveConfig
 var _runtime_state: CarRuntimeState
 
@@ -245,7 +246,7 @@ func _update_speed_step(
 		state.forward_speed = move_toward(
 			state.forward_speed,
 			0.0,
-			_config.handbrake_deceleration * delta
+			_config.handbrake_deceleration * _get_longitudinal_grip_factor(state) * delta
 		)
 
 	state.forward_speed = _resistance_model.apply(state.forward_speed, delta)
@@ -262,7 +263,7 @@ func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> v
 			state.forward_speed = move_toward(
 				state.forward_speed,
 				0.0,
-				_config.brake_deceleration * throttle * delta
+				_config.brake_deceleration * throttle * _get_longitudinal_grip_factor(state) * delta
 			)
 		else:
 			state.forward_speed += _get_transmission_drive_acceleration(state, throttle) * delta
@@ -273,44 +274,30 @@ func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> v
 		* _config.engine_force
 		* get_torque_multiplier()
 		* get_rev_limiter_multiplier()
+		* _get_longitudinal_grip_factor(state)
 		* delta
 	)
 
 
 func _apply_brake_or_reverse(state: CarRuntimeState, brake: float, delta: float) -> void:
+	var brake_delta: float = _config.brake_deceleration * brake * _get_longitudinal_grip_factor(state) * delta
 	if _config.is_manual_transmission():
-		state.forward_speed = move_toward(
-			state.forward_speed,
-			0.0,
-			_config.brake_deceleration * brake * delta
-		)
+		state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 		return
 	if _config.is_automatic_transmission():
 		if state.current_gear < 0:
 			if state.forward_speed > AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
-				state.forward_speed = move_toward(
-					state.forward_speed,
-					0.0,
-					_config.brake_deceleration * brake * delta
-				)
+				state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 			else:
 				state.forward_speed += _get_transmission_drive_acceleration(state, brake) * delta
 		else:
-			state.forward_speed = move_toward(
-				state.forward_speed,
-				0.0,
-				_config.brake_deceleration * brake * delta
-			)
+			state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 		return
 
 	if state.forward_speed > 0.25:
-		state.forward_speed = move_toward(
-			state.forward_speed,
-			0.0,
-			_config.brake_deceleration * brake * delta
-		)
+		state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 	else:
-		state.forward_speed -= _config.reverse_acceleration * brake * delta
+		state.forward_speed -= _config.reverse_acceleration * brake * _get_longitudinal_grip_factor(state) * delta
 
 
 func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
@@ -346,10 +333,17 @@ func _get_transmission_drive_acceleration(state: CarRuntimeState, throttle: floa
 	)
 	if _config.is_manual_transmission():
 		acceleration *= _clutch_model.get_transmitted_torque_factor(state.clutch_engagement)
-	return acceleration
+	return acceleration * _get_longitudinal_grip_factor(state)
 
 
 func _get_torque_converter_torque_multiplier(drive_input: float) -> float:
 	if not _config.is_automatic_transmission():
 		return 1.0
 	return _torque_converter_model.get_torque_multiplier(_engine_model.get_rpm(), drive_input)
+
+
+func _get_longitudinal_grip_factor(state: CarRuntimeState) -> float:
+	return _tire_model.get_longitudinal_grip_factor(
+		state.tire_slip_intensity,
+		state.surface_grip_multiplier
+	)
