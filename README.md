@@ -24,6 +24,7 @@ The project currently contains:
 - scene-driven mobile touch controls for Android playtesting;
 - extended full-program smoke test scene for automated regression checks;
 - focused scene-runnable car specs runtime reconfiguration test;
+- focused scene-runnable powertrain controller test;
 - game test adapter that centralizes smoke-test access to game state.
 
 The project is still a prototype. The current priority is controlled cleanup and regression coverage, not adding more cars or game modes.
@@ -95,6 +96,22 @@ Recommended editor-scene flow:
 2. Run it as the current scene.
 3. Watch the Output panel for `[CAR_SPECS_RECONFIG_TEST][PASS]` / `[CAR_SPECS_RECONFIG_TEST][FAIL]` lines.
 
+### Car powertrain controller test
+
+A focused scene-runnable test is available at:
+
+```text
+scenes/tests/car_powertrain_controller_test.tscn
+```
+
+Use this test when validating `CarPowertrainController` behavior without instantiating the full car scene. It checks manual gear-up/down requests, manual shift delay, shift-timer decay, manual neutral, manual reverse drive, automatic reverse selection from near stop, automatic first-drive selection from reverse, automatic upshift requests and fallback non-geared drive/brake/reverse behavior.
+
+Recommended editor-scene flow:
+
+1. Open `scenes/tests/car_powertrain_controller_test.tscn`.
+2. Run it as the current scene.
+3. Watch the Output panel for `[CAR_POWERTRAIN_TEST][PASS]` / `[CAR_POWERTRAIN_TEST][FAIL]` lines.
+
 ## Controls
 
 Keyboard controls currently configured in `project.godot`:
@@ -137,6 +154,7 @@ Mobile overlay buttons:
 | `scenes/main.tscn` | Main composition scene |
 | `scenes/tests/full_program_smoke_test.tscn` | Full-program automated smoke test scene |
 | `scenes/tests/car_specs_runtime_reconfiguration_test.tscn` | Scene-runnable focused runtime `car_specs` reconfiguration test |
+| `scenes/tests/car_powertrain_controller_test.tscn` | Scene-runnable focused powertrain controller test |
 | `scenes/cars/370z.tscn` | Base/manual 370Z-style car scene |
 | `scenes/cars/370zat.tscn` | Automatic transmission 370Z variant |
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
@@ -224,6 +242,7 @@ Mobile overlay buttons:
 | `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner attached to the smoke-test scene |
 | `scripts/tests/car_controller_runtime_config_test.gd` | Runtime config and basic gear-display test |
 | `scripts/tests/car_specs_runtime_reconfiguration_test.gd` | Scene-runnable runtime `car_specs` reconfiguration test script |
+| `scripts/tests/car_powertrain_controller_test.gd` | Scene-runnable focused powertrain controller test script |
 | `scripts/tests/game_test_adapter.gd` | Diagnostic adapter used by the smoke test |
 | `scripts/tests/run_full_program_smoke_test.gd` | EditorScript launcher for the full-program smoke test scene |
 | `docs/architecture.md` | Current architecture baseline and cleanup direction |
