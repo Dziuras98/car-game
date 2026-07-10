@@ -22,7 +22,7 @@ func _run() -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 42
 	var factory: CarInstanceFactory = CarInstanceFactory.new()
-	factory.configure(CATALOG.get_variant_scene_list(), CATALOG.get_all_variants(), rng)
+	factory.configure(CATALOG.get_all_variants(), rng)
 
 	_test_player_spawn(world, factory)
 	_test_opponent_spawn(world, spawn_marker, factory, rng)
