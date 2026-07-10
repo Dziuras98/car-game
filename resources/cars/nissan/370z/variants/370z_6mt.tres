@@ -13,6 +13,4 @@ is_default = false
 car_scene = ExtResource("2_scene")
 specs = ExtResource("3_specs")
 engine_label = "VQ37VHR 3.7 V6"
-transmission_label = "6-speed manual"
 drivetrain_label = "RWD"
-mass_kg = 1495.0
