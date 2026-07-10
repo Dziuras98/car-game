@@ -7,10 +7,14 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
+$testLogDirectory = Join-Path $projectRoot "build/test-logs"
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
 }
+
+Remove-Item -LiteralPath $testLogDirectory -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $testLogDirectory -Force | Out-Null
 
 function Get-GodotRuntimeErrorLines {
     param(
@@ -80,6 +84,9 @@ function Invoke-GodotCommand {
         [void]$startInfo.ArgumentList.Add($argument)
     }
 
+    $standardOutput = ""
+    $standardError = ""
+    $exitCode = -1
     $process = [System.Diagnostics.Process]::new()
     $process.StartInfo = $startInfo
 
@@ -107,6 +114,19 @@ function Invoke-GodotCommand {
         Write-Host $standardError.TrimEnd()
     }
 
+    $safeLogName = (($Name -replace '[^A-Za-z0-9._-]+', '-') -replace '^-|-$', '')
+    $logPath = Join-Path $testLogDirectory "$safeLogName.log"
+    $logContent = @(
+        "Command: $GodotBinary $($CommandArguments -join ' ')"
+        "Exit code: $exitCode"
+        ""
+        "--- stdout ---"
+        $standardOutput
+        "--- stderr ---"
+        $standardError
+    ) -join [Environment]::NewLine
+    [System.IO.File]::WriteAllText($logPath, $logContent, [System.Text.UTF8Encoding]::new($false))
+
     $combinedOutputLines = @()
     if ($null -ne $standardOutput) {
         $combinedOutputLines += @($standardOutput -split "\r?\n")
@@ -122,13 +142,14 @@ function Invoke-GodotCommand {
         foreach ($runtimeErrorLine in $runtimeErrorLines) {
             Write-Host "  $runtimeErrorLine"
         }
+        Write-Host "Diagnostic log: $logPath"
     }
 
     if ($exitCode -ne 0) {
-        throw "$Name failed with exit code $exitCode."
+        throw "$Name failed with exit code $exitCode. Diagnostic log: $logPath"
     }
     if ($runtimeErrorLines.Count -gt 0) {
-        throw "$Name emitted $($runtimeErrorLines.Count) Godot runtime error(s) despite exit code 0."
+        throw "$Name emitted $($runtimeErrorLines.Count) Godot runtime error(s) despite exit code 0. Diagnostic log: $logPath"
     }
 }
 
