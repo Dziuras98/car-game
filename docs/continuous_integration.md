@@ -32,7 +32,7 @@ The required job performs these stages in order:
 6. launch the exported executable with `--export-smoke-test` and run the packaged regression scene;
 7. upload any available Windows build and diagnostic files.
 
-The job fails when any test, export or exported executable returns a non-zero exit code or omits an expected readiness marker. The artifact upload uses `always()` so files already produced by a failed export stage remain available for diagnosis.
+The job fails when any test, export or exported executable returns a non-zero exit code or omits an expected readiness marker. The editor/headless runner also captures both output streams and fails when Godot emits a runtime-error line such as `SCRIPT ERROR:`, `ERROR:` or the editor-style `E 0:00:...` prefix, even when Godot incorrectly exits with code `0`. The artifact upload uses `always()` so files already produced by a failed export stage remain available for diagnosis.
 
 ## Editor/headless test runner
 
@@ -49,6 +49,7 @@ scripts/tests/startup_router_test.gd
 scripts/tests/car_controller_runtime_config_test.gd
 scripts/tests/speedometer_car_binding_test.gd
 scripts/tests/tire_squeal_audio_binding_test.gd
+scripts/tests/legacy_controller_property_access_test.gd
 scenes/tests/car_catalog_validation_test.tscn
 scenes/tests/car_specs_runtime_reconfiguration_test.tscn
 scenes/tests/car_powertrain_controller_test.tscn
@@ -65,6 +66,10 @@ The startup-router test verifies the configured project entry scene and both rou
 The speedometer binding test instantiates the automatic 370Z and the production speedometer scene, verifies that the car has visible mesh geometry and confirms that the tachometer range comes from the selected variant's `CarSpecs` resource.
 
 The tire-squeal audio test instantiates the automatic 370Z, verifies that procedural tire audio reads its speed normalization from the selected variant's `CarSpecs` resource and generates finite, bounded samples under forced slip.
+
+The legacy controller-property test scans GDScript source for variables typed or cast as `PlayerCarController` and rejects direct reads of tuning fields removed during the `CarSpecs` refactor. Consumers must use `car_specs` or a public controller method instead. The detector includes positive and negative fixtures so a broken scanner cannot silently pass.
+
+The PowerShell runner performs its own detector self-check and then evaluates the complete stdout/stderr output of every import, script test and scene test. This closes the gap where a GDScript runtime error is printed but the test process still returns a successful exit code.
 
 Focused geometry, checkpoint and performance tests run before the full-program smoke test so subsystem failures remain isolated.
 
