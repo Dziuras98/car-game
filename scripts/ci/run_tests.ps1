@@ -59,6 +59,13 @@ function Assert-RuntimeErrorDetector {
     if ($detectedLines.Count -ne 3) {
         throw "Godot runtime-error detector self-check failed. Expected 3 matches, found $($detectedLines.Count)."
     }
+
+    $selfCheckPath = Join-Path $testLogDirectory "runtime-error-detector-self-check.log"
+    [System.IO.File]::WriteAllLines(
+        $selfCheckPath,
+        @("Detected expected probe lines:") + $detectedLines,
+        [System.Text.UTF8Encoding]::new($false)
+    )
 }
 
 function Invoke-GodotCommand {
@@ -74,44 +81,24 @@ function Invoke-GodotCommand {
     Write-Host "=== $Name ==="
     Write-Host "Godot arguments: $($CommandArguments -join ' ')"
 
-    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $GodotBinary
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
-    foreach ($argument in $CommandArguments) {
-        [void]$startInfo.ArgumentList.Add($argument)
+    $nativeErrorPreferenceWasDefined = Test-Path variable:PSNativeCommandUseErrorActionPreference
+    if ($nativeErrorPreferenceWasDefined) {
+        $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
     }
-
-    $standardOutput = ""
-    $standardError = ""
-    $exitCode = -1
-    $process = [System.Diagnostics.Process]::new()
-    $process.StartInfo = $startInfo
 
     try {
-        if (-not $process.Start()) {
-            throw "$Name could not start Godot."
-        }
-
-        $standardOutputTask = $process.StandardOutput.ReadToEndAsync()
-        $standardErrorTask = $process.StandardError.ReadToEndAsync()
-        $process.WaitForExit()
-
-        $standardOutput = $standardOutputTask.GetAwaiter().GetResult()
-        $standardError = $standardErrorTask.GetAwaiter().GetResult()
-        $exitCode = $process.ExitCode
+        $outputLines = @(& $GodotBinary @CommandArguments 2>&1)
+        $exitCode = $LASTEXITCODE
     }
     finally {
-        $process.Dispose()
+        if ($nativeErrorPreferenceWasDefined) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+        }
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($standardOutput)) {
-        Write-Host $standardOutput.TrimEnd()
-    }
-    if (-not [string]::IsNullOrWhiteSpace($standardError)) {
-        Write-Host $standardError.TrimEnd()
+    foreach ($outputLine in $outputLines) {
+        Write-Host ([string]$outputLine)
     }
 
     $safeLogName = (($Name -replace '[^A-Za-z0-9._-]+', '-') -replace '^-|-$', '')
@@ -120,22 +107,12 @@ function Invoke-GodotCommand {
         "Command: $GodotBinary $($CommandArguments -join ' ')"
         "Exit code: $exitCode"
         ""
-        "--- stdout ---"
-        $standardOutput
-        "--- stderr ---"
-        $standardError
-    ) -join [Environment]::NewLine
-    [System.IO.File]::WriteAllText($logPath, $logContent, [System.Text.UTF8Encoding]::new($false))
+        "--- combined stdout/stderr ---"
+        ($outputLines | ForEach-Object { [string]$_ })
+    )
+    [System.IO.File]::WriteAllLines($logPath, $logContent, [System.Text.UTF8Encoding]::new($false))
 
-    $combinedOutputLines = @()
-    if ($null -ne $standardOutput) {
-        $combinedOutputLines += @($standardOutput -split "\r?\n")
-    }
-    if ($null -ne $standardError) {
-        $combinedOutputLines += @($standardError -split "\r?\n")
-    }
-
-    $runtimeErrorLines = @(Get-GodotRuntimeErrorLines -OutputLines $combinedOutputLines)
+    $runtimeErrorLines = @(Get-GodotRuntimeErrorLines -OutputLines $outputLines)
     if ($runtimeErrorLines.Count -gt 0) {
         Write-Host ""
         Write-Host "Godot emitted runtime errors during '$Name':"
