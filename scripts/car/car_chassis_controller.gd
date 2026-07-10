@@ -25,6 +25,7 @@ func update_tires(
 	_update_ground_contact(state, car)
 	if state.ground_contact_count <= 0:
 		state.tire_slip_intensity = 0.0
+		_update_skid_marks(state, car, skid_mark_emitter, delta)
 		return
 
 	state.lateral_speed = _tire_model.recover_lateral_speed(
@@ -49,6 +50,8 @@ func update_tires(
 
 
 func update_steering(state: CarRuntimeState, steering: float, car: CharacterBody3D, delta: float) -> void:
+	if state.ground_contact_count <= 0:
+		return
 	var steering_amount: float = _get_slip_limited_steering(state, steering)
 	var absolute_forward_speed: float = absf(state.forward_speed)
 	if absf(steering_amount) < 0.01 or absolute_forward_speed < 0.35:
@@ -119,8 +122,7 @@ func _update_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> voi
 	)
 	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
 	var maximum_probe_length: float = (
-		_config.suspension_probe_height
-		+ _config.suspension_rest_length
+		_config.suspension_rest_length
 		+ _config.suspension_travel
 		+ PROBE_END_MARGIN
 	)
