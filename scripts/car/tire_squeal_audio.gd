@@ -73,7 +73,14 @@ func _generate_sample() -> float:
 	var slip_gain: float = clampf((_smoothed_slip - minimum_slip) / maxf(1.0 - minimum_slip, 0.01), 0.0, 1.0)
 	var speed_gain: float = 0.35
 	if _car != null:
-		speed_gain = lerpf(0.35, 1.0, clampf(absf(_car.get_forward_speed()) / maxf(_car.max_forward_speed, 1.0), 0.0, 1.0))
+		var reference_speed: float = 1.0
+		if _car.car_specs != null:
+			reference_speed = maxf(_car.car_specs.max_forward_speed, 1.0)
+		speed_gain = lerpf(
+			0.35,
+			1.0,
+			clampf(absf(_car.get_forward_speed()) / reference_speed, 0.0, 1.0)
+		)
 
 	_hiss_state = lerpf(_hiss_state, _rng.randf_range(-1.0, 1.0), 0.56)
 	_scrape_state = lerpf(_scrape_state, _rng.randf_range(-1.0, 1.0), 0.16)
