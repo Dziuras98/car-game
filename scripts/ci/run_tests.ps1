@@ -18,7 +18,26 @@ New-Item -ItemType Directory -Path $testLogDirectory -Force | Out-Null
 
 Write-Host ""
 Write-Host "=== Static repository checks ==="
-& (Join-Path $PSScriptRoot "run_static_checks.ps1")
+$staticLogPath = Join-Path $testLogDirectory "static-checks.log"
+try {
+    $staticOutput = @(& (Join-Path $PSScriptRoot "run_static_checks.ps1") 2>&1)
+    foreach ($line in $staticOutput) {
+        Write-Host ([string]$line)
+    }
+    Set-Content -LiteralPath $staticLogPath -Value @($staticOutput | ForEach-Object { [string]$_ }) -Encoding utf8
+}
+catch {
+    $failureText = $_ | Out-String
+    $capturedOutput = @()
+    if (Test-Path variable:staticOutput) {
+        $capturedOutput = @($staticOutput | ForEach-Object { [string]$_ })
+        foreach ($line in $capturedOutput) {
+            Write-Host $line
+        }
+    }
+    Set-Content -LiteralPath $staticLogPath -Value ($capturedOutput + @("", $failureText)) -Encoding utf8
+    throw
+}
 
 function Get-GodotRuntimeErrorLines {
     param(
