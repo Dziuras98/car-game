@@ -41,9 +41,9 @@ func _test_resource_metadata() -> void:
 
 
 func _test_builder_uses_resource_layout() -> void:
-	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build({
-		"track_layout": SIMPLE_OVAL_LAYOUT,
-	})
+	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build(
+		TrackGenerationConfig.from_layout(SIMPLE_OVAL_LAYOUT)
+	)
 	_expect(geometry.center_points.size() == EXPECTED_SAMPLE_COUNT, "resource control points generate 108 sampled points")
 	_expect(geometry.racing_line_points.size() == EXPECTED_SAMPLE_COUNT, "resource generates a complete racing line")
 
