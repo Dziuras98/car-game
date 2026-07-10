@@ -12,6 +12,7 @@ func _run() -> void:
 	_test_manual_shift_requests_and_timer()
 	_test_manual_drive_blocking_and_gears()
 	_test_automatic_reverse_and_drive_selection()
+	_test_automatic_direction_interlock()
 	_test_automatic_upshift_request()
 	_test_fallback_drive_brake_and_reverse()
 	_finish()
@@ -72,6 +73,38 @@ func _test_automatic_reverse_and_drive_selection() -> void:
 	_expect(state.current_gear == 1, "automatic throttle from reverse selects first drive gear")
 	_expect(state.forward_speed > 0.0, "automatic first drive gear applies forward drive with throttle")
 	_expect(powertrain.get_gear_text(state) == "D1", "automatic gear text reports first drive gear")
+
+
+func _test_automatic_direction_interlock() -> void:
+	var config: CarDriveConfig = _build_automatic_config()
+	var state: CarRuntimeState = _build_state(config)
+	var powertrain: CarPowertrainController = _build_powertrain(config, state)
+
+	state.current_gear = 2
+	state.forward_speed = 8.0
+	state.shift_timer = 0.0
+	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
+	_expect(state.current_gear == 2, "automatic keeps drive gear while braking from forward motion toward reverse")
+	_expect(state.forward_speed > 0.0 and state.forward_speed < 8.0, "automatic reverse request brakes forward motion before selecting reverse")
+
+	state.forward_speed = 0.20
+	state.shift_timer = 0.0
+	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
+	_expect(state.current_gear == -1, "automatic selects reverse only near zero forward speed")
+	_expect(state.forward_speed < 0.20, "automatic begins reverse drive after the direction interlock releases")
+
+	state.current_gear = -1
+	state.forward_speed = -6.0
+	state.shift_timer = 0.0
+	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
+	_expect(state.current_gear == -1, "automatic keeps reverse gear while braking from reverse motion toward drive")
+	_expect(state.forward_speed > -6.0 and state.forward_speed <= 0.0, "automatic drive request brakes reverse motion before selecting drive")
+
+	state.forward_speed = -0.20
+	state.shift_timer = 0.0
+	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
+	_expect(state.current_gear == 1, "automatic selects first drive gear only near zero reverse speed")
+	_expect(state.forward_speed > -0.20, "automatic begins forward drive after the direction interlock releases")
 
 
 func _test_automatic_upshift_request() -> void:
