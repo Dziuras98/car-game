@@ -142,6 +142,15 @@ func get_rebuild_count() -> int:
 	return _rebuild_count
 
 
+func has_committed_generation() -> bool:
+	return (
+		_geometry != null
+		and _rebuild_count > 0
+		and get_node_or_null(TrackGeneratedContentRoot.GENERATED_CONTENT_NAME) is Node3D
+		and get_checkpoint_gate_count() == get_checkpoint_count() + 1
+	)
+
+
 func request_rebuild() -> void:
 	_request_rebuild()
 
