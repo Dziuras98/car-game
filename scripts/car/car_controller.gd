@@ -151,6 +151,26 @@ func set_external_drive_inputs(throttle: float, brake: float, steering: float, h
 	_car_input.set_external_drive_inputs(throttle, brake, steering, handbrake_active)
 
 
+func set_touch_drive_inputs(throttle: float, brake: float, steering: float, handbrake_active: bool = false) -> void:
+	_car_input.set_touch_drive_inputs(throttle, brake, steering, handbrake_active)
+
+
+func request_touch_gear_up() -> void:
+	_car_input.request_touch_gear_up()
+
+
+func request_touch_gear_down() -> void:
+	_car_input.request_touch_gear_down()
+
+
+func request_touch_reset() -> void:
+	_car_input.request_touch_reset()
+
+
+func clear_touch_input() -> void:
+	_car_input.clear_touch_input()
+
+
 func _physics_process(delta: float) -> void:
 	if _drive_config == null:
 		return
