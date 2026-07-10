@@ -2,7 +2,7 @@ extends RefCounted
 class_name TrackSpawnController
 
 var _container: Node3D
-var _current_track: Node3D
+var _current_track: GeneratedTrack
 var _current_definition: TrackDefinition
 
 
@@ -10,7 +10,7 @@ func configure(container: Node3D) -> void:
 	_container = container
 
 
-func get_current_track() -> Node3D:
+func get_current_track() -> GeneratedTrack:
 	return _current_track
 
 
@@ -18,14 +18,13 @@ func get_current_definition() -> TrackDefinition:
 	return _current_definition
 
 
-func spawn_track(definition: TrackDefinition) -> Node3D:
+func spawn_track(definition: TrackDefinition) -> GeneratedTrack:
 	if _container == null or definition == null or not definition.is_valid():
 		return null
 
 	clear_track()
-	var track: Node3D = definition.instantiate_track()
+	var track: GeneratedTrack = definition.instantiate_track()
 	if track == null:
-		push_error("Track definition '%s' did not instantiate a Node3D root." % str(definition.track_id))
 		return null
 
 	track.name = "ActiveTrack"
