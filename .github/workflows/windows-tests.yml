@@ -122,12 +122,14 @@ jobs:
         shell: pwsh
         run: ./scripts/ci/export_windows.ps1 -GodotBinary $env:GODOT_BIN
 
-      - name: Upload Windows build
+      - name: Upload Windows build and diagnostics
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: car-game-windows-${{ github.sha }}
-          path: build/windows/
+          path: |
+            build/windows/
+            build/test-logs/
           if-no-files-found: warn
           retention-days: 14
           compression-level: 6
