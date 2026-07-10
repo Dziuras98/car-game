@@ -272,7 +272,8 @@ func _update_participant_projection(state: ParticipantRaceState) -> void:
 		position,
 		state.progress_segment_index,
 		state.last_projection_position,
-		state.has_projection
+		state.has_projection,
+		state.projection_buffer
 	)
 	if projection == null:
 		return
