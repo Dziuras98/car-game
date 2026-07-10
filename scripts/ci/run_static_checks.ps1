@@ -19,6 +19,11 @@ function Read-Text {
     return Get-Content -LiteralPath $path -Raw
 }
 
+function Get-ProjectRelativePath {
+    param([Parameter(Mandatory = $true)][string]$FullPath)
+    return [System.IO.Path]::GetRelativePath($projectRoot, $FullPath).Replace('\', '/')
+}
+
 function Assert-DoesNotContain {
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -54,6 +59,33 @@ function Assert-Contains {
     foreach ($fragment in $RequiredFragments) {
         if (-not $content.Contains($fragment)) {
             Add-Failure "$RelativePath is missing required fragment: $fragment"
+        }
+    }
+}
+
+function Assert-TestScriptOwnership {
+    $referencedScripts = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $sceneTestRoot = Join-Path $projectRoot "scenes/tests"
+    foreach ($sceneFile in Get-ChildItem -LiteralPath $sceneTestRoot -Filter "*.tscn" -File) {
+        $sceneContent = Get-Content -LiteralPath $sceneFile.FullName -Raw
+        foreach ($match in [regex]::Matches($sceneContent, 'res://scripts/tests/([^"\r\n]+\.gd)')) {
+            [void]$referencedScripts.Add("scripts/tests/$($match.Groups[1].Value)")
+        }
+    }
+
+    $allowedHelpers = @(
+        "scripts/tests/game_test_adapter.gd"
+    )
+    $testScriptRoot = Join-Path $projectRoot "scripts/tests"
+    foreach ($scriptFile in Get-ChildItem -LiteralPath $testScriptRoot -Filter "*.gd" -File) {
+        $relativePath = Get-ProjectRelativePath -FullPath $scriptFile.FullName
+        $content = Get-Content -LiteralPath $scriptFile.FullName -Raw
+        $isStandaloneTest = $content -match '(?m)^\s*extends\s+SceneTree\s*$'
+        $isEditorLauncher = $content -match '(?m)^\s*extends\s+EditorScript\s*$'
+        $isKnownHelper = $allowedHelpers -contains $relativePath
+        $isSceneTest = $referencedScripts.Contains($relativePath)
+        if (-not ($isStandaloneTest -or $isEditorLauncher -or $isKnownHelper -or $isSceneTest)) {
+            Add-Failure "Test script is not discoverable, scene-referenced or an allowed helper: $relativePath"
         }
     }
 }
@@ -166,6 +198,7 @@ Assert-Contains "scripts/ci/run_tests.ps1" @(
     "Get-ChildItem",
     "extends\s+SceneTree"
 )
+Assert-TestScriptOwnership
 
 if ($failures.Count -gt 0) {
     $details = $failures -join [Environment]::NewLine
