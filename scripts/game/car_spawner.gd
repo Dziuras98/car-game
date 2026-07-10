@@ -5,6 +5,7 @@ var opponent_lane_spacing: float = 4.2
 var opponent_row_spacing: float = 7.0
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _session_seed: int = 0
 var _factory: CarInstanceFactory
 var _player_spawner: PlayerCarSpawnController
 var _opponent_layout: OpponentSpawnLayout
@@ -15,14 +16,19 @@ var _opponent_spawner: OpponentParticipantSpawner
 func configure(
 	owner_node: Node3D,
 	car_spawn: Node3D,
-	track: Node3D,
+	track: GeneratedTrack,
 	available_car_variants: Array[CarVariantDefinition],
 	lane_spacing: float,
-	row_spacing: float
+	row_spacing: float,
+	random_seed: int = -1
 ) -> void:
 	opponent_lane_spacing = lane_spacing
 	opponent_row_spacing = row_spacing
-	_rng.randomize()
+	if random_seed >= 0:
+		_rng.seed = random_seed
+	else:
+		_rng.randomize()
+	_session_seed = _rng.seed
 
 	_factory = CarInstanceFactory.new()
 	_factory.configure(available_car_variants, _rng)
@@ -44,12 +50,16 @@ func configure(
 		_factory,
 		_opponent_layout,
 		_paint_randomizer,
-		_rng
+		_session_seed
 	)
 
 
 func has_available_cars() -> bool:
 	return _factory != null and _factory.has_available_cars()
+
+
+func get_session_seed() -> int:
+	return _session_seed
 
 
 func get_current_car() -> PlayerCarController:
@@ -69,6 +79,13 @@ func get_opponents() -> Array[PlayerCarController]:
 		var empty_opponents: Array[PlayerCarController] = []
 		return empty_opponents
 	return _opponent_spawner.get_opponents()
+
+
+func get_ai_drivers() -> Array[AiRaceDriver]:
+	if _opponent_spawner == null:
+		var empty_drivers: Array[AiRaceDriver] = []
+		return empty_drivers
+	return _opponent_spawner.get_ai_drivers()
 
 
 func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
