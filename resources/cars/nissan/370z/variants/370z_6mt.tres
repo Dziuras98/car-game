@@ -9,7 +9,6 @@ script = ExtResource("1_variant")
 variant_id = &"nissan_370z_6mt"
 display_name = "370Z manual"
 sort_order = 1
-is_default = false
 car_scene = ExtResource("2_scene")
 specs = ExtResource("3_specs")
 engine_label = "VQ37VHR 3.7 V6"
