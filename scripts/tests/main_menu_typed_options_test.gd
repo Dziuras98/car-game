@@ -8,6 +8,7 @@ var _selection_count: int = 0
 var _selected_mode: String = ""
 var _selected_track: String = ""
 var _selected_variant: StringName = &""
+var _original_locale: String = ""
 
 
 func _ready() -> void:
@@ -15,6 +16,11 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	_original_locale = TranslationServer.get_locale()
+	var localization_errors: PackedStringArray = LocalizationCatalogLoader.ensure_loaded()
+	_expect(localization_errors.is_empty(), "menu localization catalogs load for the isolated scene test")
+	TranslationServer.set_locale("pl")
+
 	var menu: MainMenu = MAIN_MENU_SCENE.instantiate() as MainMenu
 	var track_options: Array[TrackMenuOption] = [
 		TrackMenuOption.new(&"test_track", "Tor testowy", 4),
@@ -69,6 +75,7 @@ func _run() -> void:
 
 	invalid_menu.queue_free()
 	menu.queue_free()
+	TranslationServer.set_locale(_original_locale)
 	await get_tree().process_frame
 	_finish()
 
