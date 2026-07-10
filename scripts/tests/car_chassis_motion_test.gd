@@ -18,8 +18,10 @@ func _run() -> void:
 	_test_steering_ignores_low_speed()
 	_test_slip_limited_same_direction_steering()
 	await _test_apply_velocity_synchronizes_collision_response()
-	_test_tire_lateral_recovery_when_airborne()
-	_test_handbrake_reduces_lateral_recovery()
+	_test_tire_state_is_preserved_when_airborne()
+	await _test_grounded_tire_lateral_recovery()
+	await _test_current_frame_slip_reduces_steering()
+	await _test_handbrake_reduces_lateral_recovery()
 	_finish()
 
 
@@ -172,7 +174,7 @@ func _test_apply_velocity_synchronizes_collision_response() -> void:
 	wall.queue_free()
 
 
-func _test_tire_lateral_recovery_when_airborne() -> void:
+func _test_tire_state_is_preserved_when_airborne() -> void:
 	var config: CarDriveConfig = _build_chassis_config()
 	var chassis: CarChassisController = CarChassisController.new()
 	chassis.configure(config)
@@ -180,14 +182,73 @@ func _test_tire_lateral_recovery_when_airborne() -> void:
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.forward_speed = 12.0
 	state.lateral_speed = 4.0
+	state.tire_slip_intensity = 0.75
 
 	var car: CharacterBody3D = _create_test_car()
 	chassis.update_tires(state, 1.0, false, car, null, 0.10)
 
-	_expect(_float_equal_approx(state.lateral_speed, 3.0), "chassis tire update recovers lateral speed with normal grip")
-	_expect(_float_equal_approx(state.tire_slip_intensity, 0.0), "chassis tire update clears slip intensity when car is airborne")
+	_expect(_float_equal_approx(state.lateral_speed, 4.0), "chassis does not recover lateral speed while airborne")
+	_expect(_float_equal_approx(state.tire_slip_intensity, 0.0), "chassis clears ground tire slip intensity while airborne")
 
 	car.queue_free()
+
+
+func _test_grounded_tire_lateral_recovery() -> void:
+	var config: CarDriveConfig = _build_chassis_config()
+	var chassis: CarChassisController = CarChassisController.new()
+	chassis.configure(config)
+
+	var floor: StaticBody3D = _create_test_floor()
+	var car: CharacterBody3D = _create_grounded_test_car()
+	await get_tree().physics_frame
+	_ground_test_car(car)
+
+	var state: CarRuntimeState = CarRuntimeState.new()
+	state.forward_speed = 12.0
+	state.lateral_speed = 4.0
+	chassis.update_tires(state, 0.0, false, car, null, 0.10)
+
+	_expect(car.is_on_floor(), "grounded tire test establishes floor contact")
+	_expect(_float_equal_approx(state.lateral_speed, 3.0), "chassis recovers lateral speed while grounded")
+	_expect(state.tire_slip_intensity > 0.0, "chassis calculates tire slip while grounded")
+
+	car.queue_free()
+	floor.queue_free()
+
+
+func _test_current_frame_slip_reduces_steering() -> void:
+	var config: CarDriveConfig = _build_chassis_config()
+	var chassis: CarChassisController = CarChassisController.new()
+	chassis.configure(config)
+
+	var floor: StaticBody3D = _create_test_floor()
+	var stale_slip_car: CharacterBody3D = _create_grounded_test_car(-2.0)
+	var current_slip_car: CharacterBody3D = _create_grounded_test_car(2.0)
+	await get_tree().physics_frame
+	_ground_test_car(stale_slip_car)
+	_ground_test_car(current_slip_car)
+
+	var stale_slip_state: CarRuntimeState = CarRuntimeState.new()
+	stale_slip_state.forward_speed = 20.0
+	stale_slip_state.lateral_speed = 0.0
+	stale_slip_state.tire_slip_intensity = 0.0
+	chassis.update_steering(stale_slip_state, 1.0, stale_slip_car, 0.10)
+	var stale_slip_yaw: float = absf(stale_slip_car.rotation.y)
+
+	var current_slip_state: CarRuntimeState = CarRuntimeState.new()
+	current_slip_state.forward_speed = 20.0
+	current_slip_state.lateral_speed = 0.0
+	current_slip_state.tire_slip_intensity = 0.0
+	chassis.update_tires(current_slip_state, 1.0, false, current_slip_car, null, 0.10)
+	chassis.update_steering(current_slip_state, 1.0, current_slip_car, 0.10)
+	var current_slip_yaw: float = absf(current_slip_car.rotation.y)
+
+	_expect(current_slip_state.tire_slip_intensity > 0.5, "tire update calculates significant current-frame steering slip")
+	_expect(current_slip_yaw < stale_slip_yaw, "current-frame tire slip reduces steering rotation immediately")
+
+	stale_slip_car.queue_free()
+	current_slip_car.queue_free()
+	floor.queue_free()
 
 
 func _test_handbrake_reduces_lateral_recovery() -> void:
@@ -195,23 +256,31 @@ func _test_handbrake_reduces_lateral_recovery() -> void:
 	var chassis: CarChassisController = CarChassisController.new()
 	chassis.configure(config)
 
+	var floor: StaticBody3D = _create_test_floor()
+	var normal_car: CharacterBody3D = _create_grounded_test_car(-2.0)
+	var handbrake_car: CharacterBody3D = _create_grounded_test_car(2.0)
+	await get_tree().physics_frame
+	_ground_test_car(normal_car)
+	_ground_test_car(handbrake_car)
+
 	var normal_state: CarRuntimeState = CarRuntimeState.new()
 	normal_state.forward_speed = 12.0
 	normal_state.lateral_speed = 4.0
-	var normal_car: CharacterBody3D = _create_test_car()
 	chassis.update_tires(normal_state, 0.0, false, normal_car, null, 0.10)
 
 	var handbrake_state: CarRuntimeState = CarRuntimeState.new()
 	handbrake_state.forward_speed = 12.0
 	handbrake_state.lateral_speed = 4.0
-	var handbrake_car: CharacterBody3D = _create_test_car()
 	chassis.update_tires(handbrake_state, 0.0, true, handbrake_car, null, 0.10)
 
+	_expect(normal_car.is_on_floor() and handbrake_car.is_on_floor(), "handbrake tire test establishes floor contact")
 	_expect(handbrake_state.lateral_speed > normal_state.lateral_speed, "chassis handbrake reduces lateral grip recovery")
+	_expect(_float_equal_approx(normal_state.lateral_speed, 3.0), "chassis applies normal grounded lateral grip")
 	_expect(_float_equal_approx(handbrake_state.lateral_speed, 3.75), "chassis handbrake applies configured lateral grip multiplier")
 
 	normal_car.queue_free()
 	handbrake_car.queue_free()
+	floor.queue_free()
 
 
 func _create_test_car(target_transform: Transform3D = Transform3D.IDENTITY) -> CharacterBody3D:
@@ -219,6 +288,26 @@ func _create_test_car(target_transform: Transform3D = Transform3D.IDENTITY) -> C
 	add_child(car)
 	car.global_transform = target_transform
 	return car
+
+
+func _create_grounded_test_car(x_position: float = 0.0) -> CharacterBody3D:
+	var car_transform: Transform3D = Transform3D(Basis.IDENTITY, Vector3(x_position, 0.6, 0.0))
+	var car: CharacterBody3D = _create_test_car(car_transform)
+	_add_box_collision(car, Vector3(1.0, 1.0, 1.0))
+	return car
+
+
+func _create_test_floor() -> StaticBody3D:
+	var floor: StaticBody3D = StaticBody3D.new()
+	add_child(floor)
+	floor.global_position = Vector3(0.0, -0.1, 0.0)
+	_add_box_collision(floor, Vector3(20.0, 0.2, 20.0))
+	return floor
+
+
+func _ground_test_car(car: CharacterBody3D) -> void:
+	car.velocity = Vector3(0.0, -10.0, 0.0)
+	car.move_and_slide()
 
 
 func _add_box_collision(collision_object: CollisionObject3D, size: Vector3) -> void:
