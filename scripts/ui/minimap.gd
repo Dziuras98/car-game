@@ -1,4 +1,5 @@
 extends Control
+class_name Minimap
 
 @export var target_path: NodePath
 @export var track_path: NodePath
@@ -17,6 +18,7 @@ var _min_z: float = 0.0
 var _max_z: float = 1.0
 var _redraw_timer: float = 0.0
 var _redraw_request_count: int = 0
+var _track_revision: int = 0
 
 
 func set_target_node(target: PlayerCarController) -> void:
@@ -26,15 +28,18 @@ func set_target_node(target: PlayerCarController) -> void:
 	if is_inside_tree() and target != null:
 		target_path = get_path_to(target)
 	visible = target != null
+	set_process(target != null)
 	_request_redraw()
 
 
 func set_track_node(track: Node3D) -> void:
 	if _track == track and not _track_points.is_empty():
 		return
+	_disconnect_track_geometry_signal()
 	_track = track
 	if is_inside_tree() and track != null:
 		track_path = get_path_to(track)
+	_connect_track_geometry_signal()
 	_refresh_track_points()
 	_request_redraw()
 
@@ -50,17 +55,23 @@ func _ready() -> void:
 	_player = get_node_or_null(target_path) as PlayerCarController
 	_track = get_node_or_null(track_path) as Node3D
 	resized.connect(_on_resized)
+	_connect_track_geometry_signal()
 	_refresh_track_points()
 	visible = _player != null
+	set_process(_player != null)
+
+
+func _exit_tree() -> void:
+	_disconnect_track_geometry_signal()
 
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(_player):
-		_player = get_node_or_null(target_path) as PlayerCarController
+		set_process(false)
+		return
 	if _track_points.is_empty():
-		_track = get_node_or_null(track_path) as Node3D
 		_refresh_track_points()
-	if not visible or not is_instance_valid(_player):
+	if not visible:
 		return
 
 	_redraw_timer -= maxf(delta, 0.0)
@@ -92,19 +103,44 @@ func get_redraw_request_count_for_test() -> int:
 	return _redraw_request_count
 
 
+func get_track_revision_for_test() -> int:
+	return _track_revision
+
+
 func _refresh_track_points() -> void:
 	_track_points.clear()
 	_mapped_track_points.clear()
-	if _track == null or not _track.has_method("get_racing_line_points"):
+	if not is_instance_valid(_track) or not _track.has_method("get_racing_line_points"):
 		return
 
 	var local_points: Array = _track.call("get_racing_line_points")
 	for point: Variant in local_points:
 		if point is Vector3:
 			_track_points.append(_track.to_global(point))
-
+	_track_revision += 1
 	_recalculate_bounds()
 	_rebuild_mapped_track_points()
+
+
+func _connect_track_geometry_signal() -> void:
+	if not is_instance_valid(_track) or not _track.has_signal("geometry_rebuilt"):
+		return
+	var callback: Callable = Callable(self, "_on_track_geometry_rebuilt")
+	if not _track.is_connected("geometry_rebuilt", callback):
+		_track.connect("geometry_rebuilt", callback)
+
+
+func _disconnect_track_geometry_signal() -> void:
+	if not is_instance_valid(_track) or not _track.has_signal("geometry_rebuilt"):
+		return
+	var callback: Callable = Callable(self, "_on_track_geometry_rebuilt")
+	if _track.is_connected("geometry_rebuilt", callback):
+		_track.disconnect("geometry_rebuilt", callback)
+
+
+func _on_track_geometry_rebuilt(_revision: int) -> void:
+	_refresh_track_points()
+	_request_redraw()
 
 
 func _recalculate_bounds() -> void:
