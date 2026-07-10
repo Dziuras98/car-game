@@ -44,7 +44,7 @@ func validate() -> PackedStringArray:
 	for definition: TrackDefinition in definitions:
 		if not definition.is_valid():
 			errors.append("track definition '%s' is invalid" % str(definition.track_id))
-		continue
+			continue
 		var id_key: String = str(definition.track_id)
 		if used_ids.has(id_key):
 			errors.append("track id '%s' is duplicated" % id_key)
