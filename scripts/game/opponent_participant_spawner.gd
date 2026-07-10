@@ -54,6 +54,7 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 			_paint_randomizer.randomize_car_paint(car_controller)
 		_owner.add_child(car_controller)
 		car_controller.global_transform = spawn_global_transform
+		car_controller.capture_current_transform_as_start()
 		_opponents.append(car_controller)
 
 		var ai_driver: Node = AI_DRIVER_SCRIPT.new()
