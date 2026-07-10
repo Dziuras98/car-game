@@ -17,6 +17,7 @@ func _run() -> void:
 	_test_steering_preserves_horizontal_velocity()
 	_test_steering_ignores_low_speed()
 	_test_slip_limited_same_direction_steering()
+	await _test_apply_velocity_synchronizes_collision_response()
 	_test_tire_lateral_recovery_when_airborne()
 	_test_handbrake_reduces_lateral_recovery()
 	_finish()
@@ -133,6 +134,44 @@ func _test_slip_limited_same_direction_steering() -> void:
 	opposite_direction_car.queue_free()
 
 
+func _test_apply_velocity_synchronizes_collision_response() -> void:
+	var config: CarDriveConfig = _build_chassis_config()
+	config.gravity = 0.0
+	config.floor_stick_force = 0.0
+	var chassis: CarChassisController = CarChassisController.new()
+	chassis.configure(config)
+
+	var state: CarRuntimeState = CarRuntimeState.new()
+	state.forward_speed = 30.0
+	state.lateral_speed = 3.0
+
+	var car_transform: Transform3D = Transform3D(Basis.IDENTITY, Vector3(0.0, 1.0, 0.0))
+	var car: CharacterBody3D = _create_test_car(car_transform)
+	_add_box_collision(car, Vector3(1.0, 1.0, 1.0))
+
+	var wall: StaticBody3D = StaticBody3D.new()
+	add_child(wall)
+	wall.global_position = Vector3(0.0, 1.0, -0.8)
+	_add_box_collision(wall, Vector3(10.0, 4.0, 0.2))
+
+	await get_tree().physics_frame
+	chassis.apply_velocity(state, car, 1.0 / 60.0)
+
+	var resolved_horizontal_velocity: Vector3 = Vector3(car.velocity.x, 0.0, car.velocity.z)
+	var expected_local_speeds: Vector2 = VehicleMotionModel.new().get_local_speeds_from_horizontal_velocity(
+		car.global_transform,
+		resolved_horizontal_velocity
+	)
+
+	_expect(car.get_slide_collision_count() > 0, "chassis collision test reaches the static wall")
+	_expect(_vector2_equal_approx(Vector2(state.forward_speed, state.lateral_speed), expected_local_speeds), "chassis writes collision-resolved velocity back to runtime state")
+	_expect(absf(state.forward_speed) < 1.0, "chassis collision removes velocity directed into the wall")
+	_expect(absf(state.lateral_speed - 3.0) < 0.1, "chassis collision preserves tangential slide velocity")
+
+	car.queue_free()
+	wall.queue_free()
+
+
 func _test_tire_lateral_recovery_when_airborne() -> void:
 	var config: CarDriveConfig = _build_chassis_config()
 	var chassis: CarChassisController = CarChassisController.new()
@@ -180,6 +219,14 @@ func _create_test_car(target_transform: Transform3D = Transform3D.IDENTITY) -> C
 	add_child(car)
 	car.global_transform = target_transform
 	return car
+
+
+func _add_box_collision(collision_object: CollisionObject3D, size: Vector3) -> void:
+	var collision_shape: CollisionShape3D = CollisionShape3D.new()
+	var box_shape: BoxShape3D = BoxShape3D.new()
+	box_shape.size = size
+	collision_shape.shape = box_shape
+	collision_object.add_child(collision_shape)
 
 
 func _build_chassis_config() -> CarDriveConfig:
