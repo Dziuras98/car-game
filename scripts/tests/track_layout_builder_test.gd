@@ -17,6 +17,7 @@ func _run() -> void:
 	_test_width_profile_and_index_wrapping()
 	_test_invalid_config_is_sanitized()
 	_test_build_is_deterministic()
+	_test_render_mesh_attributes()
 	_finish()
 
 
@@ -158,6 +159,51 @@ func _test_build_is_deterministic() -> void:
 	_expect(_packed_vector3_array_equal_approx(first.right_edge_points, second.right_edge_points), "repeated builds produce identical right edges")
 	_expect(_packed_float_array_equal_approx(first.half_widths, second.half_widths), "repeated builds produce identical width profiles")
 	_expect(_vector3_equal_approx(first.center, second.center), "repeated builds produce the same layout center")
+
+
+func _test_render_mesh_attributes() -> void:
+	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build({})
+	var track_mesh: ArrayMesh = TrackSurfaceMeshBuilder.create_track_mesh(geometry)
+	var shoulder_mesh: ArrayMesh = TrackSurfaceMeshBuilder.create_shoulder_mesh(geometry)
+	_expect(track_mesh.get_surface_count() == 1, "track mesh exposes one triangle surface")
+	_expect(shoulder_mesh.get_surface_count() == 1, "shoulder mesh exposes one triangle surface")
+	if track_mesh.get_surface_count() == 0 or shoulder_mesh.get_surface_count() == 0:
+		return
+
+	var track_arrays: Array = track_mesh.surface_get_arrays(0)
+	var shoulder_arrays: Array = shoulder_mesh.surface_get_arrays(0)
+	var track_vertices: PackedVector3Array = track_arrays[Mesh.ARRAY_VERTEX]
+	var track_normals: PackedVector3Array = track_arrays[Mesh.ARRAY_NORMAL]
+	var track_uvs: PackedVector2Array = track_arrays[Mesh.ARRAY_TEX_UV]
+	var track_tangents: PackedFloat32Array = track_arrays[Mesh.ARRAY_TANGENT]
+	var track_indices: PackedInt32Array = track_arrays[Mesh.ARRAY_INDEX]
+	var shoulder_vertices: PackedVector3Array = shoulder_arrays[Mesh.ARRAY_VERTEX]
+	var shoulder_normals: PackedVector3Array = shoulder_arrays[Mesh.ARRAY_NORMAL]
+	var shoulder_uvs: PackedVector2Array = shoulder_arrays[Mesh.ARRAY_TEX_UV]
+	var shoulder_tangents: PackedFloat32Array = shoulder_arrays[Mesh.ARRAY_TANGENT]
+	var shoulder_indices: PackedInt32Array = shoulder_arrays[Mesh.ARRAY_INDEX]
+
+	_expect(track_vertices.size() == (EXPECTED_POINT_COUNT + 1) * 2, "track mesh duplicates its first row at the UV seam")
+	_expect(track_indices.size() == EXPECTED_POINT_COUNT * 6, "track mesh emits two triangles per sampled segment")
+	_expect(track_normals.size() == track_vertices.size(), "track mesh provides one normal per vertex")
+	_expect(track_uvs.size() == track_vertices.size(), "track mesh provides one UV per vertex")
+	_expect(track_tangents.size() == track_vertices.size() * 4, "track mesh provides a four-component tangent per vertex")
+	_expect(shoulder_vertices.size() == (EXPECTED_POINT_COUNT + 1) * 4, "shoulder mesh duplicates its first row at the UV seam")
+	_expect(shoulder_indices.size() == EXPECTED_POINT_COUNT * 12, "shoulder mesh emits four triangles per sampled segment")
+	_expect(shoulder_normals.size() == shoulder_vertices.size(), "shoulder mesh provides one normal per vertex")
+	_expect(shoulder_uvs.size() == shoulder_vertices.size(), "shoulder mesh provides one UV per vertex")
+	_expect(shoulder_tangents.size() == shoulder_vertices.size() * 4, "shoulder mesh provides a four-component tangent per vertex")
+	_expect(track_vertices[0].distance_to(track_vertices[-2]) <= EPSILON, "track seam closes without a position gap")
+	_expect(track_uvs[-2].y > track_uvs[0].y, "track seam advances longitudinal UVs instead of wrapping to zero")
+	_expect(_all_normals_normalized(track_normals), "track normals are normalized")
+	_expect(_all_normals_normalized(shoulder_normals), "shoulder normals are normalized")
+
+
+func _all_normals_normalized(normals: PackedVector3Array) -> bool:
+	for normal: Vector3 in normals:
+		if absf(normal.length() - 1.0) > EPSILON:
+			return false
+	return true
 
 
 func _calculate_center(points: PackedVector3Array) -> Vector3:
