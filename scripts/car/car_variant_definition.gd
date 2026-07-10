@@ -13,9 +13,21 @@ class_name CarVariantDefinition
 
 @export_group("Metadata")
 @export var engine_label: String = ""
-@export var transmission_label: String = ""
 @export var drivetrain_label: String = ""
-@export var mass_kg: float = 0.0
+
+# Compatibility accessors absorb legacy serialized values but always expose
+# values derived from the authoritative physics specification.
+var transmission_label: String:
+	set(_value):
+		pass
+	get:
+		return get_transmission_label()
+
+var mass_kg: float:
+	set(_value):
+		pass
+	get:
+		return get_mass_kg()
 
 
 func get_menu_name() -> String:
@@ -32,3 +44,18 @@ func get_specs() -> CarSpecs:
 
 func get_car_scene() -> PackedScene:
 	return car_scene
+
+
+func get_transmission_label() -> String:
+	if specs == null:
+		return ""
+	var forward_gear_count: int = specs.gear_ratios.size()
+	if specs.is_manual_transmission():
+		return "%d-speed manual" % forward_gear_count
+	if specs.is_automatic_transmission():
+		return "%d-speed automatic" % forward_gear_count
+	return "Direct drive"
+
+
+func get_mass_kg() -> float:
+	return specs.vehicle_mass if specs != null else 0.0
