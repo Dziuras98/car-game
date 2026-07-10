@@ -1,10 +1,15 @@
 extends SceneTree
 
+const WATCHDOG_SECONDS: float = 5.0
+
 var _checks: int = 0
 var _failures: Array[String] = []
+var _finished: bool = false
 
 
 func _initialize() -> void:
+	Callable(self, "_watchdog").call_deferred()
+
 	var gate: TrackCheckpointGate = TrackCheckpointGate.new()
 	gate.configure(2, Transform3D.IDENTITY, Vector3(12.0, 4.0, 6.0))
 	root.add_child(gate)
@@ -36,6 +41,15 @@ func _initialize() -> void:
 	_finish()
 
 
+func _watchdog() -> void:
+	await create_timer(WATCHDOG_SECONDS).timeout
+	if _finished:
+		return
+	_failures.append("test did not finish before watchdog timeout")
+	push_error("[TRACK_CHECKPOINT_GATE_PLANE_TEST][FAIL] watchdog timeout after %.1f seconds" % WATCHDOG_SECONDS)
+	_finish()
+
+
 func _expect(condition: bool, message: String) -> void:
 	_checks += 1
 	if condition:
@@ -46,6 +60,9 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	if _finished:
+		return
+	_finished = true
 	if _failures.is_empty():
 		print("[TRACK_CHECKPOINT_GATE_PLANE_TEST] Passed: %d checks" % _checks)
 		quit(0)
