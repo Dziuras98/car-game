@@ -1,13 +1,10 @@
 extends CanvasLayer
+class_name MainMenu
 
 signal selection_completed(mode_id: String, track_id: String, car_variant_id: StringName)
 
-@export var car_names: PackedStringArray = ["370Z automat", "370Z manual"]
-@export var track_names: PackedStringArray = ["Prosty owal"]
-
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
-const TRACK_SIMPLE_OVAL: String = "simple_oval"
 const STEP_MODE: int = 0
 const STEP_TRACK: int = 1
 const STEP_MODEL: int = 2
@@ -17,8 +14,9 @@ var _selected_mode_id: String = ""
 var _selected_track_id: String = ""
 var _selected_model_index: int = -1
 var _current_step: int = STEP_MODE
-var _car_models: Array[Dictionary] = []
-var _track_options: Array[Dictionary] = []
+var _car_models: Array[CarModelMenuOption] = []
+var _track_options: Array[TrackMenuOption] = []
+
 @onready var _title_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleLabel
 @onready var _subtitle_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SubtitleLabel
 @onready var _options: VBoxContainer = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Options
@@ -26,12 +24,14 @@ var _track_options: Array[Dictionary] = []
 
 
 func _ready() -> void:
-	if _car_models.is_empty():
-		_build_flat_car_model()
-	if _track_options.is_empty():
-		_build_fallback_track_options()
 	_back_button.pressed.connect(_on_back_pressed)
 	_show_mode_step()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("ui_cancel") and _current_step != STEP_MODE:
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
 
 
 func reset_menu() -> void:
@@ -39,33 +39,40 @@ func reset_menu() -> void:
 	_show_mode_step()
 
 
-func set_car_names(next_car_names: PackedStringArray) -> void:
-	car_names = next_car_names
-	_build_flat_car_model()
-	if _current_step == STEP_MODEL and _options != null:
-		_show_model_step()
-	elif _current_step == STEP_VARIANT and _options != null:
-		_show_variant_step()
+func set_car_models(next_car_models: Array[CarModelMenuOption]) -> void:
+	_car_models = next_car_models.duplicate()
+	if is_inside_tree() and (_current_step == STEP_MODEL or _current_step == STEP_VARIANT):
+		_show_current_step()
 
 
-func set_car_models(next_car_models: Array[Dictionary]) -> void:
-	_car_models = next_car_models.duplicate(true)
-	if _car_models.is_empty():
-		_build_flat_car_model()
-	if _current_step == STEP_MODEL and _options != null:
-		_show_model_step()
-	elif _current_step == STEP_VARIANT and _options != null:
-		_show_variant_step()
-
-
-func set_track_options(next_track_options: Array[Dictionary]) -> void:
-	_track_options = next_track_options.duplicate(true)
-	if _track_options.is_empty():
-		_build_fallback_track_options()
-	if _current_step == STEP_TRACK and _options != null:
+func set_track_options(next_track_options: Array[TrackMenuOption]) -> void:
+	_track_options = next_track_options.duplicate()
+	if is_inside_tree() and _current_step == STEP_TRACK:
 		_show_track_step()
-	elif _current_step == STEP_MODEL and _options != null:
-		_show_model_step()
+
+
+func has_valid_options() -> bool:
+	if _car_models.is_empty() or _track_options.is_empty():
+		return false
+	for model: CarModelMenuOption in _car_models:
+		if model == null or not model.is_valid():
+			return false
+	for track: TrackMenuOption in _track_options:
+		if track == null or not track.is_valid():
+			return false
+	return true
+
+
+func _show_current_step() -> void:
+	match _current_step:
+		STEP_TRACK:
+			_show_track_step()
+		STEP_MODEL:
+			_show_model_step()
+		STEP_VARIANT:
+			_show_variant_step()
+		_:
+			_show_mode_step()
 
 
 func _show_mode_step() -> void:
@@ -73,57 +80,84 @@ func _show_mode_step() -> void:
 	_selected_mode_id = ""
 	_selected_track_id = ""
 	_selected_model_index = -1
-	_title_label.text = "Car Game"
-	_subtitle_label.text = "Wybierz tryb"
+	_title_label.text = tr("Car Game")
+	_subtitle_label.text = tr("Wybierz tryb")
 	_back_button.visible = false
 	_clear_options()
-	_add_option_button("Dowolny", Callable(self, "_on_mode_pressed").bind(MODE_FREE))
-	_add_option_button("Wyscig", Callable(self, "_on_mode_pressed").bind(MODE_RACE))
+	_add_option_button(tr("Jazda swobodna"), Callable(self, "_on_mode_pressed").bind(MODE_FREE))
+	_add_option_button(tr("Wyścig"), Callable(self, "_on_mode_pressed").bind(MODE_RACE))
+	_focus_first_option()
 
 
 func _show_track_step() -> void:
 	_current_step = STEP_TRACK
 	_selected_track_id = ""
 	_selected_model_index = -1
-	_title_label.text = "Wybierz tor"
-	_subtitle_label.text = "Tryb: %s" % _get_mode_label(_selected_mode_id)
+	_title_label.text = tr("Wybierz tor")
+	_subtitle_label.text = "%s: %s" % [tr("Tryb"), _get_mode_label(_selected_mode_id)]
 	_back_button.visible = true
 	_clear_options()
 
 	if _track_options.is_empty():
-		_build_fallback_track_options()
-
-	for track_data: Dictionary in _track_options:
-		var track_label: String = str(track_data.get("label", "Prosty owal"))
-		var track_id: String = str(track_data.get("track_id", TRACK_SIMPLE_OVAL))
-		_add_option_button(track_label, Callable(self, "_on_track_pressed").bind(track_id))
+		_show_configuration_error(tr("Brak dostępnych torów"))
+		return
+	for track_option: TrackMenuOption in _track_options:
+		if track_option != null and track_option.is_valid():
+			_add_option_button(
+				track_option.label,
+				Callable(self, "_on_track_pressed").bind(str(track_option.track_id))
+			)
+	_focus_first_option()
 
 
 func _show_model_step() -> void:
 	_current_step = STEP_MODEL
 	_selected_model_index = -1
-	_title_label.text = "Wybierz samochod"
-	_subtitle_label.text = "%s - %s" % [_get_mode_label(_selected_mode_id), _get_track_label(_selected_track_id)]
+	_title_label.text = tr("Wybierz samochód")
+	_subtitle_label.text = "%s — %s" % [
+		_get_mode_label(_selected_mode_id),
+		_get_track_label(_selected_track_id),
+	]
 	_back_button.visible = true
 	_clear_options()
 
+	if _car_models.is_empty():
+		_show_configuration_error(tr("Brak dostępnych samochodów"))
+		return
 	for model_index: int in range(_car_models.size()):
-		var model_data: Dictionary = _car_models[model_index]
-		var model_label: String = str(model_data.get("label", "Samochod %d" % (model_index + 1)))
-		_add_option_button(model_label, Callable(self, "_on_model_pressed").bind(model_index))
+		var model: CarModelMenuOption = _car_models[model_index]
+		if model != null and model.is_valid():
+			_add_option_button(
+				model.label,
+				Callable(self, "_on_model_pressed").bind(model_index)
+			)
+	_focus_first_option()
 
 
 func _show_variant_step() -> void:
 	_current_step = STEP_VARIANT
-	_title_label.text = "Wybierz wariant"
+	_title_label.text = tr("Wybierz wariant")
 	_subtitle_label.text = _get_selected_model_label()
 	_back_button.visible = true
 	_clear_options()
 
-	for variant_data: Dictionary in _get_selected_model_variants():
-		var variant_label: String = str(variant_data.get("label", ""))
-		var variant_id: StringName = StringName(str(variant_data.get("variant_id", &"")))
-		_add_option_button(variant_label, Callable(self, "_on_variant_pressed").bind(variant_id))
+	var variants: Array[CarVariantMenuOption] = _get_selected_model_variants()
+	if variants.is_empty():
+		_show_configuration_error(tr("Brak wariantów dla wybranego modelu"))
+		return
+	for variant: CarVariantMenuOption in variants:
+		if variant != null and variant.is_valid():
+			_add_option_button(
+				variant.label,
+				Callable(self, "_on_variant_pressed").bind(variant.variant_id)
+			)
+	_focus_first_option()
+
+
+func _show_configuration_error(message: String) -> void:
+	_subtitle_label.text = message
+	_back_button.visible = _current_step != STEP_MODE
+	_focus_back_button()
 
 
 func _clear_options() -> void:
@@ -136,101 +170,95 @@ func _add_option_button(text: String, pressed_callback: Callable) -> void:
 	var button: Button = Button.new()
 	button.text = text
 	button.custom_minimum_size = Vector2(0, 48)
+	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(pressed_callback)
 	_options.add_child(button)
 
 
+func _focus_first_option() -> void:
+	for child: Node in _options.get_children():
+		if child is Button:
+			(child as Button).call_deferred("grab_focus")
+			return
+	_focus_back_button()
+
+
+func _focus_back_button() -> void:
+	if _back_button.visible:
+		_back_button.call_deferred("grab_focus")
+
+
 func _on_mode_pressed(mode_id: String) -> void:
+	if not has_valid_options():
+		_show_configuration_error(tr("Konfiguracja zawartości jest niepoprawna"))
+		return
 	_selected_mode_id = mode_id
 	_show_track_step()
 
 
 func _on_track_pressed(track_id: String) -> void:
+	if _find_track_option(track_id) == null:
+		_show_configuration_error(tr("Wybrany tor nie jest dostępny"))
+		return
 	_selected_track_id = track_id
 	_show_model_step()
 
 
 func _on_model_pressed(model_index: int) -> void:
+	if model_index < 0 or model_index >= _car_models.size():
+		_show_configuration_error(tr("Wybrany model nie jest dostępny"))
+		return
 	_selected_model_index = model_index
 	_show_variant_step()
 
 
 func _on_variant_pressed(car_variant_id: StringName) -> void:
+	var valid_variant: bool = false
+	for variant: CarVariantMenuOption in _get_selected_model_variants():
+		if variant.variant_id == car_variant_id:
+			valid_variant = true
+			break
+	if not valid_variant:
+		_show_configuration_error(tr("Wybrany wariant nie jest dostępny"))
+		return
 	hide()
 	selection_completed.emit(_selected_mode_id, _selected_track_id, car_variant_id)
 
 
 func _on_back_pressed() -> void:
-	if _current_step == STEP_VARIANT:
-		_show_model_step()
-	elif _current_step == STEP_MODEL:
-		_show_track_step()
-	elif _current_step == STEP_TRACK:
-		_show_mode_step()
+	match _current_step:
+		STEP_VARIANT:
+			_show_model_step()
+		STEP_MODEL:
+			_show_track_step()
+		STEP_TRACK:
+			_show_mode_step()
 
 
 func _get_mode_label(mode_id: String) -> String:
-	if mode_id == MODE_RACE:
-		return "Wyscig"
-	return "Dowolny"
+	return tr("Wyścig") if mode_id == MODE_RACE else tr("Jazda swobodna")
 
 
 func _get_track_label(track_id: String) -> String:
-	if _track_options.is_empty():
-		_build_fallback_track_options()
-
-	for track_data: Dictionary in _track_options:
-		if str(track_data.get("track_id", "")) == track_id:
-			return str(track_data.get("label", "Prosty owal"))
-
-	if track_id == TRACK_SIMPLE_OVAL and not track_names.is_empty():
-		return track_names[0]
-	return "Prosty owal"
+	var option: TrackMenuOption = _find_track_option(track_id)
+	return option.label if option != null else tr("Nieznany tor")
 
 
-func _build_fallback_track_options() -> void:
-	var fallback_label: String = "Prosty owal"
-	if not track_names.is_empty():
-		fallback_label = track_names[0]
-
-	_track_options = [{
-		"label": fallback_label,
-		"track_id": TRACK_SIMPLE_OVAL,
-	}]
-
-
-func _build_flat_car_model() -> void:
-	var variants: Array[Dictionary] = []
-	for car_index: int in range(car_names.size()):
-		variants.append({
-			"label": car_names[car_index],
-			"variant_id": StringName(str(car_index)),
-		})
-
-	_car_models = [{
-		"label": "Samochody",
-		"model_id": &"fallback_cars",
-		"variants": variants,
-	}]
+func _find_track_option(track_id: String) -> TrackMenuOption:
+	for option: TrackMenuOption in _track_options:
+		if option != null and str(option.track_id) == track_id:
+			return option
+	return null
 
 
 func _get_selected_model_label() -> String:
 	if _selected_model_index < 0 or _selected_model_index >= _car_models.size():
-		return "Samochod"
-
-	var model_data: Dictionary = _car_models[_selected_model_index]
-	return str(model_data.get("label", "Samochod"))
+		return tr("Samochód")
+	return _car_models[_selected_model_index].label
 
 
-func _get_selected_model_variants() -> Array[Dictionary]:
+func _get_selected_model_variants() -> Array[CarVariantMenuOption]:
 	if _selected_model_index < 0 or _selected_model_index >= _car_models.size():
-		return []
-
-	var model_data: Dictionary = _car_models[_selected_model_index]
-	var variants_value: Variant = model_data.get("variants", [])
-	var result: Array[Dictionary] = []
-	if variants_value is Array:
-		for variant_value: Variant in variants_value:
-			if variant_value is Dictionary:
-				result.append(variant_value)
-	return result
+		var empty: Array[CarVariantMenuOption] = []
+		return empty
+	return _car_models[_selected_model_index].variants.duplicate()
