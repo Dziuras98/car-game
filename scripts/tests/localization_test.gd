@@ -6,6 +6,16 @@ var _failures: Array[String] = []
 
 func _initialize() -> void:
 	var original_locale: String = TranslationServer.get_locale()
+	var catalog_paths: PackedStringArray = LocalizationCatalogLoader.get_catalog_paths()
+	_expect("res://translations/pl.po" in catalog_paths, "loader registers the Polish catalog path")
+	_expect("res://translations/en.po" in catalog_paths, "loader registers the English catalog path")
+	for catalog_path: String in catalog_paths:
+		_expect(ResourceLoader.exists(catalog_path, "Translation"), "catalog is importable: %s" % catalog_path)
+
+	var load_errors: PackedStringArray = LocalizationCatalogLoader.ensure_loaded()
+	_expect(load_errors.is_empty(), "localization catalogs load without errors")
+	_expect(LocalizationCatalogLoader.ensure_loaded().is_empty(), "localization loading is idempotent")
+
 	TranslationServer.set_locale("pl")
 	_expect(tr("Wyścig") == "Wyścig", "Polish locale preserves the source UI label")
 	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Okrążenie 2/3", "Polish formatted HUD label remains valid")
@@ -16,9 +26,6 @@ func _initialize() -> void:
 	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Lap 2/3", "English locale preserves formatted HUD placeholders")
 	_expect(tr("Wróć do menu") == "Return to menu", "English locale translates pause navigation")
 
-	var translations: PackedStringArray = ProjectSettings.get_setting("internationalization/locale/translations", PackedStringArray())
-	_expect("res://translations/pl.po" in translations, "project settings register the Polish catalog")
-	_expect("res://translations/en.po" in translations, "project settings register the English catalog")
 	TranslationServer.set_locale(original_locale)
 	_finish()
 
