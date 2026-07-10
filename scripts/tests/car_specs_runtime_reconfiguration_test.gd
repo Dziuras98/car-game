@@ -14,6 +14,7 @@ func _run() -> void:
 	var tree: SceneTree = get_tree()
 	var tree_root: Window = tree.root
 	var car: PlayerCarController = PlayerCarController.new()
+	car.car_specs = DEFAULT_CAR_SPECS.duplicate(true) as CarSpecs
 	tree_root.add_child(car)
 	await tree.process_frame
 
