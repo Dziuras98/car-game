@@ -8,17 +8,19 @@ func build_surfaces(
 	parent: Node3D,
 	geometry: TrackGeometryData,
 	material_factory: TrackMaterialFactory,
-	config: Dictionary
-) -> Dictionary:
+	config: TrackGenerationConfig
+) -> TrackGeneratedMeshes:
 	var track_mesh: ArrayMesh = create_track_mesh(geometry)
 	var shoulder_mesh: ArrayMesh = create_shoulder_mesh(geometry)
-	_create_grass(parent, material_factory, config)
+	var grass_size: Vector2 = config.grass_size if config != null else Vector2(260.0, 190.0)
+	_create_grass(parent, material_factory, grass_size)
 	_create_shoulders(parent, shoulder_mesh, material_factory)
 	_create_track(parent, track_mesh, material_factory)
-	return {
-		"track_mesh": track_mesh,
-		"shoulder_mesh": shoulder_mesh,
-	}
+
+	var generated_meshes: TrackGeneratedMeshes = TrackGeneratedMeshes.new()
+	generated_meshes.track_mesh = track_mesh
+	generated_meshes.shoulder_mesh = shoulder_mesh
+	return generated_meshes
 
 
 static func create_track_mesh(geometry: TrackGeometryData) -> ArrayMesh:
@@ -167,8 +169,7 @@ static func _append_tangent(tangents: PackedFloat32Array, tangent: Vector3) -> v
 	tangents.append(1.0)
 
 
-func _create_grass(parent: Node3D, material_factory: TrackMaterialFactory, config: Dictionary) -> void:
-	var grass_size: Vector2 = config.get("grass_size", Vector2(260.0, 190.0))
+func _create_grass(parent: Node3D, material_factory: TrackMaterialFactory, grass_size: Vector2) -> void:
 	var grass_mesh: BoxMesh = BoxMesh.new()
 	grass_mesh.size = Vector3(grass_size.x, 0.4, grass_size.y)
 
