@@ -67,6 +67,10 @@ func _run() -> void:
 	_expect(is_equal_approx(car._runtime_state.forward_speed, 8.5), "runtime reconfiguration preserves forward speed before the next physics tick")
 	_expect(is_equal_approx(car._runtime_state.lateral_speed, 1.25), "runtime reconfiguration preserves lateral speed before the next physics tick")
 	_expect(is_equal_approx(car._runtime_state.engine_rpm, 3600.0), "runtime reconfiguration preserves engine rpm before the next physics tick")
+	_expect(is_equal_approx(car._powertrain_controller._engine_model.get_rpm(), 3600.0), "runtime reconfiguration synchronizes internal engine rpm")
+
+	car._powertrain_controller.update(car._runtime_state, 0.0, 0.0, false, false, false, 0.0)
+	_expect(is_equal_approx(car._runtime_state.engine_rpm, 3600.0), "first powertrain update after reconfiguration does not reset engine rpm")
 
 	car.queue_free()
 	if is_instance_valid(initial_parent):
