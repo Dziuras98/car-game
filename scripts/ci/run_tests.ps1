@@ -61,11 +61,8 @@ function Assert-RuntimeErrorDetector {
     }
 
     $selfCheckPath = Join-Path $testLogDirectory "runtime-error-detector-self-check.log"
-    [System.IO.File]::WriteAllLines(
-        $selfCheckPath,
-        @("Detected expected probe lines:") + $detectedLines,
-        [System.Text.UTF8Encoding]::new($false)
-    )
+    @("Detected expected probe lines:") + $detectedLines |
+        Set-Content -LiteralPath $selfCheckPath -Encoding utf8
 }
 
 function Invoke-GodotCommand {
@@ -108,9 +105,8 @@ function Invoke-GodotCommand {
         "Exit code: $exitCode"
         ""
         "--- combined stdout/stderr ---"
-        ($outputLines | ForEach-Object { [string]$_ })
-    )
-    [System.IO.File]::WriteAllLines($logPath, $logContent, [System.Text.UTF8Encoding]::new($false))
+    ) + @($outputLines | ForEach-Object { [string]$_ })
+    $logContent | Set-Content -LiteralPath $logPath -Encoding utf8
 
     $runtimeErrorLines = @(Get-GodotRuntimeErrorLines -OutputLines $outputLines)
     if ($runtimeErrorLines.Count -gt 0) {
