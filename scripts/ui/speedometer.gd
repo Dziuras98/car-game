@@ -1,4 +1,5 @@
 extends CanvasLayer
+class_name Speedometer
 
 @export var target_path: NodePath
 @export_range(1.0, 120.0, 1.0) var display_update_hz: float = 30.0
@@ -9,6 +10,7 @@ extends CanvasLayer
 @onready var _car: PlayerCarController = _resolve_target_node()
 
 var _configured_car: PlayerCarController
+var _configured_specs: CarSpecs
 var _display_timer: float = 0.0
 var _last_displayed_speed: int = -1
 var _last_gear_text: String = ""
@@ -17,9 +19,11 @@ var _last_gear_text: String = ""
 func set_target_node(target: PlayerCarController) -> void:
 	_car = target
 	_configured_car = null
+	_configured_specs = null
 	_last_displayed_speed = -1
 	_last_gear_text = ""
 	_display_timer = 0.0
+	set_process(is_instance_valid(target))
 	if is_inside_tree() and target != null:
 		target_path = get_path_to(target)
 		_sync_tachometer_range()
@@ -28,13 +32,13 @@ func set_target_node(target: PlayerCarController) -> void:
 func _ready() -> void:
 	_sync_tachometer_range()
 	_update_display(0.0)
+	set_process(is_instance_valid(_car))
 
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(_car):
-		_car = _resolve_target_node()
-		if _car == null:
-			return
+		set_process(false)
+		return
 
 	_display_timer -= maxf(delta, 0.0)
 	if _display_timer > 0.0:
@@ -64,14 +68,14 @@ func _update_display(speed_kmh: float, engine_rpm: float = 0.0, gear_text: Strin
 
 
 func _sync_tachometer_range() -> void:
-	if _car == null or _tachometer_gauge == null or _configured_car == _car:
+	if _car == null or _tachometer_gauge == null:
 		return
-
 	var specs: CarSpecs = _car.car_specs
-	if specs == null:
+	if specs == null or (_configured_car == _car and _configured_specs == specs):
 		return
 
 	_configured_car = _car
+	_configured_specs = specs
 	_tachometer_gauge.configure_range(specs.rev_limiter_rpm, specs.redline_rpm)
 
 
@@ -79,5 +83,4 @@ func _resolve_target_node() -> PlayerCarController:
 	var target_path_text: String = str(target_path)
 	if target_path_text.is_empty() or not is_inside_tree():
 		return null
-
 	return get_node_or_null(target_path) as PlayerCarController
