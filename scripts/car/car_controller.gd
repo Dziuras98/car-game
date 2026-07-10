@@ -1,68 +1,6 @@
 extends CharacterBody3D
 class_name PlayerCarController
 
-# The base 370Z scene still contains serialized properties from the removed
-# controller exports. They are accepted only to keep that scene loadable and
-# are deliberately not used as runtime tuning data. This compatibility list
-# can be removed once the legacy scene is replaced by an imported model scene.
-const REMOVED_LEGACY_TUNING_PROPERTIES: Dictionary = {
-	&"acceleration": true,
-	&"brake_deceleration": true,
-	&"reverse_acceleration": true,
-	&"coast_deceleration": true,
-	&"handbrake_deceleration": true,
-	&"max_forward_speed": true,
-	&"max_reverse_speed": true,
-	&"steering_speed": true,
-	&"wheel_base": true,
-	&"max_steering_angle_degrees": true,
-	&"idle_rpm": true,
-	&"peak_torque_rpm": true,
-	&"redline_rpm": true,
-	&"rev_limiter_rpm": true,
-	&"low_rpm_torque_multiplier": true,
-	&"mid_rpm_torque_multiplier": true,
-	&"redline_torque_multiplier": true,
-	&"engine_force": true,
-	&"engine_brake_force": true,
-	&"rpm_response": true,
-	&"manual_transmission_enabled": true,
-	&"automatic_transmission_enabled": true,
-	&"gear_ratios": true,
-	&"reverse_gear_ratio": true,
-	&"final_drive_ratio": true,
-	&"peak_engine_torque": true,
-	&"wheel_radius": true,
-	&"drivetrain_efficiency": true,
-	&"shift_delay": true,
-	&"automatic_upshift_rpm": true,
-	&"automatic_downshift_rpm": true,
-	&"automatic_kickdown_throttle": true,
-	&"automatic_kickdown_rpm": true,
-	&"automatic_shift_delay": true,
-	&"torque_converter_stall_rpm": true,
-	&"torque_converter_coupling_rpm": true,
-	&"torque_converter_stall_torque_multiplier": true,
-	&"vehicle_mass": true,
-	&"drag_coefficient": true,
-	&"frontal_area": true,
-	&"air_density": true,
-	&"rolling_resistance_coefficient": true,
-	&"lateral_grip": true,
-	&"handbrake_lateral_grip_multiplier": true,
-	&"steering_slip_gain": true,
-	&"slip_speed_threshold": true,
-	&"slip_steering_lock_threshold": true,
-	&"slip_steering_same_direction_multiplier": true,
-	&"skid_mark_min_slip": true,
-	&"skid_mark_interval": true,
-	&"skid_mark_lifetime": true,
-	&"skid_mark_width": true,
-	&"skid_mark_length": true,
-	&"gravity": true,
-	&"floor_stick_force": true,
-}
-
 var _car_specs: CarSpecs
 
 @export_group("Specs")
@@ -81,10 +19,6 @@ var _chassis_controller: CarChassisController = CarChassisController.new()
 var _reset_controller: CarResetController = CarResetController.new()
 var _car_input: CarInput = CarInput.new()
 var _skid_mark_emitter: SkidMarkEmitter
-
-
-func _set(property: StringName, _value: Variant) -> bool:
-	return REMOVED_LEGACY_TUNING_PROPERTIES.has(property)
 
 
 func _ready() -> void:
