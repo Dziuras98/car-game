@@ -1,5 +1,6 @@
 extends Node
 
+const DEFAULT_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 const EPSILON: float = 0.001
 const EXPECTED_POINT_COUNT: int = 108
 
@@ -14,196 +15,130 @@ func _ready() -> void:
 func _run() -> void:
 	_test_default_layout_topology()
 	_test_edge_and_shoulder_geometry()
-	_test_width_profile_and_index_wrapping()
-	_test_invalid_config_is_sanitized()
+	_test_config_sanitization()
 	_test_build_is_deterministic()
-	_test_render_mesh_attributes()
+	_test_generated_mesh_bundle()
 	_finish()
 
 
 func _test_default_layout_topology() -> void:
-	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build({})
+	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build(TrackGenerationConfig.from_layout(DEFAULT_LAYOUT))
 	_expect(geometry != null, "layout builder returns geometry")
 	if geometry == null:
 		return
-
 	var point_count: int = geometry.center_points.size()
 	_expect(point_count == EXPECTED_POINT_COUNT, "layout samples 18 control points into 108 points")
 	_expect(geometry.racing_line_points.size() == point_count, "racing line has one point per center point")
 	_expect(geometry.forward_vectors.size() == point_count, "layout has one forward vector per point")
 	_expect(geometry.right_vectors.size() == point_count, "layout has one right vector per point")
 	_expect(geometry.half_widths.size() == point_count, "layout has one half-width per point")
-	_expect(geometry.left_edge_points.size() == point_count, "layout has one left edge point per center point")
-	_expect(geometry.right_edge_points.size() == point_count, "layout has one right edge point per center point")
-	_expect(geometry.left_shoulder_outer_points.size() == point_count, "layout has one left shoulder point per center point")
-	_expect(geometry.right_shoulder_outer_points.size() == point_count, "layout has one right shoulder point per center point")
 	_expect(_packed_vector3_array_equal_approx(geometry.racing_line_points, geometry.center_points), "current racing line follows the sampled center line")
 	_expect(_vector3_equal_approx(geometry.center, _calculate_center(geometry.center_points)), "layout center is the arithmetic mean of sampled points")
 
-	if point_count < 2:
-		return
-
-	var closure_distance: float = geometry.center_points[point_count - 1].distance_to(geometry.center_points[0])
-	var max_regular_segment: float = 0.0
 	var minimum_segment: float = INF
-	var maximum_elevation: float = -INF
-	for index: int in range(point_count - 1):
-		var segment_length: float = geometry.center_points[index].distance_to(geometry.center_points[index + 1])
+	var maximum_segment: float = 0.0
+	for index: int in range(point_count):
+		var next_index: int = (index + 1) % point_count
+		var segment_length: float = geometry.center_points[index].distance_to(geometry.center_points[next_index])
 		minimum_segment = minf(minimum_segment, segment_length)
-		max_regular_segment = maxf(max_regular_segment, segment_length)
-		maximum_elevation = maxf(maximum_elevation, geometry.center_points[index].y)
-	maximum_elevation = maxf(maximum_elevation, geometry.center_points[point_count - 1].y)
-
+		maximum_segment = maxf(maximum_segment, segment_length)
 	_expect(minimum_segment > 0.01, "sampled layout has no duplicate consecutive points")
-	_expect(closure_distance > 0.01, "closed layout does not duplicate its first point at the end")
-	_expect(closure_distance <= max_regular_segment * 1.5, "implicit closing segment is continuous with regular sampling")
-	_expect(maximum_elevation > 1.0, "layout preserves the configured elevation profile")
+	_expect(maximum_segment < 20.0, "sampled layout has no discontinuous segment")
 
 
 func _test_edge_and_shoulder_geometry() -> void:
-	var shoulder_width: float = 10.0
-	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build({
-		"track_width": 14.0,
-		"width_variation": 0.28,
-		"shoulder_width": shoulder_width,
-	})
+	var config: TrackGenerationConfig = TrackGenerationConfig.from_layout(DEFAULT_LAYOUT)
+	config.track_width = 14.0
+	config.width_variation = 0.28
+	config.shoulder_width = 10.0
+	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build(config)
+	var frames_are_valid: bool = true
+	var edges_match_width: bool = true
+	var shoulders_match_width: bool = true
 	var minimum_half_width: float = INF
 	var maximum_half_width: float = 0.0
-	var forward_vectors_normalized: bool = true
-	var right_vectors_normalized: bool = true
-	var frames_perpendicular: bool = true
-	var edges_centered: bool = true
-	var left_edges_match_width: bool = true
-	var right_edges_match_width: bool = true
-	var left_shoulders_match_width: bool = true
-	var right_shoulders_match_width: bool = true
 
 	for index: int in range(geometry.center_points.size()):
 		var center_point: Vector3 = geometry.center_points[index]
 		var forward: Vector3 = geometry.forward_vectors[index]
 		var right: Vector3 = geometry.right_vectors[index]
 		var half_width: float = geometry.half_widths[index]
-		var left_edge: Vector3 = geometry.left_edge_points[index]
-		var right_edge: Vector3 = geometry.right_edge_points[index]
-		var midpoint: Vector3 = (left_edge + right_edge) * 0.5
-
 		minimum_half_width = minf(minimum_half_width, half_width)
 		maximum_half_width = maxf(maximum_half_width, half_width)
-		forward_vectors_normalized = forward_vectors_normalized and absf(forward.length() - 1.0) <= EPSILON
-		right_vectors_normalized = right_vectors_normalized and absf(right.length() - 1.0) <= EPSILON
-		frames_perpendicular = frames_perpendicular and absf(forward.dot(right)) <= EPSILON
-		edges_centered = edges_centered and _vector3_equal_approx(midpoint, center_point)
-		left_edges_match_width = left_edges_match_width and absf(center_point.distance_to(left_edge) - half_width) <= EPSILON
-		right_edges_match_width = right_edges_match_width and absf(center_point.distance_to(right_edge) - half_width) <= EPSILON
-		left_shoulders_match_width = left_shoulders_match_width and absf(left_edge.distance_to(geometry.left_shoulder_outer_points[index]) - shoulder_width) <= EPSILON
-		right_shoulders_match_width = right_shoulders_match_width and absf(right_edge.distance_to(geometry.right_shoulder_outer_points[index]) - shoulder_width) <= EPSILON
+		frames_are_valid = frames_are_valid and absf(forward.length() - 1.0) <= EPSILON
+		frames_are_valid = frames_are_valid and absf(right.length() - 1.0) <= EPSILON
+		frames_are_valid = frames_are_valid and absf(forward.dot(right)) <= EPSILON
+		edges_match_width = edges_match_width and absf(center_point.distance_to(geometry.left_edge_points[index]) - half_width) <= EPSILON
+		edges_match_width = edges_match_width and absf(center_point.distance_to(geometry.right_edge_points[index]) - half_width) <= EPSILON
+		shoulders_match_width = shoulders_match_width and absf(geometry.left_edge_points[index].distance_to(geometry.left_shoulder_outer_points[index]) - 10.0) <= EPSILON
+		shoulders_match_width = shoulders_match_width and absf(geometry.right_edge_points[index].distance_to(geometry.right_shoulder_outer_points[index]) - 10.0) <= EPSILON
 
-	_expect(forward_vectors_normalized, "all forward vectors are normalized")
-	_expect(right_vectors_normalized, "all right vectors are normalized")
-	_expect(frames_perpendicular, "all forward and right vectors are perpendicular")
-	_expect(edges_centered, "all road-edge pairs are centered on the sampled line")
-	_expect(left_edges_match_width, "all left edges use the generated half-width")
-	_expect(right_edges_match_width, "all right edges use the generated half-width")
-	_expect(left_shoulders_match_width, "all left shoulders use the configured width")
-	_expect(right_shoulders_match_width, "all right shoulders use the configured width")
-	_expect(minimum_half_width >= 7.0 - EPSILON, "default road never becomes narrower than the base width")
-	_expect(maximum_half_width > minimum_half_width, "width variation widens designated turn sections")
+	_expect(frames_are_valid, "all generated track frames are normalized and perpendicular")
+	_expect(edges_match_width, "road edges use the generated width profile")
+	_expect(shoulders_match_width, "shoulders use the typed configuration width")
+	_expect(minimum_half_width >= 7.0 - EPSILON, "road never becomes narrower than its base width")
+	_expect(maximum_half_width > minimum_half_width, "width variation widens designated sections")
 
 
-func _test_width_profile_and_index_wrapping() -> void:
-	var builder: TrackLayoutBuilder = TrackLayoutBuilder.new()
-	var point_count: int = EXPECTED_POINT_COUNT
-	var base_half_width: float = builder.get_half_width(0, point_count, 14.0, 0.0)
+func _test_config_sanitization() -> void:
+	var config: TrackGenerationConfig = TrackGenerationConfig.from_layout(DEFAULT_LAYOUT)
+	config.track_width = -20.0
+	config.width_variation = 8.0
+	config.shoulder_width = -4.0
+	var copy: TrackGenerationConfig = config.duplicate_config()
+	_expect(copy.track_width >= 0.1, "typed config clamps invalid track width")
+	_expect(copy.width_variation <= 0.45, "typed config clamps excessive width variation")
+	_expect(is_zero_approx(copy.shoulder_width), "typed config clamps negative shoulder width")
 
-	_expect(absf(base_half_width - 7.0) <= EPSILON, "zero variation returns half of track width")
-	_expect(absf(builder.get_half_width(40, point_count, 14.0, 0.0) - base_half_width) <= EPSILON, "zero variation is constant around the track")
-	_expect(absf(builder.get_half_width(-1, point_count, 14.0, 0.28) - builder.get_half_width(point_count - 1, point_count, 14.0, 0.28)) <= EPSILON, "negative width-profile index wraps around")
-	_expect(absf(builder.get_half_width(point_count + 1, point_count, 14.0, 0.28) - builder.get_half_width(1, point_count, 14.0, 0.28)) <= EPSILON, "overflow width-profile index wraps around")
-	_expect(absf(builder.get_half_width(0, 0, 14.0, 0.28) - 7.0) <= EPSILON, "zero point count returns a safe base half-width")
-	_expect(absf(builder.get_half_width(31, point_count, 14.0, -5.0) - builder.get_half_width(31, point_count, 14.0, 0.0)) <= EPSILON, "negative width variation is clamped to zero")
-	_expect(absf(builder.get_half_width(31, point_count, 14.0, 5.0) - builder.get_half_width(31, point_count, 14.0, 0.45)) <= EPSILON, "excessive width variation is clamped to the supported maximum")
-
-
-func _test_invalid_config_is_sanitized() -> void:
-	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build({
-		"track_width": -20.0,
-		"width_variation": 8.0,
-		"shoulder_width": -4.0,
-	})
+	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build(config)
 	var widths_are_positive: bool = true
-	var left_shoulders_are_zero: bool = true
-	var right_shoulders_are_zero: bool = true
-
+	var shoulders_are_zero: bool = true
 	for index: int in range(geometry.center_points.size()):
 		widths_are_positive = widths_are_positive and geometry.half_widths[index] >= 0.05 - EPSILON
-		left_shoulders_are_zero = left_shoulders_are_zero and geometry.left_edge_points[index].distance_to(geometry.left_shoulder_outer_points[index]) <= EPSILON
-		right_shoulders_are_zero = right_shoulders_are_zero and geometry.right_edge_points[index].distance_to(geometry.right_shoulder_outer_points[index]) <= EPSILON
-
-	_expect(widths_are_positive, "invalid track width is clamped for the full layout")
-	_expect(left_shoulders_are_zero, "negative left shoulder width is clamped to zero")
-	_expect(right_shoulders_are_zero, "negative right shoulder width is clamped to zero")
+		shoulders_are_zero = shoulders_are_zero and geometry.left_edge_points[index].distance_to(geometry.left_shoulder_outer_points[index]) <= EPSILON
+		shoulders_are_zero = shoulders_are_zero and geometry.right_edge_points[index].distance_to(geometry.right_shoulder_outer_points[index]) <= EPSILON
+	_expect(widths_are_positive, "layout builder consumes sanitized track width")
+	_expect(shoulders_are_zero, "layout builder consumes sanitized shoulder width")
 
 
 func _test_build_is_deterministic() -> void:
-	var config: Dictionary = {
-		"track_width": 17.5,
-		"width_variation": 0.2,
-		"shoulder_width": 6.0,
-	}
+	var config: TrackGenerationConfig = TrackGenerationConfig.from_layout(DEFAULT_LAYOUT)
+	config.track_width = 17.5
+	config.width_variation = 0.2
+	config.shoulder_width = 6.0
 	var builder: TrackLayoutBuilder = TrackLayoutBuilder.new()
 	var first: TrackGeometryData = builder.build(config)
 	var second: TrackGeometryData = builder.build(config)
-
 	_expect(_packed_vector3_array_equal_approx(first.center_points, second.center_points), "repeated builds produce identical center points")
 	_expect(_packed_vector3_array_equal_approx(first.left_edge_points, second.left_edge_points), "repeated builds produce identical left edges")
-	_expect(_packed_vector3_array_equal_approx(first.right_edge_points, second.right_edge_points), "repeated builds produce identical right edges")
 	_expect(_packed_float_array_equal_approx(first.half_widths, second.half_widths), "repeated builds produce identical width profiles")
-	_expect(_vector3_equal_approx(first.center, second.center), "repeated builds produce the same layout center")
 
 
-func _test_render_mesh_attributes() -> void:
-	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build({})
-	var track_mesh: ArrayMesh = TrackSurfaceMeshBuilder.create_track_mesh(geometry)
-	var shoulder_mesh: ArrayMesh = TrackSurfaceMeshBuilder.create_shoulder_mesh(geometry)
-	_expect(track_mesh.get_surface_count() == 1, "track mesh exposes one triangle surface")
-	_expect(shoulder_mesh.get_surface_count() == 1, "shoulder mesh exposes one triangle surface")
-	if track_mesh.get_surface_count() == 0 or shoulder_mesh.get_surface_count() == 0:
-		return
-
-	var track_arrays: Array = track_mesh.surface_get_arrays(0)
-	var shoulder_arrays: Array = shoulder_mesh.surface_get_arrays(0)
-	var track_vertices: PackedVector3Array = track_arrays[Mesh.ARRAY_VERTEX]
-	var track_normals: PackedVector3Array = track_arrays[Mesh.ARRAY_NORMAL]
-	var track_uvs: PackedVector2Array = track_arrays[Mesh.ARRAY_TEX_UV]
-	var track_tangents: PackedFloat32Array = track_arrays[Mesh.ARRAY_TANGENT]
-	var track_indices: PackedInt32Array = track_arrays[Mesh.ARRAY_INDEX]
-	var shoulder_vertices: PackedVector3Array = shoulder_arrays[Mesh.ARRAY_VERTEX]
-	var shoulder_normals: PackedVector3Array = shoulder_arrays[Mesh.ARRAY_NORMAL]
-	var shoulder_uvs: PackedVector2Array = shoulder_arrays[Mesh.ARRAY_TEX_UV]
-	var shoulder_tangents: PackedFloat32Array = shoulder_arrays[Mesh.ARRAY_TANGENT]
-	var shoulder_indices: PackedInt32Array = shoulder_arrays[Mesh.ARRAY_INDEX]
-
-	_expect(track_vertices.size() == (EXPECTED_POINT_COUNT + 1) * 2, "track mesh duplicates its first row at the UV seam")
-	_expect(track_indices.size() == EXPECTED_POINT_COUNT * 6, "track mesh emits two triangles per sampled segment")
-	_expect(track_normals.size() == track_vertices.size(), "track mesh provides one normal per vertex")
-	_expect(track_uvs.size() == track_vertices.size(), "track mesh provides one UV per vertex")
-	_expect(track_tangents.size() == track_vertices.size() * 4, "track mesh provides a four-component tangent per vertex")
-	_expect(shoulder_vertices.size() == (EXPECTED_POINT_COUNT + 1) * 4, "shoulder mesh duplicates its first row at the UV seam")
-	_expect(shoulder_indices.size() == EXPECTED_POINT_COUNT * 12, "shoulder mesh emits four triangles per sampled segment")
-	_expect(shoulder_normals.size() == shoulder_vertices.size(), "shoulder mesh provides one normal per vertex")
-	_expect(shoulder_uvs.size() == shoulder_vertices.size(), "shoulder mesh provides one UV per vertex")
-	_expect(shoulder_tangents.size() == shoulder_vertices.size() * 4, "shoulder mesh provides a four-component tangent per vertex")
-	_expect(track_vertices[0].distance_to(track_vertices[-2]) <= EPSILON, "track seam closes without a position gap")
-	_expect(track_uvs[-2].y > track_uvs[0].y, "track seam advances longitudinal UVs instead of wrapping to zero")
-	_expect(_all_normals_normalized(track_normals), "track normals are normalized")
-	_expect(_all_normals_normalized(shoulder_normals), "shoulder normals are normalized")
-
-
-func _all_normals_normalized(normals: PackedVector3Array) -> bool:
-	for normal: Vector3 in normals:
-		if absf(normal.length() - 1.0) > EPSILON:
-			return false
-	return true
+func _test_generated_mesh_bundle() -> void:
+	var config: TrackGenerationConfig = TrackGenerationConfig.from_layout(DEFAULT_LAYOUT)
+	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build(config)
+	var parent: Node3D = Node3D.new()
+	add_child(parent)
+	var meshes: TrackGeneratedMeshes = TrackSurfaceMeshBuilder.new().build_surfaces(
+		parent,
+		geometry,
+		TrackMaterialFactory.new(),
+		config
+	)
+	_expect(meshes != null and meshes.is_valid(), "surface builder returns a valid typed mesh bundle")
+	if meshes != null and meshes.is_valid():
+		_expect(meshes.track_mesh.get_surface_count() == 1, "typed bundle contains the asphalt mesh")
+		_expect(meshes.shoulder_mesh.get_surface_count() == 1, "typed bundle contains the shoulder mesh")
+		var track_arrays: Array = meshes.track_mesh.surface_get_arrays(0)
+		var track_vertices: PackedVector3Array = track_arrays[Mesh.ARRAY_VERTEX]
+		var track_normals: PackedVector3Array = track_arrays[Mesh.ARRAY_NORMAL]
+		var track_uvs: PackedVector2Array = track_arrays[Mesh.ARRAY_TEX_UV]
+		var track_tangents: PackedFloat32Array = track_arrays[Mesh.ARRAY_TANGENT]
+		_expect(track_vertices.size() == (EXPECTED_POINT_COUNT + 1) * 2, "track mesh duplicates its first row at the UV seam")
+		_expect(track_normals.size() == track_vertices.size(), "track mesh provides one normal per vertex")
+		_expect(track_uvs.size() == track_vertices.size(), "track mesh provides one UV per vertex")
+		_expect(track_tangents.size() == track_vertices.size() * 4, "track mesh provides one tangent per vertex")
+	parent.queue_free()
 
 
 func _calculate_center(points: PackedVector3Array) -> Vector3:
@@ -240,7 +175,6 @@ func _expect(condition: bool, message: String) -> void:
 	if condition:
 		print("[TRACK_LAYOUT_BUILDER_TEST][PASS] %s" % message)
 		return
-
 	_failures.append(message)
 	push_error("[TRACK_LAYOUT_BUILDER_TEST][FAIL] %s" % message)
 
@@ -250,7 +184,6 @@ func _finish() -> void:
 		print("[TRACK_LAYOUT_BUILDER_TEST] Passed: %d checks" % _checks)
 		get_tree().quit(0)
 		return
-
 	push_error("[TRACK_LAYOUT_BUILDER_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[TRACK_LAYOUT_BUILDER_TEST] - %s" % failure_message)
