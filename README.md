@@ -23,6 +23,7 @@ The project currently contains:
 - speedometer, gear display and tachometer;
 - scene-driven mobile touch controls for Android playtesting;
 - extended full-program smoke test scene for automated regression checks;
+- focused scene-runnable car specs runtime reconfiguration test;
 - game test adapter that centralizes smoke-test access to game state.
 
 The project is still a prototype. The current priority is controlled cleanup and regression coverage, not adding more cars or game modes.
@@ -46,7 +47,9 @@ The repository is intentionally small and mostly text-based, which makes it suit
 
 The game starts from the main scene and displays the menu before spawning the selected car.
 
-## Automated smoke test
+## Automated tests
+
+### Full-program smoke test
 
 An extended full-program smoke test is available at:
 
@@ -75,6 +78,22 @@ It also checks visible `Nissan 370Z` model selection, variant IDs for `nissan_37
 `scripts/tests/game_test_adapter.gd` centralizes smoke-test access to the current car, opponents, selected mode/track, selected car variant, visible buttons and simulated player finish. The test runner should use that adapter instead of directly reading `GameManager` fields.
 
 The test prints `[SMOKE][PASS]` / `[SMOKE][FAIL]` lines to the Output panel and exits with status code `0` on pass or `1` on failure when run from command line.
+
+### Car specs runtime reconfiguration test
+
+A focused scene-runnable test is available at:
+
+```text
+scenes/tests/car_specs_runtime_reconfiguration_test.tscn
+```
+
+Use this test when validating runtime `car_specs` changes on a live `PlayerCarController`. It checks that `CarDriveConfig` is rebuilt, the existing `SkidMarkEmitter` receives the new skid-mark parameters, duplicate `SkidMarks` containers are not created, the runtime gear is clamped to the new gear count and motion state is preserved.
+
+Recommended editor-scene flow:
+
+1. Open `scenes/tests/car_specs_runtime_reconfiguration_test.tscn`.
+2. Run it as the current scene.
+3. Watch the Output panel for `[CAR_SPECS_RECONFIG_TEST][PASS]` / `[CAR_SPECS_RECONFIG_TEST][FAIL]` lines.
 
 ## Controls
 
@@ -117,6 +136,7 @@ Mobile overlay buttons:
 | `project.godot` | Project settings and input map |
 | `scenes/main.tscn` | Main composition scene |
 | `scenes/tests/full_program_smoke_test.tscn` | Full-program automated smoke test scene |
+| `scenes/tests/car_specs_runtime_reconfiguration_test.tscn` | Scene-runnable focused runtime `car_specs` reconfiguration test |
 | `scenes/cars/370z.tscn` | Base/manual 370Z-style car scene |
 | `scenes/cars/370zat.tscn` | Automatic transmission 370Z variant |
 | `scenes/tracks/simple_oval.tscn` | Current generated test/race track scene |
@@ -203,6 +223,7 @@ Mobile overlay buttons:
 |---|---|
 | `scripts/tests/full_program_smoke_test.gd` | Full-program smoke test runner attached to the smoke-test scene |
 | `scripts/tests/car_controller_runtime_config_test.gd` | Runtime config and basic gear-display test |
+| `scripts/tests/car_specs_runtime_reconfiguration_test.gd` | Scene-runnable runtime `car_specs` reconfiguration test script |
 | `scripts/tests/game_test_adapter.gd` | Diagnostic adapter used by the smoke test |
 | `scripts/tests/run_full_program_smoke_test.gd` | EditorScript launcher for the full-program smoke test scene |
 | `docs/architecture.md` | Current architecture baseline and cleanup direction |
