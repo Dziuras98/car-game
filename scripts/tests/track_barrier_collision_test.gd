@@ -25,7 +25,6 @@ func _run() -> void:
 	_validate_barriers(track, "initial generation")
 
 	mutable_layout.track_width += 0.75
-	mutable_layout.emit_changed()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_validate_barriers(track, "rebuilt generation")
@@ -41,17 +40,28 @@ func _validate_barriers(track: Node3D, stage: String) -> void:
 	if barriers == null:
 		return
 
-	var visual_count: int = 0
+	var visual: MultiMeshInstance3D = barriers.get_node_or_null("BarrierVisuals") as MultiMeshInstance3D
 	var collision_count: int = 0
 	for child: Node in barriers.get_children():
-		if child is MeshInstance3D:
-			visual_count += 1
-		elif child is CollisionShape3D:
+		if child is CollisionShape3D:
 			collision_count += 1
 
-	_expect(visual_count > 0, "%s creates visible barrier segments" % stage)
+	_expect(visual != null and visual.multimesh != null, "%s creates one batched barrier visual node" % stage)
 	_expect(collision_count > 0, "%s creates physical barrier segments" % stage)
-	_expect(collision_count == visual_count, "%s keeps one collision per visible barrier segment" % stage)
+	if visual != null and visual.multimesh != null:
+		_expect(
+			visual.multimesh.instance_count == collision_count,
+			"%s keeps one collision per batched visible barrier instance" % stage
+		)
+	_expect(_count_multimesh_nodes(barriers) == 1, "%s keeps barrier visuals to one MultiMesh draw source" % stage)
+
+
+func _count_multimesh_nodes(parent: Node) -> int:
+	var count: int = 0
+	for child: Node in parent.get_children():
+		if child is MultiMeshInstance3D:
+			count += 1
+	return count
 
 
 func _expect(condition: bool, message: String) -> void:
