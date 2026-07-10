@@ -116,6 +116,12 @@ func _test_ui_update_coalescing() -> void:
 	_expect(gauge.get_redraw_request_count_for_test() == initial_redraws, "small repeated RPM changes do not redraw the tachometer")
 	gauge.set_rpm(2050.0)
 	_expect(gauge.get_redraw_request_count_for_test() == initial_redraws + 1, "meaningful RPM change redraws the tachometer once")
+
+	gauge.major_tick_rpm = 0.0
+	gauge.minor_tick_rpm = -10.0
+	gauge.max_rpm = 1_000_000.0
+	_expect(gauge.get_safe_tick_count(gauge.major_tick_rpm) == TachometerGauge.MAX_TICK_COUNT, "invalid major tick steps are bounded instead of entering an endless draw loop")
+	_expect(gauge.get_safe_tick_count(gauge.minor_tick_rpm) == TachometerGauge.MAX_TICK_COUNT, "invalid minor tick steps are bounded instead of entering an endless draw loop")
 	gauge.free()
 
 
@@ -174,7 +180,6 @@ func _finish() -> void:
 		print("[PERFORMANCE_REGRESSION_TEST] Passed: %d checks" % _checks)
 		get_tree().quit(0)
 		return
-
 	push_error("[PERFORMANCE_REGRESSION_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[PERFORMANCE_REGRESSION_TEST] - %s" % failure_message)
