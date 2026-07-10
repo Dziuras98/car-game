@@ -1,7 +1,9 @@
 @tool
 extends Node3D
+class_name GeneratedTrack
 
 signal checkpoint_crossed(car: PlayerCarController, checkpoint_index: int, is_forward: bool)
+signal geometry_rebuilt(revision: int)
 
 const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 
@@ -54,7 +56,7 @@ func _perform_pending_rebuild() -> void:
 
 
 func _rebuild_track(force: bool = false) -> void:
-	if not is_inside_tree() or track_layout == null:
+	if not is_inside_tree() or track_layout == null or not track_layout.is_valid():
 		return
 
 	var generation_signature: int = _get_generation_signature()
@@ -81,6 +83,7 @@ func _rebuild_track(force: bool = false) -> void:
 	_last_generation_signature = generation_signature
 	_has_generation_signature = true
 	_rebuild_count += 1
+	geometry_rebuilt.emit(_rebuild_count)
 
 
 func get_racing_line_points() -> Array[Vector3]:
@@ -95,9 +98,11 @@ func get_track_layout() -> TrackLayoutResource:
 
 
 func get_checkpoint_count() -> int:
-	if track_layout == null:
-		return 0
-	return track_layout.get_checkpoint_count()
+	return track_layout.get_checkpoint_count() if track_layout != null else 0
+
+
+func get_geometry_revision() -> int:
+	return _rebuild_count
 
 
 func get_checkpoint_gate_count_for_test() -> int:
@@ -140,7 +145,6 @@ func _ensure_builders() -> void:
 func _build_track_generation_config() -> Dictionary:
 	if track_layout == null:
 		return {}
-
 	return {
 		"track_layout": track_layout,
 		"track_width": track_layout.track_width,
