@@ -122,16 +122,16 @@ func _test_automatic_upshift_request_and_torque_cut() -> void:
 
 	state.current_gear = 1
 	state.engine_rpm = config.redline_rpm
-	state.forward_speed = 8.0
+	state.forward_speed = 20.0
 	powertrain.update(state, 0.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 2, "automatic high RPM requests upshift")
 	_expect(is_equal_approx(state.shift_timer, config.automatic_shift_delay), "automatic upshift applies automatic shift delay")
 	_expect(powertrain.get_gear_text(state) == "D2", "automatic gear text reports second drive gear")
 
 	var speed_before_shift: float = state.forward_speed
-	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
+	powertrain.update(state, 0.5, 0.0, false, false, false, 0.10)
 	_expect(is_equal_approx(state.forward_speed, speed_before_shift), "automatic shift delay cuts wheel torque")
-	_advance_shift(powertrain, state, 1.0, 0.0)
+	_advance_shift(powertrain, state, 0.5, 0.0)
 	_expect(state.forward_speed > speed_before_shift, "automatic drive torque resumes after shift delay")
 
 
