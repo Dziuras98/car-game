@@ -1,14 +1,13 @@
 extends Resource
 class_name TrackCatalog
 
-@export var tracks: Array[Resource] = []
+@export var tracks: Array[TrackDefinition] = []
 @export var default_track_id: StringName = &""
 
 
 func get_tracks() -> Array[TrackDefinition]:
 	var result: Array[TrackDefinition] = []
-	for resource: Resource in tracks:
-		var definition: TrackDefinition = resource as TrackDefinition
+	for definition: TrackDefinition in tracks:
 		if definition != null:
 			result.append(definition)
 	return result
@@ -31,7 +30,7 @@ func validate() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
 	var definitions: Array[TrackDefinition] = get_tracks()
 	if definitions.size() != tracks.size():
-		errors.append("all track entries must be TrackDefinition resources")
+		errors.append("all track entries must be non-null TrackDefinition resources")
 	if definitions.is_empty():
 		errors.append("catalog must contain at least one track")
 		return errors
