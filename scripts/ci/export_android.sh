@@ -82,7 +82,15 @@ if [[ "$VERSION_NAME" != "0.1.0" ]]; then
   exit 1
 fi
 
-grep -q 'android:label="Car Game"' "$OUTPUT_DIR/android-manifest.xml"
+AAPT_BIN="$(find_android_tool aapt || true)"
+if [[ -z "$AAPT_BIN" ]]; then
+  echo "aapt was not found; compiled application label cannot be validated." >&2
+  exit 1
+fi
+"$AAPT_BIN" dump badging "$APK_PATH" > "$OUTPUT_DIR/aapt-badging.txt"
+grep -q "package: name='com.dziuras98.cargame'" "$OUTPUT_DIR/aapt-badging.txt"
+grep -q "application-label:'Car Game'" "$OUTPUT_DIR/aapt-badging.txt"
+echo "Compiled application label: Car Game" | tee -a "$VALIDATION_LOG"
 
 APK_SIGNER="$(find_android_tool apksigner || true)"
 if [[ -z "$APK_SIGNER" ]]; then
@@ -90,7 +98,6 @@ if [[ -z "$APK_SIGNER" ]]; then
   exit 1
 fi
 "$APK_SIGNER" verify --verbose --print-certs "$APK_PATH" > "$OUTPUT_DIR/apksigner-verification.txt"
-grep -q 'Verified' "$OUTPUT_DIR/apksigner-verification.txt"
 echo "APK signature: valid" | tee -a "$VALIDATION_LOG"
 
 if strings "$APK_PATH" | grep -E 'res://(scripts|scenes)/tests/' >/dev/null; then
