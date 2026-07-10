@@ -31,10 +31,12 @@ func spawn_track(definition: TrackDefinition) -> GeneratedTrack:
 
 	pending_track.name = PENDING_TRACK_NAME
 	_container.add_child(pending_track)
-	if not pending_track.has_committed_generation():
-		_container.remove_child(pending_track)
-		pending_track.queue_free()
-		push_error("Track definition %s did not produce valid generated content; keeping the current track." % str(definition.track_id))
+	if pending_track.get_parent() != _container or not pending_track.has_committed_generation():
+		_discard_pending_track(pending_track)
+		push_warning(
+			"Track definition %s did not produce valid generated content; keeping the current track."
+			% str(definition.track_id)
+		)
 		return null
 
 	var previous_track: GeneratedTrack = _current_track
@@ -60,3 +62,12 @@ func clear_track() -> void:
 		_current_track.queue_free()
 	_current_track = null
 	_current_definition = null
+
+
+func _discard_pending_track(pending_track: GeneratedTrack) -> void:
+	if not is_instance_valid(pending_track):
+		return
+	var parent: Node = pending_track.get_parent()
+	if parent != null:
+		parent.remove_child(pending_track)
+	pending_track.queue_free()
