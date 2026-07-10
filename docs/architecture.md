@@ -12,6 +12,7 @@ scenes/tests/car_catalog_validation_test.tscn
 scenes/tests/car_specs_runtime_reconfiguration_test.tscn
 scenes/tests/car_powertrain_controller_test.tscn
 scenes/tests/car_chassis_motion_test.tscn
+scenes/tests/track_layout_builder_test.tscn
 scenes/tests/full_program_smoke_test.tscn
 ```
 
@@ -57,6 +58,7 @@ scenes/
     car_chassis_motion_test.tscn
     car_powertrain_controller_test.tscn
     car_specs_runtime_reconfiguration_test.tscn
+    track_layout_builder_test.tscn
     full_program_smoke_test.tscn
   tracks/
     simple_oval.tscn
@@ -243,9 +245,10 @@ scripts/track/track_material_factory.gd
 
 The public compatibility method `get_racing_line_points()` supplies AI, minimap and lap tracking.
 
+`TrackLayoutBuilder` is protected by a focused headless scene test. The test freezes the current 108-point loop topology, array alignment, center/racing-line relationship, local frame normalization, road and shoulder offsets, width-profile wrapping, deterministic rebuilds and sanitization of invalid width inputs.
+
 Remaining track work:
 
-- add focused `TrackLayoutBuilder` tests;
 - move control points and metadata into a Resource;
 - introduce ordered checkpoints;
 - keep nearest-line lookup only for position sorting.
