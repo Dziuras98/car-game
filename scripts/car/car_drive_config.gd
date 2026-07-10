@@ -1,7 +1,11 @@
 extends RefCounted
 class_name CarDriveConfig
 
-var acceleration: float = 22.0
+const DUPLICATE_SKIP_PROPERTIES: Array[StringName] = [
+	&"manual_transmission_enabled",
+	&"automatic_transmission_enabled",
+]
+
 var brake_deceleration: float = 34.0
 var reverse_acceleration: float = 12.0
 var coast_deceleration: float = 5.0
@@ -97,7 +101,7 @@ func duplicate_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
 	for property: Dictionary in get_property_list():
 		var property_name: StringName = property.get("name", &"")
-		if property_name == &"" or property_name in [&"script", &"RefCounted"]:
+		if property_name == &"" or property_name in [&"script", &"RefCounted"] or property_name in DUPLICATE_SKIP_PROPERTIES:
 			continue
 		var usage: int = int(property.get("usage", 0))
 		if usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
