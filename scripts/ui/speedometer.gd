@@ -11,6 +11,8 @@ class_name Speedometer
 
 var _configured_car: PlayerCarController
 var _configured_specs: CarSpecs
+var _configured_redline_rpm: float = -1.0
+var _configured_rev_limiter_rpm: float = -1.0
 var _display_timer: float = 0.0
 var _last_displayed_speed: int = -1
 var _last_gear_text: String = ""
@@ -18,8 +20,7 @@ var _last_gear_text: String = ""
 
 func set_target_node(target: PlayerCarController) -> void:
 	_car = target
-	_configured_car = null
-	_configured_specs = null
+	_reset_tachometer_configuration_cache()
 	_last_displayed_speed = -1
 	_last_gear_text = ""
 	_display_timer = 0.0
@@ -71,12 +72,28 @@ func _sync_tachometer_range() -> void:
 	if _car == null or _tachometer_gauge == null:
 		return
 	var specs: CarSpecs = _car.car_specs
-	if specs == null or (_configured_car == _car and _configured_specs == specs):
+	if specs == null:
+		return
+	if (
+		_configured_car == _car
+		and _configured_specs == specs
+		and is_equal_approx(_configured_redline_rpm, specs.redline_rpm)
+		and is_equal_approx(_configured_rev_limiter_rpm, specs.rev_limiter_rpm)
+	):
 		return
 
 	_configured_car = _car
 	_configured_specs = specs
+	_configured_redline_rpm = specs.redline_rpm
+	_configured_rev_limiter_rpm = specs.rev_limiter_rpm
 	_tachometer_gauge.configure_range(specs.rev_limiter_rpm, specs.redline_rpm)
+
+
+func _reset_tachometer_configuration_cache() -> void:
+	_configured_car = null
+	_configured_specs = null
+	_configured_redline_rpm = -1.0
+	_configured_rev_limiter_rpm = -1.0
 
 
 func _resolve_target_node() -> PlayerCarController:
