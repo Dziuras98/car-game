@@ -30,9 +30,9 @@ The required job performs these stages in order:
 4. export the `Windows Desktop` release preset;
 5. launch the exported executable without user arguments and verify that the normal main scene becomes ready;
 6. launch the exported executable with `--export-smoke-test` and run the packaged regression scene;
-7. upload the Windows build directory as a workflow artifact.
+7. upload any available Windows build and diagnostic files.
 
-The job stops immediately when any test, export or exported executable returns a non-zero exit code or omits an expected readiness marker.
+The job fails when any test, export or exported executable returns a non-zero exit code or omits an expected readiness marker. The artifact upload uses `always()` so files already produced by a failed export stage remain available for diagnosis.
 
 ## Editor/headless test runner
 
@@ -93,7 +93,7 @@ The exported executable starts through:
 scenes/startup.tscn
 ```
 
-The first packaged launch passes no user arguments. The router must open `scenes/main.tscn`, whose deferred readiness marker confirms that the normal application scene completed startup. CI then terminates that intentionally long-running process.
+The first packaged launch passes no user arguments, so `scripts/game/startup_router.gd` must select `scenes/main.tscn`. CI supplies only the process environment variable `CAR_GAME_NORMAL_STARTUP_MARKER_PATH`. After the main scene completes its deferred startup, `main_scene_startup_marker.gd` writes the requested marker file and exits that test process with code `0`. Without the environment variable, normal game launches continue running and the marker node has no effect.
 
 The second packaged launch passes `--export-smoke-test` after Godot's `--` separator. The router opens `scenes/tests/exported_build_smoke_test.tscn`, avoiding the unsupported `--scene` path override in official Windows export templates.
 
@@ -103,13 +103,13 @@ Godot export templates are cached by engine version. On a cache miss, the workfl
 
 ## Build artifact
 
-After all tests and both packaged-startup checks pass, the workflow uploads `build/windows/` as:
+The workflow attempts to upload `build/windows/` even when a preceding stage fails, provided that the directory contains files. Successful runs publish it as:
 
 ```text
 car-game-windows-<commit-sha>
 ```
 
-The artifact is retained for 14 days and contains the unsigned development executable, its PCK and both smoke-test logs.
+The artifact is retained for 14 days and contains the unsigned development executable, its PCK and both smoke-test logs. Failed runs can contain a partial build and whichever diagnostic logs were produced before the failure.
 
 ## Running locally on Windows
 
