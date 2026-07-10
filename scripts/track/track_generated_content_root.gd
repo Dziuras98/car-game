@@ -9,7 +9,10 @@ func get_or_create(owner: Node) -> Node3D:
 	if existing is Node3D:
 		return existing as Node3D
 
-	return create_staging_container()
+	var container: Node3D = create_staging_container()
+	owner.add_child(container)
+	container.owner = owner.owner
+	return container
 
 
 func create_staging_container() -> Node3D:
