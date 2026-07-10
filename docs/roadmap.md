@@ -18,6 +18,7 @@ The repository currently provides:
 - modular powertrain, chassis, tire, reset and input code;
 - Resource-backed vehicle tuning;
 - modular generated-track builders;
+- focused generated-layout regression coverage;
 - Windows GitHub Actions regression suite.
 
 Do not add more cars or major game modes until the remaining track-validation and performance work is complete.
@@ -122,7 +123,7 @@ The inert base-scene keys are no longer an active tuning path and cannot affect 
 
 ## Phase 6 — Generated-track decomposition
 
-Status: builder split complete; data extraction remains.
+Status: builder split and layout regression baseline complete; data extraction remains.
 
 Completed:
 
@@ -130,11 +131,13 @@ Completed:
 - [x] geometry-data container;
 - [x] layout, surface, collision, marker, barrier and decoration builders;
 - [x] material factory;
-- [x] stable `get_racing_line_points()` API.
+- [x] stable `get_racing_line_points()` API;
+- [x] focused `TrackLayoutBuilder` topology and geometry tests;
+- [x] deterministic rebuild checks;
+- [x] track-width, width-variation and shoulder-width input sanitization.
 
 Next tasks:
 
-- [ ] add focused tests for `TrackLayoutBuilder` output;
 - [ ] move hardcoded control points into a track Resource;
 - [ ] add track metadata such as name, width and lap suggestion;
 - [ ] make the menu consume track Resources.
