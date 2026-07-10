@@ -76,7 +76,7 @@ $normalStartupDeadline = [DateTime]::UtcNow.AddSeconds(30)
 while ([DateTime]::UtcNow -lt $normalStartupDeadline) {
     if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
         $normalStartupLog = Get-Content -LiteralPath $normalStartupLogPath -Raw -ErrorAction SilentlyContinue
-        if ($normalStartupLog.Contains($normalStartupMarker)) {
+        if ($null -ne $normalStartupLog -and $normalStartupLog.Contains($normalStartupMarker)) {
             $normalStartupPassed = $true
             break
         }
