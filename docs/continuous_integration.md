@@ -20,7 +20,7 @@ It runs:
 - for pull requests targeting `master`;
 - when started manually through `workflow_dispatch`.
 
-The workflow downloads the official Godot 4.7 stable Windows editor build, imports project resources and runs the complete automated test suite in headless mode.
+The workflow downloads the official Godot 4.7 stable Windows editor build, uses its console executable, imports project resources and runs the complete automated test suite in headless mode.
 
 ## Test runner
 
@@ -48,10 +48,10 @@ The run stops immediately when resource import or any test returns a non-zero ex
 From the repository root, run:
 
 ```powershell
-./scripts/ci/run_tests.ps1 -GodotBinary "C:\path\to\Godot_v4.7-stable_win64.exe"
+./scripts/ci/run_tests.ps1 -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-The supplied binary must be the Godot editor executable, not an exported game or export template.
+The supplied binary must be the Godot editor console executable, not an exported game or export template.
 
 ## Future platform checks
 
