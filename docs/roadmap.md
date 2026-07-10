@@ -22,9 +22,12 @@ The repository currently provides:
 - modular powertrain, chassis, tire, reset and input code;
 - Resource-backed vehicle tuning;
 - modular generated-track builders;
-- Windows GitHub Actions regression suite.
+- deterministic Windows regression tests;
+- a Windows Desktop release preset;
+- exported-build smoke validation;
+- downloadable Windows build artifacts from GitHub Actions.
 
-Do not add more cars or major game modes until the Windows export baseline is complete.
+The correctness, architecture, track, race, runtime-performance and Windows-export baselines are complete. New feature work should continue to preserve focused tests and one atomic `master` commit per completed stage.
 
 ## Phase 0 — Documentation and baseline freeze
 
@@ -162,7 +165,7 @@ Completed:
 
 ## Phase 8 — Performance and export quality
 
-Status: runtime performance pass complete; Windows export baseline remains.
+Status: complete for the current Windows prototype baseline.
 
 Completed:
 
@@ -175,15 +178,22 @@ Completed:
 - [x] change-driven lap/position label updates;
 - [x] thresholded tachometer redraws;
 - [x] generated-track signature and rebuild-request coalescing;
-- [x] repeatable 1/4/8/12-opponent performance regression test in Windows CI.
+- [x] repeatable 1/4/8/12-opponent performance regression test in Windows CI;
+- [x] `Windows Desktop` release preset;
+- [x] official Godot 4.7 export-template installation and cache in CI;
+- [x] exported executable smoke test;
+- [x] Windows build artifact containing `.exe`, `.pck` and smoke log.
 
-Remaining:
+Distribution work intentionally deferred until requirements exist:
 
-- [ ] add a Windows export preset and export smoke check.
+- Authenticode signing;
+- installer or store package;
+- automatic updates;
+- tagged-release retention policy.
 
 ## Phase 9 — Feature expansion
 
-Start only after the Windows export baseline.
+Status: ready for prioritized feature work.
 
 Candidates:
 
