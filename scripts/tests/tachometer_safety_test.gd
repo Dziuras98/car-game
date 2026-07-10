@@ -1,10 +1,15 @@
 extends SceneTree
 
+const WATCHDOG_SECONDS: float = 5.0
+
 var _checks: int = 0
 var _failures: Array[String] = []
+var _finished: bool = false
 
 
 func _initialize() -> void:
+	Callable(self, "_watchdog").call_deferred()
+
 	var gauge: TachometerGauge = TachometerGauge.new()
 	root.add_child(gauge)
 	gauge.min_rpm = 0.0
@@ -34,6 +39,15 @@ func _initialize() -> void:
 	_finish()
 
 
+func _watchdog() -> void:
+	await create_timer(WATCHDOG_SECONDS).timeout
+	if _finished:
+		return
+	_failures.append("test did not finish before watchdog timeout")
+	push_error("[TACHOMETER_SAFETY_TEST][FAIL] watchdog timeout after %.1f seconds" % WATCHDOG_SECONDS)
+	_finish()
+
+
 func _expect(condition: bool, message: String) -> void:
 	_checks += 1
 	if condition:
@@ -44,6 +58,9 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	if _finished:
+		return
+	_finished = true
 	if _failures.is_empty():
 		print("[TACHOMETER_SAFETY_TEST] Passed: %d checks" % _checks)
 		quit(0)
