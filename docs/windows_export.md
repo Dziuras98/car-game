@@ -36,17 +36,20 @@ The script:
 1. clears `build/windows`;
 2. exports the `Windows Desktop` release preset;
 3. verifies that both the executable and PCK were created;
-4. starts the exported executable in headless mode;
-5. passes `--export-smoke-test` as a user argument after Godot's `--` separator;
-6. requires a zero process exit code and a success marker in the generated log.
+4. starts the exported executable without user arguments;
+5. supplies `CAR_GAME_NORMAL_STARTUP_MARKER_PATH`, waits for `scenes/main.tscn` to write the readiness marker and requires the process to exit with code `0`;
+6. starts the executable again and passes `--export-smoke-test` after Godot's `--` separator;
+7. requires a zero exit code and the packaged regression success marker.
 
 The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches and `scenes/tests/exported_build_smoke_test.tscn` when the smoke-test argument is present. The argument-based route is required because official Windows export templates do not support the `--scene` path override.
 
-The exported-build smoke test validates that the release package contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs.
+The environment variable affects only the CI handshake after the normal main scene is ready; it is not a user argument and does not alter router selection. Without it, the exported game continues running normally.
+
+The normal launch writes `build/windows/normal-startup-smoke.log`. The packaged regression launch writes `build/windows/exported-build-smoke.log` and validates that the release contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs.
 
 ## Continuous integration
 
-The required Windows workflow installs or restores the matching export templates after the editor test suite passes. It then runs the same export script and uploads:
+The required Windows workflow installs or restores the matching export templates after the editor test suite passes. It then runs the same export script and attempts to upload:
 
 ```text
 build/windows/
@@ -58,7 +61,7 @@ as an Actions artifact named:
 car-game-windows-<commit-sha>
 ```
 
-Artifacts are retained for 14 days and contain the executable, PCK and exported-build smoke log.
+The upload step runs even after a preceding failure so partial builds and available logs remain inspectable. Successful artifacts are retained for 14 days and contain the executable, PCK and both packaged-startup logs.
 
 ## Distribution status
 

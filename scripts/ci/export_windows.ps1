@@ -30,6 +30,8 @@ Get-ChildItem -LiteralPath $outputPath -Force | Remove-Item -Recurse -Force
 
 $executablePath = Join-Path $outputPath "car-game.exe"
 $packPath = Join-Path $outputPath "car-game.pck"
+$normalStartupLogPath = Join-Path $outputPath "normal-startup-smoke.log"
+$normalStartupMarkerPath = Join-Path $outputPath "normal-startup-ready.marker"
 $smokeLogPath = Join-Path $outputPath "exported-build-smoke.log"
 
 Write-Host ""
@@ -54,6 +56,79 @@ if ((Get-Item -LiteralPath $executablePath).Length -le 0) {
 if (-not (Test-Path -LiteralPath $packPath -PathType Leaf)) {
     throw "Windows release data pack was not created: $packPath"
 }
+
+Write-Host ""
+Write-Host "=== Run normal packaged startup smoke test ==="
+
+$normalStartupMarker = "[NORMAL_STARTUP_SMOKE] Main scene ready"
+$normalStartupMarkerEnvName = "CAR_GAME_NORMAL_STARTUP_MARKER_PATH"
+Remove-Item -LiteralPath $normalStartupMarkerPath -Force -ErrorAction SilentlyContinue
+
+$normalStartupArguments = @(
+    "--headless",
+    "--log-file",
+    ('"' + $normalStartupLogPath + '"')
+)
+$previousMarkerPath = [Environment]::GetEnvironmentVariable(
+    $normalStartupMarkerEnvName,
+    [EnvironmentVariableTarget]::Process
+)
+[Environment]::SetEnvironmentVariable(
+    $normalStartupMarkerEnvName,
+    $normalStartupMarkerPath,
+    [EnvironmentVariableTarget]::Process
+)
+try {
+    $normalStartupProcess = Start-Process `
+        -FilePath $executablePath `
+        -ArgumentList $normalStartupArguments `
+        -WorkingDirectory $outputPath `
+        -PassThru
+} finally {
+    [Environment]::SetEnvironmentVariable(
+        $normalStartupMarkerEnvName,
+        $previousMarkerPath,
+        [EnvironmentVariableTarget]::Process
+    )
+}
+
+$normalStartupCompleted = $normalStartupProcess.WaitForExit(30000)
+if (-not $normalStartupCompleted) {
+    $normalStartupProcess.Kill($true)
+    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
+        Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+    }
+    throw "Normal packaged startup did not complete its readiness handshake within 30 seconds."
+}
+if ($normalStartupProcess.ExitCode -ne 0) {
+    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
+        Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+    }
+    throw "Normal packaged startup failed with exit code $($normalStartupProcess.ExitCode)."
+}
+if (-not (Test-Path -LiteralPath $normalStartupMarkerPath -PathType Leaf)) {
+    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
+        Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+    }
+    throw "Normal packaged startup exited successfully but did not create its readiness marker file."
+}
+
+$normalStartupMarkerContent = Get-Content -LiteralPath $normalStartupMarkerPath -Raw
+if (-not $normalStartupMarkerContent.Contains($normalStartupMarker)) {
+    throw "Normal packaged startup marker file did not contain the expected readiness marker."
+}
+if (-not (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf)) {
+    throw "Normal packaged startup log was not created: $normalStartupLogPath"
+}
+
+$normalStartupLog = Get-Content -LiteralPath $normalStartupLogPath -Raw
+Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+if (-not $normalStartupLog.Contains($normalStartupMarker)) {
+    throw "Normal packaged startup log did not contain the expected readiness marker."
+}
+
+Remove-Item -LiteralPath $normalStartupMarkerPath -Force
+Write-Host "Normal packaged startup reached the main scene without user arguments."
 
 Write-Host ""
 Write-Host "=== Run exported build smoke test ==="
@@ -93,5 +168,5 @@ if (-not $smokeLog.Contains("[EXPORTED_BUILD_SMOKE_TEST] Passed:")) {
 }
 
 Write-Host ""
-Write-Host "Windows release export and exported-build smoke test passed."
+Write-Host "Windows release export and packaged startup smoke tests passed."
 Write-Host "Artifact directory: $outputPath"
