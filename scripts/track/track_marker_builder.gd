@@ -8,7 +8,7 @@ func build_markers(
 	parent: Node3D,
 	geometry: TrackGeometryData,
 	material_factory: TrackMaterialFactory,
-	_config: Dictionary
+	_config: TrackGenerationConfig
 ) -> void:
 	_create_finish_line(parent, geometry, material_factory)
 	_create_edge_markers(parent, geometry, material_factory)
