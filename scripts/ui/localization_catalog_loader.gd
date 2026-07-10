@@ -1,10 +1,8 @@
 extends RefCounted
 class_name LocalizationCatalogLoader
 
-const CATALOG_PATHS: PackedStringArray = PackedStringArray([
-	"res://translations/pl.po",
-	"res://translations/en.po",
-])
+const POLISH_CATALOG_PATH: String = "res://translations/pl.po"
+const ENGLISH_CATALOG_PATH: String = "res://translations/en.po"
 
 static var _catalogs_registered: bool = false
 
@@ -14,7 +12,7 @@ static func ensure_loaded() -> PackedStringArray:
 	if _catalogs_registered:
 		return errors
 
-	for catalog_path: String in CATALOG_PATHS:
+	for catalog_path: String in [POLISH_CATALOG_PATH, ENGLISH_CATALOG_PATH]:
 		if not ResourceLoader.exists(catalog_path, "Translation"):
 			errors.append("translation catalog does not exist: %s" % catalog_path)
 			continue
@@ -29,4 +27,4 @@ static func ensure_loaded() -> PackedStringArray:
 
 
 static func get_catalog_paths() -> PackedStringArray:
-	return CATALOG_PATHS.duplicate()
+	return PackedStringArray([POLISH_CATALOG_PATH, ENGLISH_CATALOG_PATH])
