@@ -16,7 +16,6 @@ func configure(
 	owner_node: Node3D,
 	car_spawn: Node3D,
 	track: Node3D,
-	available_car_scenes: Array[PackedScene],
 	available_car_variants: Array[CarVariantDefinition],
 	lane_spacing: float,
 	row_spacing: float
@@ -26,7 +25,7 @@ func configure(
 	_rng.randomize()
 
 	_factory = CarInstanceFactory.new()
-	_factory.configure(available_car_scenes, available_car_variants, _rng)
+	_factory.configure(available_car_variants, _rng)
 
 	_player_spawner = PlayerCarSpawnController.new()
 	_player_spawner.configure(owner_node, _factory)
@@ -72,16 +71,16 @@ func get_opponents() -> Array[PlayerCarController]:
 	return _opponent_spawner.get_opponents()
 
 
-func spawn_player_car(car_index: int, spawn_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
+func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
 	if _player_spawner == null:
 		return null
-	return _player_spawner.spawn_player_car(car_index, spawn_transform, player_input_enabled)
+	return _player_spawner.spawn_player_car(car_index, spawn_global_transform, player_input_enabled)
 
 
-func switch_to_next_car(spawn_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
+func switch_to_next_car(spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
 	if _player_spawner == null:
 		return null
-	return _player_spawner.switch_to_next_car(spawn_transform, player_input_enabled)
+	return _player_spawner.switch_to_next_car(spawn_global_transform, player_input_enabled)
 
 
 func clear_current_car() -> void:
