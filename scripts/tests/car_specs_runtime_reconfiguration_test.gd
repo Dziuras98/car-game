@@ -11,14 +11,27 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	var tree_root: Window = get_root()
 	var car: PlayerCarController = PlayerCarController.new()
-	root.add_child(car)
+	tree_root.add_child(car)
 	await process_frame
 
 	var initial_emitter: SkidMarkEmitter = car._skid_mark_emitter
 	_expect(initial_emitter != null, "car creates skid mark emitter during ready")
+	if initial_emitter == null:
+		car.queue_free()
+		await process_frame
+		_finish()
+		return
+
 	_expect(is_instance_valid(initial_emitter._parent), "skid mark emitter creates a parent container")
-	_expect(_count_skid_mark_containers(root) == 1, "initial configure creates one SkidMarks container")
+	if not is_instance_valid(initial_emitter._parent):
+		car.queue_free()
+		await process_frame
+		_finish()
+		return
+
+	_expect(_count_skid_mark_containers(tree_root) == 1, "initial configure creates one SkidMarks container")
 
 	var initial_parent: Node3D = initial_emitter._parent
 	var target_specs: CarSpecs = _build_target_specs()
@@ -31,20 +44,22 @@ func _run() -> void:
 	await process_frame
 
 	_expect(car._drive_config != null, "runtime reconfiguration rebuilds drive config")
-	_expect(is_equal_approx(car._drive_config.skid_mark_min_slip, target_specs.skid_mark_min_slip), "drive config applies new skid mark min slip")
-	_expect(is_equal_approx(car._drive_config.skid_mark_interval, target_specs.skid_mark_interval), "drive config applies new skid mark interval")
-	_expect(is_equal_approx(car._drive_config.skid_mark_lifetime, target_specs.skid_mark_lifetime), "drive config applies new skid mark lifetime")
-	_expect(is_equal_approx(car._drive_config.skid_mark_width, target_specs.skid_mark_width), "drive config applies new skid mark width")
-	_expect(is_equal_approx(car._drive_config.skid_mark_length, target_specs.skid_mark_length), "drive config applies new skid mark length")
+	if car._drive_config != null:
+		_expect(is_equal_approx(car._drive_config.skid_mark_min_slip, target_specs.skid_mark_min_slip), "drive config applies new skid mark min slip")
+		_expect(is_equal_approx(car._drive_config.skid_mark_interval, target_specs.skid_mark_interval), "drive config applies new skid mark interval")
+		_expect(is_equal_approx(car._drive_config.skid_mark_lifetime, target_specs.skid_mark_lifetime), "drive config applies new skid mark lifetime")
+		_expect(is_equal_approx(car._drive_config.skid_mark_width, target_specs.skid_mark_width), "drive config applies new skid mark width")
+		_expect(is_equal_approx(car._drive_config.skid_mark_length, target_specs.skid_mark_length), "drive config applies new skid mark length")
 
 	_expect(car._skid_mark_emitter == initial_emitter, "runtime reconfiguration reuses existing skid mark emitter")
-	_expect(car._skid_mark_emitter._parent == initial_parent, "runtime reconfiguration reuses existing SkidMarks parent")
-	_expect(_count_skid_mark_containers(root) == 1, "runtime reconfiguration does not create duplicate SkidMarks containers")
-	_expect(is_equal_approx(car._skid_mark_emitter.min_slip, target_specs.skid_mark_min_slip), "skid mark emitter applies new min slip")
-	_expect(is_equal_approx(car._skid_mark_emitter.interval, target_specs.skid_mark_interval), "skid mark emitter applies new interval")
-	_expect(is_equal_approx(car._skid_mark_emitter.lifetime, target_specs.skid_mark_lifetime), "skid mark emitter applies new lifetime")
-	_expect(is_equal_approx(car._skid_mark_emitter.mark_width, target_specs.skid_mark_width), "skid mark emitter applies new mark width")
-	_expect(is_equal_approx(car._skid_mark_emitter.mark_length, target_specs.skid_mark_length), "skid mark emitter applies new mark length")
+	if car._skid_mark_emitter != null:
+		_expect(car._skid_mark_emitter._parent == initial_parent, "runtime reconfiguration reuses existing SkidMarks parent")
+		_expect(is_equal_approx(car._skid_mark_emitter.min_slip, target_specs.skid_mark_min_slip), "skid mark emitter applies new min slip")
+		_expect(is_equal_approx(car._skid_mark_emitter.interval, target_specs.skid_mark_interval), "skid mark emitter applies new interval")
+		_expect(is_equal_approx(car._skid_mark_emitter.lifetime, target_specs.skid_mark_lifetime), "skid mark emitter applies new lifetime")
+		_expect(is_equal_approx(car._skid_mark_emitter.mark_width, target_specs.skid_mark_width), "skid mark emitter applies new mark width")
+		_expect(is_equal_approx(car._skid_mark_emitter.mark_length, target_specs.skid_mark_length), "skid mark emitter applies new mark length")
+	_expect(_count_skid_mark_containers(tree_root) == 1, "runtime reconfiguration does not create duplicate SkidMarks containers")
 
 	_expect(car._runtime_state.current_gear == target_specs.gear_ratios.size(), "runtime reconfiguration clamps gear to new forward gear count")
 	_expect(is_equal_approx(car._runtime_state.forward_speed, 8.5), "runtime reconfiguration preserves forward speed")
