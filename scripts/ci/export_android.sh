@@ -87,10 +87,15 @@ if [[ -z "$AAPT_BIN" ]]; then
   echo "aapt was not found; compiled application label cannot be validated." >&2
   exit 1
 fi
-"$AAPT_BIN" dump badging "$APK_PATH" > "$OUTPUT_DIR/aapt-badging.txt"
-grep -q "package: name='com.dziuras98.cargame'" "$OUTPUT_DIR/aapt-badging.txt"
-grep -q "application-label:'Car Game'" "$OUTPUT_DIR/aapt-badging.txt"
-echo "Compiled application label: Car Game" | tee -a "$VALIDATION_LOG"
+AAPT_BADGING_PATH="$OUTPUT_DIR/aapt-badging.txt"
+AAPT_DIAGNOSTICS_PATH="$OUTPUT_DIR/aapt-diagnostics.txt"
+set +e
+"$AAPT_BIN" dump badging "$APK_PATH" > "$AAPT_BADGING_PATH" 2> "$AAPT_DIAGNOSTICS_PATH"
+AAPT_EXIT_CODE=$?
+set -e
+grep -q "package: name='com.dziuras98.cargame'" "$AAPT_BADGING_PATH"
+grep -q "application-label:'Car Game'" "$AAPT_BADGING_PATH"
+echo "Compiled application label: Car Game (aapt exit code: $AAPT_EXIT_CODE)" | tee -a "$VALIDATION_LOG"
 
 APK_SIGNER="$(find_android_tool apksigner || true)"
 if [[ -z "$APK_SIGNER" ]]; then
