@@ -60,10 +60,10 @@ Write-Host "=== Run exported build smoke test ==="
 
 $smokeArguments = @(
     "--headless",
-    "--scene",
-    "res://scenes/tests/exported_build_smoke_test.tscn",
     "--log-file",
-    ('"' + $smokeLogPath + '"')
+    ('"' + $smokeLogPath + '"'),
+    "--",
+    "--export-smoke-test"
 )
 $smokeProcess = Start-Process `
     -FilePath $executablePath `
