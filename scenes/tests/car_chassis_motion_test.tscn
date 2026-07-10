@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://carchassismotiontestscene"]
+
+[ext_resource type="Script" uid="uid://carchassismotiontest" path="res://scripts/tests/car_chassis_motion_test.gd" id="1_chassis"]
+
+[node name="CarChassisMotionTest" type="Node"]
+script = ExtResource("1_chassis")
