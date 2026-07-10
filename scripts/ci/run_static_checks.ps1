@@ -90,6 +90,20 @@ function Assert-TestScriptOwnership {
     }
 }
 
+function Assert-NoProductionTestOnlyIdentifiers {
+    $scriptsRoot = Join-Path $projectRoot "scripts"
+    foreach ($scriptFile in Get-ChildItem -LiteralPath $scriptsRoot -Filter "*.gd" -File -Recurse) {
+        $relativePath = Get-ProjectRelativePath -FullPath $scriptFile.FullName
+        if ($relativePath.StartsWith("scripts/tests/", [System.StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+        $content = Get-Content -LiteralPath $scriptFile.FullName -Raw
+        if ($content.Contains("_for_test")) {
+            Add-Failure "Production script contains a test-only identifier suffix: $relativePath"
+        }
+    }
+}
+
 Assert-DoesNotContain "scripts/ui/mobile_drive_controls.gd" @(
     "Input.action_press",
     "Input.action_release"
@@ -97,14 +111,25 @@ Assert-DoesNotContain "scripts/ui/mobile_drive_controls.gd" @(
 Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     "available_cars",
     ".has_method(",
-    ".call("
+    ".call(",
+    "func get_moving_opponent_count(",
+    "func request_return_to_main_menu(",
+    "func simulate_current_player_finish(",
+    "func is_child_visible("
 )
 Assert-DoesNotContain "scripts/game/race_session_controller.gd" @(
     ".has_method(",
-    ".call("
+    ".call(",
+    "func get_moving_opponent_count(",
+    "func simulate_current_player_finish("
 )
 Assert-DoesNotContain "scripts/race/lap_tracker.gd" @(
     ".has_method(",
+    ".call("
+)
+Assert-DoesNotContain "scripts/race/ai_race_driver.gd" @(
+    ".has_method(",
+    ".has_signal(",
     ".call("
 )
 
@@ -112,6 +137,21 @@ Assert-Contains "scripts/car/car_specs.gd" @(
     "enum TransmissionType",
     "transmission_type",
     "func validate() -> PackedStringArray"
+)
+Assert-DoesNotContain "scripts/car/car_specs.gd" @(
+    "var acceleration:",
+    "manual_transmission_enabled",
+    "automatic_transmission_enabled"
+)
+Assert-DoesNotContain "scripts/car/car_drive_config.gd" @(
+    "DUPLICATE_SKIP_PROPERTIES",
+    "manual_transmission_enabled",
+    "automatic_transmission_enabled"
+)
+Assert-DoesNotContain "scripts/car/car_drive_config_builder.gd" @(
+    '&"acceleration"',
+    '&"manual_transmission_enabled"',
+    '&"automatic_transmission_enabled"'
 )
 Assert-DoesNotContain "scripts/car/car_controller.gd" @(
     "REMOVED_LEGACY_TUNING_PROPERTIES",
@@ -226,6 +266,7 @@ Assert-DoesNotContain "scenes/tests/full_program_smoke_test.tscn" @(
     "full_program_smoke_test_v2.gd"
 )
 Assert-TestScriptOwnership
+Assert-NoProductionTestOnlyIdentifiers
 
 if ($failures.Count -gt 0) {
     $details = $failures -join [Environment]::NewLine
