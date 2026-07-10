@@ -71,10 +71,16 @@ func _test_runtime_ground_probe() -> void:
 	state.reset_drive_state(config.idle_rpm)
 	chassis.update_tires(state, 0.0, false, car, null, 1.0 / 60.0)
 
-	_expect(state.ground_contact_count == 4, "four runtime probes detect a flat surface")
+	_expect(state.ground_contact_count == 4, "four runtime probes detect a flat surface within suspension travel")
 	_expect(state.ground_normal.distance_to(Vector3.UP) < 0.001, "flat surface produces an upward averaged normal")
 	_expect(is_equal_approx(state.surface_grip_multiplier, 0.62), "runtime probes read the contacted surface grip metadata")
 	_expect(state.suspension_acceleration > 0.0, "runtime probes calculate suspension support acceleration")
+
+	car.global_position.y = 0.10
+	await get_tree().physics_frame
+	chassis.update_tires(state, 0.0, false, car, null, 1.0 / 60.0)
+	_expect(state.ground_contact_count == 0, "surface beyond suspension travel does not produce tire contact")
+	_expect(is_zero_approx(state.suspension_acceleration), "surface beyond suspension travel produces no spring support")
 
 	car.global_position.y = 3.0
 	await get_tree().physics_frame

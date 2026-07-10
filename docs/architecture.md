@@ -47,14 +47,15 @@ The normal main scene composes:
 
 1. `GameManager` validates the car and track catalogs.
 2. `TrackCatalog.default_track_id` resolves the initial track.
-3. `TrackSpawnController` instantiates the selected `TrackDefinition` into `TrackContainer/ActiveTrack`.
+3. `TrackSpawnController` instantiates and validates the selected `TrackDefinition` before committing it as `TrackContainer/ActiveTrack`.
 4. Menu options are built from catalog data.
 5. The user selects mode, track, model and variant.
 6. `CarInstanceFactory` instantiates the variant scene and assigns its `CarSpecs` before scene-tree entry.
-7. Camera, speedometer and minimap bind to the current car and active track.
-8. Free drive enables input immediately; race mode spawns participants and starts the countdown.
-9. `LapTracker` consumes ordered checkpoint crossings and continuous racing-line progress.
-10. Returning to the menu disposes cars, opponents, input state and race UI.
+7. Car spawners assign the requested global transform and then capture it as the reset origin.
+8. Camera, speedometer and minimap bind to the current car and active track.
+9. Free drive enables input immediately; race mode spawns participants and starts the countdown.
+10. `LapTracker` consumes ordered checkpoint crossings and continuous racing-line progress.
+11. Returning to the menu disposes cars, opponents, input state and race UI.
 
 ## Game and race responsibilities
 
@@ -92,6 +93,7 @@ Rules:
 - `TrackCatalog.default_track_id` is the only default-track mechanism;
 - every car variant supplies a scene and `CarSpecs`;
 - `CarSpecs` is assigned before a car enters the tree;
+- spawn transforms are applied before `capture_current_transform_as_start()` records the reset origin;
 - opponents use catalog variants rather than mutating controller tuning fields;
 - missing or invalid content fails validation rather than selecting an implicit fallback.
 
@@ -160,16 +162,18 @@ scripts/car/skid_mark_emitter.gd
 1. process reset requests;
 2. read player, AI or touch input;
 3. snapshot throttle/brake telemetry;
-4. update transmission, clutch, engine RPM and longitudinal speed using bounded substeps;
-5. cast four suspension/ground-contact probes;
-6. average contact normal and surface grip;
-7. recover lateral speed and calculate current-frame slip;
-8. update steering using current-frame slip;
+4. cast four suspension/ground-contact probes within configured suspension reach;
+5. average contact normal and current surface grip, then calculate support;
+6. recover lateral speed and calculate current-frame slip;
+7. update transmission, clutch, coupled engine RPM and longitudinal speed using bounded substeps and current-frame tire state;
+8. update steering only while tire contact exists;
 9. apply gravity and suspension support;
 10. call `move_and_slide()`;
 11. write collision-resolved horizontal velocity back to runtime state.
 
-Surface grip affects lateral recovery, drive force and braking. Lateral slip consumes longitudinal force through the friction-circle factor.
+Surface grip and the friction-circle factor affect drive and braking in the same physics frame in which the surface is sampled. Tire-generated drive, brake, handbrake and steering forces require active ground contact. An airborne engine may free-rev, while only aerodynamic drag and gravity continue to affect chassis motion.
+
+A manual or automatic gear change starts the configured shift timer. Geared wheel torque is blocked until that timer completes. Engine RPM blends between free-rev and wheel-driven coupling according to transmission and clutch state.
 
 ### Runtime reconfiguration
 
@@ -203,7 +207,7 @@ TrackLayoutResource
   -> surface/collision/marker/barrier/checkpoint/decoration builders
 ```
 
-`GeneratedTrack` builds into a temporary generated-content root and swaps it atomically after successful generation. Geometry revision notifications invalidate cached data in AI, minimap and lap tracking.
+`GeneratedTrack` builds into a detached generated-content root and swaps it atomically only after geometry, surfaces and checkpoint gates validate. Failed rebuilds preserve the last committed generated subtree. Geometry revision notifications invalidate cached data in AI, minimap and lap tracking.
 
 Render/collision meshes share generated geometry. Surfaces publish grip metadata. Repeated boxes such as edge markers, barriers and stadium elements are grouped in bounded `MultiMesh` batches.
 
@@ -230,7 +234,7 @@ All controls use the global theme from `resources/ui/default_theme.tres`. Locali
 
 ## Audio and effects
 
-Procedural engine and tire audio use bounded voice budgets and listener-distance gates. Skid marks use a bounded reusable buffer. These systems must remain safe when several AI cars exist simultaneously.
+Procedural engine and tire audio use bounded voice budgets and listener-distance gates. Skid marks use a bounded reusable buffer and continue aging even when their source car loses tire contact. These systems must remain safe when several AI cars exist simultaneously.
 
 ## Change rules
 

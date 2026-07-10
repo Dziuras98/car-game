@@ -10,9 +10,11 @@ func _ready() -> void:
 
 func _run() -> void:
 	_test_engine_free_rev_range()
+	_test_engine_wheel_coupling()
 	_test_brake_priority_for_contradictory_input()
 	_test_large_delta_clamp()
 	_test_substep_consistency()
+	_test_airborne_resistance_excludes_rolling_drag()
 	_finish()
 
 
@@ -23,6 +25,18 @@ func _test_engine_free_rev_range() -> void:
 		engine.update(1.0, 900.0, 1.0 / 120.0)
 	_expect(engine.get_rpm() > 6500.0, "full throttle free-rev reaches the configured redline range")
 	_expect(engine.get_rpm() <= 6800.0, "free-rev remains bounded by the configured limiter")
+
+
+func _test_engine_wheel_coupling() -> void:
+	var engine: EngineModel = EngineModel.new()
+	engine.configure(900.0, 4200.0, 6500.0, 6800.0, 0.4, 0.8, 0.7, 8.0)
+	for step: int in range(240):
+		engine.update(1.0, 2500.0, 1.0 / 120.0, 0.0)
+	_expect(absf(engine.get_rpm() - 2500.0) < 10.0, "fully coupled engine follows wheel-driven RPM under throttle")
+
+	for step: int in range(120):
+		engine.update(1.0, 2500.0, 1.0 / 120.0, 1.0)
+	_expect(engine.get_rpm() > 6000.0, "disconnected engine can free-rev independently of wheel RPM")
 
 
 func _test_brake_priority_for_contradictory_input() -> void:
@@ -68,6 +82,15 @@ func _test_substep_consistency() -> void:
 	)
 
 
+func _test_airborne_resistance_excludes_rolling_drag() -> void:
+	var resistance: ResistanceModel = ResistanceModel.new()
+	resistance.configure(1200.0, 0.0, 2.0, 1.225, 0.02)
+	var grounded_speed: float = resistance.apply(10.0, 0.5, true)
+	var airborne_speed: float = resistance.apply(10.0, 0.5, false)
+	_expect(grounded_speed < 10.0, "grounded rolling resistance reduces speed")
+	_expect(is_equal_approx(airborne_speed, 10.0), "airborne motion does not receive rolling resistance")
+
+
 func _build_fallback_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
 	config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
@@ -96,6 +119,7 @@ func _build_fallback_config() -> CarDriveConfig:
 func _build_state(config: CarDriveConfig) -> CarRuntimeState:
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.reset_drive_state(config.idle_rpm)
+	state.ground_contact_count = 4
 	return state
 
 

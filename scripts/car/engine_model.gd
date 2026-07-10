@@ -48,10 +48,21 @@ func get_rpm() -> float:
 	return _current_rpm
 
 
-func update(throttle: float, wheel_rpm: float, delta: float) -> float:
+func update(
+	throttle: float,
+	wheel_rpm: float,
+	delta: float,
+	free_rev_blend: float = 1.0
+) -> float:
 	var safe_throttle: float = clampf(throttle, 0.0, 1.0)
 	var free_rev_rpm: float = lerpf(idle_rpm, rev_limiter_rpm, safe_throttle)
-	var target_rpm: float = maxf(wheel_rpm, free_rev_rpm)
+	var coupled_rpm: float = maxf(wheel_rpm, idle_rpm)
+	var uncoupled_target_rpm: float = maxf(coupled_rpm, free_rev_rpm)
+	var target_rpm: float = lerpf(
+		coupled_rpm,
+		uncoupled_target_rpm,
+		clampf(free_rev_blend, 0.0, 1.0)
+	)
 	var rpm_blend: float = 1.0 - exp(-rpm_response * maxf(delta, 0.0))
 
 	_current_rpm = lerpf(_current_rpm, target_rpm, rpm_blend)

@@ -99,6 +99,7 @@ func _build_direct_drive_config() -> CarDriveConfig:
 func _make_state(config: CarDriveConfig) -> CarRuntimeState:
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.reset_drive_state(config.idle_rpm)
+	state.ground_contact_count = 4
 	return state
 
 
