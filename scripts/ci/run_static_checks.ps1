@@ -100,6 +100,25 @@ Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_7at.tres" @(
     '(?m)^\s*transmission_label\s*='
 )
 
+Assert-Contains "scripts/track/track_catalog.gd" @(
+    "@export var default_track_id",
+    "catalog must define default_track_id"
+)
+Assert-DoesNotContain "scripts/track/track_catalog.gd" @(
+    "legacy_default",
+    ".is_default",
+    "return definitions[0]"
+)
+Assert-DoesNotContain "scripts/track/track_definition.gd" @(
+    "is_default"
+)
+Assert-DoesNotMatch "resources/tracks/simple_oval_definition.tres" @(
+    '(?m)^\s*is_default\s*='
+)
+Assert-Contains "resources/tracks/catalog.tres" @(
+    'default_track_id = &"simple_oval"'
+)
+
 Assert-Contains "scripts/track/track_generation_config.gd" @(
     "class_name TrackGenerationConfig",
     "static func from_layout"
