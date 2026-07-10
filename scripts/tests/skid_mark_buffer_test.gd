@@ -16,22 +16,22 @@ func _run() -> void:
 
 	var emitter: SkidMarkEmitter = SkidMarkEmitter.new()
 	emitter.configure(owner, 0.1, 0.01, 0.2, 0.2, 0.8)
-	var capacity: int = emitter.get_capacity_for_test()
+	var capacity: int = emitter.get_capacity()
 	_expect(capacity >= SkidMarkEmitter.MIN_CAPACITY, "skid buffer allocates a bounded minimum capacity")
 	_expect(capacity <= SkidMarkEmitter.MAX_CAPACITY, "skid buffer never exceeds the global capacity limit")
-	_expect(emitter.get_render_node_count_for_test() == 1, "all skid marks share one MultiMesh render node")
+	_expect(emitter.get_render_node_count() == 1, "all skid marks share one MultiMesh render node")
 
 	for step: int in range(400):
 		emitter.update(0.01, 1.0, Transform3D(Basis(), Vector3(float(step) * 0.05, 0.0, 0.0)))
-	_expect(emitter.get_render_node_count_for_test() == 1, "long drifts do not create additional scene nodes")
-	_expect(emitter.get_active_count_for_test() <= capacity, "active skid segments remain inside the ring buffer")
+	_expect(emitter.get_render_node_count() == 1, "long drifts do not create additional scene nodes")
+	_expect(emitter.get_active_count() <= capacity, "active skid segments remain inside the ring buffer")
 
 	for step: int in range(40):
 		emitter.update(0.01, 0.0, Transform3D.IDENTITY)
-	_expect(emitter.get_active_count_for_test() == 0, "expired skid segments are recycled and hidden")
+	_expect(emitter.get_active_count() == 0, "expired skid segments are recycled and hidden")
 
 	emitter.reset_timer()
-	_expect(emitter.get_active_count_for_test() == 0, "reset clears the complete skid buffer")
+	_expect(emitter.get_active_count() == 0, "reset clears the complete skid buffer")
 	emitter.dispose()
 	owner.queue_free()
 	await get_tree().process_frame

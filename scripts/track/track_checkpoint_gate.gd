@@ -51,7 +51,7 @@ func is_body_moving_forward(body: Node3D) -> bool:
 	return character_body.velocity.dot(_get_forward_direction()) > MIN_FORWARD_CROSSING_SPEED
 
 
-func evaluate_segment_crossing_for_test(
+func evaluate_segment_crossing(
 	previous_position: Vector3,
 	current_position: Vector3,
 	velocity: Vector3

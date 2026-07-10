@@ -143,22 +143,22 @@ func get_result_order() -> Array[PlayerCarController]:
 	return ordered
 
 
-func get_expected_checkpoint_index_for_test(car: PlayerCarController) -> int:
+func get_expected_checkpoint_index(car: PlayerCarController) -> int:
 	var state: ParticipantRaceState = _get_state(car)
 	return state.next_checkpoint if state != null else -1
 
 
-func get_rejected_crossing_count_for_test(car: PlayerCarController) -> int:
+func get_rejected_crossing_count(car: PlayerCarController) -> int:
 	var state: ParticipantRaceState = _get_state(car)
 	return state.rejected_crossings if state != null else 0
 
 
-func get_progress_distance_for_test(car: PlayerCarController) -> float:
+func get_progress_distance(car: PlayerCarController) -> float:
 	var state: ParticipantRaceState = _get_state(car)
 	return state.progress_distance if state != null else 0.0
 
 
-func get_track_length_for_test() -> float:
+func get_track_length() -> float:
 	return _track_length
 
 

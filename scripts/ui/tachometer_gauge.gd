@@ -40,7 +40,7 @@ func set_rpm(value: float) -> void:
 	_request_redraw()
 
 
-func get_redraw_request_count_for_test() -> int:
+func get_redraw_request_count() -> int:
 	return _redraw_request_count
 
 

@@ -39,8 +39,8 @@ func _run() -> void:
 
 	await get_tree().process_frame
 	var initial_track_revision: int = int(track.call("get_geometry_revision"))
-	var initial_driver_revision: int = driver.get_point_revision_for_test()
-	var initial_minimap_revision: int = minimap.get_track_revision_for_test()
+	var initial_driver_revision: int = driver.get_point_revision()
+	var initial_minimap_revision: int = minimap.get_track_revision()
 	_expect(initial_track_revision >= 1, "generated track publishes an initial geometry revision")
 	_expect(initial_driver_revision >= 1, "AI caches the initial racing line")
 	_expect(initial_minimap_revision >= 1, "minimap caches the initial racing line")
@@ -55,8 +55,8 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_expect(int(track.call("get_geometry_revision")) == initial_track_revision + 1, "layout change rebuilds the generated track once")
-	_expect(driver.get_point_revision_for_test() == initial_driver_revision + 1, "AI refreshes its racing-line cache after rebuild")
-	_expect(minimap.get_track_revision_for_test() == initial_minimap_revision + 1, "minimap refreshes its projection after rebuild")
+	_expect(driver.get_point_revision() == initial_driver_revision + 1, "AI refreshes its racing-line cache after rebuild")
+	_expect(minimap.get_track_revision() == initial_minimap_revision + 1, "minimap refreshes its projection after rebuild")
 
 	minimap.queue_free()
 	driver.queue_free()

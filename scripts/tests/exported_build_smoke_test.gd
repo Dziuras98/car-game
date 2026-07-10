@@ -47,7 +47,7 @@ func _run() -> void:
 		var racing_line: Array = track.call("get_racing_line_points")
 		_expect(racing_line.size() == 108, "exported track generates the expected 108-point racing line")
 		_expect(int(track.call("get_checkpoint_count")) == 3, "exported track exposes three intermediate checkpoints")
-		_expect(int(track.call("get_checkpoint_gate_count_for_test")) == 4, "exported track builds the finish and checkpoint gates")
+		_expect(int(track.call("get_checkpoint_gate_count")) == 4, "exported track builds the finish and checkpoint gates")
 	_expect(main_instance.call("get_active_lap_count") == 3, "exported runtime applies track recommended lap metadata")
 
 	main_instance.queue_free()

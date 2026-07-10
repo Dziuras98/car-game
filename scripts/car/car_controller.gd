@@ -63,11 +63,11 @@ func get_gear_text() -> String:
 	return _powertrain_controller.get_gear_text(_runtime_state)
 
 
-func get_current_gear_for_test() -> int:
+func get_current_gear() -> int:
 	return _runtime_state.current_gear
 
 
-func get_lateral_speed_for_test() -> float:
+func get_lateral_speed() -> float:
 	return _runtime_state.lateral_speed
 
 

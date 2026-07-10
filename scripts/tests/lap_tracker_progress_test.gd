@@ -38,13 +38,13 @@ func _run() -> void:
 	_expect(tracker.prepare(track, 3, player, opponents), "valid track contract prepares race tracking")
 	tracker.update_positions()
 
-	var player_progress: float = tracker.get_progress_distance_for_test(player)
-	var opponent_progress: float = tracker.get_progress_distance_for_test(opponent)
+	var player_progress: float = tracker.get_progress_distance(player)
+	var opponent_progress: float = tracker.get_progress_distance(opponent)
 	_expect(player_progress > 0.0, "projection records sub-segment player progress")
 	_expect(opponent_progress > player_progress, "projection distinguishes positions inside the same sampled segment")
 	_expect(tracker.get_race_position(opponent) == 1, "participant farther along the same segment is classified first")
 	_expect(tracker.get_race_position(player) == 2, "participant earlier on the same segment is classified second")
-	_expect(tracker.get_track_length_for_test() > segment_start.distance_to(segment_end), "tracker caches the full loop length")
+	_expect(tracker.get_track_length() > segment_start.distance_to(segment_end), "tracker caches the full loop length")
 
 	player.global_position = segment_start.lerp(segment_end, 0.95)
 	tracker.update_positions()

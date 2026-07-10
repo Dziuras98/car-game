@@ -168,7 +168,7 @@ func create_floodlight_material() -> Material:
 	)
 
 
-func get_cached_material_count_for_test() -> int:
+func get_cached_material_count() -> int:
 	return _materials.size() + _audience_materials.size()
 
 

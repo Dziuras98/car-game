@@ -64,7 +64,7 @@ func is_child_visible(node_name: String) -> bool:
 	if _main == null:
 		return false
 
-	return bool(_main.call("is_child_visible_for_test", node_name))
+	return bool(_main.call("is_child_visible", node_name))
 
 
 func has_moving_opponent() -> bool:
@@ -75,17 +75,17 @@ func get_moving_opponent_count() -> int:
 	if _main == null:
 		return 0
 
-	return int(_main.call("get_moving_opponent_count_for_test"))
+	return int(_main.call("get_moving_opponent_count"))
 
 
 func return_to_main_menu() -> void:
-	if _main != null and _main.has_method("request_return_to_main_menu_for_test"):
-		_main.call("request_return_to_main_menu_for_test")
+	if _main != null and _main.has_method("request_return_to_main_menu"):
+		_main.call("request_return_to_main_menu")
 
 
 func simulate_player_finish() -> void:
-	if _main != null and _main.has_method("simulate_current_player_finish_for_test"):
-		_main.call("simulate_current_player_finish_for_test")
+	if _main != null and _main.has_method("simulate_current_player_finish"):
+		_main.call("simulate_current_player_finish")
 
 
 func find_visible_button_with_text(root_node: Node, label_text: String) -> Button:

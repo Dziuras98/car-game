@@ -21,7 +21,7 @@ enum DriverState {
 @export_range(0.1, 5.0, 0.1) var reverse_recovery_seconds: float = 1.0
 
 var _car: PlayerCarController
-var _track: Node3D
+var _track: GeneratedTrack
 var _points: Array[Vector3] = []
 var _target_index: int = -1
 var _enabled: bool = false
@@ -35,7 +35,7 @@ var _point_revision: int = 0
 
 func _ready() -> void:
 	_car = get_node_or_null(car_path) as PlayerCarController
-	_track = get_node_or_null(track_path) as Node3D
+	_track = get_node_or_null(track_path) as GeneratedTrack
 	_index_search.configure(
 		search_points_behind,
 		search_points_ahead,
@@ -99,15 +99,15 @@ func _physics_process(delta: float) -> void:
 	_update_stuck_detection(speed_kmh, throttle, local_target, delta)
 
 
-func get_last_search_check_count_for_test() -> int:
+func get_last_search_check_count() -> int:
 	return _index_search.get_last_distance_check_count()
 
 
-func get_point_revision_for_test() -> int:
+func get_point_revision() -> int:
 	return _point_revision
 
 
-func get_driver_state_for_test() -> DriverState:
+func get_driver_state() -> DriverState:
 	return _driver_state
 
 
@@ -139,17 +139,15 @@ func _refresh_points() -> void:
 	_points.clear()
 	_target_index = -1
 	_index_search.reset()
-	if not is_instance_valid(_track) or not _track.has_method("get_racing_line_points"):
+	if not is_instance_valid(_track):
 		return
-	var local_points: Array = _track.call("get_racing_line_points")
-	for point: Variant in local_points:
-		if point is Vector3:
-			_points.append(_track.to_global(point))
+	for point: Vector3 in _track.get_racing_line_points():
+		_points.append(_track.to_global(point))
 	_point_revision += 1
 
 
 func _connect_track_geometry_signal() -> void:
-	if not is_instance_valid(_track) or not _track.has_signal("geometry_rebuilt"):
+	if not is_instance_valid(_track):
 		return
 	var callback: Callable = Callable(self, "_on_track_geometry_rebuilt")
 	if not _track.is_connected("geometry_rebuilt", callback):
@@ -157,7 +155,7 @@ func _connect_track_geometry_signal() -> void:
 
 
 func _disconnect_track_geometry_signal() -> void:
-	if not is_instance_valid(_track) or not _track.has_signal("geometry_rebuilt"):
+	if not is_instance_valid(_track):
 		return
 	var callback: Callable = Callable(self, "_on_track_geometry_rebuilt")
 	if _track.is_connected("geometry_rebuilt", callback):

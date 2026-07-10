@@ -99,11 +99,11 @@ func _draw() -> void:
 		_draw_player_marker(_player)
 
 
-func get_redraw_request_count_for_test() -> int:
+func get_redraw_request_count() -> int:
 	return _redraw_request_count
 
 
-func get_track_revision_for_test() -> int:
+func get_track_revision() -> int:
 	return _track_revision
 
 

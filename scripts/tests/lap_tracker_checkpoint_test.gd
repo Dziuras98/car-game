@@ -64,7 +64,7 @@ func _test_generated_gates_and_lap_sequence() -> void:
 
 	_expect(track.has_signal("checkpoint_crossed"), "generated track exposes checkpoint crossing signal")
 	_expect(int(track.call("get_checkpoint_count")) == 3, "generated track exposes three intermediate checkpoints")
-	_expect(int(track.call("get_checkpoint_gate_count_for_test")) == 4, "generated track builds finish and checkpoint areas")
+	_expect(int(track.call("get_checkpoint_gate_count")) == 4, "generated track builds finish and checkpoint areas")
 
 	var car: PlayerCarController = PlayerCarController.new()
 	car.car_specs = TEST_CAR_SPECS
@@ -76,7 +76,7 @@ func _test_generated_gates_and_lap_sequence() -> void:
 	tracker.participant_finished.connect(_on_participant_finished)
 	tracker.prepare(track, 2, car, opponents)
 
-	_expect(tracker.get_expected_checkpoint_index_for_test(car) == 1, "participant starts by expecting checkpoint one")
+	_expect(tracker.get_expected_checkpoint_index(car) == 1, "participant starts by expecting checkpoint one")
 
 	var racing_line: Array = track.call("get_racing_line_points")
 	if racing_line.size() > 90:
@@ -88,22 +88,22 @@ func _test_generated_gates_and_lap_sequence() -> void:
 
 	_emit_checkpoint(track, car, 0, true)
 	_expect(tracker.get_completed_laps(car) == 0, "finish crossing before checkpoints is rejected")
-	_expect(tracker.get_expected_checkpoint_index_for_test(car) == 1, "invalid finish crossing resets expectation to checkpoint one")
+	_expect(tracker.get_expected_checkpoint_index(car) == 1, "invalid finish crossing resets expectation to checkpoint one")
 
 	_emit_checkpoint(track, car, 1, true)
 	_emit_checkpoint(track, car, 3, true)
-	_expect(tracker.get_expected_checkpoint_index_for_test(car) == 2, "skipping checkpoint two does not advance the sequence")
+	_expect(tracker.get_expected_checkpoint_index(car) == 2, "skipping checkpoint two does not advance the sequence")
 	_emit_checkpoint(track, car, 0, true)
 	_expect(tracker.get_completed_laps(car) == 0, "track cut cannot complete a lap")
-	_expect(tracker.get_expected_checkpoint_index_for_test(car) == 1, "finish after a track cut starts a fresh sequence")
+	_expect(tracker.get_expected_checkpoint_index(car) == 1, "finish after a track cut starts a fresh sequence")
 
 	_emit_checkpoint(track, car, 1, true)
 	_emit_checkpoint(track, car, 2, true)
 	_emit_checkpoint(track, car, 3, true)
-	_expect(tracker.get_expected_checkpoint_index_for_test(car) == 0, "complete checkpoint sequence arms the finish line")
+	_expect(tracker.get_expected_checkpoint_index(car) == 0, "complete checkpoint sequence arms the finish line")
 	_emit_checkpoint(track, car, 0, false)
 	_expect(tracker.get_completed_laps(car) == 0, "reverse finish crossing does not count")
-	_expect(tracker.get_expected_checkpoint_index_for_test(car) == 0, "reverse finish crossing keeps the valid sequence armed")
+	_expect(tracker.get_expected_checkpoint_index(car) == 0, "reverse finish crossing keeps the valid sequence armed")
 	_emit_checkpoint(track, car, 0, true)
 	_expect(tracker.get_completed_laps(car) == 1, "forward finish crossing after all checkpoints completes lap one")
 
@@ -123,7 +123,7 @@ func _test_generated_gates_and_lap_sequence() -> void:
 	_emit_checkpoint(track, car, 0, true)
 	_expect(tracker.get_completed_laps(car) == 2, "finished participant ignores later checkpoint crossings")
 	_expect(_finished_signal_count == 1, "finished participant cannot emit a second finish signal")
-	_expect(tracker.get_rejected_crossing_count_for_test(car) >= 4, "wrong-way and out-of-order crossings are recorded as rejected")
+	_expect(tracker.get_rejected_crossing_count(car) >= 4, "wrong-way and out-of-order crossings are recorded as rejected")
 
 	tracker.clear()
 	car.queue_free()

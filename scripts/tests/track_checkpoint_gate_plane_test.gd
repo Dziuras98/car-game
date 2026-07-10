@@ -17,23 +17,23 @@ func _initialize() -> void:
 	var forward: Vector3 = Vector3(0.0, 0.0, -10.0)
 	var reverse: Vector3 = -forward
 	_expect(
-		gate.evaluate_segment_crossing_for_test(Vector3(0.0, 0.0, 2.0), Vector3(0.0, 0.0, -2.0), forward) == 1,
+		gate.evaluate_segment_crossing(Vector3(0.0, 0.0, 2.0), Vector3(0.0, 0.0, -2.0), forward) == 1,
 		"forward segment crossing is accepted"
 	)
 	_expect(
-		gate.evaluate_segment_crossing_for_test(Vector3(0.0, 0.0, -2.0), Vector3(0.0, 0.0, 2.0), reverse) == -1,
+		gate.evaluate_segment_crossing(Vector3(0.0, 0.0, -2.0), Vector3(0.0, 0.0, 2.0), reverse) == -1,
 		"reverse segment crossing is identified separately"
 	)
 	_expect(
-		gate.evaluate_segment_crossing_for_test(Vector3(0.0, 0.0, 2.0), Vector3(0.0, 0.0, -2.0), reverse) == 0,
+		gate.evaluate_segment_crossing(Vector3(0.0, 0.0, 2.0), Vector3(0.0, 0.0, -2.0), reverse) == 0,
 		"position crossing with contradictory velocity is rejected"
 	)
 	_expect(
-		gate.evaluate_segment_crossing_for_test(Vector3(0.0, 0.0, 2.0), Vector3(0.0, 0.0, 1.0), forward) == 0,
+		gate.evaluate_segment_crossing(Vector3(0.0, 0.0, 2.0), Vector3(0.0, 0.0, 1.0), forward) == 0,
 		"entering the gate volume without crossing its plane is ignored"
 	)
 	_expect(
-		gate.evaluate_segment_crossing_for_test(Vector3(0.0, 0.0, 0.01), Vector3(0.0, 0.0, -0.01), forward) == 0,
+		gate.evaluate_segment_crossing(Vector3(0.0, 0.0, 0.01), Vector3(0.0, 0.0, -0.01), forward) == 0,
 		"movement inside the plane epsilon cannot create duplicate crossings"
 	)
 

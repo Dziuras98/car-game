@@ -122,8 +122,8 @@ func get_opponents() -> Array[PlayerCarController]:
 	return _race_session.get_opponents()
 
 
-func get_moving_opponent_count_for_test() -> int:
-	return _race_session.get_moving_opponent_count_for_test() if _race_session != null else 0
+func get_moving_opponent_count() -> int:
+	return _race_session.get_moving_opponent_count() if _race_session != null else 0
 
 
 func get_configured_opponent_count() -> int:
@@ -142,16 +142,16 @@ func get_selected_car_variant_id() -> StringName:
 	return selected_car_variant_id
 
 
-func request_return_to_main_menu_for_test() -> void:
+func request_return_to_main_menu() -> void:
 	_return_to_main_menu()
 
 
-func simulate_current_player_finish_for_test() -> void:
+func simulate_current_player_finish() -> void:
 	if _race_session != null:
-		_race_session.simulate_current_player_finish_for_test(_current_car)
+		_race_session.simulate_current_player_finish(_current_car)
 
 
-func is_child_visible_for_test(node_name: String) -> bool:
+func is_child_visible(node_name: String) -> bool:
 	var target: Node = get_node_or_null(node_name)
 	if target is CanvasItem:
 		return (target as CanvasItem).is_visible_in_tree()

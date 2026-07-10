@@ -45,12 +45,12 @@ func _run() -> void:
 	car.call("_physics_process", 0.016)
 	_expect(car.get_throttle_input() < 0.01, "throttle clears after both independent sources are released")
 
-	var initial_gear: int = car.get_current_gear_for_test()
+	var initial_gear: int = car.get_current_gear()
 	gear_up.button_down.emit()
 	car.call("_physics_process", 0.016)
-	_expect(car.get_current_gear_for_test() == initial_gear + 1, "touch gear request is consumed once by the manual transmission")
+	_expect(car.get_current_gear() == initial_gear + 1, "touch gear request is consumed once by the manual transmission")
 	car.call("_physics_process", 0.016)
-	_expect(car.get_current_gear_for_test() == initial_gear + 1, "touch gear request does not repeat on later physics frames")
+	_expect(car.get_current_gear() == initial_gear + 1, "touch gear request does not repeat on later physics frames")
 
 	car.global_position = Vector3(12.0, 3.0, -7.0)
 	reset.button_down.emit()

@@ -119,7 +119,7 @@ func get_race_manager() -> RaceManager:
 	return _race_manager
 
 
-func get_moving_opponent_count_for_test() -> int:
+func get_moving_opponent_count() -> int:
 	var moving_count: int = 0
 	for opponent: PlayerCarController in _opponents:
 		if is_instance_valid(opponent) and absf(opponent.get_forward_speed()) > 0.05:
@@ -127,7 +127,7 @@ func get_moving_opponent_count_for_test() -> int:
 	return moving_count
 
 
-func simulate_current_player_finish_for_test(current_car: PlayerCarController) -> void:
+func simulate_current_player_finish(current_car: PlayerCarController) -> void:
 	if current_car == null:
 		return
 	_current_car = current_car

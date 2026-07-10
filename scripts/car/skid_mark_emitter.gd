@@ -83,11 +83,11 @@ func dispose() -> void:
 	_active_instances.clear()
 
 
-func get_capacity_for_test() -> int:
+func get_capacity() -> int:
 	return _multimesh.instance_count if _multimesh != null else 0
 
 
-func get_active_count_for_test() -> int:
+func get_active_count() -> int:
 	var count: int = 0
 	for active: int in _active_instances:
 		if active != 0:
@@ -95,7 +95,7 @@ func get_active_count_for_test() -> int:
 	return count
 
 
-func get_render_node_count_for_test() -> int:
+func get_render_node_count() -> int:
 	if not is_instance_valid(_parent):
 		return 0
 	return _parent.get_child_count()

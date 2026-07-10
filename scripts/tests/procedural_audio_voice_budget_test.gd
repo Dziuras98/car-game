@@ -10,9 +10,9 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	ProceduralAudioPlayer3D.reset_voice_budget_for_test()
+	ProceduralAudioPlayer3D.reset_voice_budget()
 	for source_id: int in range(1, 7):
-		ProceduralAudioPlayer3D.report_voice_distance_for_test(
+		ProceduralAudioPlayer3D.report_voice_distance(
 			&"engine",
 			source_id,
 			float(source_id * source_id),
@@ -20,25 +20,25 @@ func _run() -> void:
 		)
 
 	_expect(
-		ProceduralAudioPlayer3D.report_voice_distance_for_test(&"engine", 1, 1.0, 3),
+		ProceduralAudioPlayer3D.report_voice_distance(&"engine", 1, 1.0, 3),
 		"nearest engine voice remains inside the synthesis budget"
 	)
 	_expect(
-		ProceduralAudioPlayer3D.report_voice_distance_for_test(&"engine", 3, 9.0, 3),
+		ProceduralAudioPlayer3D.report_voice_distance(&"engine", 3, 9.0, 3),
 		"third-nearest engine voice remains inside the synthesis budget"
 	)
 	_expect(
-		not ProceduralAudioPlayer3D.report_voice_distance_for_test(&"engine", 4, 16.0, 3),
+		not ProceduralAudioPlayer3D.report_voice_distance(&"engine", 4, 16.0, 3),
 		"fourth-nearest engine voice is excluded from a three-voice budget"
 	)
 	_expect(
-		ProceduralAudioPlayer3D.report_voice_distance_for_test(&"tire", 4, 16.0, 1),
+		ProceduralAudioPlayer3D.report_voice_distance(&"tire", 4, 16.0, 1),
 		"voice limits are isolated between engine and tire groups"
 	)
 
-	ProceduralAudioPlayer3D.reset_voice_budget_for_test()
+	ProceduralAudioPlayer3D.reset_voice_budget()
 	_expect(
-		ProceduralAudioPlayer3D.report_voice_distance_for_test(&"engine", 99, 10000.0, 3),
+		ProceduralAudioPlayer3D.report_voice_distance(&"engine", 99, 10000.0, 3),
 		"reset clears stale voice registrations"
 	)
 

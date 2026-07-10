@@ -110,7 +110,7 @@ func get_geometry_revision() -> int:
 	return _rebuild_count
 
 
-func get_checkpoint_gate_count_for_test() -> int:
+func get_checkpoint_gate_count() -> int:
 	var valid_gate_count: int = 0
 	for gate: TrackCheckpointGate in _checkpoint_gates:
 		if is_instance_valid(gate):
@@ -118,11 +118,11 @@ func get_checkpoint_gate_count_for_test() -> int:
 	return valid_gate_count
 
 
-func get_rebuild_count_for_test() -> int:
+func get_rebuild_count() -> int:
 	return _rebuild_count
 
 
-func request_rebuild_for_test() -> void:
+func request_rebuild() -> void:
 	_request_rebuild()
 
 

@@ -37,11 +37,11 @@ func release_procedural_voice() -> void:
 		_voice_distances_by_group[group_key] = group_distances
 
 
-func is_procedural_generation_active_for_test() -> bool:
+func is_procedural_generation_active() -> bool:
 	return _procedural_generation_active
 
 
-static func report_voice_distance_for_test(
+static func report_voice_distance(
 	group: StringName,
 	source_id: int,
 	distance_squared: float,
@@ -50,7 +50,7 @@ static func report_voice_distance_for_test(
 	return _report_voice_distance(group, source_id, distance_squared, max_voices)
 
 
-static func reset_voice_budget_for_test() -> void:
+static func reset_voice_budget() -> void:
 	_voice_distances_by_group.clear()
 
 
