@@ -19,6 +19,10 @@ func update_tires(
 	skid_mark_emitter: SkidMarkEmitter,
 	delta: float
 ) -> void:
+	if not car.is_on_floor():
+		state.tire_slip_intensity = 0.0
+		return
+
 	state.lateral_speed = _tire_model.recover_lateral_speed(
 		state.lateral_speed,
 		_config.lateral_grip,
@@ -35,10 +39,6 @@ func update_tires(
 		_config.max_forward_speed,
 		handbrake_active
 	)
-
-	if not car.is_on_floor():
-		state.tire_slip_intensity = 0.0
-		return
 
 	_update_skid_marks(state, car, skid_mark_emitter, delta)
 
