@@ -64,17 +64,17 @@ func _rebuild_track(force: bool = false) -> void:
 		return
 
 	_ensure_builders()
-	var config: Dictionary = _build_track_generation_config()
+	var config: TrackGenerationConfig = _build_track_generation_config()
 	_geometry = _layout_builder.build(config)
 	var generated_content: Node3D = _content_root.clear(self)
 
-	var surface_meshes: Dictionary = _surface_builder.build_surfaces(
+	var generated_meshes: TrackGeneratedMeshes = _surface_builder.build_surfaces(
 		generated_content,
 		_geometry,
 		_material_factory,
 		config
 	)
-	_collision_builder.build_collisions(generated_content, _geometry, config, surface_meshes)
+	_collision_builder.build_collisions(generated_content, _geometry, config, generated_meshes)
 	_marker_builder.build_markers(generated_content, _geometry, _material_factory, config)
 	_barrier_builder.build_barriers(generated_content, _geometry, _material_factory, config)
 	_decoration_builder.build_decorations(generated_content, _geometry, _material_factory, config)
@@ -147,20 +147,8 @@ func _ensure_builders() -> void:
 		_checkpoint_builder = TrackCheckpointBuilder.new()
 
 
-func _build_track_generation_config() -> Dictionary:
-	if track_layout == null:
-		return {}
-	return {
-		"track_layout": track_layout,
-		"track_width": track_layout.track_width,
-		"grass_size": track_layout.grass_size,
-		"shoulder_width": track_layout.shoulder_width,
-		"barrier_distance_from_road": track_layout.barrier_distance_from_road,
-		"width_variation": track_layout.width_variation,
-		"has_stadium": track_layout.has_stadium,
-		"stadium_section_step": track_layout.stadium_section_step,
-		"stadium_distance_from_barrier": track_layout.stadium_distance_from_barrier,
-	}
+func _build_track_generation_config() -> TrackGenerationConfig:
+	return TrackGenerationConfig.from_layout(track_layout)
 
 
 func _get_generation_signature() -> int:
