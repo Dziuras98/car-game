@@ -1,4 +1,4 @@
-extends AudioStreamPlayer3D
+extends "res://scripts/car/procedural_audio_player_3d.gd"
 
 @export var cylinders: int = 6
 @export var mix_rate: int = 22050
@@ -42,13 +42,14 @@ func _ready() -> void:
 	stream = generator
 	unit_size = 6.0
 	max_distance = 70.0
+	procedural_generation_distance = max_distance + 5.0
 	volume_db = idle_volume_db
 	play()
 	_playback = get_stream_playback() as AudioStreamGeneratorPlayback
 
 
 func _process(delta: float) -> void:
-	if _car == null:
+	if _car == null or not should_generate_procedural_audio(delta):
 		return
 
 	_smoothed_rpm = lerpf(_smoothed_rpm, _car.get_engine_rpm(), 1.0 - exp(-rpm_smoothing * delta))

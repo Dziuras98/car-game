@@ -12,7 +12,9 @@ The repository currently provides:
 - Resource-backed generated oval track;
 - generated finish/checkpoint gates;
 - ordered checkpoint-based lap validation;
-- AI opponents;
+- bounded-window AI racing-line lookup;
+- distance-gated procedural car audio;
+- throttled dynamic HUD and minimap updates;
 - lap, position and results UI;
 - speedometer, tachometer and minimap;
 - scene-driven menu, race and mobile-control UI;
@@ -22,7 +24,7 @@ The repository currently provides:
 - modular generated-track builders;
 - Windows GitHub Actions regression suite.
 
-Do not add more cars or major game modes until the remaining performance work is complete.
+Do not add more cars or major game modes until the Windows export baseline is complete.
 
 ## Phase 0 — Documentation and baseline freeze
 
@@ -160,20 +162,28 @@ Completed:
 
 ## Phase 8 — Performance and export quality
 
-Status: not started.
+Status: runtime performance pass complete; Windows export baseline remains.
 
-Tasks:
+Completed:
 
-- [ ] add profiling notes and repeatable opponent-count checks;
-- [ ] disable or reduce procedural audio for distant AI cars;
-- [ ] cache or window AI nearest-racing-line lookup;
-- [ ] avoid unnecessary UI redraws;
-- [ ] verify generated mesh/collision rebuild frequency;
+- [x] profiling notes and deterministic opponent-count checks;
+- [x] bounded local racing-line lookup with full-scan recovery;
+- [x] procedural engine audio disabled beyond listener range;
+- [x] tire audio disabled beyond listener range and below audible slip;
+- [x] speedometer and minimap update-rate limits;
+- [x] cached minimap track projection;
+- [x] change-driven lap/position label updates;
+- [x] thresholded tachometer redraws;
+- [x] generated-track signature and rebuild-request coalescing;
+- [x] repeatable 1/4/8/12-opponent performance regression test in Windows CI.
+
+Remaining:
+
 - [ ] add a Windows export preset and export smoke check.
 
 ## Phase 9 — Feature expansion
 
-Start only after the performance pass.
+Start only after the Windows export baseline.
 
 Candidates:
 

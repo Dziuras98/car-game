@@ -4,52 +4,70 @@ extends Control
 @export var track_path: NodePath
 @export var map_padding: float = 16.0
 @export var participant_radius: float = 4.5
+@export_range(1.0, 60.0, 1.0) var redraw_hz: float = 20.0
 
 var _player: PlayerCarController
 var _track: Node3D
 var _opponents: Array[PlayerCarController] = []
 var _track_points: Array[Vector3] = []
+var _mapped_track_points: PackedVector2Array = PackedVector2Array()
 var _min_x: float = 0.0
 var _max_x: float = 1.0
 var _min_z: float = 0.0
 var _max_z: float = 1.0
+var _redraw_timer: float = 0.0
+var _redraw_request_count: int = 0
 
 
 func set_target_node(target: PlayerCarController) -> void:
+	if _player == target:
+		return
 	_player = target
 	if is_inside_tree() and target != null:
 		target_path = get_path_to(target)
 	visible = target != null
-	queue_redraw()
+	_request_redraw()
 
 
 func set_track_node(track: Node3D) -> void:
+	if _track == track and not _track_points.is_empty():
+		return
 	_track = track
 	if is_inside_tree() and track != null:
 		track_path = get_path_to(track)
 	_refresh_track_points()
-	queue_redraw()
+	_request_redraw()
 
 
 func set_opponents(opponents: Array[PlayerCarController]) -> void:
+	if _same_opponents(opponents):
+		return
 	_opponents = opponents.duplicate()
-	queue_redraw()
+	_request_redraw()
 
 
 func _ready() -> void:
 	_player = get_node_or_null(target_path) as PlayerCarController
 	_track = get_node_or_null(track_path) as Node3D
+	resized.connect(_on_resized)
 	_refresh_track_points()
 	visible = _player != null
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not is_instance_valid(_player):
 		_player = get_node_or_null(target_path) as PlayerCarController
 	if _track_points.is_empty():
 		_track = get_node_or_null(track_path) as Node3D
 		_refresh_track_points()
-	queue_redraw()
+	if not visible or not is_instance_valid(_player):
+		return
+
+	_redraw_timer -= maxf(delta, 0.0)
+	if _redraw_timer > 0.0:
+		return
+	_redraw_timer = 1.0 / maxf(redraw_hz, 1.0)
+	_request_redraw()
 
 
 func _draw() -> void:
@@ -57,14 +75,10 @@ func _draw() -> void:
 	draw_rect(background_rect, Color(0.02, 0.025, 0.03, 0.74), true)
 	draw_rect(background_rect, Color(0.78, 0.84, 0.9, 0.28), false, 1.0)
 
-	if _track_points.size() >= 2:
-		var map_points: PackedVector2Array = PackedVector2Array()
-		for point: Vector3 in _track_points:
-			map_points.append(_world_to_map(point))
-		map_points.append(_world_to_map(_track_points[0]))
-		draw_polyline(map_points, Color(0.17, 0.19, 0.21, 1.0), 9.0, true)
-		draw_polyline(map_points, Color(0.82, 0.86, 0.9, 1.0), 2.2, true)
-		draw_circle(_world_to_map(_track_points[0]), 3.6, Color(0.9, 0.95, 1.0, 1.0))
+	if _mapped_track_points.size() >= 2:
+		draw_polyline(_mapped_track_points, Color(0.17, 0.19, 0.21, 1.0), 9.0, true)
+		draw_polyline(_mapped_track_points, Color(0.82, 0.86, 0.9, 1.0), 2.2, true)
+		draw_circle(_mapped_track_points[0], 3.6, Color(0.9, 0.95, 1.0, 1.0))
 
 	for opponent: PlayerCarController in _opponents:
 		if is_instance_valid(opponent):
@@ -74,8 +88,13 @@ func _draw() -> void:
 		_draw_player_marker(_player)
 
 
+func get_redraw_request_count_for_test() -> int:
+	return _redraw_request_count
+
+
 func _refresh_track_points() -> void:
 	_track_points.clear()
+	_mapped_track_points.clear()
 	if _track == null or not _track.has_method("get_racing_line_points"):
 		return
 
@@ -85,6 +104,7 @@ func _refresh_track_points() -> void:
 			_track_points.append(_track.to_global(point))
 
 	_recalculate_bounds()
+	_rebuild_mapped_track_points()
 
 
 func _recalculate_bounds() -> void:
@@ -106,6 +126,14 @@ func _recalculate_bounds() -> void:
 		_max_z = maxf(_max_z, point.z)
 
 
+func _rebuild_mapped_track_points() -> void:
+	_mapped_track_points.clear()
+	for point: Vector3 in _track_points:
+		_mapped_track_points.append(_world_to_map(point))
+	if not _mapped_track_points.is_empty():
+		_mapped_track_points.append(_mapped_track_points[0])
+
+
 func _world_to_map(world_position: Vector3) -> Vector2:
 	var usable_size: Vector2 = Vector2(
 		maxf(size.x - map_padding * 2.0, 1.0),
@@ -116,7 +144,7 @@ func _world_to_map(world_position: Vector3) -> Vector2:
 	var drawn_size: Vector2 = world_size * scale
 	var origin: Vector2 = (size - drawn_size) * 0.5
 	var normalized_position: Vector2 = Vector2(world_position.x - _min_x, world_position.z - _min_z)
-	return origin + Vector2(normalized_position.x, normalized_position.y) * scale
+	return origin + normalized_position * scale
 
 
 func _draw_player_marker(car: PlayerCarController) -> void:
@@ -136,3 +164,22 @@ func _draw_player_marker(car: PlayerCarController) -> void:
 	outline_points.append(points[0])
 	draw_colored_polygon(points, Color(1.0, 0.9, 0.16, 1.0))
 	draw_polyline(outline_points, Color(0.08, 0.07, 0.02, 0.8), 1.0, true)
+
+
+func _request_redraw() -> void:
+	_redraw_request_count += 1
+	queue_redraw()
+
+
+func _on_resized() -> void:
+	_rebuild_mapped_track_points()
+	_request_redraw()
+
+
+func _same_opponents(opponents: Array[PlayerCarController]) -> bool:
+	if opponents.size() != _opponents.size():
+		return false
+	for index: int in range(opponents.size()):
+		if opponents[index] != _opponents[index]:
+			return false
+	return true

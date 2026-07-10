@@ -9,19 +9,39 @@ class_name TachometerGauge
 @export var label_gap_from_tick: float = 8.0
 @export var start_angle_degrees: float = 140.0
 @export var end_angle_degrees: float = 400.0
+@export var redraw_rpm_step: float = 20.0
 
 var _rpm: float = 0.0
+var _redraw_request_count: int = 0
 
 
 func configure_range(maximum_rpm: float, redline: float) -> void:
-	max_rpm = maxf(maximum_rpm, min_rpm + major_tick_rpm)
-	redline_rpm = clampf(redline, min_rpm, max_rpm)
+	var next_max_rpm: float = maxf(maximum_rpm, min_rpm + major_tick_rpm)
+	var next_redline_rpm: float = clampf(redline, min_rpm, next_max_rpm)
+	if is_equal_approx(max_rpm, next_max_rpm) and is_equal_approx(redline_rpm, next_redline_rpm):
+		return
+
+	max_rpm = next_max_rpm
+	redline_rpm = next_redline_rpm
 	_rpm = clampf(_rpm, min_rpm, max_rpm)
-	queue_redraw()
+	_request_redraw()
 
 
 func set_rpm(value: float) -> void:
-	_rpm = clampf(value, min_rpm, max_rpm)
+	var next_rpm: float = clampf(value, min_rpm, max_rpm)
+	if absf(next_rpm - _rpm) < maxf(redraw_rpm_step, 0.0):
+		return
+
+	_rpm = next_rpm
+	_request_redraw()
+
+
+func get_redraw_request_count_for_test() -> int:
+	return _redraw_request_count
+
+
+func _request_redraw() -> void:
+	_redraw_request_count += 1
 	queue_redraw()
 
 
@@ -42,7 +62,6 @@ func _draw() -> void:
 
 func _draw_redline(center: Vector2, radius: float, start_angle: float, end_angle: float) -> void:
 	var redline_angle: float = _rpm_to_angle(redline_rpm, start_angle, end_angle)
-
 	draw_arc(center, radius, redline_angle, end_angle, 16, Color(0.95, 0.12, 0.08, 1), 5.0)
 
 
@@ -65,7 +84,6 @@ func _draw_ticks(center: Vector2, radius: float, start_angle: float, end_angle: 
 func _draw_numbers(center: Vector2, radius: float, start_angle: float, end_angle: float) -> void:
 	var font: Font = ThemeDB.fallback_font
 	var font_size: int = 14
-
 	var label_value: float = min_rpm
 	while label_value <= max_rpm + 0.1:
 		_draw_number(center, radius, start_angle, end_angle, label_value, font, font_size)
@@ -76,7 +94,6 @@ func _draw_needle(center: Vector2, radius: float, start_angle: float, end_angle:
 	var needle_angle: float = _rpm_to_angle(_rpm, start_angle, end_angle)
 	var needle_direction: Vector2 = Vector2(cos(needle_angle), sin(needle_angle))
 	var needle_end: Vector2 = center + needle_direction * (radius - 18.0)
-
 	draw_line(center, needle_end, Color(0.1, 0.85, 1.0, 1), 4.0)
 
 
@@ -94,10 +111,8 @@ func _draw_tick(
 	var tick_start: Vector2 = center + tick_direction * (radius - length)
 	var tick_end: Vector2 = center + tick_direction * (radius + 2.0)
 	var tick_color: Color = Color(0.95, 0.95, 0.95, 1)
-
 	if rpm_value >= redline_rpm:
 		tick_color = Color(1.0, 0.18, 0.12, 1)
-
 	draw_line(tick_start, tick_end, tick_color, width)
 
 
@@ -118,10 +133,8 @@ func _draw_number(
 	var baseline_offset: float = (font.get_ascent(font_size) - font.get_descent(font_size)) * 0.5
 	var label_position: Vector2 = Vector2(label_center.x - label_size.x * 0.5, label_center.y + baseline_offset)
 	var label_color: Color = Color(0.82, 0.88, 0.92, 1)
-
 	if rpm_value >= redline_rpm:
 		label_color = Color(1.0, 0.22, 0.16, 1)
-
 	draw_string(font, label_position, label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, label_color)
 
 
@@ -132,14 +145,12 @@ func _rpm_to_angle(value: float, start_angle: float, end_angle: float) -> float:
 func _rpm_to_ratio(value: float) -> float:
 	if max_rpm <= min_rpm:
 		return 0.0
-
 	return clampf((value - min_rpm) / (max_rpm - min_rpm), 0.0, 1.0)
 
 
 func _is_major_tick(value: float) -> bool:
 	if major_tick_rpm <= 0.0:
 		return false
-
 	var nearest_major_tick: float = roundf((value - min_rpm) / major_tick_rpm) * major_tick_rpm + min_rpm
 	return absf(value - nearest_major_tick) <= 0.1
 

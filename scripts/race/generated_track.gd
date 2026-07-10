@@ -7,8 +7,12 @@ const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/track
 
 @export var track_layout: TrackLayoutResource = DEFAULT_TRACK_LAYOUT:
 	set(value):
+		if track_layout == value:
+			return
+		_disconnect_layout_changed()
 		track_layout = value
-		_rebuild_track()
+		_connect_layout_changed()
+		_request_rebuild()
 
 var _content_root: TrackGeneratedContentRoot
 var _layout_builder: TrackLayoutBuilder
@@ -21,15 +25,40 @@ var _decoration_builder: TrackDecorationBuilder
 var _checkpoint_builder: TrackCheckpointBuilder
 var _geometry: TrackGeometryData
 var _checkpoint_gates: Array[TrackCheckpointGate] = []
+var _rebuild_pending: bool = false
+var _has_generation_signature: bool = false
+var _last_generation_signature: int = 0
+var _rebuild_count: int = 0
 
 
 func _ready() -> void:
 	_ensure_builders()
-	_rebuild_track()
+	_connect_layout_changed()
+	_rebuild_track(true)
 
 
-func _rebuild_track() -> void:
+func _exit_tree() -> void:
+	_disconnect_layout_changed()
+
+
+func _request_rebuild() -> void:
+	if not is_inside_tree() or _rebuild_pending:
+		return
+	_rebuild_pending = true
+	call_deferred("_perform_pending_rebuild")
+
+
+func _perform_pending_rebuild() -> void:
+	_rebuild_pending = false
+	_rebuild_track(false)
+
+
+func _rebuild_track(force: bool = false) -> void:
 	if not is_inside_tree() or track_layout == null:
+		return
+
+	var generation_signature: int = _get_generation_signature()
+	if not force and _has_generation_signature and generation_signature == _last_generation_signature:
 		return
 
 	_ensure_builders()
@@ -48,6 +77,10 @@ func _rebuild_track() -> void:
 		track_layout,
 		Callable(self, "_on_checkpoint_gate_crossed")
 	)
+
+	_last_generation_signature = generation_signature
+	_has_generation_signature = true
+	_rebuild_count += 1
 
 
 func get_racing_line_points() -> Array[Vector3]:
@@ -73,6 +106,14 @@ func get_checkpoint_gate_count_for_test() -> int:
 		if is_instance_valid(gate):
 			valid_gate_count += 1
 	return valid_gate_count
+
+
+func get_rebuild_count_for_test() -> int:
+	return _rebuild_count
+
+
+func request_rebuild_for_test() -> void:
+	_request_rebuild()
 
 
 func _ensure_builders() -> void:
@@ -111,6 +152,48 @@ func _build_track_generation_config() -> Dictionary:
 		"stadium_section_step": track_layout.stadium_section_step,
 		"stadium_distance_from_barrier": track_layout.stadium_distance_from_barrier,
 	}
+
+
+func _get_generation_signature() -> int:
+	if track_layout == null:
+		return 0
+	return hash([
+		track_layout.track_id,
+		track_layout.control_points,
+		track_layout.samples_per_segment,
+		track_layout.track_width,
+		track_layout.width_variation,
+		track_layout.shoulder_width,
+		track_layout.grass_size,
+		track_layout.barrier_distance_from_road,
+		track_layout.checkpoint_progresses,
+		track_layout.checkpoint_depth,
+		track_layout.checkpoint_height,
+		track_layout.checkpoint_width_margin,
+		track_layout.has_stadium,
+		track_layout.stadium_section_step,
+		track_layout.stadium_distance_from_barrier,
+	])
+
+
+func _connect_layout_changed() -> void:
+	if track_layout == null:
+		return
+	var callback: Callable = Callable(self, "_on_track_layout_changed")
+	if not track_layout.is_connected("changed", callback):
+		track_layout.connect("changed", callback)
+
+
+func _disconnect_layout_changed() -> void:
+	if track_layout == null:
+		return
+	var callback: Callable = Callable(self, "_on_track_layout_changed")
+	if track_layout.is_connected("changed", callback):
+		track_layout.disconnect("changed", callback)
+
+
+func _on_track_layout_changed() -> void:
+	_request_rebuild()
 
 
 func _on_checkpoint_gate_crossed(

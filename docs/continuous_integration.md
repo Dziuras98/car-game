@@ -43,10 +43,13 @@ scenes/tests/car_chassis_motion_test.tscn
 scenes/tests/track_layout_builder_test.tscn
 scenes/tests/track_layout_resource_test.tscn
 scenes/tests/lap_tracker_checkpoint_test.tscn
+scenes/tests/performance_regression_test.tscn
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-The run stops immediately when resource import or any test returns a non-zero exit code. The focused checkpoint test runs before the full-program smoke test so sequence, direction or gate-generation failures are isolated.
+The run stops immediately when resource import or any test returns a non-zero exit code. Focused geometry, checkpoint and performance tests run before the full-program smoke test so subsystem failures remain isolated.
+
+The performance regression test logs wall-clock timings for diagnostics, but pass/fail decisions use deterministic operation budgets. This avoids false failures caused by variable GitHub-hosted runner load.
 
 ## Running the suite locally on Windows
 
@@ -63,6 +66,5 @@ The supplied binary must be the Godot editor console executable, not an exported
 Potential later additions:
 
 - a Windows export smoke check after `export_presets.cfg` is added;
-- a scheduled performance test with several AI opponents;
 - an optional manually triggered Android export check;
 - artifact upload for test logs and exported Windows builds.

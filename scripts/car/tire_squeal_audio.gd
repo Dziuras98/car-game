@@ -1,4 +1,4 @@
-extends AudioStreamPlayer3D
+extends "res://scripts/car/procedural_audio_player_3d.gd"
 
 @export var mix_rate: int = 22050
 @export var minimum_slip: float = 0.18
@@ -29,6 +29,7 @@ func _ready() -> void:
 	stream = generator
 	unit_size = 5.0
 	max_distance = 55.0
+	procedural_generation_distance = max_distance + 5.0
 	volume_db = quiet_volume_db
 	play()
 	_playback = get_stream_playback() as AudioStreamGeneratorPlayback
@@ -43,10 +44,12 @@ func _process(delta: float) -> void:
 
 	if _smoothed_slip < minimum_slip:
 		volume_db = quiet_volume_db
-	else:
-		var audible_slip: float = clampf((_smoothed_slip - minimum_slip) / (1.0 - minimum_slip), 0.0, 1.0)
-		volume_db = lerpf(quiet_volume_db, loud_volume_db, audible_slip)
+		return
+	if not should_generate_procedural_audio(delta):
+		return
 
+	var audible_slip: float = clampf((_smoothed_slip - minimum_slip) / (1.0 - minimum_slip), 0.0, 1.0)
+	volume_db = lerpf(quiet_volume_db, loud_volume_db, audible_slip)
 	_fill_audio_buffer()
 
 

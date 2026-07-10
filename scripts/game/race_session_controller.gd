@@ -1,6 +1,8 @@
 extends RefCounted
 class_name RaceSessionController
 
+const HUD_UPDATE_FRAME_INTERVAL: int = 6
+
 var _race_manager: RaceManager
 var _lap_tracker: LapTracker
 var _opponents: Array[PlayerCarController] = []
@@ -11,6 +13,7 @@ var _track: Node3D
 var _minimap: Node
 var _race_lap_count: int = 1
 var _opponent_count: int = 0
+var _hud_update_frames_remaining: int = 0
 
 
 func configure(
@@ -49,9 +52,16 @@ func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> void
 
 
 func update_physics() -> void:
-	if _race_manager != null and _race_manager.should_update_race_positions() and _lap_tracker != null:
-		_lap_tracker.update_positions()
-		_update_lap_ui()
+	if _race_manager == null or not _race_manager.should_update_race_positions() or _lap_tracker == null:
+		return
+
+	_lap_tracker.update_positions()
+	if _hud_update_frames_remaining > 0:
+		_hud_update_frames_remaining -= 1
+		return
+
+	_hud_update_frames_remaining = HUD_UPDATE_FRAME_INTERVAL - 1
+	_update_lap_ui()
 
 
 func reset_to_menu_state() -> void:
@@ -60,6 +70,7 @@ func reset_to_menu_state() -> void:
 	hide_countdown()
 	clear_opponents()
 	clear_tracking()
+	_hud_update_frames_remaining = 0
 
 
 func clear_opponents() -> void:
@@ -108,7 +119,6 @@ func get_moving_opponent_count_for_test() -> int:
 	for opponent: PlayerCarController in _opponents:
 		if is_instance_valid(opponent) and absf(opponent.get_forward_speed()) > 0.05:
 			moving_count += 1
-
 	return moving_count
 
 
@@ -123,7 +133,6 @@ func simulate_current_player_finish_for_test(current_car: PlayerCarController) -
 func are_player_controls_locked() -> bool:
 	if _race_manager == null:
 		return false
-
 	return _race_manager.are_player_controls_locked()
 
 
@@ -158,6 +167,7 @@ func _show_countdown(text: String) -> void:
 func _show_lap_ui() -> void:
 	if _race_hud != null:
 		_race_hud.show_lap()
+	_hud_update_frames_remaining = HUD_UPDATE_FRAME_INTERVAL - 1
 	_update_lap_ui()
 
 

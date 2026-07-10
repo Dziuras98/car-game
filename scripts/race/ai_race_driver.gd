@@ -7,17 +7,28 @@ extends Node
 @export var target_speed_kmh: float = 118.0
 @export var corner_speed_kmh: float = 78.0
 @export var waypoint_reach_distance: float = 8.0
+@export_range(0, 64, 1) var search_points_behind: int = 4
+@export_range(0, 64, 1) var search_points_ahead: int = 14
+@export var recovery_search_distance: float = 45.0
+@export_range(1, 600, 1) var full_search_interval_updates: int = 120
 
 var _car: PlayerCarController
 var _track: Node3D
 var _points: Array[Vector3] = []
-var _target_index: int = 0
+var _target_index: int = -1
 var _enabled: bool = false
+var _index_search: RacingLineIndexSearch = RacingLineIndexSearch.new()
 
 
 func _ready() -> void:
 	_car = get_node_or_null(car_path) as PlayerCarController
 	_track = get_node_or_null(track_path) as Node3D
+	_index_search.configure(
+		search_points_behind,
+		search_points_ahead,
+		recovery_search_distance,
+		full_search_interval_updates
+	)
 	_refresh_points()
 
 	if _car != null:
@@ -60,8 +71,14 @@ func _physics_process(_delta: float) -> void:
 	_car.set_external_drive_inputs(throttle, brake, steering)
 
 
+func get_last_search_check_count_for_test() -> int:
+	return _index_search.get_last_distance_check_count()
+
+
 func _refresh_points() -> void:
 	_points.clear()
+	_target_index = -1
+	_index_search.reset()
 	if _track == null:
 		return
 
@@ -73,19 +90,12 @@ func _refresh_points() -> void:
 
 
 func _update_target_index() -> void:
-	var closest_index: int = _target_index
-	var closest_distance: float = INF
-	var car_position: Vector3 = _car.global_position
-
-	for offset in _points.size():
-		var point_index: int = (_target_index + offset) % _points.size()
-		var distance: float = car_position.distance_squared_to(_get_lane_point(point_index))
-		if distance < closest_distance:
-			closest_distance = distance
-			closest_index = point_index
-
-	_target_index = closest_index
-	if car_position.distance_to(_get_lane_point(_target_index)) < waypoint_reach_distance:
+	_target_index = _index_search.find_nearest_index(
+		_points,
+		_car.global_position,
+		_target_index
+	)
+	if _car.global_position.distance_to(_get_lane_point(_target_index)) < waypoint_reach_distance:
 		_target_index = (_target_index + 1) % _points.size()
 
 
