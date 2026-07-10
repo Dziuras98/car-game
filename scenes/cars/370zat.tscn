@@ -5,17 +5,3 @@
 
 [node name="370ZAT" instance=ExtResource("1_370z")]
 car_specs = ExtResource("2_specs")
-manual_transmission_enabled = false
-automatic_transmission_enabled = true
-gear_ratios = Array[float]([4.923, 3.193, 2.042, 1.411, 1.0, 0.862, 0.771])
-reverse_gear_ratio = 3.972
-final_drive_ratio = 3.357
-shift_delay = 0.18
-automatic_upshift_rpm = 3600.0
-automatic_downshift_rpm = 1800.0
-automatic_kickdown_throttle = 0.78
-automatic_kickdown_rpm = 5400.0
-automatic_shift_delay = 0.22
-torque_converter_stall_rpm = 2600.0
-torque_converter_coupling_rpm = 4100.0
-torque_converter_stall_torque_multiplier = 1.8
