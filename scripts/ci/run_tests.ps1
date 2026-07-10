@@ -139,6 +139,7 @@ $scriptTests = @(
     "scripts/tests/car_controller_runtime_config_test.gd",
     "scripts/tests/car_specs_validation_test.gd",
     "scripts/tests/track_layout_validation_test.gd",
+    "scripts/tests/procedural_audio_voice_budget_test.gd",
     "scripts/tests/speedometer_car_binding_test.gd",
     "scripts/tests/tire_squeal_audio_binding_test.gd",
     "scripts/tests/legacy_controller_property_access_test.gd"
@@ -157,7 +158,9 @@ $sceneTests = @(
     "scenes/tests/car_spawn_transform_test.tscn",
     "scenes/tests/car_specs_runtime_reconfiguration_test.tscn",
     "scenes/tests/car_powertrain_controller_test.tscn",
+    "scenes/tests/powertrain_stability_test.tscn",
     "scenes/tests/car_chassis_motion_test.tscn",
+    "scenes/tests/skid_mark_buffer_test.tscn",
     "scenes/tests/follow_camera_runtime_test.tscn",
     "scenes/tests/track_layout_builder_test.tscn",
     "scenes/tests/track_layout_resource_test.tscn",
