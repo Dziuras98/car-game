@@ -1,22 +1,26 @@
 extends Control
 class_name TachometerGauge
 
+const MIN_TICK_STEP_RPM: float = 1.0
+const MAX_TICK_COUNT: int = 512
+
 @export var min_rpm: float = 0.0
 @export var max_rpm: float = 7000.0
 @export var redline_rpm: float = 6500.0
-@export var major_tick_rpm: float = 1000.0
-@export var minor_tick_rpm: float = 500.0
+@export_range(1.0, 5000.0, 1.0) var major_tick_rpm: float = 1000.0
+@export_range(1.0, 5000.0, 1.0) var minor_tick_rpm: float = 500.0
 @export var label_gap_from_tick: float = 8.0
 @export var start_angle_degrees: float = 140.0
 @export var end_angle_degrees: float = 400.0
-@export var redraw_rpm_step: float = 20.0
+@export_range(0.0, 1000.0, 1.0) var redraw_rpm_step: float = 20.0
 
 var _rpm: float = 0.0
 var _redraw_request_count: int = 0
 
 
 func configure_range(maximum_rpm: float, redline: float) -> void:
-	var next_max_rpm: float = maxf(maximum_rpm, min_rpm + major_tick_rpm)
+	var safe_major_tick: float = maxf(major_tick_rpm, MIN_TICK_STEP_RPM)
+	var next_max_rpm: float = maxf(maximum_rpm, min_rpm + safe_major_tick)
 	var next_redline_rpm: float = clampf(redline, min_rpm, next_max_rpm)
 	if is_equal_approx(max_rpm, next_max_rpm) and is_equal_approx(redline_rpm, next_redline_rpm):
 		return
@@ -38,6 +42,12 @@ func set_rpm(value: float) -> void:
 
 func get_redraw_request_count_for_test() -> int:
 	return _redraw_request_count
+
+
+func get_safe_tick_count(step_rpm: float) -> int:
+	var safe_step: float = maxf(step_rpm, MIN_TICK_STEP_RPM)
+	var rpm_span: float = maxf(max_rpm - min_rpm, 0.0)
+	return clampi(floori(rpm_span / safe_step) + 1, 1, MAX_TICK_COUNT)
 
 
 func _request_redraw() -> void:
@@ -66,16 +76,16 @@ func _draw_redline(center: Vector2, radius: float, start_angle: float, end_angle
 
 
 func _draw_ticks(center: Vector2, radius: float, start_angle: float, end_angle: float) -> void:
-	var minor_value: float = min_rpm
-	while minor_value <= max_rpm + 0.1:
+	var safe_minor_tick: float = maxf(minor_tick_rpm, MIN_TICK_STEP_RPM)
+	for tick_index: int in range(get_safe_tick_count(safe_minor_tick)):
+		var minor_value: float = minf(min_rpm + float(tick_index) * safe_minor_tick, max_rpm)
 		if not _is_major_tick(minor_value):
 			_draw_tick(center, radius, start_angle, end_angle, minor_value, 6.0, 1.0)
-		minor_value += minor_tick_rpm
 
-	var major_value: float = min_rpm
-	while major_value <= max_rpm + 0.1:
+	var safe_major_tick: float = maxf(major_tick_rpm, MIN_TICK_STEP_RPM)
+	for tick_index: int in range(get_safe_tick_count(safe_major_tick)):
+		var major_value: float = minf(min_rpm + float(tick_index) * safe_major_tick, max_rpm)
 		_draw_tick(center, radius, start_angle, end_angle, major_value, 12.0, 2.0)
-		major_value += major_tick_rpm
 
 	if not _is_major_tick(max_rpm):
 		_draw_tick(center, radius, start_angle, end_angle, max_rpm, 12.0, 2.0)
@@ -84,10 +94,10 @@ func _draw_ticks(center: Vector2, radius: float, start_angle: float, end_angle: 
 func _draw_numbers(center: Vector2, radius: float, start_angle: float, end_angle: float) -> void:
 	var font: Font = ThemeDB.fallback_font
 	var font_size: int = 14
-	var label_value: float = min_rpm
-	while label_value <= max_rpm + 0.1:
+	var safe_major_tick: float = maxf(major_tick_rpm, MIN_TICK_STEP_RPM)
+	for tick_index: int in range(get_safe_tick_count(safe_major_tick)):
+		var label_value: float = minf(min_rpm + float(tick_index) * safe_major_tick, max_rpm)
 		_draw_number(center, radius, start_angle, end_angle, label_value, font, font_size)
-		label_value += major_tick_rpm
 
 
 func _draw_needle(center: Vector2, radius: float, start_angle: float, end_angle: float) -> void:
@@ -149,9 +159,8 @@ func _rpm_to_ratio(value: float) -> float:
 
 
 func _is_major_tick(value: float) -> bool:
-	if major_tick_rpm <= 0.0:
-		return false
-	var nearest_major_tick: float = roundf((value - min_rpm) / major_tick_rpm) * major_tick_rpm + min_rpm
+	var safe_major_tick: float = maxf(major_tick_rpm, MIN_TICK_STEP_RPM)
+	var nearest_major_tick: float = roundf((value - min_rpm) / safe_major_tick) * safe_major_tick + min_rpm
 	return absf(value - nearest_major_tick) <= 0.1
 
 
