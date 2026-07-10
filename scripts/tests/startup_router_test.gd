@@ -18,23 +18,33 @@ func _run() -> void:
 		"project main scene points to the startup router"
 	)
 	_expect(
-		StartupRouter.resolve_startup_scene(PackedStringArray()) == StartupRouter.MAIN_SCENE_PATH,
+		StartupRouter.resolve_startup_scene(PackedStringArray(), false) == StartupRouter.MAIN_SCENE_PATH,
 		"empty user arguments select the normal main scene"
 	)
 	_expect(
-		StartupRouter.resolve_startup_scene(PackedStringArray(["--unrelated-option"])) == StartupRouter.MAIN_SCENE_PATH,
+		StartupRouter.resolve_startup_scene(PackedStringArray(["--unrelated-option"]), false) == StartupRouter.MAIN_SCENE_PATH,
 		"unrelated user arguments preserve the normal main scene"
 	)
 	_expect(
-		StartupRouter.resolve_startup_scene(PackedStringArray([StartupRouter.EXPORT_SMOKE_ARGUMENT]))
-		== StartupRouter.EXPORTED_BUILD_SMOKE_SCENE_PATH,
-		"export smoke argument selects the exported-build smoke scene"
+		StartupRouter.resolve_startup_scene(
+			PackedStringArray([StartupRouter.EXPORT_SMOKE_ARGUMENT]),
+			false
+		) == StartupRouter.MAIN_SCENE_PATH,
+		"production exports ignore the private smoke-test argument"
 	)
 	_expect(
 		StartupRouter.resolve_startup_scene(
-			PackedStringArray(["--unrelated-option", StartupRouter.EXPORT_SMOKE_ARGUMENT, "value"])
+			PackedStringArray([StartupRouter.EXPORT_SMOKE_ARGUMENT]),
+			true
 		) == StartupRouter.EXPORTED_BUILD_SMOKE_SCENE_PATH,
-		"export smoke argument is recognized among other user arguments"
+		"test exports route the smoke argument to the packaged regression scene"
+	)
+	_expect(
+		StartupRouter.resolve_startup_scene(
+			PackedStringArray(["--unrelated-option", StartupRouter.EXPORT_SMOKE_ARGUMENT, "value"]),
+			true
+		) == StartupRouter.EXPORTED_BUILD_SMOKE_SCENE_PATH,
+		"test export smoke argument is recognized among other user arguments"
 	)
 
 

@@ -33,25 +33,27 @@ func configure(
 
 
 func get_opponents() -> Array[PlayerCarController]:
-	return _opponents
+	return _opponents.duplicate()
 
 
 func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 	clear_opponents()
-	if _owner == null or _car_spawn == null or _factory == null or not _factory.has_available_cars():
-		return _opponents
+	if _owner == null or _car_spawn == null or _factory == null or _layout == null or not _factory.has_available_cars():
+		return _opponents.duplicate()
 
-	for opponent_index: int in opponent_count:
+	for opponent_index: int in maxi(opponent_count, 0):
 		var car_controller: PlayerCarController = _factory.instantiate_opponent_car()
 		if car_controller == null:
 			continue
 
+		var spawn_global_transform: Transform3D = _layout.get_spawn_transform(_car_spawn, opponent_index)
 		car_controller.name = "Opponent%d" % (opponent_index + 1)
-		car_controller.transform = _layout.get_spawn_transform(_car_spawn, opponent_index)
 		car_controller.set_player_input_enabled(false)
 		car_controller.set_external_input_enabled(true)
-		_paint_randomizer.randomize_car_paint(car_controller)
+		if _paint_randomizer != null:
+			_paint_randomizer.randomize_car_paint(car_controller)
 		_owner.add_child(car_controller)
+		car_controller.global_transform = spawn_global_transform
 		_opponents.append(car_controller)
 
 		var ai_driver: Node = AI_DRIVER_SCRIPT.new()
@@ -60,12 +62,13 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 		if _track != null:
 			ai_driver.set("track_path", _track.get_path())
 		ai_driver.set("lane_offset", _layout.get_lane_offset(opponent_index))
-		ai_driver.set("target_speed_kmh", _rng.randf_range(96.0, 128.0))
-		ai_driver.set("corner_speed_kmh", _rng.randf_range(66.0, 84.0))
+		if _rng != null:
+			ai_driver.set("target_speed_kmh", _rng.randf_range(96.0, 128.0))
+			ai_driver.set("corner_speed_kmh", _rng.randf_range(66.0, 84.0))
 		_owner.add_child(ai_driver)
 		_ai_drivers.append(ai_driver)
 
-	return _opponents
+	return _opponents.duplicate()
 
 
 func clear_opponents() -> void:

@@ -1,8 +1,11 @@
 extends RefCounted
 class_name CarChassisController
 
+const PROBE_END_MARGIN: float = 0.05
+
 var _tire_model: TireModel = TireModel.new()
 var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
+var _ground_contact_model: GroundContactModel = GroundContactModel.new()
 var _config: CarDriveConfig
 
 
@@ -19,7 +22,8 @@ func update_tires(
 	skid_mark_emitter: SkidMarkEmitter,
 	delta: float
 ) -> void:
-	if not car.is_on_floor():
+	_update_ground_contact(state, car)
+	if state.ground_contact_count <= 0:
 		state.tire_slip_intensity = 0.0
 		return
 
@@ -28,7 +32,8 @@ func update_tires(
 		_config.lateral_grip,
 		_config.handbrake_lateral_grip_multiplier,
 		handbrake_active,
-		delta
+		delta,
+		state.surface_grip_multiplier
 	)
 	state.tire_slip_intensity = _tire_model.calculate_slip_intensity(
 		state.lateral_speed,
@@ -66,10 +71,11 @@ func apply_velocity(state: CarRuntimeState, car: CharacterBody3D, delta: float) 
 	car.velocity.x = horizontal_velocity.x
 	car.velocity.z = horizontal_velocity.z
 
-	if car.is_on_floor():
-		car.velocity.y = -_config.floor_stick_force
-	else:
-		car.velocity.y -= _config.gravity * delta
+	car.velocity.y -= _config.gravity * delta
+	if state.ground_contact_count > 0:
+		car.velocity += state.ground_normal * state.suspension_acceleration * delta
+	elif car.is_on_floor():
+		car.velocity.y = minf(car.velocity.y, -_config.floor_stick_force)
 
 	car.move_and_slide()
 
@@ -96,6 +102,79 @@ func set_local_speeds_from_horizontal_velocity(
 	)
 	state.forward_speed = local_speeds.x
 	state.lateral_speed = local_speeds.y
+
+
+func _update_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void:
+	state.ground_contact_count = 0
+	state.ground_normal = Vector3.UP
+	state.surface_grip_multiplier = 1.0
+	state.suspension_acceleration = 0.0
+	if _config == null or not car.is_inside_tree() or car.get_world_3d() == null:
+		return
+
+	var probe_positions: Array[Vector3] = _ground_contact_model.get_probe_local_positions(
+		_config.wheel_base,
+		_config.axle_track_width,
+		_config.suspension_probe_height
+	)
+	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
+	var maximum_probe_length: float = (
+		_config.suspension_probe_height
+		+ _config.suspension_rest_length
+		+ _config.suspension_travel
+		+ PROBE_END_MARGIN
+	)
+	var normals: Array[Vector3] = []
+	var grip_values: Array[float] = []
+	var support_acceleration: float = 0.0
+	var direct_space_state: PhysicsDirectSpaceState3D = car.get_world_3d().direct_space_state
+
+	for local_probe_position: Vector3 in probe_positions:
+		var ray_start: Vector3 = car.global_transform * local_probe_position
+		var ray_end: Vector3 = ray_start + ray_direction * maximum_probe_length
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+			ray_start,
+			ray_end,
+			car.collision_mask,
+			[car.get_rid()]
+		)
+		query.collide_with_areas = false
+		query.collide_with_bodies = true
+		var hit: Dictionary = direct_space_state.intersect_ray(query)
+		if hit.is_empty():
+			continue
+
+		var hit_position: Vector3 = hit.get("position", ray_end)
+		var hit_normal: Vector3 = hit.get("normal", Vector3.UP)
+		if hit_normal.length_squared() <= 0.000001:
+			hit_normal = Vector3.UP
+		else:
+			hit_normal = hit_normal.normalized()
+		var normal_velocity: float = car.velocity.dot(hit_normal)
+		support_acceleration += _ground_contact_model.calculate_spring_acceleration(
+			ray_start.distance_to(hit_position),
+			_config.suspension_rest_length,
+			_config.suspension_travel,
+			normal_velocity,
+			_config.suspension_stiffness,
+			_config.suspension_damping
+		)
+		normals.append(hit_normal)
+		grip_values.append(_get_surface_grip(hit.get("collider")))
+
+	state.ground_contact_count = normals.size()
+	if state.ground_contact_count <= 0:
+		return
+	state.ground_normal = _ground_contact_model.calculate_average_normal(normals)
+	state.surface_grip_multiplier = _ground_contact_model.calculate_average_grip(grip_values)
+	state.suspension_acceleration = support_acceleration
+
+
+func _get_surface_grip(collider_value: Variant) -> float:
+	var collider: Object = collider_value as Object
+	if collider == null or not collider.has_meta("surface_grip_multiplier"):
+		return 1.0
+	return clampf(float(collider.get_meta("surface_grip_multiplier", 1.0)), 0.05, 2.0)
 
 
 func _update_skid_marks(

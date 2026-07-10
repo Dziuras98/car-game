@@ -1,219 +1,219 @@
 # Roadmap
 
-This roadmap prioritizes correctness, test coverage and maintainability before visible feature expansion.
+This roadmap prioritizes correctness, maintainability and reproducible exports before visible feature expansion.
 
 ## Current baseline
 
-The repository currently provides:
+The following remediation stages are complete for the present prototype:
 
-- main menu;
-- free-drive and race modes;
-- catalog-driven 370Z manual and automatic variants;
-- Resource-backed generated oval track;
-- generated finish/checkpoint gates;
-- ordered checkpoint-based lap validation;
-- bounded-window AI racing-line lookup;
-- distance-gated procedural car audio;
-- throttled dynamic HUD and minimap updates;
-- lap, position and results UI;
-- speedometer, tachometer and minimap;
-- scene-driven menu, race and mobile-control UI;
-- modular game/race/spawn coordination;
-- modular powertrain, chassis, tire, reset and input code;
-- Resource-backed vehicle tuning;
-- modular generated-track builders;
-- deterministic Windows regression tests;
-- a Windows Desktop release preset;
-- exported-build smoke validation;
-- downloadable Windows build artifacts from GitHub Actions.
+- catalog-driven car models, variants and specs with typed exported arrays;
+- catalog-driven track selection with an explicit default track ID;
+- modular game, spawning, race and vehicle coordinators;
+- scene-driven menu, race, pause, HUD, minimap and mobile UI;
+- Resource-backed generated-track layout and typed builder pipeline;
+- atomic track rebuilds and geometry revision notifications;
+- plane-crossing checkpoints and ordered lap validation;
+- continuous participant progress and race positions;
+- manual clutch abstraction and automatic transmission/torque converter;
+- `TransmissionType` as the sole transmission-mode state;
+- bounded powertrain substeps;
+- four-point ground contact, surface grip and friction-circle coupling;
+- collision-resolved velocity synchronization;
+- bounded skid marks, procedural-audio voices and stadium/render batches;
+- Polish/English localization and global UI theme;
+- automatic test discovery, per-test timeouts and runtime-error detection;
+- Windows export plus normal/package smoke validation;
+- Android APK export, integrity and manifest validation.
 
-The correctness, architecture, track, race, runtime-performance and Windows-export baselines are complete. New feature work should continue to preserve focused tests and one atomic `master` commit per completed stage.
+The branch should remain regression-first: every behavior or ownership change needs focused coverage and compatibility with the canonical full-program smoke test.
 
-## Phase 0 — Documentation and baseline freeze
+## Phase 0 — Baseline documentation
 
-Status: complete and maintained incrementally.
+Status: complete; documentation must be maintained incrementally.
 
-Completed:
-
-- [x] project README;
+- [x] repository README;
 - [x] architecture baseline;
-- [x] vehicle-model documentation;
-- [x] roadmap;
-- [x] continuous-integration documentation.
+- [x] vehicle-model baseline;
+- [x] catalog documentation;
+- [x] Windows and Android CI documentation;
+- [x] roadmap.
 
-## Phase 1 — Split the high-level game coordinator
+## Phase 1 — High-level coordination split
 
 Status: complete.
 
-Completed:
-
-- [x] game/menu state coordination;
-- [x] catalog/model/variant selection state;
-- [x] menu option builder;
+- [x] `GameManager` reduced to high-level coordination;
+- [x] menu option and selection state helpers;
+- [x] active-track lifecycle helper;
 - [x] player and opponent spawn helpers;
 - [x] race-session facade;
-- [x] race manager and lap tracker separation;
-- [x] AI driver limited to producing drive input.
+- [x] race state separated from lap tracking;
+- [x] AI limited to drive-input production.
 
-## Phase 2 — Scene-driven UI
+## Phase 2 — Data ownership
 
-Status: complete for current UI.
+Status: complete for current content.
 
-Completed:
+### Cars
 
-- [x] main menu scene;
-- [x] countdown overlay scene;
-- [x] lap/position HUD scene;
-- [x] results screen scene;
-- [x] mobile controls scene;
-- [x] speedometer and minimap scenes;
-- [x] dynamic rows/buttons kept script-driven where runtime data requires them.
+- [x] `CarCatalog`, model, variant and `CarSpecs` resources;
+- [x] typed `CarModelDefinition` and `CarVariantDefinition` catalog arrays;
+- [x] 370Z 6MT and 7AT variants;
+- [x] `CarSpecs -> CarDriveConfig` as the only active tuning path;
+- [x] `TransmissionType` enum as the only transmission-mode source;
+- [x] variant specs assigned before scene-tree entry;
+- [x] catalog/scene/spec consistency validation;
+- [x] `scenes/cars/370z.tscn` contains visual and structural data only;
+- [x] removed-property interception deleted from `PlayerCarController`.
 
-## Phase 3 — Extract car input and non-driving effects
+### Tracks
 
-Status: complete.
+- [x] `TrackCatalog` and `TrackDefinition` resources;
+- [x] typed `TrackDefinition` catalog array;
+- [x] `default_track_id` as the sole default declaration;
+- [x] `TrackLayoutResource` for geometry and decoration parameters;
+- [x] menu options and recommended laps sourced from track metadata.
 
-Completed:
+## Phase 3 — Vehicle runtime
 
-- [x] `CarInput` abstraction;
-- [x] external AI input path;
-- [x] `SkidMarkEmitter` extraction;
-- [x] public slip telemetry preserved.
+Status: complete for the current arcade model.
 
-## Phase 4 — Modular vehicle runtime
-
-Status: complete at the current architecture level.
-
-Completed:
-
-- [x] engine, resistance and drivetrain models;
+- [x] runtime state and sanitized config;
+- [x] engine, drivetrain, resistance and torque-converter models;
 - [x] manual and automatic transmission models;
-- [x] torque-converter model;
-- [x] shift-timer model;
-- [x] powertrain controller;
-- [x] runtime state;
-- [x] drive config and builder;
-- [x] tire and vehicle-motion models;
-- [x] chassis and reset controllers;
-- [x] collision-resolved velocity synchronization;
-- [x] grounded-only lateral tire recovery;
-- [x] current-frame slip used by steering;
-- [x] automatic `D -> R` / `R -> D` direction interlock;
-- [x] RPM-safe runtime specs reconfiguration;
-- [x] focused powertrain, chassis and reconfiguration tests.
+- [x] clutch engagement abstraction;
+- [x] bounded physics substeps;
+- [x] tire/slip model and steering coupling;
+- [x] four-point ground probes and suspension support;
+- [x] surface-dependent grip;
+- [x] friction-circle longitudinal-force budget;
+- [x] collision-resolved velocity feedback;
+- [x] runtime specs reconfiguration;
+- [x] focused stability and mapping tests.
 
-## Phase 5 — Resource-backed car catalog and tuning
+Possible later work:
 
-Status: active runtime migration complete.
+- wheel-load transfer;
+- per-wheel tire state;
+- damage and mechanical failures;
+- more complete manual clutch input;
+- more realistic automatic transmission control.
 
-Completed:
+## Phase 4 — Generated track and race correctness
 
-- [x] `CarSpecs`, model, variant and catalog Resource types;
-- [x] 370Z 6MT and 7AT specs Resources;
-- [x] catalog-driven menu and spawning;
-- [x] variant specs applied before scene-tree entry;
-- [x] controller tuning exports removed;
-- [x] legacy `CarDriveConfigBuilder` fallback removed;
-- [x] automatic fallback opponents selected through `CarSpecs`;
-- [x] helper/test scenes explicitly reference specs;
-- [x] catalog test validates scene/spec alignment;
-- [x] runtime-config test validates absence of legacy exports.
+Status: complete for the current oval.
 
-Minor cleanup:
+- [x] typed generation configuration and mesh outputs;
+- [x] modular layout/surface/collision/marker/barrier/checkpoint/decoration builders;
+- [x] shared render/collision geometry metadata;
+- [x] atomic generated-content replacement;
+- [x] geometry revision notifications;
+- [x] ordered checkpoint gates with segment-plane crossing;
+- [x] reverse and out-of-order crossing rejection;
+- [x] racing-line progress used only for position ordering;
+- [x] active-track replacement and dependent-system refresh tests.
 
-- [ ] resave the large base `370z.tscn` in Godot to remove inert serialized keys from old exports;
-- [ ] remove the temporary ignored-property compatibility list after that resave;
-- [ ] split `CarSpecs` into sub-resources only if the flat Resource becomes difficult to maintain.
+Possible later work:
 
-The inert base-scene keys are no longer an active tuning path and cannot affect runtime configuration.
+- more track resources;
+- banking and elevation;
+- pit lane and sector timing;
+- configurable checkpoint visualization;
+- track editor tooling.
 
-## Phase 6 — Resource-backed generated track
+## Phase 5 — UI, localization and input
 
-Status: complete for the current simple oval.
+Status: complete for current screens.
 
-Completed:
+- [x] menu, countdown, lap/position, results and pause scenes;
+- [x] speedometer/tachometer and minimap scenes;
+- [x] global theme;
+- [x] Polish and English catalogs loaded before main-scene routing;
+- [x] safe-area layout support;
+- [x] independent player, AI and touch input channels;
+- [x] rear-view camera behavior;
+- [x] pause lifecycle and input cleanup.
 
-- [x] generated-content root helper;
-- [x] geometry-data container;
-- [x] layout, surface, collision, marker, barrier and decoration builders;
-- [x] material factory;
-- [x] stable `get_racing_line_points()` API;
-- [x] focused `TrackLayoutBuilder` topology and geometry tests;
-- [x] deterministic rebuild checks;
-- [x] track-width, width-variation and shoulder-width input sanitization;
-- [x] `TrackLayoutResource` with control points and sampling density;
-- [x] simple-oval metadata, road and decoration data moved into a Resource;
-- [x] generated-track scenes reference the Resource instead of scene overrides;
-- [x] menu track options use Resource ID, label and recommended-lap metadata;
-- [x] Resource-to-builder-to-scene regression test in Windows CI.
+Possible later work:
 
-## Phase 7 — Checkpoint-based lap validation
+- remappable controls;
+- gamepad calibration and dead-zone UI;
+- final mobile control layout;
+- accessibility settings;
+- garage presentation.
 
-Status: complete for the current race flow.
+## Phase 6 — Performance and export quality
 
-Completed:
+Status: complete for the current content scale.
 
-- [x] generated finish-line and checkpoint `Area3D` gates;
-- [x] ordered checkpoint progress stored in `TrackLayoutResource`;
-- [x] checkpoint crossing direction derived from car velocity and gate tangent;
-- [x] `LapTracker` validates `1 -> 2 -> 3 -> finish` order;
-- [x] reverse finish-line crossings are rejected;
-- [x] skipped checkpoints and track cuts cannot complete a lap;
-- [x] unexpected finish crossings reset the sequence to checkpoint one;
-- [x] racing-line progress is used only for position sorting;
-- [x] focused checkpoint/lap regression test in Windows CI.
-
-## Phase 8 — Performance and export quality
-
-Status: complete for the current Windows prototype baseline.
-
-Completed:
-
-- [x] profiling notes and deterministic opponent-count checks;
-- [x] bounded local racing-line lookup with full-scan recovery;
-- [x] procedural engine audio disabled beyond listener range;
-- [x] tire audio disabled beyond listener range and below audible slip;
-- [x] speedometer and minimap update-rate limits;
+- [x] bounded racing-line lookup;
+- [x] update-rate limits for dynamic HUD/minimap work;
 - [x] cached minimap track projection;
-- [x] change-driven lap/position label updates;
+- [x] change-driven race HUD updates;
 - [x] thresholded tachometer redraws;
-- [x] generated-track signature and rebuild-request coalescing;
-- [x] repeatable 1/4/8/12-opponent performance regression test in Windows CI;
-- [x] `Windows Desktop` release preset;
-- [x] official Godot 4.7 export-template installation and cache in CI;
-- [x] exported executable smoke test;
-- [x] Windows build artifact containing `.exe`, `.pck` and smoke log.
+- [x] coalesced generated-track rebuilds;
+- [x] bounded skid-mark storage;
+- [x] bounded procedural-audio voices and listener-distance gating;
+- [x] batched edge markers and barriers;
+- [x] bounded stadium `MultiMesh` groups;
+- [x] deterministic performance regression budgets;
+- [x] Windows production/test export and packaged smoke tests;
+- [x] Android APK export and manifest validation.
 
-Distribution work intentionally deferred until requirements exist:
+Distribution work remains deferred until required:
 
-- Authenticode signing;
-- installer or store package;
-- automatic updates;
-- tagged-release retention policy.
+- executable/APK signing;
+- installer or store packaging;
+- tagged release workflow and retention policy;
+- automatic update delivery;
+- physical-device Android smoke automation.
 
-## Phase 9 — Feature expansion
+## Phase 7 — Test and repository hygiene
 
-Status: ready for prioritized feature work.
+Status: complete for this remediation PR; maintained continuously afterward.
+
+Completed:
+
+- [x] automatic standalone and scene-test discovery;
+- [x] timeout and current-command diagnostics;
+- [x] runtime-error detector self-check;
+- [x] static architecture assertions;
+- [x] canonical full-program smoke scene;
+- [x] orphaned test-script detection;
+- [x] removal of the duplicate smoke-test implementation;
+- [x] explicit default-track regression coverage;
+- [x] no test-only suffixes in production GDScript APIs;
+- [x] no test simulation facades in production coordinators;
+- [x] static guards for completed scene, catalog and transmission migrations.
+
+Ongoing rules:
+
+- a test script must be discoverable, scene-referenced, an editor launcher or an allowed helper;
+- no second implementation of an existing end-to-end scenario;
+- update fixtures when a compatibility field is intentionally removed;
+- keep CI logs useful enough to identify the first failing command.
+
+## Phase 8 — Feature expansion
+
+Status: outside this remediation PR and ready for separate prioritization.
 
 Candidates:
 
-- more cars and improved imported models;
+- additional cars and higher-quality imported models;
 - additional tracks;
-- improved AI racecraft;
-- lap timer and best-lap storage;
-- ghost laps;
-- gamepad tuning;
-- pause menu;
-- replay camera;
-- garage/car selection presentation;
-- improved tire and collision consequences.
+- improved AI overtaking and avoidance;
+- lap timer, sectors and best-lap persistence;
+- ghost laps and replay data;
+- configurable assists;
+- garage/car-selection presentation;
+- tire temperature, wear and damage consequences.
 
-## Current change rule
+## Change rule
 
 Every subsystem change should include:
 
-1. focused regression coverage;
-2. full smoke-test compatibility;
+1. a focused regression test or an explicit explanation why one is unnecessary;
+2. compatibility with the canonical full-program smoke test;
 3. relevant documentation updates;
-4. no unrelated handling or feature changes in the same commit;
-5. one atomic `master` commit per completed stage so CI runs are not cancelled by later pushes.
+4. no unrelated handling-tuning changes in the same commit;
+5. verification of both required workflows before a PR is marked ready.

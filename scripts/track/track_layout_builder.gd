@@ -6,9 +6,14 @@ const MIN_TRACK_WIDTH: float = 0.1
 const MAX_WIDTH_VARIATION: float = 0.45
 
 
-func build(config: Dictionary) -> TrackGeometryData:
+func build(config: TrackGenerationConfig) -> TrackGeometryData:
 	var geometry: TrackGeometryData = TrackGeometryData.new()
-	var layout: TrackLayoutResource = config.get("track_layout", DEFAULT_TRACK_LAYOUT) as TrackLayoutResource
+	var safe_config: TrackGenerationConfig = (
+		config.duplicate_config() if config != null else TrackGenerationConfig.from_layout(DEFAULT_TRACK_LAYOUT)
+	)
+	var layout: TrackLayoutResource = safe_config.track_layout
+	if layout == null:
+		layout = DEFAULT_TRACK_LAYOUT
 	if layout == null or layout.control_points.size() < 4:
 		return geometry
 
@@ -17,13 +22,9 @@ func build(config: Dictionary) -> TrackGeometryData:
 		maxi(layout.samples_per_segment, 1)
 	)
 	var point_count: int = points.size()
-	var track_width: float = maxf(float(config.get("track_width", layout.track_width)), MIN_TRACK_WIDTH)
-	var width_variation: float = clampf(
-		float(config.get("width_variation", layout.width_variation)),
-		0.0,
-		MAX_WIDTH_VARIATION
-	)
-	var shoulder_width: float = maxf(float(config.get("shoulder_width", layout.shoulder_width)), 0.0)
+	var track_width: float = maxf(safe_config.track_width, MIN_TRACK_WIDTH)
+	var width_variation: float = clampf(safe_config.width_variation, 0.0, MAX_WIDTH_VARIATION)
+	var shoulder_width: float = maxf(safe_config.shoulder_width, 0.0)
 
 	geometry.center_points = points
 	geometry.racing_line_points = points

@@ -54,5 +54,5 @@ func update(current_lap: int, total_laps: int, position: int, participant_count:
 		_text_update_count += 1
 
 
-func get_text_update_count_for_test() -> int:
+func get_text_update_count() -> int:
 	return _text_update_count

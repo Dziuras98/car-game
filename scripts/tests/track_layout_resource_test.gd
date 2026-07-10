@@ -2,6 +2,7 @@ extends Node
 
 const SIMPLE_OVAL_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 const SIMPLE_OVAL_SCENE: PackedScene = preload("res://scenes/tracks/simple_oval.tscn")
+const TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
 const EXPECTED_CONTROL_POINT_COUNT: int = 18
 const EXPECTED_SAMPLE_COUNT: int = 108
 const EPSILON: float = 0.001
@@ -17,8 +18,9 @@ func _ready() -> void:
 func _run() -> void:
 	_test_resource_metadata()
 	_test_builder_uses_resource_layout()
-	_test_menu_options_use_resource_metadata()
+	_test_menu_options_use_catalog_metadata()
 	_test_track_scene_uses_resource()
+	await _test_atomic_generated_content_replacement()
 	_finish()
 
 
@@ -39,9 +41,9 @@ func _test_resource_metadata() -> void:
 
 
 func _test_builder_uses_resource_layout() -> void:
-	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build({
-		"track_layout": SIMPLE_OVAL_LAYOUT,
-	})
+	var geometry: TrackGeometryData = TrackLayoutBuilder.new().build(
+		TrackGenerationConfig.from_layout(SIMPLE_OVAL_LAYOUT)
+	)
 	_expect(geometry.center_points.size() == EXPECTED_SAMPLE_COUNT, "resource control points generate 108 sampled points")
 	_expect(geometry.racing_line_points.size() == EXPECTED_SAMPLE_COUNT, "resource generates a complete racing line")
 
@@ -58,35 +60,79 @@ func _test_builder_uses_resource_layout() -> void:
 	_expect(shoulders_match_resource, "resource shoulder width drives generated shoulders")
 
 
-func _test_menu_options_use_resource_metadata() -> void:
-	var invalid_layout: TrackLayoutResource = TrackLayoutResource.new()
-	var layouts: Array[TrackLayoutResource] = [
-		invalid_layout,
-		SIMPLE_OVAL_LAYOUT,
-		SIMPLE_OVAL_LAYOUT,
-	]
-	var track_options: Array[Dictionary] = MenuOptionsBuilder.build_track_options_from_layouts(layouts)
-
-	_expect(track_options.size() == 1, "menu filters invalid and duplicate track resources")
+func _test_menu_options_use_catalog_metadata() -> void:
+	_expect(TRACK_CATALOG != null and TRACK_CATALOG.is_valid(), "production track catalog is valid")
+	var track_options: Array[TrackMenuOption] = MenuOptionsBuilder.build_track_options(TRACK_CATALOG)
+	_expect(track_options.size() == TRACK_CATALOG.get_tracks().size(), "menu exposes one option per valid catalog track")
 	if track_options.is_empty():
 		return
 
-	var option: Dictionary = track_options[0]
-	_expect(str(option.get("track_id", "")) == str(SIMPLE_OVAL_LAYOUT.track_id), "menu track id comes from resource")
-	_expect(str(option.get("label", "")) == SIMPLE_OVAL_LAYOUT.display_name, "menu label comes from resource")
-	_expect(int(option.get("recommended_laps", 0)) == SIMPLE_OVAL_LAYOUT.recommended_laps, "menu lap metadata comes from resource")
+	var definition: TrackDefinition = TRACK_CATALOG.get_default_track()
+	var option: TrackMenuOption = track_options[0]
+	_expect(option != null and option.is_valid(), "catalog metadata produces a valid typed track option")
+	_expect(option.track_id == definition.track_id, "menu track id comes from the track definition")
+	_expect(option.label == definition.display_name, "menu label comes from the track definition")
+	_expect(option.recommended_laps == definition.recommended_laps, "menu lap metadata comes from the track definition")
 
 
 func _test_track_scene_uses_resource() -> void:
-	var track_instance: Node = SIMPLE_OVAL_SCENE.instantiate()
-	_expect(track_instance != null, "simple oval scene instantiates")
+	var track_instance: GeneratedTrack = SIMPLE_OVAL_SCENE.instantiate() as GeneratedTrack
+	_expect(track_instance != null, "simple oval scene instantiates as GeneratedTrack")
 	if track_instance == null:
 		return
-
-	_expect(track_instance.has_method("get_track_layout"), "generated track exposes its layout resource")
-	if track_instance.has_method("get_track_layout"):
-		_expect(track_instance.call("get_track_layout") == SIMPLE_OVAL_LAYOUT, "scene references the authoritative simple oval resource")
+	_expect(track_instance.get_track_layout() == SIMPLE_OVAL_LAYOUT, "scene references the authoritative simple oval resource")
 	track_instance.free()
+
+
+func _test_atomic_generated_content_replacement() -> void:
+	var track: GeneratedTrack = SIMPLE_OVAL_SCENE.instantiate() as GeneratedTrack
+	_expect(track != null, "track instantiates for rebuild replacement testing")
+	if track == null:
+		return
+
+	var mutable_layout: TrackLayoutResource = SIMPLE_OVAL_LAYOUT.duplicate(true) as TrackLayoutResource
+	track.track_layout = mutable_layout
+	add_child(track)
+	await get_tree().process_frame
+
+	var first_content: Node = track.get_node_or_null("GeneratedContent")
+	_expect(first_content != null, "initial generation creates one GeneratedContent root")
+	var first_instance_id: int = first_content.get_instance_id() if first_content != null else 0
+
+	mutable_layout.track_width += 0.5
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var replacement_content: Node = track.get_node_or_null("GeneratedContent")
+	_expect(replacement_content != null, "rebuild creates a replacement GeneratedContent root")
+	_expect(
+		replacement_content != null and replacement_content.get_instance_id() != first_instance_id,
+		"rebuild atomically replaces the generated subtree"
+	)
+	_expect(_count_named_children(track, "GeneratedContent") == 1, "track exposes exactly one generated subtree after rebuild")
+	_expect(_has_collision_shape(replacement_content, "Grass"), "rebuilt grass keeps its collision shape")
+	_expect(_has_collision_shape(replacement_content, "RoadsideTerrain"), "rebuilt roadside keeps its collision shape")
+	_expect(_has_collision_shape(replacement_content, "TrackSurface"), "rebuilt asphalt keeps its collision shape")
+
+	track.queue_free()
+	await get_tree().process_frame
+
+
+func _count_named_children(parent: Node, child_name: String) -> int:
+	var count: int = 0
+	for child: Node in parent.get_children():
+		if child.name == child_name:
+			count += 1
+	return count
+
+
+func _has_collision_shape(generated_content: Node, body_name: String) -> bool:
+	if generated_content == null:
+		return false
+	var body: Node = generated_content.get_node_or_null(body_name)
+	if body == null:
+		return false
+	return body.get_node_or_null("CollisionShape3D") is CollisionShape3D
 
 
 func _expect(condition: bool, message: String) -> void:

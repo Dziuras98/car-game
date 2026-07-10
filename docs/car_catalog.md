@@ -1,15 +1,15 @@
 # Car catalog structure
 
-The car data model is organized around three levels:
+The car data model is organized around three typed levels:
 
 ```text
 CarCatalog
-  CarModelDefinition
-    CarVariantDefinition
+  Array[CarModelDefinition]
+    Array[CarVariantDefinition]
       CarSpecs
 ```
 
-This means a car model is not the same thing as a playable car. A playable car is a variant of a model.
+A car model is not the same thing as a playable car. A playable car is a variant of a model.
 
 Example:
 
@@ -19,7 +19,7 @@ Nissan 370Z
   370Z manual
 ```
 
-Both variants share the same model identity, but they can reference different scenes and different tuning specs.
+Both variants share the same model identity and visual scene, while each references its own authoritative `CarSpecs` resource.
 
 ## Canonical folder layout
 
@@ -65,11 +65,12 @@ scripts/car/car_catalog.gd
 
 Purpose:
 
-- stores all available car models;
-- can return models;
-- can return a flat list of all variants;
-- can return flat variant scenes for compatibility with the current spawn flow;
-- can return variant display names for compatibility paths.
+- stores a typed `Array[CarModelDefinition]`;
+- returns valid models and a flat list of variants;
+- resolves models and variants by stable IDs;
+- exposes derived scene and menu-name lists for spawners and menu construction.
+
+The catalog is the only content-discovery path. There is no parallel `available_cars` fallback.
 
 ### `CarModelDefinition`
 
@@ -83,8 +84,8 @@ Purpose:
 
 - stores model-level identity;
 - stores manufacturer, model ID, display name, generation and production years;
-- stores all variants for that model;
-- can return the default variant.
+- stores a typed `Array[CarVariantDefinition]`;
+- resolves variants and an explicitly selected `default_variant_id`.
 
 Example:
 
@@ -104,8 +105,9 @@ Purpose:
 
 - stores one selectable version of a car model;
 - links to a playable car scene;
-- links to one `CarSpecs` tuning Resource;
-- stores human-readable metadata such as engine, transmission, drivetrain and mass.
+- links to exactly one `CarSpecs` tuning resource;
+- stores presentation metadata that is not derivable from specs, such as the engine and drivetrain labels;
+- derives mass and transmission labels from `CarSpecs` so display data cannot drift from runtime physics.
 
 Examples:
 
@@ -124,9 +126,11 @@ scripts/car/car_specs.gd
 
 Purpose:
 
-- stores the actual tuning values used by `PlayerCarController`;
+- is the authoritative source of all vehicle tuning values;
 - contains driving, engine, transmission, automatic-transmission, resistance, tire and grounding data;
-- should differ between variants when engine, gearbox, mass or other tuning changes.
+- uses `TransmissionType` as the sole transmission-mode state;
+- validates values before `CarDriveConfig` is built;
+- differs between variants when engine, gearbox, mass or other tuning changes.
 
 Examples:
 
@@ -135,37 +139,43 @@ resources/cars/nissan/370z/specs/370z_7at_specs.tres
 resources/cars/nissan/370z/specs/370z_6mt_specs.tres
 ```
 
+`scenes/cars/370z.tscn` contains visual, collision and audio structure only. It does not serialize vehicle tuning values.
+
 ## Rules for adding future cars
 
 1. Add one folder per model, not per variant.
 2. Put every playable version in `variants/`.
 3. Put every tuning payload in `specs/`.
-4. A variant should reference one playable scene and one `CarSpecs` Resource.
-5. The same model may have many variants with different engines, gearboxes, drivetrain layouts, mass, tires or tuning.
-6. If two variants share identical visuals, they can reference the same scene but different specs.
-7. If two variants need different meshes or nodes, they can reference different scenes.
-8. Add the model to `resources/cars/catalog.tres` so the menu and game flow can discover it.
+4. A variant must reference one playable scene and one valid `CarSpecs` resource.
+5. Store transmission mode only in `CarSpecs.transmission_type`.
+6. Do not duplicate mass or transmission labels in variant resources.
+7. If two variants share identical visuals, they may reference the same scene but different specs.
+8. If two variants need different meshes or nodes, they may reference different scenes.
+9. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
+10. Extend catalog validation and focused regression coverage with new content.
 
-## Current integration status
+## Selection and spawning flow
 
-The data layer exists and the current 370Z variants are represented in the catalog.
-
-`GameManager` now loads `resources/cars/catalog.tres` and derives the active model list, active variant list and playable scene list from it. `MainMenu` receives model and variant data from `GameManager`; it does not load the catalog Resource directly.
-
-The menu selection flow is now:
+`GameManager` loads `resources/cars/catalog.tres` and derives menu options through `MenuOptionsBuilder`.
 
 ```text
 tryb -> tor -> model auta -> wariant auta
 ```
 
-Current visible catalog-backed menu labels:
+`MainMenu` emits the selected `variant_id`. `CarSelectionState` resolves it to the matching catalog index, and `CarSpawner` delegates instantiation to `CarInstanceFactory`.
+
+The factory:
+
+1. resolves the `CarVariantDefinition`;
+2. instantiates its `PackedScene`;
+3. verifies the root is `PlayerCarController`;
+4. assigns the variant's `CarSpecs` before adding the car to the scene tree;
+5. rejects missing or invalid catalog data instead of silently selecting fallback content.
+
+Current catalog-backed menu content:
 
 ```text
 Nissan 370Z
   370Z automat
   370Z manual
 ```
-
-`MainMenu` emits the selected `variant_id`, and `GameManager` maps that ID back to the matching `CarVariantDefinition` index before calling `CarSpawner`.
-
-`CarSpawner` receives both the flat scene list and the flat variant list. When variants are available, it instantiates cars from `CarVariantDefinition` and applies the variant's `CarSpecs` before the car enters the scene tree. The old `available_cars` scene array remains as a fallback for now.

@@ -9,8 +9,8 @@ var _opponents: Array[PlayerCarController] = []
 var _current_car: PlayerCarController
 var _car_spawner: CarSpawner
 var _race_hud: RaceHud
-var _track: Node3D
-var _minimap: Node
+var _track: GeneratedTrack
+var _minimap: Minimap
 var _race_lap_count: int = 1
 var _opponent_count: int = 0
 var _hud_update_frames_remaining: int = 0
@@ -19,8 +19,8 @@ var _hud_update_frames_remaining: int = 0
 func configure(
 	car_spawner: CarSpawner,
 	race_hud: RaceHud,
-	track: Node3D,
-	minimap: Node,
+	track: GeneratedTrack,
+	minimap: Minimap,
 	race_lap_count: int,
 	opponent_count: int
 ) -> void:
@@ -44,11 +44,15 @@ func configure(
 
 
 func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> void:
+	if current_car == null or scene_tree == null:
+		push_error("RaceSessionController requires a player car and SceneTree.")
+		return
 	_current_car = current_car
 	_spawn_opponents()
-	_prepare_race_tracking()
-	if _race_manager != null:
-		_race_manager.start_race(_current_car, scene_tree)
+	if not _prepare_race_tracking():
+		clear_opponents()
+		return
+	_race_manager.start_race(_current_car, scene_tree)
 
 
 func update_physics() -> void:
@@ -70,6 +74,7 @@ func reset_to_menu_state() -> void:
 	hide_countdown()
 	clear_opponents()
 	clear_tracking()
+	_current_car = null
 	_hud_update_frames_remaining = 0
 
 
@@ -103,7 +108,7 @@ func hide_results() -> void:
 
 
 func get_opponents() -> Array[PlayerCarController]:
-	return _opponents
+	return _opponents.duplicate()
 
 
 func get_lap_tracker() -> LapTracker:
@@ -114,32 +119,13 @@ func get_race_manager() -> RaceManager:
 	return _race_manager
 
 
-func get_moving_opponent_count_for_test() -> int:
-	var moving_count: int = 0
-	for opponent: PlayerCarController in _opponents:
-		if is_instance_valid(opponent) and absf(opponent.get_forward_speed()) > 0.05:
-			moving_count += 1
-	return moving_count
-
-
-func simulate_current_player_finish_for_test(current_car: PlayerCarController) -> void:
-	if current_car == null:
-		return
-
-	_current_car = current_car
-	_on_lap_tracker_participant_finished(current_car)
-
-
 func are_player_controls_locked() -> bool:
-	if _race_manager == null:
-		return false
-	return _race_manager.are_player_controls_locked()
+	return _race_manager != null and _race_manager.are_player_controls_locked()
 
 
 func _spawn_opponents() -> void:
 	if _car_spawner == null:
 		return
-
 	_opponents = _car_spawner.spawn_opponents(_opponent_count)
 	_update_minimap_opponents()
 
@@ -150,7 +136,7 @@ func _set_ai_enabled(enabled: bool) -> void:
 
 
 func _set_player_input_enabled(enabled: bool) -> void:
-	if _current_car != null:
+	if is_instance_valid(_current_car):
 		_current_car.set_player_input_enabled(enabled)
 
 
@@ -174,7 +160,6 @@ func _show_lap_ui() -> void:
 func _update_lap_ui() -> void:
 	if _current_car == null or _lap_tracker == null or _race_hud == null:
 		return
-
 	_race_hud.update_lap(
 		_lap_tracker.get_current_lap(_current_car),
 		_race_lap_count,
@@ -183,12 +168,13 @@ func _update_lap_ui() -> void:
 	)
 
 
-func _prepare_race_tracking() -> void:
-	if _lap_tracker == null:
-		return
-
-	_lap_tracker.prepare(_track, _race_lap_count, _current_car, _opponents)
-	_show_lap_ui()
+func _prepare_race_tracking() -> bool:
+	if _lap_tracker == null or _track == null:
+		return false
+	var prepared: bool = _lap_tracker.prepare(_track, _race_lap_count, _current_car, _opponents)
+	if prepared:
+		_show_lap_ui()
+	return prepared
 
 
 func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
@@ -213,10 +199,8 @@ func _show_results() -> void:
 		return
 
 	var result_labels: Array[String] = []
-	var ordered_participants: Array[PlayerCarController] = _lap_tracker.get_result_order()
-	for car: PlayerCarController in ordered_participants:
+	for car: PlayerCarController in _lap_tracker.get_result_order():
 		result_labels.append(_get_participant_label(car))
-
 	_race_hud.show_results(result_labels)
 
 
@@ -229,5 +213,5 @@ func _get_participant_label(car: PlayerCarController) -> String:
 
 
 func _update_minimap_opponents() -> void:
-	if _minimap != null and _minimap.has_method("set_opponents"):
-		_minimap.call("set_opponents", _opponents)
+	if _minimap != null:
+		_minimap.set_opponents(_opponents)

@@ -1,7 +1,9 @@
 @tool
 extends Node3D
+class_name GeneratedTrack
 
 signal checkpoint_crossed(car: PlayerCarController, checkpoint_index: int, is_forward: bool)
+signal geometry_rebuilt(revision: int)
 
 const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 
@@ -54,7 +56,7 @@ func _perform_pending_rebuild() -> void:
 
 
 func _rebuild_track(force: bool = false) -> void:
-	if not is_inside_tree() or track_layout == null:
+	if not is_inside_tree() or track_layout == null or not track_layout.is_valid():
 		return
 
 	var generation_signature: int = _get_generation_signature()
@@ -62,12 +64,17 @@ func _rebuild_track(force: bool = false) -> void:
 		return
 
 	_ensure_builders()
-	var config: Dictionary = _build_track_generation_config()
+	var config: TrackGenerationConfig = _build_track_generation_config()
 	_geometry = _layout_builder.build(config)
 	var generated_content: Node3D = _content_root.clear(self)
 
-	_surface_builder.build_surfaces(generated_content, _geometry, _material_factory, config)
-	_collision_builder.build_collisions(generated_content, _geometry, config)
+	var generated_meshes: TrackGeneratedMeshes = _surface_builder.build_surfaces(
+		generated_content,
+		_geometry,
+		_material_factory,
+		config
+	)
+	_collision_builder.build_collisions(generated_content, _geometry, config, generated_meshes)
 	_marker_builder.build_markers(generated_content, _geometry, _material_factory, config)
 	_barrier_builder.build_barriers(generated_content, _geometry, _material_factory, config)
 	_decoration_builder.build_decorations(generated_content, _geometry, _material_factory, config)
@@ -81,6 +88,7 @@ func _rebuild_track(force: bool = false) -> void:
 	_last_generation_signature = generation_signature
 	_has_generation_signature = true
 	_rebuild_count += 1
+	geometry_rebuilt.emit(_rebuild_count)
 
 
 func get_racing_line_points() -> Array[Vector3]:
@@ -95,12 +103,14 @@ func get_track_layout() -> TrackLayoutResource:
 
 
 func get_checkpoint_count() -> int:
-	if track_layout == null:
-		return 0
-	return track_layout.get_checkpoint_count()
+	return track_layout.get_checkpoint_count() if track_layout != null else 0
 
 
-func get_checkpoint_gate_count_for_test() -> int:
+func get_geometry_revision() -> int:
+	return _rebuild_count
+
+
+func get_checkpoint_gate_count() -> int:
 	var valid_gate_count: int = 0
 	for gate: TrackCheckpointGate in _checkpoint_gates:
 		if is_instance_valid(gate):
@@ -108,11 +118,11 @@ func get_checkpoint_gate_count_for_test() -> int:
 	return valid_gate_count
 
 
-func get_rebuild_count_for_test() -> int:
+func get_rebuild_count() -> int:
 	return _rebuild_count
 
 
-func request_rebuild_for_test() -> void:
+func request_rebuild() -> void:
 	_request_rebuild()
 
 
@@ -137,21 +147,8 @@ func _ensure_builders() -> void:
 		_checkpoint_builder = TrackCheckpointBuilder.new()
 
 
-func _build_track_generation_config() -> Dictionary:
-	if track_layout == null:
-		return {}
-
-	return {
-		"track_layout": track_layout,
-		"track_width": track_layout.track_width,
-		"grass_size": track_layout.grass_size,
-		"shoulder_width": track_layout.shoulder_width,
-		"barrier_distance_from_road": track_layout.barrier_distance_from_road,
-		"width_variation": track_layout.width_variation,
-		"has_stadium": track_layout.has_stadium,
-		"stadium_section_step": track_layout.stadium_section_step,
-		"stadium_distance_from_barrier": track_layout.stadium_distance_from_barrier,
-	}
+func _build_track_generation_config() -> TrackGenerationConfig:
+	return TrackGenerationConfig.from_layout(track_layout)
 
 
 func _get_generation_signature() -> int:

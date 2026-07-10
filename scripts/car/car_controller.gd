@@ -1,73 +1,10 @@
 extends CharacterBody3D
 class_name PlayerCarController
 
-const DEFAULT_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
-
-# The base 370Z scene still contains serialized properties from the removed
-# controller exports. They are accepted only to keep that scene loadable and
-# are deliberately not used as runtime tuning data.
-const REMOVED_LEGACY_TUNING_PROPERTIES: Dictionary = {
-	&"acceleration": true,
-	&"brake_deceleration": true,
-	&"reverse_acceleration": true,
-	&"coast_deceleration": true,
-	&"handbrake_deceleration": true,
-	&"max_forward_speed": true,
-	&"max_reverse_speed": true,
-	&"steering_speed": true,
-	&"wheel_base": true,
-	&"max_steering_angle_degrees": true,
-	&"idle_rpm": true,
-	&"peak_torque_rpm": true,
-	&"redline_rpm": true,
-	&"rev_limiter_rpm": true,
-	&"low_rpm_torque_multiplier": true,
-	&"mid_rpm_torque_multiplier": true,
-	&"redline_torque_multiplier": true,
-	&"engine_force": true,
-	&"engine_brake_force": true,
-	&"rpm_response": true,
-	&"manual_transmission_enabled": true,
-	&"automatic_transmission_enabled": true,
-	&"gear_ratios": true,
-	&"reverse_gear_ratio": true,
-	&"final_drive_ratio": true,
-	&"peak_engine_torque": true,
-	&"wheel_radius": true,
-	&"drivetrain_efficiency": true,
-	&"shift_delay": true,
-	&"automatic_upshift_rpm": true,
-	&"automatic_downshift_rpm": true,
-	&"automatic_kickdown_throttle": true,
-	&"automatic_kickdown_rpm": true,
-	&"automatic_shift_delay": true,
-	&"torque_converter_stall_rpm": true,
-	&"torque_converter_coupling_rpm": true,
-	&"torque_converter_stall_torque_multiplier": true,
-	&"vehicle_mass": true,
-	&"drag_coefficient": true,
-	&"frontal_area": true,
-	&"air_density": true,
-	&"rolling_resistance_coefficient": true,
-	&"lateral_grip": true,
-	&"handbrake_lateral_grip_multiplier": true,
-	&"steering_slip_gain": true,
-	&"slip_speed_threshold": true,
-	&"slip_steering_lock_threshold": true,
-	&"slip_steering_same_direction_multiplier": true,
-	&"skid_mark_min_slip": true,
-	&"skid_mark_interval": true,
-	&"skid_mark_lifetime": true,
-	&"skid_mark_width": true,
-	&"skid_mark_length": true,
-	&"gravity": true,
-	&"floor_stick_force": true,
-}
-
-var _car_specs: CarSpecs = DEFAULT_CAR_SPECS
+var _car_specs: CarSpecs
 
 @export_group("Specs")
-@export var car_specs: CarSpecs = DEFAULT_CAR_SPECS:
+@export var car_specs: CarSpecs:
 	set(value):
 		_car_specs = value
 		if is_inside_tree():
@@ -84,13 +21,14 @@ var _car_input: CarInput = CarInput.new()
 var _skid_mark_emitter: SkidMarkEmitter
 
 
-func _set(property: StringName, _value: Variant) -> bool:
-	return REMOVED_LEGACY_TUNING_PROPERTIES.has(property)
-
-
 func _ready() -> void:
 	_reconfigure_drive_runtime(false)
 	_reset_controller.capture_start_transform(_runtime_state, global_transform)
+
+
+func _exit_tree() -> void:
+	if _skid_mark_emitter != null:
+		_skid_mark_emitter.dispose()
 
 
 func get_forward_speed() -> float:
@@ -110,6 +48,8 @@ func get_throttle_input() -> float:
 
 
 func get_engine_load() -> float:
+	if _drive_config == null:
+		return 0.0
 	return _powertrain_controller.get_engine_load(_runtime_state)
 
 
@@ -118,14 +58,16 @@ func get_tire_slip_intensity() -> float:
 
 
 func get_gear_text() -> String:
+	if _drive_config == null:
+		return "N"
 	return _powertrain_controller.get_gear_text(_runtime_state)
 
 
-func get_current_gear_for_test() -> int:
+func get_current_gear() -> int:
 	return _runtime_state.current_gear
 
 
-func get_lateral_speed_for_test() -> float:
+func get_lateral_speed() -> float:
 	return _runtime_state.lateral_speed
 
 
@@ -143,6 +85,26 @@ func set_external_drive_inputs(throttle: float, brake: float, steering: float, h
 	_car_input.set_external_drive_inputs(throttle, brake, steering, handbrake_active)
 
 
+func set_touch_drive_inputs(throttle: float, brake: float, steering: float, handbrake_active: bool = false) -> void:
+	_car_input.set_touch_drive_inputs(throttle, brake, steering, handbrake_active)
+
+
+func request_touch_gear_up() -> void:
+	_car_input.request_touch_gear_up()
+
+
+func request_touch_gear_down() -> void:
+	_car_input.request_touch_gear_down()
+
+
+func request_touch_reset() -> void:
+	_car_input.request_touch_reset()
+
+
+func clear_touch_input() -> void:
+	_car_input.clear_touch_input()
+
+
 func _physics_process(delta: float) -> void:
 	if _drive_config == null:
 		return
@@ -152,7 +114,6 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_car_input.read_drive_input()
-
 	var throttle: float = _car_input.throttle
 	var brake: float = _car_input.brake
 	var steering: float = _car_input.steering
@@ -225,10 +186,8 @@ func _reset_to_start() -> void:
 func _configure_skid_mark_emitter() -> void:
 	if _drive_config == null:
 		return
-
 	if _skid_mark_emitter == null:
 		_skid_mark_emitter = SkidMarkEmitter.new()
-
 	_skid_mark_emitter.configure(
 		self,
 		_drive_config.skid_mark_min_slip,

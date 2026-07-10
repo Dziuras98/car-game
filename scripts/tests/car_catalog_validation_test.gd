@@ -12,6 +12,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	_validate_catalog()
+	_validate_default_variant_contract()
 	_finish()
 
 
@@ -43,6 +44,26 @@ func _validate_catalog() -> void:
 		_expect(CATALOG.get_model_by_id(model.model_id) == model, "catalog resolves model id %s" % str(model.model_id))
 
 
+func _validate_default_variant_contract() -> void:
+	var first: CarVariantDefinition = CarVariantDefinition.new()
+	first.variant_id = &"first"
+	first.sort_order = 0
+	var second: CarVariantDefinition = CarVariantDefinition.new()
+	second.variant_id = &"second"
+	second.sort_order = 1
+
+	var model: CarModelDefinition = CarModelDefinition.new()
+	model.variants = [first, second]
+	_expect(model.get_default_variant() == null, "model without default_variant_id does not select the first variant")
+
+	model.default_variant_id = &"missing"
+	_expect(model.get_default_variant() == null, "unknown default_variant_id does not select a fallback variant")
+
+	model.default_variant_id = &"second"
+	_expect(model.get_default_variant() == second, "explicit default_variant_id resolves the requested variant")
+	_expect(model.get_variant_by_id(&"first") == first, "model resolves a non-default variant by id")
+
+
 func _validate_model(
 	model: CarModelDefinition,
 	model_ids: Dictionary,
@@ -66,18 +87,18 @@ func _validate_model(
 	_expect(model.variants.size() == variants.size(), "model %s variant entries are valid CarVariantDefinition resources" % model_id_key)
 	_expect(model.get_variant_count() == variants.size(), "model %s reports the same variant count as get_variants" % model_id_key)
 
-	var default_count: int = 0
 	var sort_orders: Dictionary = {}
 	for i: int in range(variants.size()):
 		var variant: CarVariantDefinition = variants[i]
-		if variant != null and variant.is_default:
-			default_count += 1
 		_validate_variant(model_id_key, variant, i, variant_ids, sort_orders)
 		if variant != null:
 			all_variants.append(variant)
 
-	_expect(default_count == 1, "model %s has exactly one default variant" % model_id_key)
-	_expect(model.get_default_variant() != null, "model %s resolves a default variant" % model_id_key)
+	_expect(model.default_variant_id != &"", "model %s declares default_variant_id" % model_id_key)
+	var default_variant: CarVariantDefinition = model.get_default_variant()
+	_expect(default_variant != null, "model %s resolves its explicit default variant" % model_id_key)
+	if default_variant != null:
+		_expect(default_variant.variant_id == model.default_variant_id, "model %s default id matches the resolved variant" % model_id_key)
 
 	for i: int in range(variants.size()):
 		_expect(model.get_variant(i) == variants[i], "model %s resolves variant index %d" % [model_id_key, i])
@@ -108,9 +129,9 @@ func _validate_variant(
 	_expect(variant.get_car_scene() != null, "variant %s has a car scene" % variant_id_key)
 	_expect(variant.get_specs() != null, "variant %s has CarSpecs" % variant_id_key)
 	_expect(variant.engine_label != "", "variant %s has engine label" % variant_id_key)
-	_expect(variant.transmission_label != "", "variant %s has transmission label" % variant_id_key)
+	_expect(variant.get_transmission_label() != "", "variant %s derives a transmission label from specs" % variant_id_key)
 	_expect(variant.drivetrain_label != "", "variant %s has drivetrain label" % variant_id_key)
-	_expect(variant.mass_kg > 0.0, "variant %s has positive metadata mass" % variant_id_key)
+	_expect(variant.get_mass_kg() > 0.0, "variant %s derives positive mass metadata from specs" % variant_id_key)
 
 	_validate_variant_scene(variant_id_key, variant)
 	_validate_specs(variant_id_key, variant.get_specs())
@@ -121,19 +142,29 @@ func _validate_variant_scene(variant_id_key: String, variant: CarVariantDefiniti
 	if car_scene == null:
 		return
 
-	var instance: Node = car_scene.instantiate()
-	var car_controller: PlayerCarController = instance as PlayerCarController
-	_expect(car_controller != null, "variant %s scene root is PlayerCarController" % variant_id_key)
-	if car_controller != null:
-		_expect(car_controller.car_specs != null, "variant %s scene provides CarSpecs" % variant_id_key)
-		_expect(car_controller.car_specs == variant.get_specs(), "variant %s scene and catalog reference the same CarSpecs" % variant_id_key)
-	instance.free()
+	var raw_instance: Node = car_scene.instantiate()
+	var raw_controller: PlayerCarController = raw_instance as PlayerCarController
+	_expect(raw_controller != null, "variant %s scene root is PlayerCarController" % variant_id_key)
+	raw_instance.free()
+
+	var factory: CarInstanceFactory = CarInstanceFactory.new()
+	var variants: Array[CarVariantDefinition] = [variant]
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 1
+	factory.configure(variants, rng)
+	var configured_controller: PlayerCarController = factory.instantiate_indexed_car(0)
+	_expect(configured_controller != null, "variant %s instantiates through the catalog factory" % variant_id_key)
+	if configured_controller != null:
+		_expect(configured_controller.car_specs == variant.get_specs(), "variant %s receives authoritative catalog CarSpecs before tree entry" % variant_id_key)
+		configured_controller.free()
 
 
 func _validate_specs(variant_id_key: String, specs: CarSpecs) -> void:
 	if specs == null:
 		return
 
+	var validation_errors: PackedStringArray = specs.validate()
+	_expect(validation_errors.is_empty(), "variant %s specs pass comprehensive validation" % variant_id_key)
 	_expect(specs.display_name != "", "variant %s specs have display name" % variant_id_key)
 	_expect(specs.max_forward_speed > 0.0, "variant %s specs have positive max forward speed" % variant_id_key)
 	_expect(specs.max_reverse_speed >= 0.0, "variant %s specs have non-negative max reverse speed" % variant_id_key)
@@ -144,8 +175,8 @@ func _validate_specs(variant_id_key: String, specs: CarSpecs) -> void:
 	_expect(specs.redline_rpm > specs.idle_rpm, "variant %s specs redline is above idle RPM" % variant_id_key)
 	_expect(specs.rev_limiter_rpm >= specs.redline_rpm, "variant %s specs rev limiter is at or above redline" % variant_id_key)
 	_expect(specs.gear_ratios.size() > 0, "variant %s specs define at least one forward gear ratio" % variant_id_key)
-	_expect(not (specs.manual_transmission_enabled and specs.automatic_transmission_enabled), "variant %s specs do not enable manual and automatic transmission at the same time" % variant_id_key)
-	_expect(specs.manual_transmission_enabled or specs.automatic_transmission_enabled, "variant %s specs use an explicit transmission mode" % variant_id_key)
+	_expect(not (specs.is_manual_transmission() and specs.is_automatic_transmission()), "variant %s specs do not enable manual and automatic transmission at the same time" % variant_id_key)
+	_expect(specs.is_manual_transmission() or specs.is_automatic_transmission(), "variant %s specs use an explicit transmission mode" % variant_id_key)
 	_expect(specs.reverse_gear_ratio > 0.0, "variant %s specs have positive reverse gear ratio" % variant_id_key)
 	_expect(specs.final_drive_ratio > 0.0, "variant %s specs have positive final drive ratio" % variant_id_key)
 	_expect(specs.peak_engine_torque > 0.0, "variant %s specs have positive peak engine torque" % variant_id_key)

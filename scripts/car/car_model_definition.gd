@@ -10,7 +10,8 @@ class_name CarModelDefinition
 @export var production_year_end: int = 0
 
 @export_group("Variants")
-@export var variants: Array[Resource] = []
+@export var variants: Array[CarVariantDefinition] = []
+@export var default_variant_id: StringName = &""
 
 
 func get_model_name() -> String:
@@ -23,22 +24,24 @@ func get_model_name() -> String:
 
 func get_variants() -> Array[CarVariantDefinition]:
 	var result: Array[CarVariantDefinition] = []
-	for variant_resource: Resource in variants:
-		var variant: CarVariantDefinition = variant_resource as CarVariantDefinition
+	for variant: CarVariantDefinition in variants:
 		if variant != null:
 			result.append(variant)
 	result.sort_custom(_sort_variants)
 	return result
 
 
-func get_default_variant() -> CarVariantDefinition:
-	var available_variants: Array[CarVariantDefinition] = get_variants()
-	for variant: CarVariantDefinition in available_variants:
-		if variant.is_default:
+func get_variant_by_id(variant_id: StringName) -> CarVariantDefinition:
+	for variant: CarVariantDefinition in get_variants():
+		if variant.variant_id == variant_id:
 			return variant
-	if not available_variants.is_empty():
-		return available_variants[0]
 	return null
+
+
+func get_default_variant() -> CarVariantDefinition:
+	if default_variant_id == &"":
+		return null
+	return get_variant_by_id(default_variant_id)
 
 
 func get_variant_count() -> int:

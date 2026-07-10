@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $testLogDirectory = Join-Path $projectRoot "build/test-logs"
+$currentCommandPath = Join-Path $testLogDirectory "current-command.log"
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -15,6 +16,29 @@ if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
 
 Remove-Item -LiteralPath $testLogDirectory -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $testLogDirectory -Force | Out-Null
+
+Write-Host ""
+Write-Host "=== Static repository checks ==="
+$staticLogPath = Join-Path $testLogDirectory "static-checks.log"
+try {
+    $staticOutput = @(& (Join-Path $PSScriptRoot "run_static_checks.ps1") 2>&1)
+    foreach ($line in $staticOutput) {
+        Write-Host ([string]$line)
+    }
+    Set-Content -LiteralPath $staticLogPath -Value @($staticOutput | ForEach-Object { [string]$_ }) -Encoding utf8
+}
+catch {
+    $failureText = $_ | Out-String
+    $capturedOutput = @()
+    if (Test-Path variable:staticOutput) {
+        $capturedOutput = @($staticOutput | ForEach-Object { [string]$_ })
+        foreach ($line in $capturedOutput) {
+            Write-Host $line
+        }
+    }
+    Set-Content -LiteralPath $staticLogPath -Value ($capturedOutput + @("", $failureText)) -Encoding utf8
+    throw
+}
 
 function Get-GodotRuntimeErrorLines {
     param(
@@ -71,27 +95,62 @@ function Invoke-GodotCommand {
         [string]$Name,
 
         [Parameter(Mandatory = $true)]
-        [string[]]$CommandArguments
+        [string[]]$CommandArguments,
+
+        [int]$TimeoutSeconds = 180
     )
 
     Write-Host ""
     Write-Host "=== $Name ==="
     Write-Host "Godot arguments: $($CommandArguments -join ' ')"
+    Write-Host "Timeout: $TimeoutSeconds second(s)"
+    Set-Content -LiteralPath $currentCommandPath -Value @(
+        "Name: $Name"
+        "Started: $([DateTimeOffset]::UtcNow.ToString('O'))"
+        "Timeout seconds: $TimeoutSeconds"
+        "Command: $GodotBinary $($CommandArguments -join ' ')"
+    ) -Encoding utf8
 
-    $nativeErrorPreferenceWasDefined = Test-Path variable:PSNativeCommandUseErrorActionPreference
-    if ($nativeErrorPreferenceWasDefined) {
-        $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
-        $PSNativeCommandUseErrorActionPreference = $false
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $GodotBinary
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.CreateNoWindow = $true
+    foreach ($argument in $CommandArguments) {
+        [void]$startInfo.ArgumentList.Add($argument)
     }
 
-    try {
-        $outputLines = @(& $GodotBinary @CommandArguments 2>&1)
-        $exitCode = $LASTEXITCODE
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    $started = $process.Start()
+    if (-not $started) {
+        throw "$Name could not start Godot."
     }
-    finally {
-        if ($nativeErrorPreferenceWasDefined) {
-            $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
+    $completed = $process.WaitForExit($TimeoutSeconds * 1000)
+    $timedOut = -not $completed
+    if ($timedOut) {
+        try {
+            $process.Kill($true)
         }
+        catch {
+            Write-Host "Failed to kill timed-out Godot process: $($_.Exception.Message)"
+        }
+        $process.WaitForExit()
+    }
+
+    $stdout = $stdoutTask.GetAwaiter().GetResult()
+    $stderr = $stderrTask.GetAwaiter().GetResult()
+    $exitCode = if ($timedOut) { -1 } else { $process.ExitCode }
+    $outputLines = @()
+    if (-not [string]::IsNullOrEmpty($stdout)) {
+        $outputLines += @($stdout -split "`r?`n")
+    }
+    if (-not [string]::IsNullOrEmpty($stderr)) {
+        $outputLines += @($stderr -split "`r?`n")
     }
 
     foreach ($outputLine in $outputLines) {
@@ -103,6 +162,8 @@ function Invoke-GodotCommand {
     $logContent = @(
         "Command: $GodotBinary $($CommandArguments -join ' ')"
         "Exit code: $exitCode"
+        "Timed out: $timedOut"
+        "Timeout seconds: $TimeoutSeconds"
         ""
         "--- combined stdout/stderr ---"
     ) + @($outputLines | ForEach-Object { [string]$_ })
@@ -118,6 +179,9 @@ function Invoke-GodotCommand {
         Write-Host "Diagnostic log: $logPath"
     }
 
+    if ($timedOut) {
+        throw "$Name exceeded its $TimeoutSeconds-second timeout. Diagnostic log: $logPath"
+    }
     if ($exitCode -ne 0) {
         throw "$Name failed with exit code $exitCode. Diagnostic log: $logPath"
     }
@@ -126,49 +190,77 @@ function Invoke-GodotCommand {
     }
 }
 
+function Get-ProjectRelativePath {
+    param([Parameter(Mandatory = $true)][string]$FullPath)
+    return [System.IO.Path]::GetRelativePath($projectRoot, $FullPath).Replace('\', '/')
+}
+
 Assert-RuntimeErrorDetector
 
-Invoke-GodotCommand -Name "Import project resources" -CommandArguments @(
+Invoke-GodotCommand -Name "Import project resources" -TimeoutSeconds 300 -CommandArguments @(
     "--headless",
     "--path", $projectRoot,
     "--import"
 )
 
+$excludedScriptTests = @(
+    "scripts/tests/exported_build_smoke_test.gd",
+    "scripts/tests/full_program_smoke_test.gd",
+    "scripts/tests/game_test_adapter.gd",
+    "scripts/tests/run_full_program_smoke_test.gd"
+)
 $scriptTests = @(
-    "scripts/tests/startup_router_test.gd",
-    "scripts/tests/car_controller_runtime_config_test.gd",
-    "scripts/tests/speedometer_car_binding_test.gd",
-    "scripts/tests/tire_squeal_audio_binding_test.gd",
-    "scripts/tests/legacy_controller_property_access_test.gd"
+    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scripts/tests") -Filter "*.gd" -File |
+        ForEach-Object {
+            $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
+            $content = Get-Content -LiteralPath $_.FullName -Raw
+            if ($excludedScriptTests -notcontains $relativePath -and $content -match '(?m)^\s*extends\s+SceneTree\s*$') {
+                $relativePath
+            }
+        } |
+        Sort-Object
 )
 
+if ($scriptTests.Count -eq 0) {
+    throw "No standalone SceneTree tests were discovered in scripts/tests."
+}
+
 foreach ($testScript in $scriptTests) {
-    Invoke-GodotCommand -Name "Script test: $testScript" -CommandArguments @(
+    Invoke-GodotCommand -Name "Script test: $testScript" -TimeoutSeconds 120 -CommandArguments @(
         "--headless",
         "--path", $projectRoot,
         "--script", $testScript
     )
 }
 
+$excludedSceneTests = @(
+    "scenes/tests/exported_build_smoke_test.tscn"
+)
 $sceneTests = @(
-    "scenes/tests/car_catalog_validation_test.tscn",
-    "scenes/tests/car_specs_runtime_reconfiguration_test.tscn",
-    "scenes/tests/car_powertrain_controller_test.tscn",
-    "scenes/tests/car_chassis_motion_test.tscn",
-    "scenes/tests/track_layout_builder_test.tscn",
-    "scenes/tests/track_layout_resource_test.tscn",
-    "scenes/tests/lap_tracker_checkpoint_test.tscn",
-    "scenes/tests/performance_regression_test.tscn",
-    "scenes/tests/full_program_smoke_test.tscn"
+    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scenes/tests") -Filter "*.tscn" -File |
+        ForEach-Object {
+            $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
+            if ($excludedSceneTests -notcontains $relativePath) {
+                $relativePath
+            }
+        } |
+        Sort-Object
 )
 
+if ($sceneTests.Count -eq 0) {
+    throw "No scene tests were discovered in scenes/tests."
+}
+
 foreach ($testScene in $sceneTests) {
-    Invoke-GodotCommand -Name "Scene test: $testScene" -CommandArguments @(
+    Invoke-GodotCommand -Name "Scene test: $testScene" -TimeoutSeconds 180 -CommandArguments @(
         "--headless",
         "--path", $projectRoot,
         $testScene
     )
 }
 
+Remove-Item -LiteralPath $currentCommandPath -Force -ErrorAction SilentlyContinue
 Write-Host ""
-Write-Host "All Godot tests passed without runtime errors."
+Write-Host "All discovered Godot tests passed without runtime errors."
+Write-Host "Standalone script tests: $($scriptTests.Count)"
+Write-Host "Scene tests: $($sceneTests.Count)"

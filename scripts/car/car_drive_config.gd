@@ -1,7 +1,6 @@
 extends RefCounted
 class_name CarDriveConfig
 
-var acceleration: float = 22.0
 var brake_deceleration: float = 34.0
 var reverse_acceleration: float = 12.0
 var coast_deceleration: float = 5.0
@@ -10,6 +9,7 @@ var max_forward_speed: float = 30.0
 var max_reverse_speed: float = 10.0
 var steering_speed: float = 2.7
 var wheel_base: float = 2.65
+var axle_track_width: float = 1.55
 var max_steering_angle_degrees: float = 32.0
 
 var idle_rpm: float = 900.0
@@ -23,8 +23,7 @@ var engine_force: float = 30.0
 var engine_brake_force: float = 3.0
 var rpm_response: float = 8.0
 
-var manual_transmission_enabled: bool = false
-var automatic_transmission_enabled: bool = false
+var transmission_type: int = CarSpecs.TransmissionType.DIRECT_DRIVE
 var gear_ratios: Array[float] = [3.20, 2.10, 1.50, 1.15, 0.92, 0.75]
 var reverse_gear_ratio: float = 3.00
 var final_drive_ratio: float = 3.70
@@ -62,69 +61,39 @@ var skid_mark_length: float = 0.9
 
 var gravity: float = 30.0
 var floor_stick_force: float = 0.5
+var suspension_probe_height: float = 0.42
+var suspension_rest_length: float = 0.28
+var suspension_travel: float = 0.18
+var suspension_stiffness: float = 32.0
+var suspension_damping: float = 5.0
+
+
+func is_manual_transmission() -> bool:
+	return transmission_type == CarSpecs.TransmissionType.MANUAL
+
+
+func is_automatic_transmission() -> bool:
+	return transmission_type == CarSpecs.TransmissionType.AUTOMATIC
 
 
 func uses_geared_transmission() -> bool:
-	return manual_transmission_enabled or automatic_transmission_enabled
+	return is_manual_transmission() or is_automatic_transmission()
 
 
 func duplicate_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
-	config.acceleration = acceleration
-	config.brake_deceleration = brake_deceleration
-	config.reverse_acceleration = reverse_acceleration
-	config.coast_deceleration = coast_deceleration
-	config.handbrake_deceleration = handbrake_deceleration
-	config.max_forward_speed = max_forward_speed
-	config.max_reverse_speed = max_reverse_speed
-	config.steering_speed = steering_speed
-	config.wheel_base = wheel_base
-	config.max_steering_angle_degrees = max_steering_angle_degrees
-	config.idle_rpm = idle_rpm
-	config.peak_torque_rpm = peak_torque_rpm
-	config.redline_rpm = redline_rpm
-	config.rev_limiter_rpm = rev_limiter_rpm
-	config.low_rpm_torque_multiplier = low_rpm_torque_multiplier
-	config.mid_rpm_torque_multiplier = mid_rpm_torque_multiplier
-	config.redline_torque_multiplier = redline_torque_multiplier
-	config.engine_force = engine_force
-	config.engine_brake_force = engine_brake_force
-	config.rpm_response = rpm_response
-	config.manual_transmission_enabled = manual_transmission_enabled
-	config.automatic_transmission_enabled = automatic_transmission_enabled
-	config.gear_ratios = gear_ratios.duplicate()
-	config.reverse_gear_ratio = reverse_gear_ratio
-	config.final_drive_ratio = final_drive_ratio
-	config.peak_engine_torque = peak_engine_torque
-	config.wheel_radius = wheel_radius
-	config.drivetrain_efficiency = drivetrain_efficiency
-	config.shift_delay = shift_delay
-	config.automatic_upshift_rpm = automatic_upshift_rpm
-	config.automatic_downshift_rpm = automatic_downshift_rpm
-	config.automatic_kickdown_throttle = automatic_kickdown_throttle
-	config.automatic_kickdown_rpm = automatic_kickdown_rpm
-	config.automatic_shift_delay = automatic_shift_delay
-	config.torque_converter_stall_rpm = torque_converter_stall_rpm
-	config.torque_converter_coupling_rpm = torque_converter_coupling_rpm
-	config.torque_converter_stall_torque_multiplier = torque_converter_stall_torque_multiplier
-	config.vehicle_mass = vehicle_mass
-	config.drag_coefficient = drag_coefficient
-	config.frontal_area = frontal_area
-	config.air_density = air_density
-	config.rolling_resistance_coefficient = rolling_resistance_coefficient
-	config.lateral_grip = lateral_grip
-	config.handbrake_lateral_grip_multiplier = handbrake_lateral_grip_multiplier
-	config.steering_slip_gain = steering_slip_gain
-	config.slip_speed_threshold = slip_speed_threshold
-	config.slip_steering_lock_threshold = slip_steering_lock_threshold
-	config.slip_steering_same_direction_multiplier = slip_steering_same_direction_multiplier
-	config.skid_mark_min_slip = skid_mark_min_slip
-	config.skid_mark_interval = skid_mark_interval
-	config.skid_mark_lifetime = skid_mark_lifetime
-	config.skid_mark_width = skid_mark_width
-	config.skid_mark_length = skid_mark_length
-	config.gravity = gravity
-	config.floor_stick_force = floor_stick_force
+	for property: Dictionary in get_property_list():
+		var property_name: StringName = property.get("name", &"")
+		if property_name == &"" or property_name in [&"script", &"RefCounted"]:
+			continue
+		var usage: int = int(property.get("usage", 0))
+		if usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
+			continue
+		var value: Variant = get(property_name)
+		if value is Array:
+			value = value.duplicate(true)
+		config.set(property_name, value)
+	config.sanitize()
 	return config
 
 
@@ -132,7 +101,16 @@ func sanitize() -> void:
 	max_forward_speed = maxf(max_forward_speed, 0.1)
 	max_reverse_speed = maxf(max_reverse_speed, 0.0)
 	wheel_base = maxf(wheel_base, 0.1)
+	axle_track_width = maxf(axle_track_width, 0.1)
 	vehicle_mass = maxf(vehicle_mass, 1.0)
 	wheel_radius = maxf(wheel_radius, 0.01)
+	drivetrain_efficiency = clampf(drivetrain_efficiency, 0.0001, 1.0)
+	suspension_probe_height = maxf(suspension_probe_height, 0.0)
+	suspension_rest_length = maxf(suspension_rest_length, 0.01)
+	suspension_travel = maxf(suspension_travel, 0.01)
+	suspension_stiffness = maxf(suspension_stiffness, 0.0)
+	suspension_damping = maxf(suspension_damping, 0.0)
+	if transmission_type < CarSpecs.TransmissionType.DIRECT_DRIVE or transmission_type > CarSpecs.TransmissionType.AUTOMATIC:
+		transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	if uses_geared_transmission() and gear_ratios.is_empty():
 		gear_ratios = [1.0]

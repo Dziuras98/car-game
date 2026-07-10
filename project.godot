@@ -22,6 +22,10 @@ window/size/viewport_height=1080
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
 
+[gui]
+
+theme/custom="res://resources/ui/default_theme.tres"
+
 [input]
 
 accelerate={
@@ -90,6 +94,11 @@ gear-down={
 ]
 }
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://translations/pl.po", "res://translations/en.po")
+locale/fallback="pl"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
@@ -97,3 +106,4 @@ gear-down={
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+textures/vram_compression/import_etc2_astc=true

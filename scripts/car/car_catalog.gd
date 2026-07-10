@@ -2,13 +2,12 @@ extends Resource
 class_name CarCatalog
 
 @export_group("Models")
-@export var models: Array[Resource] = []
+@export var models: Array[CarModelDefinition] = []
 
 
 func get_models() -> Array[CarModelDefinition]:
 	var result: Array[CarModelDefinition] = []
-	for model_resource: Resource in models:
-		var model: CarModelDefinition = model_resource as CarModelDefinition
+	for model: CarModelDefinition in models:
 		if model != null:
 			result.append(model)
 	return result

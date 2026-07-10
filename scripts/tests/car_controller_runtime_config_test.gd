@@ -42,7 +42,7 @@ func _test_specs_config_mapping() -> void:
 	_expect(not specs_config.gear_ratios.is_empty(), "config built from specs has gear ratios")
 	_expect(is_equal_approx(specs_config.max_forward_speed, DEFAULT_CAR_SPECS.max_forward_speed), "config copies max speed from CarSpecs")
 	_expect(is_equal_approx(specs_config.idle_rpm, DEFAULT_CAR_SPECS.idle_rpm), "config copies idle RPM from CarSpecs")
-	_expect(specs_config.manual_transmission_enabled == DEFAULT_CAR_SPECS.manual_transmission_enabled, "config copies transmission mode from CarSpecs")
+	_expect(specs_config.is_manual_transmission() == DEFAULT_CAR_SPECS.is_manual_transmission(), "config copies transmission mode from CarSpecs")
 
 
 func _test_controller_exposes_only_specs_tuning() -> void:
@@ -60,13 +60,11 @@ func _test_controller_exposes_only_specs_tuning() -> void:
 
 func _test_transmission_config_helpers() -> void:
 	var transmission_config: CarDriveConfig = CarDriveConfig.new()
-	transmission_config.manual_transmission_enabled = true
-	transmission_config.automatic_transmission_enabled = false
+	transmission_config.transmission_type = CarSpecs.TransmissionType.MANUAL
 	_expect(transmission_config.uses_geared_transmission(), "manual config uses geared transmission")
-	transmission_config.manual_transmission_enabled = false
-	transmission_config.automatic_transmission_enabled = true
+	transmission_config.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
 	_expect(transmission_config.uses_geared_transmission(), "automatic config uses geared transmission")
-	transmission_config.automatic_transmission_enabled = false
+	transmission_config.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	_expect(not transmission_config.uses_geared_transmission(), "non-transmission config does not use geared transmission")
 
 
@@ -103,8 +101,7 @@ func _test_gear_text() -> void:
 
 func _manual_gear_text(gear: int) -> String:
 	var config: CarDriveConfig = CarDriveConfig.new()
-	config.manual_transmission_enabled = true
-	config.automatic_transmission_enabled = false
+	config.transmission_type = CarSpecs.TransmissionType.MANUAL
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.current_gear = gear
 	var powertrain: CarPowertrainController = CarPowertrainController.new()
@@ -114,8 +111,7 @@ func _manual_gear_text(gear: int) -> String:
 
 func _automatic_gear_text(gear: int) -> String:
 	var config: CarDriveConfig = CarDriveConfig.new()
-	config.manual_transmission_enabled = false
-	config.automatic_transmission_enabled = true
+	config.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.current_gear = gear
 	var powertrain: CarPowertrainController = CarPowertrainController.new()

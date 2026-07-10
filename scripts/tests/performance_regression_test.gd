@@ -100,34 +100,40 @@ func _test_ui_update_coalescing() -> void:
 	var lap_hud: LapPositionHud = LapPositionHud.new()
 	lap_hud.build(self, 3)
 	lap_hud.update(1, 3, 1, 4)
-	var initial_text_updates: int = lap_hud.get_text_update_count_for_test()
+	var initial_text_updates: int = lap_hud.get_text_update_count()
 	for update_index: int in range(120):
 		lap_hud.update(1, 3, 1, 4)
-	_expect(lap_hud.get_text_update_count_for_test() == initial_text_updates, "unchanged lap HUD values do not rewrite labels")
+	_expect(lap_hud.get_text_update_count() == initial_text_updates, "unchanged lap HUD values do not rewrite labels")
 	lap_hud.update(2, 3, 2, 4)
-	_expect(lap_hud.get_text_update_count_for_test() == initial_text_updates + 2, "changed lap and position values update each label once")
+	_expect(lap_hud.get_text_update_count() == initial_text_updates + 2, "changed lap and position values update each label once")
 
 	var gauge: TachometerGauge = TachometerGauge.new()
 	gauge.redraw_rpm_step = 20.0
 	gauge.set_rpm(2000.0)
-	var initial_redraws: int = gauge.get_redraw_request_count_for_test()
+	var initial_redraws: int = gauge.get_redraw_request_count()
 	for update_index: int in range(120):
 		gauge.set_rpm(2005.0)
-	_expect(gauge.get_redraw_request_count_for_test() == initial_redraws, "small repeated RPM changes do not redraw the tachometer")
+	_expect(gauge.get_redraw_request_count() == initial_redraws, "small repeated RPM changes do not redraw the tachometer")
 	gauge.set_rpm(2050.0)
-	_expect(gauge.get_redraw_request_count_for_test() == initial_redraws + 1, "meaningful RPM change redraws the tachometer once")
+	_expect(gauge.get_redraw_request_count() == initial_redraws + 1, "meaningful RPM change redraws the tachometer once")
+
+	gauge.major_tick_rpm = 0.0
+	gauge.minor_tick_rpm = -10.0
+	gauge.max_rpm = 1_000_000.0
+	_expect(gauge.get_safe_tick_count(gauge.major_tick_rpm) == TachometerGauge.MAX_TICK_COUNT, "invalid major tick steps are bounded instead of entering an endless draw loop")
+	_expect(gauge.get_safe_tick_count(gauge.minor_tick_rpm) == TachometerGauge.MAX_TICK_COUNT, "invalid minor tick steps are bounded instead of entering an endless draw loop")
 	gauge.free()
 
 
 func _test_track_rebuild_coalescing(track: Node3D) -> void:
 	if track == null:
 		return
-	var initial_rebuild_count: int = int(track.call("get_rebuild_count_for_test"))
+	var initial_rebuild_count: int = int(track.call("get_rebuild_count"))
 	for request_index: int in range(8):
-		track.call("request_rebuild_for_test")
+		track.call("request_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_expect(int(track.call("get_rebuild_count_for_test")) == initial_rebuild_count, "unchanged track rebuild requests are skipped")
+	_expect(int(track.call("get_rebuild_count")) == initial_rebuild_count, "unchanged track rebuild requests are skipped")
 
 	var layout: TrackLayoutResource = track.call("get_track_layout") as TrackLayoutResource
 	if layout == null:
@@ -140,13 +146,13 @@ func _test_track_rebuild_coalescing(track: Node3D) -> void:
 		layout.emit_changed()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_expect(int(track.call("get_rebuild_count_for_test")) == initial_rebuild_count + 1, "multiple layout notifications coalesce into one rebuild")
+	_expect(int(track.call("get_rebuild_count")) == initial_rebuild_count + 1, "multiple layout notifications coalesce into one rebuild")
 
 	layout.track_width = original_width
 	layout.emit_changed()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_expect(int(track.call("get_rebuild_count_for_test")) == initial_rebuild_count + 2, "restoring layout data performs one final rebuild")
+	_expect(int(track.call("get_rebuild_count")) == initial_rebuild_count + 2, "restoring layout data performs one final rebuild")
 
 
 func _get_racing_points(track: Node3D) -> Array[Vector3]:
@@ -174,7 +180,6 @@ func _finish() -> void:
 		print("[PERFORMANCE_REGRESSION_TEST] Passed: %d checks" % _checks)
 		get_tree().quit(0)
 		return
-
 	push_error("[PERFORMANCE_REGRESSION_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[PERFORMANCE_REGRESSION_TEST] - %s" % failure_message)

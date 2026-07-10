@@ -1,0 +1,67 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Car Game 0.1\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Wybierz tryb"
+msgstr "Wybierz tryb"
+
+msgid "Jazda swobodna"
+msgstr "Jazda swobodna"
+
+msgid "Wyścig"
+msgstr "Wyścig"
+
+msgid "Wybierz tor"
+msgstr "Wybierz tor"
+
+msgid "Wybierz samochód"
+msgstr "Wybierz samochód"
+
+msgid "Wybierz wariant"
+msgstr "Wybierz wariant"
+
+msgid "Wstecz"
+msgstr "Wstecz"
+
+msgid "Pauza"
+msgstr "Pauza"
+
+msgid "Wznów"
+msgstr "Wznów"
+
+msgid "Wróć do menu"
+msgstr "Wróć do menu"
+
+msgid "Okrążenie %d/%d"
+msgstr "Okrążenie %d/%d"
+
+msgid "Pozycja %d/%d"
+msgstr "Pozycja %d/%d"
+
+msgid "Wyniki"
+msgstr "Wyniki"
+
+msgid "Ty"
+msgstr "Ty"
+
+msgid "Kierowca"
+msgstr "Kierowca"
+
+msgid "GAZ"
+msgstr "GAZ"
+
+msgid "HAMULEC"
+msgstr "HAMULEC"
+
+msgid "RĘCZNY"
+msgstr "RĘCZNY"
+
+msgid "RESET"
+msgstr "RESET"
+
+msgid "KAMERA"
+msgstr "KAMERA"

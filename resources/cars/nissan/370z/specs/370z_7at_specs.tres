@@ -5,7 +5,6 @@
 [resource]
 script = ExtResource("1_specs")
 display_name = "370Z automat"
-acceleration = 22.0
 brake_deceleration = 34.0
 reverse_acceleration = 12.0
 coast_deceleration = 5.0
@@ -25,8 +24,7 @@ redline_torque_multiplier = 0.92
 engine_force = 30.0
 engine_brake_force = 3.0
 rpm_response = 8.0
-manual_transmission_enabled = false
-automatic_transmission_enabled = true
+transmission_type = 2
 gear_ratios = Array[float]([4.923, 3.193, 2.042, 1.411, 1.0, 0.862, 0.771])
 reverse_gear_ratio = 3.972
 final_drive_ratio = 3.357
