@@ -39,6 +39,11 @@ func reset() -> float:
 	return _current_rpm
 
 
+func set_rpm(target_rpm: float) -> float:
+	_current_rpm = clampf(target_rpm, idle_rpm, rev_limiter_rpm)
+	return _current_rpm
+
+
 func get_rpm() -> float:
 	return _current_rpm
 
