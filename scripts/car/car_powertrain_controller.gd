@@ -9,9 +9,14 @@ var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
 var _torque_converter_model: TorqueConverterModel = TorqueConverterModel.new()
 var _config: CarDriveConfig
+var _runtime_state: CarRuntimeState
 
 
 func configure(config: CarDriveConfig) -> void:
+	var preserved_engine_rpm: float = _engine_model.get_rpm()
+	if _runtime_state != null:
+		preserved_engine_rpm = _runtime_state.engine_rpm
+
 	_config = config.duplicate_config()
 	_config.sanitize()
 	_engine_model.configure(
@@ -48,8 +53,12 @@ func configure(config: CarDriveConfig) -> void:
 		_config.torque_converter_stall_torque_multiplier
 	)
 
+	if _runtime_state != null:
+		_runtime_state.engine_rpm = _engine_model.set_rpm(preserved_engine_rpm)
+
 
 func reset(state: CarRuntimeState) -> void:
+	_runtime_state = state
 	state.engine_rpm = _engine_model.reset()
 
 
@@ -62,6 +71,7 @@ func update(
 	gear_down_pressed: bool,
 	delta: float
 ) -> void:
+	_runtime_state = state
 	_update_shift_timer(state, delta)
 	_update_transmission_input(state, throttle, brake, gear_up_pressed, gear_down_pressed)
 	_update_engine(state, throttle, delta)
