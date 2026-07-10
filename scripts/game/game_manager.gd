@@ -192,9 +192,10 @@ func _activate_track(definition: TrackDefinition) -> bool:
 		_active_lap_count = _resolve_lap_count(definition)
 		return true
 
-	_track = _track_spawn_controller.spawn_track(definition)
-	if _track == null:
+	var next_track: GeneratedTrack = _track_spawn_controller.spawn_track(definition)
+	if next_track == null:
 		return false
+	_track = next_track
 	_active_track_definition = definition
 	_active_lap_count = _resolve_lap_count(definition)
 	return true

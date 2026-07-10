@@ -1,6 +1,9 @@
 extends RefCounted
 class_name TrackSpawnController
 
+const ACTIVE_TRACK_NAME: String = "ActiveTrack"
+const PENDING_TRACK_NAME: String = "PendingTrack"
+
 var _container: Node3D
 var _current_track: GeneratedTrack
 var _current_definition: TrackDefinition
@@ -22,16 +25,33 @@ func spawn_track(definition: TrackDefinition) -> GeneratedTrack:
 	if _container == null or definition == null or not definition.is_valid():
 		return null
 
-	clear_track()
-	var track: GeneratedTrack = definition.instantiate_track()
-	if track == null:
+	var pending_track: GeneratedTrack = definition.instantiate_track()
+	if pending_track == null:
 		return null
 
-	track.name = "ActiveTrack"
-	_container.add_child(track)
-	_current_track = track
+	pending_track.name = PENDING_TRACK_NAME
+	_container.add_child(pending_track)
+	if pending_track.get_parent() != _container or not pending_track.has_committed_generation():
+		_discard_pending_track(pending_track)
+		push_warning(
+			"Track definition %s did not produce valid generated content; keeping the current track."
+			% str(definition.track_id)
+		)
+		return null
+
+	var previous_track: GeneratedTrack = _current_track
+	if is_instance_valid(previous_track):
+		var previous_parent: Node = previous_track.get_parent()
+		if previous_parent != null:
+			previous_parent.remove_child(previous_track)
+
+	pending_track.name = ACTIVE_TRACK_NAME
+	_current_track = pending_track
 	_current_definition = definition
-	return track
+
+	if is_instance_valid(previous_track):
+		previous_track.queue_free()
+	return pending_track
 
 
 func clear_track() -> void:
@@ -42,3 +62,12 @@ func clear_track() -> void:
 		_current_track.queue_free()
 	_current_track = null
 	_current_definition = null
+
+
+func _discard_pending_track(pending_track: GeneratedTrack) -> void:
+	if not is_instance_valid(pending_track):
+		return
+	var parent: Node = pending_track.get_parent()
+	if parent != null:
+		parent.remove_child(pending_track)
+	pending_track.queue_free()

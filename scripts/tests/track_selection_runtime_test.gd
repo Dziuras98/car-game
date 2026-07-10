@@ -14,6 +14,11 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	var invalid_track_scene: PackedScene = _make_invalid_generated_track_scene()
+	if invalid_track_scene == null:
+		_finish()
+		return
+
 	var simple_definition: TrackDefinition = _make_definition(
 		&"simple_oval",
 		"Prosty owal",
@@ -26,10 +31,16 @@ func _run() -> void:
 		ALTERNATE_TRACK_SCENE,
 		5
 	)
+	var invalid_definition: TrackDefinition = _make_definition(
+		&"invalid_generated_track",
+		"Niepoprawny tor",
+		invalid_track_scene,
+		9
+	)
 	var catalog: TrackCatalog = TrackCatalog.new()
-	catalog.tracks = [simple_definition, alternate_definition]
+	catalog.tracks = [simple_definition, alternate_definition, invalid_definition]
 	catalog.default_track_id = &"simple_oval"
-	_expect(catalog.validate().is_empty(), "two-track runtime catalog is valid")
+	_expect(catalog.validate().is_empty(), "runtime catalog with a failing generation fixture is structurally valid")
 
 	var main: Node3D = MAIN_SCENE.instantiate() as Node3D
 	_expect(main != null, "main scene instantiates for track selection testing")
@@ -66,6 +77,16 @@ func _run() -> void:
 	_expect(main.get_node_or_null("TrackContainer/ActiveTrack") == selected_track, "track container exposes exactly the selected active track")
 	_expect(main.call("get_current_car") != null, "player car is spawned against the selected track runtime")
 
+	var failed_activation: bool = bool(main.call("_activate_track", invalid_definition))
+	await get_tree().process_frame
+	var track_after_failed_activation: Node3D = main.call("get_active_track") as Node3D
+	_expect(not failed_activation, "track activation reports failed generated content")
+	_expect(track_after_failed_activation == selected_track, "failed activation preserves the previous active track reference")
+	_expect(main.call("get_active_lap_count") == 5, "failed activation preserves the previous lap configuration")
+	_expect(main.get_node_or_null("TrackContainer/ActiveTrack") == selected_track, "failed activation preserves the previous active track node")
+	_expect(main.get_node_or_null("TrackContainer/PendingTrack") == null, "failed activation removes the rejected pending track")
+	_expect(main.call("get_current_car") != null, "failed activation leaves the current driving session intact")
+
 	main.queue_free()
 	await get_tree().process_frame
 	_finish()
@@ -83,6 +104,20 @@ func _make_definition(
 	definition.track_scene = scene
 	definition.recommended_laps = recommended_laps
 	return definition
+
+
+func _make_invalid_generated_track_scene() -> PackedScene:
+	var invalid_layout: TrackLayoutResource = TrackLayoutResource.new()
+	invalid_layout.track_id = &"invalid_generated_track"
+	invalid_layout.display_name = "Invalid generated track"
+
+	var invalid_track: GeneratedTrack = GeneratedTrack.new()
+	invalid_track.track_layout = invalid_layout
+	var packed_scene: PackedScene = PackedScene.new()
+	var pack_result: Error = packed_scene.pack(invalid_track)
+	invalid_track.free()
+	_expect(pack_result == OK, "invalid generated-track fixture packs successfully")
+	return packed_scene if pack_result == OK else null
 
 
 func _expect(condition: bool, message: String) -> void:

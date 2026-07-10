@@ -55,47 +55,69 @@ func _perform_pending_rebuild() -> void:
 	_rebuild_track(false)
 
 
-func _rebuild_track(force: bool = false) -> void:
+func _rebuild_track(force: bool = false) -> bool:
 	if not is_inside_tree() or track_layout == null or not track_layout.is_valid():
-		return
+		return false
 
 	var generation_signature: int = _get_generation_signature()
 	if not force and _has_generation_signature and generation_signature == _last_generation_signature:
-		return
+		return true
 
 	_ensure_builders()
 	var config: TrackGenerationConfig = _build_track_generation_config()
-	_geometry = _layout_builder.build(config)
-	var generated_content: Node3D = _content_root.clear(self)
+	var next_geometry: TrackGeometryData = _layout_builder.build(config)
+	if not _is_geometry_valid(next_geometry):
+		push_warning("GeneratedTrack layout generation failed; keeping the previous generated content.")
+		return false
 
+	var staged_content: Node3D = _content_root.create_staging_container()
 	var generated_meshes: TrackGeneratedMeshes = _surface_builder.build_surfaces(
-		generated_content,
-		_geometry,
+		staged_content,
+		next_geometry,
 		_material_factory,
 		config
 	)
-	_collision_builder.build_collisions(generated_content, _geometry, config, generated_meshes)
-	_marker_builder.build_markers(generated_content, _geometry, _material_factory, config)
-	_barrier_builder.build_barriers(generated_content, _geometry, _material_factory, config)
-	_decoration_builder.build_decorations(generated_content, _geometry, _material_factory, config)
-	_checkpoint_gates = _checkpoint_builder.build(
-		generated_content,
-		_geometry,
+	if not _are_generated_meshes_valid(generated_meshes):
+		_discard_staged_content(staged_content)
+		push_warning("GeneratedTrack surface generation failed; keeping the previous generated content.")
+		return false
+
+	_collision_builder.build_collisions(staged_content, next_geometry, config, generated_meshes)
+	_marker_builder.build_markers(staged_content, next_geometry, _material_factory, config)
+	_barrier_builder.build_barriers(staged_content, next_geometry, _material_factory, config)
+	_decoration_builder.build_decorations(staged_content, next_geometry, _material_factory, config)
+	var next_checkpoint_gates: Array[TrackCheckpointGate] = _checkpoint_builder.build(
+		staged_content,
+		next_geometry,
 		track_layout,
 		Callable(self, "_on_checkpoint_gate_crossed")
 	)
+	if next_checkpoint_gates.size() != track_layout.get_checkpoint_gate_count():
+		_discard_staged_content(staged_content)
+		push_warning("GeneratedTrack checkpoint generation failed; keeping the previous generated content.")
+		return false
 
+	if _content_root.commit(self, staged_content) == null:
+		_discard_staged_content(staged_content)
+		push_warning("GeneratedTrack could not commit generated content; keeping the previous generated content.")
+		return false
+
+	_geometry = next_geometry
+	_checkpoint_gates = next_checkpoint_gates
 	_last_generation_signature = generation_signature
 	_has_generation_signature = true
 	_rebuild_count += 1
 	geometry_rebuilt.emit(_rebuild_count)
+	return true
 
 
 func get_racing_line_points() -> Array[Vector3]:
 	if _geometry == null:
 		_ensure_builders()
-		_geometry = _layout_builder.build(_build_track_generation_config())
-	return _geometry.get_racing_line_points_array()
+		var candidate_geometry: TrackGeometryData = _layout_builder.build(_build_track_generation_config())
+		if _is_geometry_valid(candidate_geometry):
+			_geometry = candidate_geometry
+	return _geometry.get_racing_line_points_array() if _is_geometry_valid(_geometry) else []
 
 
 func get_track_layout() -> TrackLayoutResource:
@@ -120,6 +142,15 @@ func get_checkpoint_gate_count() -> int:
 
 func get_rebuild_count() -> int:
 	return _rebuild_count
+
+
+func has_committed_generation() -> bool:
+	return (
+		_is_geometry_valid(_geometry)
+		and _rebuild_count > 0
+		and get_node_or_null(TrackGeneratedContentRoot.GENERATED_CONTENT_NAME) is Node3D
+		and get_checkpoint_gate_count() == get_checkpoint_count() + 1
+	)
 
 
 func request_rebuild() -> void:
@@ -171,6 +202,38 @@ func _get_generation_signature() -> int:
 		track_layout.stadium_section_step,
 		track_layout.stadium_distance_from_barrier,
 	])
+
+
+func _is_geometry_valid(geometry: TrackGeometryData) -> bool:
+	if geometry == null:
+		return false
+	var point_count: int = geometry.center_points.size()
+	return (
+		point_count >= 2
+		and geometry.left_edge_points.size() == point_count
+		and geometry.right_edge_points.size() == point_count
+		and geometry.left_shoulder_outer_points.size() == point_count
+		and geometry.right_shoulder_outer_points.size() == point_count
+		and geometry.racing_line_points.size() == point_count
+		and geometry.forward_vectors.size() == point_count
+		and geometry.right_vectors.size() == point_count
+		and geometry.half_widths.size() == point_count
+	)
+
+
+func _are_generated_meshes_valid(generated_meshes: TrackGeneratedMeshes) -> bool:
+	return (
+		generated_meshes != null
+		and generated_meshes.track_mesh != null
+		and generated_meshes.track_mesh.get_surface_count() > 0
+		and generated_meshes.shoulder_mesh != null
+		and generated_meshes.shoulder_mesh.get_surface_count() > 0
+	)
+
+
+func _discard_staged_content(staged_content: Node3D) -> void:
+	if is_instance_valid(staged_content):
+		staged_content.free()
 
 
 func _connect_layout_changed() -> void:
