@@ -44,11 +44,15 @@ func configure(
 
 
 func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> void:
+	if current_car == null or scene_tree == null:
+		push_error("RaceSessionController requires a player car and SceneTree.")
+		return
 	_current_car = current_car
 	_spawn_opponents()
-	_prepare_race_tracking()
-	if _race_manager != null:
-		_race_manager.start_race(_current_car, scene_tree)
+	if not _prepare_race_tracking():
+		clear_opponents()
+		return
+	_race_manager.start_race(_current_car, scene_tree)
 
 
 func update_physics() -> void:
@@ -70,6 +74,7 @@ func reset_to_menu_state() -> void:
 	hide_countdown()
 	clear_opponents()
 	clear_tracking()
+	_current_car = null
 	_hud_update_frames_remaining = 0
 
 
@@ -103,7 +108,7 @@ func hide_results() -> void:
 
 
 func get_opponents() -> Array[PlayerCarController]:
-	return _opponents
+	return _opponents.duplicate()
 
 
 func get_lap_tracker() -> LapTracker:
@@ -125,21 +130,17 @@ func get_moving_opponent_count_for_test() -> int:
 func simulate_current_player_finish_for_test(current_car: PlayerCarController) -> void:
 	if current_car == null:
 		return
-
 	_current_car = current_car
 	_on_lap_tracker_participant_finished(current_car)
 
 
 func are_player_controls_locked() -> bool:
-	if _race_manager == null:
-		return false
-	return _race_manager.are_player_controls_locked()
+	return _race_manager != null and _race_manager.are_player_controls_locked()
 
 
 func _spawn_opponents() -> void:
 	if _car_spawner == null:
 		return
-
 	_opponents = _car_spawner.spawn_opponents(_opponent_count)
 	_update_minimap_opponents()
 
@@ -150,7 +151,7 @@ func _set_ai_enabled(enabled: bool) -> void:
 
 
 func _set_player_input_enabled(enabled: bool) -> void:
-	if _current_car != null:
+	if is_instance_valid(_current_car):
 		_current_car.set_player_input_enabled(enabled)
 
 
@@ -174,7 +175,6 @@ func _show_lap_ui() -> void:
 func _update_lap_ui() -> void:
 	if _current_car == null or _lap_tracker == null or _race_hud == null:
 		return
-
 	_race_hud.update_lap(
 		_lap_tracker.get_current_lap(_current_car),
 		_race_lap_count,
@@ -183,12 +183,13 @@ func _update_lap_ui() -> void:
 	)
 
 
-func _prepare_race_tracking() -> void:
+func _prepare_race_tracking() -> bool:
 	if _lap_tracker == null:
-		return
-
-	_lap_tracker.prepare(_track, _race_lap_count, _current_car, _opponents)
-	_show_lap_ui()
+		return false
+	var prepared: bool = _lap_tracker.prepare(_track, _race_lap_count, _current_car, _opponents)
+	if prepared:
+		_show_lap_ui()
+	return prepared
 
 
 func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
@@ -213,10 +214,8 @@ func _show_results() -> void:
 		return
 
 	var result_labels: Array[String] = []
-	var ordered_participants: Array[PlayerCarController] = _lap_tracker.get_result_order()
-	for car: PlayerCarController in ordered_participants:
+	for car: PlayerCarController in _lap_tracker.get_result_order():
 		result_labels.append(_get_participant_label(car))
-
 	_race_hud.show_results(result_labels)
 
 
