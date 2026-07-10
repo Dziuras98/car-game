@@ -155,6 +155,7 @@ func _show_variant_step() -> void:
 
 
 func _show_configuration_error(message: String) -> void:
+	_clear_options()
 	_subtitle_label.text = message
 	_back_button.visible = _current_step != STEP_MODE
 	_focus_back_button()
