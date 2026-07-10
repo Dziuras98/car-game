@@ -9,6 +9,7 @@ var _failures: Array[String] = []
 func _initialize() -> void:
 	for variant: CarVariantDefinition in CATALOG.get_all_variants():
 		_test_variant(variant)
+	_test_empty_variant()
 	_finish()
 
 
@@ -25,6 +26,13 @@ func _test_variant(variant: CarVariantDefinition) -> void:
 		_expect("manual" in variant.get_transmission_label().to_lower(), "%s manual enum produces a manual label" % str(variant.variant_id))
 	elif variant.specs.is_automatic_transmission():
 		_expect("automatic" in variant.get_transmission_label().to_lower(), "%s automatic enum produces an automatic label" % str(variant.variant_id))
+
+
+func _test_empty_variant() -> void:
+	var variant: CarVariantDefinition = CarVariantDefinition.new()
+	_expect(is_zero_approx(variant.mass_kg), "variant without specs exposes zero compatibility mass")
+	_expect(variant.transmission_label.is_empty(), "variant without specs exposes an empty compatibility transmission label")
+	_expect(variant.get_menu_name().is_empty(), "empty variant menu name remains safe")
 
 
 func _expect(condition: bool, message: String) -> void:
