@@ -30,6 +30,7 @@ Get-ChildItem -LiteralPath $outputPath -Force | Remove-Item -Recurse -Force
 
 $executablePath = Join-Path $outputPath "car-game.exe"
 $packPath = Join-Path $outputPath "car-game.pck"
+$normalStartupLogPath = Join-Path $outputPath "normal-startup-smoke.log"
 $smokeLogPath = Join-Path $outputPath "exported-build-smoke.log"
 
 Write-Host ""
@@ -54,6 +55,60 @@ if ((Get-Item -LiteralPath $executablePath).Length -le 0) {
 if (-not (Test-Path -LiteralPath $packPath -PathType Leaf)) {
     throw "Windows release data pack was not created: $packPath"
 }
+
+Write-Host ""
+Write-Host "=== Run normal packaged startup smoke test ==="
+
+$normalStartupMarker = "[NORMAL_STARTUP_SMOKE] Main scene ready"
+$normalStartupArguments = @(
+    "--headless",
+    "--log-file",
+    ('"' + $normalStartupLogPath + '"')
+)
+$normalStartupProcess = Start-Process `
+    -FilePath $executablePath `
+    -ArgumentList $normalStartupArguments `
+    -WorkingDirectory $outputPath `
+    -PassThru
+
+$normalStartupPassed = $false
+$normalStartupDeadline = [DateTime]::UtcNow.AddSeconds(30)
+while ([DateTime]::UtcNow -lt $normalStartupDeadline) {
+    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
+        $normalStartupLog = Get-Content -LiteralPath $normalStartupLogPath -Raw -ErrorAction SilentlyContinue
+        if ($normalStartupLog.Contains($normalStartupMarker)) {
+            $normalStartupPassed = $true
+            break
+        }
+    }
+
+    if ($normalStartupProcess.HasExited) {
+        break
+    }
+
+    Start-Sleep -Milliseconds 250
+}
+
+if (-not $normalStartupPassed) {
+    if (Test-Path -LiteralPath $normalStartupLogPath -PathType Leaf) {
+        Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+    }
+
+    if ($normalStartupProcess.HasExited) {
+        throw "Normal packaged startup exited before reporting readiness with exit code $($normalStartupProcess.ExitCode)."
+    }
+
+    $normalStartupProcess.Kill($true)
+    throw "Normal packaged startup did not report readiness within 30 seconds."
+}
+
+if (-not $normalStartupProcess.HasExited) {
+    $normalStartupProcess.Kill($true)
+    $normalStartupProcess.WaitForExit(10000) | Out-Null
+}
+
+Get-Content -LiteralPath $normalStartupLogPath | Write-Host
+Write-Host "Normal packaged startup reached the main scene without user arguments."
 
 Write-Host ""
 Write-Host "=== Run exported build smoke test ==="
@@ -93,5 +148,5 @@ if (-not $smokeLog.Contains("[EXPORTED_BUILD_SMOKE_TEST] Passed:")) {
 }
 
 Write-Host ""
-Write-Host "Windows release export and exported-build smoke test passed."
+Write-Host "Windows release export and packaged startup smoke tests passed."
 Write-Host "Artifact directory: $outputPath"
