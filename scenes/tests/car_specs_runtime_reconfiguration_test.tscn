@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://carspecsreconfigtestscene"]
+
+[ext_resource type="Script" uid="uid://carspecsreconfigtest" path="res://scripts/tests/car_specs_runtime_reconfiguration_test.gd" id="1_reconfig"]
+
+[node name="CarSpecsRuntimeReconfigurationTest" type="Node"]
+script = ExtResource("1_reconfig")
