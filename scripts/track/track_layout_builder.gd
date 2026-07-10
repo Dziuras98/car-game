@@ -42,7 +42,7 @@ func get_half_width(index: int, point_count: int, track_width: float, width_vari
 	if point_count <= 0:
 		return safe_track_width * 0.5
 
-	var safe_index: int = posmod(index, point_count)
+	var safe_index: int = ((index % point_count) + point_count) % point_count
 	var progress: float = float(safe_index) / float(point_count)
 	var turn_blend: float = maxf(
 		clampf(1.0 - absf(progress - 0.29) / 0.16, 0.0, 1.0),
