@@ -91,6 +91,18 @@ try {
         -Action { & (Join-Path $PSScriptRoot "test_output_directory_safety.ps1") }
 
     Write-Host ""
+    Write-Host "=== Windows platform contract regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Windows platform contract regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_windows_platform_contract.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Windows-only platform contract ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Windows-only platform contract" `
+        -Action { & (Join-Path $PSScriptRoot "validate_windows_platform_contract.ps1") }
+
+    Write-Host ""
     Write-Host "=== Godot runtime log validation ==="
     $null = Invoke-RecordedPreflightCheck `
         -Name "Godot runtime log validation" `
