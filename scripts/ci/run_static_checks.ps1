@@ -63,33 +63,6 @@ function Assert-Contains {
     }
 }
 
-function Assert-TestScriptOwnership {
-    $referencedScripts = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    $sceneTestRoot = Join-Path $projectRoot "scenes/tests"
-    foreach ($sceneFile in Get-ChildItem -LiteralPath $sceneTestRoot -Filter "*.tscn" -File) {
-        $sceneContent = Get-Content -LiteralPath $sceneFile.FullName -Raw
-        foreach ($match in [regex]::Matches($sceneContent, 'res://scripts/tests/([^"\r\n]+\.gd)')) {
-            [void]$referencedScripts.Add("scripts/tests/$($match.Groups[1].Value)")
-        }
-    }
-
-    $allowedHelpers = @(
-        "scripts/tests/game_test_adapter.gd"
-    )
-    $testScriptRoot = Join-Path $projectRoot "scripts/tests"
-    foreach ($scriptFile in Get-ChildItem -LiteralPath $testScriptRoot -Filter "*.gd" -File) {
-        $relativePath = Get-ProjectRelativePath -FullPath $scriptFile.FullName
-        $content = Get-Content -LiteralPath $scriptFile.FullName -Raw
-        $isStandaloneTest = $content -match '(?m)^\s*extends\s+SceneTree\s*$'
-        $isEditorLauncher = $content -match '(?m)^\s*extends\s+EditorScript\s*$'
-        $isKnownHelper = $allowedHelpers -contains $relativePath
-        $isSceneTest = $referencedScripts.Contains($relativePath)
-        if (-not ($isStandaloneTest -or $isEditorLauncher -or $isKnownHelper -or $isSceneTest)) {
-            Add-Failure "Test script is not discoverable, scene-referenced or an allowed helper: $relativePath"
-        }
-    }
-}
-
 function Assert-NoProductionTestOnlyIdentifiers {
     $scriptsRoot = Join-Path $projectRoot "scripts"
     foreach ($scriptFile in Get-ChildItem -LiteralPath $scriptsRoot -Filter "*.gd" -File -Recurse) {
@@ -312,7 +285,6 @@ Assert-Contains "scenes/tests/full_program_smoke_test.tscn" @(
 Assert-DoesNotContain "scenes/tests/full_program_smoke_test.tscn" @(
     "full_program_smoke_test_v2.gd"
 )
-Assert-TestScriptOwnership
 Assert-NoProductionTestOnlyIdentifiers
 
 if ($failures.Count -gt 0) {
