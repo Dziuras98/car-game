@@ -36,6 +36,13 @@ func commit(mode_id: String, track_id: String, car_variant_id: StringName) -> bo
 	return true
 
 
+func update_free_drive_car_variant(car_variant_id: StringName) -> bool:
+	if _phase != Phase.FREE_DRIVE or car_variant_id == &"":
+		return false
+	_car_variant_id = car_variant_id
+	return true
+
+
 func reset() -> void:
 	_phase = Phase.MENU
 	_mode_id = ""
