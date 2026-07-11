@@ -54,6 +54,10 @@ var _pause_menu: PauseMenu
 @onready var _track_container: Node3D = get_node_or_null(track_container_path) as Node3D
 
 
+static func is_supported_mode_id(mode_id: String) -> bool:
+	return mode_id == MODE_FREE or mode_id == MODE_RACE
+
+
 func _ready() -> void:
 	if not _validate_scene_contract() or not _validate_content_catalogs():
 		set_process(false)
@@ -82,7 +86,10 @@ func _ready() -> void:
 	_race_hud.build(self, _active_lap_count, Callable(self, "_return_to_main_menu"))
 	_build_pause_menu()
 	_build_mobile_drive_controls()
-	_configure_runtime_for_active_track()
+	if not _configure_runtime_for_active_track():
+		set_process(false)
+		set_physics_process(false)
+		return
 
 	_speedometer.visible = false
 	_minimap.visible = false
@@ -163,6 +170,18 @@ func _validate_content_catalogs() -> bool:
 	if car_catalog == null or car_catalog.get_all_variants().is_empty():
 		push_error("GameManager requires a CarCatalog with at least one variant.")
 		return false
+	if opponent_count < 0:
+		push_error("GameManager opponent_count must be non-negative.")
+		return false
+	if opponent_count > 0:
+		var has_ai_variant: bool = false
+		for variant: CarVariantDefinition in car_catalog.get_all_variants():
+			if variant != null and variant.is_ai_eligible_for_race():
+				has_ai_variant = true
+				break
+		if not has_ai_variant:
+			push_error("GameManager requires at least one explicit AI-eligible automatic car variant.")
+			return false
 	if track_catalog == null:
 		push_error("GameManager requires a TrackCatalog.")
 		return false
@@ -206,9 +225,9 @@ func _resolve_lap_count(definition: TrackDefinition) -> int:
 	return maxi(definition.recommended_laps, 1) if use_track_recommended_laps else maxi(race_lap_count, 1)
 
 
-func _configure_runtime_for_active_track() -> void:
-	_car_spawner = CarSpawner.new()
-	_car_spawner.configure(
+func _configure_runtime_for_active_track() -> bool:
+	var next_car_spawner: CarSpawner = CarSpawner.new()
+	if not next_car_spawner.configure(
 		self,
 		_car_spawn,
 		_track,
@@ -216,18 +235,24 @@ func _configure_runtime_for_active_track() -> void:
 		opponent_lane_spacing,
 		opponent_row_spacing,
 		opponent_random_seed
-	)
+	):
+		return false
 
-	_race_session = RaceSessionController.new()
-	_race_session.configure(
-		_car_spawner,
+	var next_race_session: RaceSessionController = RaceSessionController.new()
+	if not next_race_session.configure(
+		next_car_spawner,
 		_race_hud,
 		_track,
 		_minimap,
 		_active_lap_count,
 		opponent_count
-	)
+	):
+		return false
+
+	_car_spawner = next_car_spawner
+	_race_session = next_race_session
 	_minimap.set_track_node(_track)
+	return true
 
 
 func _switch_to_next_car() -> void:
@@ -236,10 +261,13 @@ func _switch_to_next_car() -> void:
 	var spawn_global_transform: Transform3D = (
 		_current_car.global_transform if is_instance_valid(_current_car) else _car_spawn.global_transform
 	)
-	_current_car = _car_spawner.switch_to_next_car(
+	var next_car: PlayerCarController = _car_spawner.switch_to_next_car(
 		spawn_global_transform,
 		_is_player_input_enabled_for_spawn()
 	)
+	if next_car == null:
+		return
+	_current_car = next_car
 	selected_car_variant_id = _car_selection_state.get_variant_id_for_index(
 		_car_spawner.get_current_car_index()
 	)
@@ -252,39 +280,53 @@ func _on_menu_selection_completed(
 	track_id: String,
 	car_variant_id: StringName
 ) -> void:
+	if not is_supported_mode_id(mode_id):
+		_abort_session_start("Menu emitted an unsupported gameplay mode: %s." % mode_id)
+		return
+
 	var selected_car_index: int = _car_selection_state.get_car_index_for_variant_id(car_variant_id)
 	var selected_track: TrackDefinition = track_catalog.get_track_by_id(StringName(track_id))
 	if selected_car_index < 0 or selected_track == null:
-		push_error("Menu emitted an unavailable car or track selection.")
+		_abort_session_start("Menu emitted an unavailable car or track selection.")
 		return
 
-	_clear_current_car()
 	if _race_session != null:
 		_race_session.reset_to_menu_state()
+	_clear_current_car()
 	if not _activate_track(selected_track):
+		_abort_session_start("The selected track could not be activated.")
 		return
-	_configure_runtime_for_active_track()
+	if not _configure_runtime_for_active_track():
+		_abort_session_start("Runtime controllers could not be configured for the selected track.")
+		return
+	if not _spawn_car(selected_car_index, _car_spawn.global_transform):
+		_abort_session_start("The selected car could not be created.")
+		return
+	if mode_id == MODE_RACE and not _start_race():
+		_abort_session_start("The race could not be started with the complete participant set.")
+		return
 
 	selected_mode_id = mode_id
 	selected_track_id = str(selected_track.track_id)
 	selected_car_variant_id = _car_selection_state.get_variant_id_for_index(selected_car_index)
-	_spawn_car(selected_car_index, _car_spawn.global_transform)
-	if selected_mode_id == MODE_RACE:
-		_start_race()
-	else:
+	if selected_mode_id == MODE_FREE:
 		_race_session.hide_lap_ui()
 
 
-func _spawn_car(car_index: int, spawn_global_transform: Transform3D) -> void:
+func _spawn_car(car_index: int, spawn_global_transform: Transform3D) -> bool:
 	if _car_spawner == null:
-		return
-	_current_car = _car_spawner.spawn_player_car(
+		return false
+	var next_car: PlayerCarController = _car_spawner.spawn_player_car(
 		car_index,
 		spawn_global_transform,
 		_is_player_input_enabled_for_spawn()
 	)
+	if next_car == null:
+		return false
+	_current_car = next_car
 	_show_driving_ui_if_needed()
 	_update_car_targets()
+	return true
 
 
 func _is_player_input_enabled_for_spawn() -> bool:
@@ -313,9 +355,8 @@ func _update_car_targets() -> void:
 		_mobile_drive_controls.set_target_node(_current_car)
 
 
-func _start_race() -> void:
-	if _race_session != null:
-		_race_session.start_race(_current_car, get_tree())
+func _start_race() -> bool:
+	return _race_session != null and _race_session.start_race(_current_car, get_tree())
 
 
 func _clear_current_car() -> void:
@@ -330,6 +371,20 @@ func _clear_current_car() -> void:
 	_speedometer.set_target_node(null)
 	_minimap.set_target_node(null)
 	_minimap.set_opponents([])
+
+
+func _abort_session_start(message: String) -> void:
+	if not message.is_empty():
+		push_error(message)
+	if _race_session != null:
+		_race_session.reset_to_menu_state()
+	_clear_current_car()
+	selected_mode_id = ""
+	selected_track_id = ""
+	selected_car_variant_id = &""
+	_speedometer.visible = false
+	_minimap.visible = false
+	_menu.reset_menu()
 
 
 func _return_to_main_menu() -> void:
