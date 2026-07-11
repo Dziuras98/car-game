@@ -60,6 +60,15 @@ msgstr "Unknown track"
 msgid "Samochód"
 msgstr "Car"
 
+msgid "Prosty owal"
+msgstr "Simple oval"
+
+msgid "370Z automat"
+msgstr "370Z automatic"
+
+msgid "370Z manual"
+msgstr "370Z manual"
+
 msgid "Pauza"
 msgstr "Paused"
 
