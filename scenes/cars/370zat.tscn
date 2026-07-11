@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="PackedScene" path="res://scenes/cars/370z.tscn" id="1_370z"]
+[ext_resource type="PackedScene" path="res://scenes/cars/370z_balanced_audio.tscn" id="1_370z"]
 [ext_resource type="Resource" path="res://resources/cars/nissan/370z/specs/370z_7at_specs.tres" id="2_specs"]
 
 [node name="370ZAT" instance=ExtResource("1_370z")]
