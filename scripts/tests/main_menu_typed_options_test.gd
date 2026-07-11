@@ -5,8 +5,8 @@ const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/ui/main_menu.tscn")
 var _checks: int = 0
 var _failures: Array[String] = []
 var _selection_count: int = 0
-var _selected_mode: String = ""
-var _selected_track: String = ""
+var _selected_mode: StringName = &""
+var _selected_track: StringName = &""
 var _selected_variant: StringName = &""
 var _original_locale: String = ""
 
@@ -43,7 +43,7 @@ func _run() -> void:
 	_expect(_find_button(mode_buttons, "Wyścig") != null, "mode label uses the correct Polish spelling")
 	_expect(mode_buttons[0].has_focus(), "first mode option receives keyboard/gamepad focus")
 
-	menu._on_mode_pressed("unsupported")
+	menu._on_mode_pressed(&"unsupported")
 	await get_tree().process_frame
 	_expect(_selection_count == 0, "unsupported mode does not emit a selection")
 	_expect(_get_option_buttons(menu).is_empty(), "unsupported mode cannot advance to track selection")
@@ -51,7 +51,7 @@ func _run() -> void:
 		_get_subtitle(menu).text == "Wybrany tryb nie jest dostępny",
 		"unsupported mode reports an explicit configuration error"
 	)
-	_expect(menu._get_mode_label("unsupported") == "Nieznany tryb", "unknown mode label has no free-drive fallback")
+	_expect(menu._get_mode_label(&"unsupported") == "Nieznany tryb", "unknown mode label has no free-drive fallback")
 	menu.reset_menu()
 	await get_tree().process_frame
 
@@ -73,8 +73,8 @@ func _run() -> void:
 	variant_buttons[0].pressed.emit()
 	await get_tree().process_frame
 	_expect(_selection_count == 1, "valid typed selection emits exactly once")
-	_expect(_selected_mode == "free_drive", "selection preserves the chosen mode id")
-	_expect(_selected_track == "test_track", "selection preserves the chosen track id")
+	_expect(_selected_mode == GameModes.FREE_DRIVE, "selection preserves the chosen StringName mode id")
+	_expect(_selected_track == &"test_track", "selection preserves the chosen StringName track id")
 	_expect(_selected_variant == &"test_variant", "selection preserves the chosen variant id")
 
 	var invalid_menu: MainMenu = MAIN_MENU_SCENE.instantiate() as MainMenu
@@ -113,7 +113,7 @@ func _find_button(buttons: Array[Button], text: String) -> Button:
 	return null
 
 
-func _on_selection_completed(mode_id: String, track_id: String, variant_id: StringName) -> void:
+func _on_selection_completed(mode_id: StringName, track_id: StringName, variant_id: StringName) -> void:
 	_selection_count += 1
 	_selected_mode = mode_id
 	_selected_track = track_id
