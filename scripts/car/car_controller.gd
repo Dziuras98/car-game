@@ -61,6 +61,17 @@ func get_throttle_input() -> float:
 func get_engine_load() -> float:
 	if _drive_config == null:
 		return 0.0
+	# Audio demand follows the control that requests combustion, not the torque
+	# currently transmitted through the gearbox. Neutral, an open clutch and an
+	# automatic shift must therefore not mute a revving engine.
+	if _drive_config.is_automatic_transmission() and _runtime_state.current_gear < 0:
+		return clampf(_runtime_state.brake_input, 0.0, 1.0)
+	return clampf(_runtime_state.throttle_input, 0.0, 1.0)
+
+
+func get_drivetrain_load() -> float:
+	if _drive_config == null:
+		return 0.0
 	return _powertrain_controller.get_engine_load(_runtime_state)
 
 
@@ -253,5 +264,5 @@ func _configure_skid_mark_emitter() -> void:
 		_drive_config.skid_mark_interval,
 		_drive_config.skid_mark_lifetime,
 		_drive_config.skid_mark_width,
-		_drive_config.skid_mark_length
+		_drive_config.skid_mark_length,
 	)
