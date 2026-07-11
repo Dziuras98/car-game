@@ -205,11 +205,16 @@ function Get-WindowsPlatformContractFailures {
             "Windows debug template" = 'windows_debug_x86_64\.exe'
             "project verification entrypoint" = '\./scripts/ci/verify_project\.ps1'
             "Windows export entrypoint" = '\./scripts/ci/export_windows\.ps1'
+            "pull-request-only cancellation" = '(?m)^\s*cancel-in-progress:\s*\$\{\{\s*github\.event_name\s*==\s*''pull_request''\s*\}\}\s*$'
+            "trusted package missing-file failure" = '(?ms)- name:\s*Upload trusted Windows packages.*?if-no-files-found:\s*error\s*$'
         }
         foreach ($description in $requiredWorkflowPatterns.Keys) {
             if ($workflowContent -notmatch $requiredWorkflowPatterns[$description]) {
                 $failures.Add("The Windows workflow is missing the required $description contract.")
             }
+        }
+        if ($workflowContent -match '(?m)^\s*cancel-in-progress:\s*true\s*$') {
+            $failures.Add("The Windows workflow must not cancel in-progress master or manual validation runs.")
         }
     }
     catch {
