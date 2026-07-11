@@ -38,7 +38,10 @@ func _run() -> void:
 	var running_reached: bool = await _wait_for_state(manager, RaceManager.State.RUNNING)
 	_expect(running_reached, "completed countdown enters RUNNING")
 	_expect(not manager.are_player_controls_locked(), "running state unlocks player controls")
-	_expect(_countdown_history == ["3", "2", "1", "START"], "countdown emits the complete ordered sequence")
+	_expect(
+		_countdown_history == ["3", "2", "1", tr("START")],
+		"countdown emits the complete localized ordered sequence"
+	)
 	_expect(
 		_player_input_history.size() >= 2
 		and _player_input_history[0] == false
@@ -71,7 +74,7 @@ func _run() -> void:
 	manager.reset_to_idle()
 	await _wait_frames(8)
 	_expect(manager.get_state() == RaceManager.State.IDLE, "reset cancels an in-flight countdown")
-	_expect(not _countdown_history.has("START"), "cancelled countdown cannot emit START")
+	_expect(not _countdown_history.has(tr("START")), "cancelled countdown cannot emit the localized start banner")
 
 	_expect(
 		_state_history.has(RaceManager.State.COUNTDOWN)
