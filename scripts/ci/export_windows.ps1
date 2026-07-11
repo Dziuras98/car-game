@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $presetPath = Join-Path $projectRoot "export_presets.cfg"
 . (Join-Path $PSScriptRoot "output_directory_safety.ps1")
+. (Join-Path $PSScriptRoot "godot_runtime_log_validation.ps1")
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -124,6 +125,7 @@ function Invoke-MainSceneReadinessCheck {
         throw "Packaged startup log did not contain the expected readiness text."
     }
 
+    Assert-GodotRuntimeLogFile -Path $LogPath -Label "Packaged startup"
     Remove-Item -LiteralPath $MarkerPath -Force
 }
 
@@ -230,6 +232,7 @@ Get-Content -LiteralPath $smokeLog | Write-Host
 if (-not $smokeLogContent.Contains("[EXPORTED_BUILD_SMOKE_TEST] Passed:")) {
     throw "Exported build exited successfully but did not write the expected smoke-test success marker."
 }
+Assert-GodotRuntimeLogFile -Path $smokeLog -Label "Exported build smoke test"
 
 Write-Host ""
 Write-Host "Production and packaged regression Windows exports passed."
