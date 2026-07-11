@@ -35,6 +35,19 @@ function Expect-Contains {
     $script:failures.Add("$Message Missing fragment: $Fragment")
 }
 
+function Expect-NotContains {
+    param(
+        [Parameter(Mandatory = $true)][string]$Value,
+        [Parameter(Mandatory = $true)][string]$Fragment,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    $script:checks += 1
+    if ($Value.Contains($Fragment)) {
+        $script:failures.Add("$Message Forbidden fragment: $Fragment")
+    }
+}
+
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("car-game-windows-platform-" + [guid]::NewGuid().ToString("N"))
 $projectPath = Join-Path $tempRoot "project.godot"
 $exportPresetsPath = Join-Path $tempRoot "export_presets.cfg"
@@ -180,6 +193,23 @@ texture_format/etc2_astc=false
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+$staticChecksPath = Join-Path $PSScriptRoot "run_static_checks.ps1"
+$staticChecksContent = Get-Content -LiteralPath $staticChecksPath -Raw
+foreach ($legacyFragment in @(
+    'rendering_device/driver.windows="d3d12"',
+    'name="Windows Desktop"',
+    'name="Windows Test"',
+    'platform="Windows Desktop"',
+    'texture_format/s3tc_bptc=true',
+    '(?m)^\[preset\.2\]$',
+    'runs-on: windows-2025'
+)) {
+    Expect-NotContains `
+        -Value $staticChecksContent `
+        -Fragment $legacyFragment `
+        -Message "Windows platform ownership must remain in windows_platform_contract.ps1."
 }
 
 if ($failures.Count -gt 0) {
