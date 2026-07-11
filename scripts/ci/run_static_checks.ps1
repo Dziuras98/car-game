@@ -84,13 +84,27 @@ Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     "func get_moving_opponent_count(",
     "func request_return_to_main_menu(",
     "func simulate_current_player_finish(",
-    "func is_child_visible("
+    "func is_child_visible(",
+    '"free_drive"',
+    '"race"'
 )
 Assert-Contains "scripts/game/game_manager.gd" @(
     "static func is_supported_mode_id",
+    "GameModes.is_supported(mode_id)",
     "func _abort_session_start(",
-    "if mode_id == MODE_RACE and not _start_race():",
-    "if not _configure_runtime_for_active_track():"
+    "if mode_id == GameModes.RACE and not _start_race():",
+    "if not _configure_runtime_for_active_track():",
+    "var car_errors: PackedStringArray = car_catalog.validate()"
+)
+Assert-DoesNotContain "scripts/ui/main_menu.gd" @(
+    '"free_drive"',
+    '"race"'
+)
+Assert-Contains "scripts/game/game_modes.gd" @(
+    "class_name GameModes",
+    'const FREE_DRIVE: String = "free_drive"',
+    'const RACE: String = "race"',
+    "static func is_supported(mode_id: String) -> bool:"
 )
 Assert-DoesNotContain "scripts/game/race_session_controller.gd" @(
     ".has_method(",
@@ -134,7 +148,9 @@ Assert-DoesNotContain "scripts/game/car_instance_factory.gd" @(
 Assert-Contains "scripts/car/car_specs.gd" @(
     "enum TransmissionType",
     "transmission_type",
-    "func validate() -> PackedStringArray"
+    "func validate() -> PackedStringArray",
+    "gear_ratios must be strictly descending",
+    "max_forward_speed exceeds the rev-limited highest-gear speed"
 )
 Assert-DoesNotContain "scripts/car/car_specs.gd" @(
     "var acceleration:",
@@ -159,14 +175,20 @@ Assert-DoesNotMatch "scenes/cars/370z.tscn" @(
     '(?m)^\s*(acceleration|brake_deceleration|reverse_acceleration|coast_deceleration|handbrake_deceleration|max_forward_speed|max_reverse_speed|steering_speed|wheel_base|max_steering_angle_degrees|idle_rpm|peak_torque_rpm|redline_rpm|rev_limiter_rpm|low_rpm_torque_multiplier|mid_rpm_torque_multiplier|redline_torque_multiplier|engine_force|engine_brake_force|rpm_response|manual_transmission_enabled|automatic_transmission_enabled|gear_ratios|reverse_gear_ratio|final_drive_ratio|peak_engine_torque|wheel_radius|drivetrain_efficiency|shift_delay|automatic_upshift_rpm|automatic_downshift_rpm|automatic_kickdown_throttle|automatic_kickdown_rpm|automatic_shift_delay|torque_converter_stall_rpm|torque_converter_coupling_rpm|torque_converter_stall_torque_multiplier|vehicle_mass|drag_coefficient|frontal_area|air_density|rolling_resistance_coefficient|lateral_grip|handbrake_lateral_grip_multiplier|steering_slip_gain|slip_speed_threshold|slip_steering_lock_threshold|slip_steering_same_direction_multiplier|skid_mark_min_slip|skid_mark_interval|skid_mark_lifetime|skid_mark_width|skid_mark_length|gravity|floor_stick_force)\s*='
 )
 Assert-Contains "scripts/car/car_catalog.gd" @(
-    "@export var models: Array[CarModelDefinition]"
+    "@export var models: Array[CarModelDefinition]",
+    "func validate() -> PackedStringArray",
+    "variant_id must be globally unique"
 )
 Assert-Contains "scripts/car/car_model_definition.gd" @(
-    "@export var variants: Array[CarVariantDefinition]"
+    "@export var variants: Array[CarVariantDefinition]",
+    "func validate() -> PackedStringArray",
+    "default_variant_id must reference a variant in this model"
 )
 Assert-Contains "scripts/car/car_variant_definition.gd" @(
     "@export var ai_eligible: bool = false",
-    "func is_ai_eligible_for_race() -> bool:"
+    "func is_ai_eligible_for_race() -> bool:",
+    "func validate() -> PackedStringArray",
+    "ai_eligible variants must use an automatic transmission"
 )
 Assert-DoesNotContain "scripts/car/car_catalog.gd" @(
     "Array[Resource]"
@@ -264,7 +286,17 @@ Assert-Contains ".github/workflows/windows-tests.yml" @(
     "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
     "./scripts/ci/verify_project.ps1 -GodotBinary `$env:GODOT_BIN",
     "Get-FileHash -LiteralPath `$archivePath -Algorithm SHA512",
-    "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8"
+    "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8",
+    "fetch-depth: 0",
+    "persist-credentials: false",
+    "Restore verified export-template archive",
+    "Verify and install export templates",
+    "github.event_name != 'pull_request'",
+    "Upload diagnostics"
+)
+Assert-Contains ".github/dependabot.yml" @(
+    "package-ecosystem: github-actions",
+    "interval: weekly"
 )
 Assert-Contains "scenes/tests/full_program_smoke_test.tscn" @(
     'path="res://scripts/tests/full_program_smoke_test.gd"'
