@@ -75,8 +75,9 @@ func _test_ai_fault_contract() -> void:
 	_expect(emitted_fault == "synthetic AI fault", "AI driver emits its first runtime fault")
 	driver._fail_driver("duplicate AI fault")
 	_expect(emitted_fault == "synthetic AI fault", "AI driver suppresses duplicate fault emission")
-	car._car_input.read_drive_input()
-	_expect(car._car_input.brake >= 0.85, "AI fault applies controlled braking instead of neutral coasting")
+	await physics_frame
+	var snapshot: CarTelemetrySnapshot = car.get_telemetry_snapshot()
+	_expect(snapshot.get_brake_input() >= 0.85, "AI fault applies controlled braking instead of neutral coasting")
 
 	host.queue_free()
 	driver.free()
