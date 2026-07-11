@@ -121,6 +121,18 @@ try {
         -Action { & (Join-Path $PSScriptRoot "validate_test_script_ownership.ps1") }
 
     Write-Host ""
+    Write-Host "=== Input action literal validation regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Input action literal validation regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_input_action_literal_validation.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Input action contract ownership ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Input action contract ownership" `
+        -Action { & (Join-Path $PSScriptRoot "validate_input_action_literals.ps1") }
+
+    Write-Host ""
     Write-Host "=== Localization contract ==="
     $null = Invoke-RecordedPreflightCheck `
         -Name "Localization contract" `
