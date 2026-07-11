@@ -1,5 +1,7 @@
 extends Node3D
 
+signal session_phase_changed(phase: GameSessionState.Phase)
+
 const DEFAULT_CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const DEFAULT_TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
@@ -26,6 +28,7 @@ const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 
 var _current_car: PlayerCarController
 var _session_state: GameSessionState = GameSessionState.new()
+var _session_start_transaction: GameSessionStartTransaction
 var _car_selection_state: CarSelectionState
 var _track_spawn_controller: TrackSpawnController
 var _active_track_definition: TrackDefinition
@@ -44,7 +47,7 @@ var _pause_menu: PauseMenu
 @onready var _track_container: Node3D = get_node_or_null(track_container_path) as Node3D
 
 
-static func is_supported_mode_id(mode_id: String) -> bool:
+static func is_supported_mode_id(mode_id: StringName) -> bool:
 	return GameModes.is_supported(mode_id)
 
 
@@ -54,6 +57,7 @@ func _ready() -> void:
 		set_physics_process(false)
 		return
 
+	_session_state.phase_changed.connect(_on_session_phase_changed)
 	_car_selection_state = CarSelectionState.new()
 	_car_selection_state.configure(car_catalog)
 	_track_spawn_controller = TrackSpawnController.new()
@@ -75,7 +79,7 @@ func _ready() -> void:
 	_race_hud = RaceHud.new()
 	_race_hud.build(self, _active_lap_count, Callable(self, "_return_to_main_menu"))
 	_build_pause_menu()
-	if not _configure_runtime_for_active_track():
+	if not _configure_runtime_for_active_track() or not _configure_session_start_transaction():
 		set_process(false)
 		set_physics_process(false)
 		return
@@ -122,11 +126,15 @@ func get_configured_opponent_count() -> int:
 	return opponent_count
 
 
-func get_selected_mode_id() -> String:
+func get_session_phase() -> GameSessionState.Phase:
+	return _session_state.get_phase()
+
+
+func get_selected_mode_id() -> StringName:
 	return _session_state.get_mode_id()
 
 
-func get_selected_track_id() -> String:
+func get_selected_track_id() -> StringName:
 	return _session_state.get_track_id()
 
 
@@ -247,6 +255,20 @@ func _configure_runtime_for_active_track() -> bool:
 	return true
 
 
+func _configure_session_start_transaction() -> bool:
+	_session_start_transaction = GameSessionStartTransaction.new()
+	return _session_start_transaction.configure(
+		_session_state,
+		_car_selection_state,
+		track_catalog,
+		Callable(self, "_clear_active_session").bind(false),
+		Callable(self, "_activate_track"),
+		Callable(self, "_configure_runtime_for_active_track"),
+		Callable(self, "_spawn_car"),
+		Callable(self, "_start_race")
+	)
+
+
 func _switch_to_next_car() -> void:
 	if not _session_state.is_free_drive() or _car_spawner == null:
 		return
@@ -263,50 +285,42 @@ func _switch_to_next_car() -> void:
 	var next_variant_id: StringName = _car_selection_state.get_variant_id_for_index(
 		_car_spawner.get_current_car_index()
 	)
-	if not _session_state.update_free_drive_car_variant(next_variant_id):
+	var update_result: GameSessionState.Result = _session_state.update_free_drive_car_variant(next_variant_id)
+	if not GameSessionState.is_success(update_result):
 		_reset_to_main_menu("Session lifecycle rejected the switched free-drive car.")
 		return
 	_update_car_targets()
 
 
 func _on_menu_selection_completed(
-	mode_id: String,
-	track_id: String,
+	mode_id: StringName,
+	track_id: StringName,
 	car_variant_id: StringName
 ) -> void:
-	if not is_supported_mode_id(mode_id):
-		_abort_session_start("Menu emitted an unsupported gameplay mode: %s." % mode_id)
+	if _session_start_transaction == null:
+		_reset_to_main_menu("Session-start transaction is unavailable.")
 		return
-
-	var selected_car_index: int = _car_selection_state.get_car_index_for_variant_id(car_variant_id)
-	var selected_track: TrackDefinition = track_catalog.get_track_by_id(StringName(track_id))
-	if selected_car_index < 0 or selected_track == null:
-		_abort_session_start("Menu emitted an unavailable car or track selection.")
-		return
-
-	_clear_active_session(false)
-	if not _session_state.begin_start():
-		_abort_session_start("Session lifecycle rejected startup from the current state.")
-		return
-	if not _activate_track(selected_track):
-		_abort_session_start("The selected track could not be activated.")
-		return
-	if not _configure_runtime_for_active_track():
-		_abort_session_start("Runtime controllers could not be configured for the selected track.")
-		return
-	if not _spawn_car(selected_car_index, _car_spawn.global_transform):
-		_abort_session_start("The selected car could not be created.")
-		return
-	if mode_id == GameModes.RACE and not _start_race():
-		_abort_session_start("The race could not be started with the complete participant set.")
-		return
-
-	var resolved_variant_id: StringName = _car_selection_state.get_variant_id_for_index(selected_car_index)
-	if not _session_state.commit(mode_id, str(selected_track.track_id), resolved_variant_id):
-		_abort_session_start("Session lifecycle rejected the validated session selection.")
+	var result: GameSessionStartTransaction.Result = _session_start_transaction.execute(
+		mode_id,
+		track_id,
+		car_variant_id,
+		_car_spawn.global_transform
+	)
+	if result != GameSessionStartTransaction.Result.OK:
+		_handle_session_start_failure(result)
 		return
 	if _session_state.is_free_drive():
 		_race_session.hide_lap_ui()
+
+
+func _handle_session_start_failure(result: GameSessionStartTransaction.Result) -> void:
+	var message: String = GameSessionStartTransaction.get_failure_message(result)
+	if result == GameSessionStartTransaction.Result.NOT_CONFIGURED:
+		_reset_to_main_menu(message)
+		return
+	if not message.is_empty():
+		push_error(message)
+	_menu.reset_menu()
 
 
 func _spawn_car(car_index: int, spawn_global_transform: Transform3D) -> bool:
@@ -378,12 +392,12 @@ func _reset_to_main_menu(message: String = "", resume_game: bool = false) -> voi
 	_menu.reset_menu()
 
 
-func _abort_session_start(message: String) -> void:
-	_reset_to_main_menu(message)
-
-
 func _return_to_main_menu() -> void:
 	_reset_to_main_menu("", true)
+
+
+func _on_session_phase_changed(phase: GameSessionState.Phase) -> void:
+	session_phase_changed.emit(phase)
 
 
 func _build_pause_menu() -> void:
