@@ -187,7 +187,3 @@ func _configure_skid_mark_emitter() -> void:
 		_drive_config.skid_mark_width,
 		_drive_config.skid_mark_length
 	)
-
-
-func _apply_car_specs() -> void:
-	_reconfigure_drive_runtime(true)
