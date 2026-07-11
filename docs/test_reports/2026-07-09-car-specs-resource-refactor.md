@@ -24,7 +24,7 @@ This refactor intentionally does not change:
 - steering algorithm;
 - tire slip algorithm;
 - gravity, floor-stick or `move_and_slide()` behavior;
-- AI, race, menu, HUD, minimap or mobile-control flow.
+- AI, race, menu, HUD or minimap flow.
 
 ## Implementation summary
 
