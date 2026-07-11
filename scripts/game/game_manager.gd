@@ -263,10 +263,9 @@ func _switch_to_next_car() -> void:
 	var next_variant_id: StringName = _car_selection_state.get_variant_id_for_index(
 		_car_spawner.get_current_car_index()
 	)
-	if not _session_state.commit(GameModes.FREE_DRIVE, _session_state.get_track_id(), next_variant_id):
-		_session_state.reset()
-		if _session_state.begin_start():
-			_session_state.commit(GameModes.FREE_DRIVE, str(_active_track_definition.track_id), next_variant_id)
+	if not _session_state.update_free_drive_car_variant(next_variant_id):
+		_reset_to_main_menu("Session lifecycle rejected the switched free-drive car.")
+		return
 	_update_car_targets()
 
 
