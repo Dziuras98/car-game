@@ -59,7 +59,11 @@ function Test-ForbiddenFileName {
 }
 
 function Write-DiagnosticReport {
-    param([Parameter(Mandatory = $true)][string[]]$Lines)
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string[]]$Lines
+    )
 
     New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
     Set-Content -LiteralPath $diagnosticPath -Value $Lines -Encoding utf8
