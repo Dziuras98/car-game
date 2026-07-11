@@ -1,5 +1,6 @@
 param(
-    [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
+    [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path,
+    [string[]]$AllowedPublicEmails = @("dziuras98@gmail.com")
 )
 
 Set-StrictMode -Version Latest
@@ -25,6 +26,13 @@ $contentPatterns = @(
     [pscustomobject]@{ Label = "Windows user profile path"; Pattern = '[A-Za-z]:\\Users\\' },
     [pscustomobject]@{ Label = "Unix user home path"; Pattern = '/home/[^/[:space:]]+/' }
 )
+$allowedEmailSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($allowedEmail in $AllowedPublicEmails) {
+    $normalizedAllowedEmail = $allowedEmail.Trim()
+    if (-not [string]::IsNullOrWhiteSpace($normalizedAllowedEmail)) {
+        [void]$allowedEmailSet.Add($normalizedAllowedEmail)
+    }
+}
 
 function Invoke-Git {
     param([Parameter(Mandatory = $true)][string[]]$Arguments)
@@ -133,7 +141,7 @@ try {
     }
 
     $emailLines = Invoke-Git -Arguments @("log", "--all", "--format=%ae%x09%ce")
-    $nonNoreplyEmails = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $unexpectedPublicEmails = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($emailLine in $emailLines) {
         foreach ($email in ($emailLine -split "`t")) {
             $trimmedEmail = $email.Trim()
@@ -142,13 +150,18 @@ try {
                 $trimmedEmail.EndsWith("@noreply.github.com", [System.StringComparison]::OrdinalIgnoreCase) -or
                 $trimmedEmail.Equals("noreply@github.com", [System.StringComparison]::OrdinalIgnoreCase)
             )
-            if (-not [string]::IsNullOrWhiteSpace($trimmedEmail) -and -not $isNoreplyEmail) {
-                [void]$nonNoreplyEmails.Add($trimmedEmail)
+            $isExplicitlyAllowed = $allowedEmailSet.Contains($trimmedEmail)
+            if (
+                -not [string]::IsNullOrWhiteSpace($trimmedEmail) -and
+                -not $isNoreplyEmail -and
+                -not $isExplicitlyAllowed
+            ) {
+                [void]$unexpectedPublicEmails.Add($trimmedEmail)
             }
         }
     }
-    foreach ($email in $nonNoreplyEmails) {
-        $failures.Add("Commit metadata exposes a non-noreply email address: $(Get-MaskedEmail -Email $email)")
+    foreach ($email in $unexpectedPublicEmails) {
+        $failures.Add("Commit metadata exposes an undeclared public email address: $(Get-MaskedEmail -Email $email)")
     }
 
     if ($failures.Count -gt 0) {
