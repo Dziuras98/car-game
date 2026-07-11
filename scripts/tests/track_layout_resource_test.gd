@@ -71,7 +71,10 @@ func _test_menu_options_use_catalog_metadata() -> void:
 	var option: TrackMenuOption = track_options[0]
 	_expect(option != null and option.is_valid(), "catalog metadata produces a valid typed track option")
 	_expect(option.track_id == definition.track_id, "menu track id comes from the track definition")
-	_expect(option.label == definition.display_name, "menu label comes from the track definition")
+	_expect(
+		option.label == TranslationServer.translate(definition.display_name),
+		"menu label is the localized track definition display name"
+	)
 	_expect(option.recommended_laps == definition.recommended_laps, "menu lap metadata comes from the track definition")
 
 
