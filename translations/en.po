@@ -6,6 +6,9 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "Car Game"
+msgstr "Car Game"
+
 msgid "Wybierz tryb"
 msgstr "Choose mode"
 
@@ -26,6 +29,36 @@ msgstr "Choose variant"
 
 msgid "Wstecz"
 msgstr "Back"
+
+msgid "Tryb"
+msgstr "Mode"
+
+msgid "Brak dostępnych torów"
+msgstr "No tracks available"
+
+msgid "Brak dostępnych samochodów"
+msgstr "No cars available"
+
+msgid "Brak wariantów dla wybranego modelu"
+msgstr "No variants available for the selected model"
+
+msgid "Konfiguracja zawartości jest niepoprawna"
+msgstr "Content configuration is invalid"
+
+msgid "Wybrany tor nie jest dostępny"
+msgstr "The selected track is unavailable"
+
+msgid "Wybrany model nie jest dostępny"
+msgstr "The selected model is unavailable"
+
+msgid "Wybrany wariant nie jest dostępny"
+msgstr "The selected variant is unavailable"
+
+msgid "Nieznany tor"
+msgstr "Unknown track"
+
+msgid "Samochód"
+msgstr "Car"
 
 msgid "Pauza"
 msgstr "Paused"
@@ -50,6 +83,18 @@ msgstr "You"
 
 msgid "Kierowca"
 msgstr "Driver"
+
+msgid "Kierowca %d"
+msgstr "Driver %d"
+
+msgid "START"
+msgstr "GO!"
+
+msgid "PRĘDKOŚĆ"
+msgstr "SPEED"
+
+msgid "BIEG"
+msgstr "GEAR"
 
 msgid "GAZ"
 msgstr "THROTTLE"
