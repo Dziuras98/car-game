@@ -12,6 +12,7 @@ const PAUSE: StringName = &"pause"
 const SWITCH_CAR: StringName = &"switch-car"
 const GEAR_UP: StringName = &"gear-up"
 const GEAR_DOWN: StringName = &"gear-down"
+const UI_CANCEL: StringName = &"ui_cancel"
 
 const REQUIRED_ACTIONS: Array[StringName] = [
 	ACCELERATE,
