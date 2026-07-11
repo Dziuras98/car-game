@@ -33,6 +33,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Validate localization catalogs
+        shell: pwsh
+        run: ./scripts/ci/validate_localization.ps1
+
       - name: Download Godot
         shell: pwsh
         run: |
