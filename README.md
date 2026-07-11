@@ -1,6 +1,6 @@
 # Car Game
 
-Godot 4.7 prototype focused on car driving, short races, data-driven vehicle variants and procedurally generated tracks.
+Godot 4.7 prototype focused on car driving, short races, data-driven vehicle variants and procedurally generated tracks. Windows is the sole target platform; player input is provided through keyboard and gamepad actions.
 
 The project is intentionally kept text-heavy and regression-tested so gameplay systems can be changed without silently breaking exported builds.
 
@@ -20,9 +20,9 @@ The repository currently provides:
 - AI opponents that consume the typed generated-track contract;
 - speedometer, tachometer, minimap, countdown, lap/position HUD, results and pause UI;
 - Polish and English localization resources with explicit startup loading;
-- keyboard, gamepad and independent mobile touch input;
+- keyboard and gamepad player input plus a separate external AI input channel;
 - bounded procedural audio voices and skid-mark buffers;
-- Windows and Android export presets;
+- Windows production and packaged-test export presets;
 - one complete project-verification entrypoint and automatically discovered regression tests with per-command timeouts and runtime-error detection.
 
 The project remains a prototype. Structural correctness and test coverage take priority over adding more cars or tracks.
@@ -40,7 +40,7 @@ The project remains a prototype. Structural correctness and test coverage take p
 
 ## Running the project
 
-1. Clone the repository.
+1. Clone the repository on Windows.
 2. Open `project.godot` in Godot 4.7.
 3. Run the project with `F6`/`F5` as appropriate.
 4. Select mode, track, model and variant in the menu.
@@ -61,7 +61,7 @@ The active track is created before the selected car. A gameplay session is consi
 | Switch car | `T`, free-drive only |
 | Gear up / down | `E` / `Q`, gamepad buttons |
 
-Android touch controls feed the controller through a dedicated touch-input channel. They do not synthesize global `Input.action_press()` events.
+Input bindings are defined in `project.godot`. `CarInput` reads the standard action map for the player and keeps AI input on a separate typed channel.
 
 ## Data ownership
 
@@ -158,7 +158,7 @@ scenes/tests/full_program_smoke_test.tscn
 
 It runs `scripts/tests/full_program_smoke_test.gd` and covers menu navigation, automatic and manual free drive, braking/reverse, steering, car switching, race setup, AI movement, results cleanup and post-race re-entry.
 
-Run the complete Windows suite locally:
+Run the complete suite locally:
 
 ```powershell
 ./scripts/ci/verify_project.ps1 `
@@ -169,19 +169,11 @@ Use `scripts/ci/run_tests.ps1` directly only for focused test work that intentio
 
 ## Export validation
 
-### Windows
-
 `.github/workflows/windows-tests.yml` runs on `windows-2025`, pins GitHub actions to immutable commit SHAs, verifies the SHA-512 checksums of the Godot editor and export-template archives, invokes the complete project verification and then exports/smoke-tests both Windows presets.
 
 `scripts/ci/export_windows.ps1` creates and smoke-tests both the normal packaged startup and the packaged regression route. Successful workflow artifacts contain the executable, PCK and diagnostic logs.
 
-### Android
-
-`.github/workflows/android-export.yml` runs on `ubuntu-24.04`, pins actions to immutable commits and verifies downloaded Godot archives before export.
-
-`scripts/ci/export_android.sh` exports the debug APK, validates the package and manifest, and does not require a connected device. Device deployment remains a separate manual step.
-
-See `docs/continuous_integration.md` for exact gates and artifact behavior.
+See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gates and artifact behavior.
 
 ## Documentation
 
@@ -189,7 +181,7 @@ See `docs/continuous_integration.md` for exact gates and artifact behavior.
 - `docs/car_catalog.md` — car catalog/model/variant/spec and AI-eligibility rules;
 - `docs/vehicle_model.md` — current handling and powertrain model;
 - `docs/roadmap.md` — completed remediation stages and separately deferred feature expansion;
-- `docs/continuous_integration.md` — Windows and Android CI;
+- `docs/continuous_integration.md` — Windows CI and packaged validation;
 - `docs/windows_export.md` — Windows export details.
 
 ## Change rules
