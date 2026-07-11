@@ -9,6 +9,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $testLogDirectory = Join-Path $projectRoot "build/test-logs"
 $currentCommandPath = Join-Path $testLogDirectory "current-command.log"
+. (Join-Path $PSScriptRoot "godot_runtime_log_validation.ps1")
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -40,55 +41,6 @@ catch {
     }
     Set-Content -LiteralPath $staticLogPath -Value ($capturedOutput + @("", $failureText)) -Encoding utf8
     throw
-}
-
-function Get-GodotRuntimeErrorLines {
-    param(
-        [Parameter(Mandatory = $true)]
-        [object[]]$OutputLines
-    )
-
-    $errorPatterns = @(
-        '^\s*SCRIPT ERROR:',
-        '^\s*ERROR:',
-        '^\s*E\s+\d+:\d{2}:\d{2}(?::\d+)?\s+'
-    )
-
-    $detectedRuntimeErrors = [System.Collections.Generic.List[string]]::new()
-    foreach ($lineValue in $OutputLines) {
-        $line = [string]$lineValue
-        if ([string]::IsNullOrWhiteSpace($line)) {
-            continue
-        }
-
-        $normalizedLine = [regex]::Replace($line, "`e\[[0-9;]*[A-Za-z]", "")
-        foreach ($pattern in $errorPatterns) {
-            if ($normalizedLine -match $pattern) {
-                $detectedRuntimeErrors.Add($normalizedLine.Trim())
-                break
-            }
-        }
-    }
-
-    return @($detectedRuntimeErrors | Select-Object -Unique)
-}
-
-function Assert-RuntimeErrorDetector {
-    $probeLines = @(
-        "Godot Engine v4.7.stable",
-        "E 0:00:09:109 _generate_sample: Invalid access to property or key",
-        "SCRIPT ERROR: Invalid access to property or key",
-        "ERROR: Failed loading resource"
-    )
-
-    $detectedLines = @(Get-GodotRuntimeErrorLines -OutputLines $probeLines)
-    if ($detectedLines.Count -ne 3) {
-        throw "Godot runtime-error detector self-check failed. Expected 3 matches, found $($detectedLines.Count)."
-    }
-
-    $selfCheckPath = Join-Path $testLogDirectory "runtime-error-detector-self-check.log"
-    $selfCheckContent = @("Detected expected probe lines:") + @($detectedLines)
-    Set-Content -LiteralPath $selfCheckPath -Value $selfCheckContent -Encoding utf8
 }
 
 function Invoke-GodotCommand {
@@ -171,33 +123,23 @@ function Invoke-GodotCommand {
     ) + @($outputLines | ForEach-Object { [string]$_ })
     Set-Content -LiteralPath $logPath -Value $logContent -Encoding utf8
 
-    $runtimeErrorLines = @(Get-GodotRuntimeErrorLines -OutputLines $outputLines)
-    if ($runtimeErrorLines.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Godot emitted runtime errors during '$Name':"
-        foreach ($runtimeErrorLine in $runtimeErrorLines) {
-            Write-Host "  $runtimeErrorLine"
-        }
-        Write-Host "Diagnostic log: $logPath"
-    }
-
     if ($timedOut) {
         throw "$Name exceeded its $TimeoutSeconds-second timeout. Diagnostic log: $logPath"
     }
     if ($exitCode -ne 0) {
         throw "$Name failed with exit code $exitCode. Diagnostic log: $logPath"
     }
-    if ($runtimeErrorLines.Count -gt 0) {
-        throw "$Name emitted $($runtimeErrorLines.Count) Godot runtime error(s) despite exit code 0. Diagnostic log: $logPath"
-    }
+
+    Assert-GodotRuntimeLogContent `
+        -OutputLines $outputLines `
+        -Label $Name `
+        -DiagnosticPath $logPath
 }
 
 function Get-ProjectRelativePath {
     param([Parameter(Mandatory = $true)][string]$FullPath)
     return [System.IO.Path]::GetRelativePath($projectRoot, $FullPath).Replace('\', '/')
 }
-
-Assert-RuntimeErrorDetector
 
 Invoke-GodotCommand -Name "Import project resources" -TimeoutSeconds 300 -CommandArguments @(
     "--headless",

@@ -39,15 +39,15 @@ The script:
 2. exports the `Windows Desktop` release preset;
 3. verifies that both the executable and PCK were created;
 4. starts the exported executable without user arguments;
-5. supplies `CAR_GAME_NORMAL_STARTUP_MARKER_PATH`, waits for `scenes/main.tscn` to write the readiness marker and requires the process to exit with code `0`;
+5. supplies `CAR_GAME_NORMAL_STARTUP_MARKER_PATH`, waits for `scenes/main.tscn` to write the readiness marker and requires the process to exit with code `0` without Godot runtime-error lines;
 6. starts the executable again and passes `--export-smoke-test` after Godot's `--` separator;
-7. requires a zero exit code and the packaged regression success marker.
+7. requires a zero exit code, the packaged regression success marker and a runtime log without `SCRIPT ERROR:`, `ERROR:` or timestamped Godot `E` entries.
 
 The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches and `scenes/tests/exported_build_smoke_test.tscn` when the smoke-test argument is present. The argument-based route is required because official Windows export templates do not support the `--scene` path override.
 
 The environment variable affects only the CI handshake after the normal main scene is ready; it is not a user argument and does not alter router selection. Without it, the exported game continues running normally.
 
-The normal launch writes `build/windows/normal-startup-smoke.log`. The packaged regression launch writes `build/windows/exported-build-smoke.log` and validates that the release contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs.
+The normal launch writes `build/windows/normal-startup-smoke.log`. The production argument-isolation check writes `build/windows/production-smoke-argument.log`. The packaged regression launch writes `build/windows-test/exported-build-smoke.log` and validates that the release contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs. All three logs are checked by the shared runtime-error detector used by the editor-side test runner.
 
 ## Continuous integration
 
@@ -63,7 +63,7 @@ as an Actions artifact named:
 car-game-windows-<commit-sha>
 ```
 
-The upload step runs even after a preceding failure so partial builds and available logs remain inspectable. Successful artifacts are retained for 14 days and contain the executable, PCK and both packaged-startup logs.
+The upload step runs even after a preceding failure so partial builds and available logs remain inspectable. Successful artifacts are retained for 14 days and contain the executable, PCK and packaged-startup logs.
 
 ## Distribution status
 
