@@ -2,7 +2,6 @@ extends Node3D
 
 const DEFAULT_CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const DEFAULT_TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
-const MOBILE_DRIVE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile_drive_controls.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 
 @export_group("Content")
@@ -25,9 +24,6 @@ const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 @export var race_lap_count: int = 3
 @export var use_track_recommended_laps: bool = true
 
-@export_group("Input")
-@export var force_mobile_controls: bool = false
-
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
 
@@ -43,7 +39,6 @@ var _active_lap_count: int = 1
 var _car_spawner: CarSpawner
 var _race_session: RaceSessionController
 var _race_hud: RaceHud
-var _mobile_drive_controls: MobileDriveControls
 var _pause_menu: PauseMenu
 
 @onready var _car_spawn: Node3D = get_node_or_null(car_spawn_path) as Node3D
@@ -85,7 +80,6 @@ func _ready() -> void:
 	_race_hud = RaceHud.new()
 	_race_hud.build(self, _active_lap_count, Callable(self, "_return_to_main_menu"))
 	_build_pause_menu()
-	_build_mobile_drive_controls()
 	if not _configure_runtime_for_active_track():
 		set_process(false)
 		set_physics_process(false)
@@ -351,8 +345,6 @@ func _update_car_targets() -> void:
 	if _race_session != null:
 		opponents = _race_session.get_opponents()
 	_minimap.set_opponents(opponents)
-	if _mobile_drive_controls != null:
-		_mobile_drive_controls.set_target_node(_current_car)
 
 
 func _start_race() -> bool:
@@ -362,8 +354,6 @@ func _start_race() -> bool:
 func _clear_current_car() -> void:
 	if _pause_menu != null:
 		_pause_menu.set_pause_enabled(false)
-	if _mobile_drive_controls != null:
-		_mobile_drive_controls.set_target_node(null)
 	if _car_spawner != null:
 		_car_spawner.clear_current_car()
 	_current_car = null
@@ -409,17 +399,3 @@ func _build_pause_menu() -> void:
 	add_child(_pause_menu)
 	_pause_menu.set_pause_enabled(false)
 	_pause_menu.main_menu_requested.connect(_return_to_main_menu)
-
-
-func _build_mobile_drive_controls() -> void:
-	if _mobile_drive_controls != null:
-		return
-	if not force_mobile_controls and not OS.has_feature("android"):
-		return
-	_mobile_drive_controls = MOBILE_DRIVE_CONTROLS_SCENE.instantiate() as MobileDriveControls
-	if _mobile_drive_controls == null:
-		push_error("Mobile drive controls scene must instantiate MobileDriveControls.")
-		return
-	_mobile_drive_controls.force_visible = force_mobile_controls
-	_mobile_drive_controls.rear_view_changed.connect(_camera.set_rear_view_active)
-	add_child(_mobile_drive_controls)
