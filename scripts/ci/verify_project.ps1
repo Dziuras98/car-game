@@ -127,6 +127,18 @@ try {
         -Action { & (Join-Path $PSScriptRoot "validate_windows_platform_contract.ps1") }
 
     Write-Host ""
+    Write-Host "=== Pinned Godot checksum manifest ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Pinned Godot checksum manifest" `
+        -Action { & (Join-Path $PSScriptRoot "test_godot_checksum_manifest.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Windows export versioning ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Windows export versioning" `
+        -Action { & (Join-Path $PSScriptRoot "test_export_version.ps1") }
+
+    Write-Host ""
     Write-Host "=== Godot runtime log validation ==="
     $null = Invoke-RecordedPreflightCheck `
         -Name "Godot runtime log validation" `

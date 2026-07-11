@@ -1,6 +1,8 @@
 extends RefCounted
 class_name CarSpawner
 
+signal driver_fault(message: String)
+
 var opponent_lane_spacing: float = 4.2
 var opponent_row_spacing: float = 7.0
 
@@ -76,6 +78,7 @@ func configure(
 		_paint_randomizer,
 		_session_seed
 	)
+	_opponent_spawner.driver_fault.connect(_on_driver_fault)
 	_configured = true
 	return true
 
@@ -161,3 +164,7 @@ func set_ai_enabled(enabled: bool) -> void:
 	if _opponent_spawner == null:
 		return
 	_opponent_spawner.set_ai_enabled(enabled)
+
+
+func _on_driver_fault(message: String) -> void:
+	driver_fault.emit(message)

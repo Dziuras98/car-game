@@ -34,6 +34,15 @@ func get_ai_eligible_count() -> int:
 	return _ai_eligible_variants.size()
 
 
+func capture_random_state() -> int:
+	return _rng.state if _rng != null else 0
+
+
+func restore_random_state(state: int) -> void:
+	if _rng != null:
+		_rng.state = state
+
+
 func instantiate_indexed_car(car_index: int) -> PlayerCarController:
 	if car_index < 0 or car_index >= _available_variants.size():
 		push_error("Car index %d is outside the configured catalog range." % car_index)

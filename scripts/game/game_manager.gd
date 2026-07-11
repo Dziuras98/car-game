@@ -38,6 +38,8 @@ var _car_spawner: CarSpawner
 var _race_session: RaceSessionController
 var _race_hud: RaceHud
 var _pause_menu: PauseMenu
+var _fatal_error_layer: CanvasLayer
+var _initialization_failed: bool = false
 
 @onready var _car_spawn: Node3D = get_node_or_null(car_spawn_path) as Node3D
 @onready var _camera: FollowCamera = get_node_or_null(camera_path) as FollowCamera
@@ -52,9 +54,11 @@ static func is_supported_mode_id(mode_id: StringName) -> bool:
 
 
 func _ready() -> void:
-	if not _validate_scene_contract() or not _validate_content_catalogs():
-		set_process(false)
-		set_physics_process(false)
+	if not _validate_scene_contract():
+		_fail_initialization("GameManager scene contract validation failed.")
+		return
+	if not _validate_content_catalogs():
+		_fail_initialization("Game content configuration validation failed.")
 		return
 
 	_session_state.phase_changed.connect(_on_session_phase_changed)
@@ -64,24 +68,25 @@ func _ready() -> void:
 	_track_spawn_controller.configure(_track_container)
 
 	if not _activate_track(track_catalog.get_default_track()):
-		set_process(false)
-		set_physics_process(false)
+		_fail_initialization("The default track could not be activated.")
 		return
 
 	_configure_menu_track_options()
 	_configure_menu_car_options()
 	if not _menu.has_valid_options():
-		push_error("GameManager produced no valid menu content options.")
-		set_process(false)
-		set_physics_process(false)
+		_fail_initialization("GameManager produced no valid menu content options.")
 		return
 
 	_race_hud = RaceHud.new()
 	_race_hud.build(self, _active_lap_count, Callable(self, "_return_to_main_menu"))
-	_build_pause_menu()
-	if not _configure_runtime_for_session_track() or not _configure_session_start_transaction():
-		set_process(false)
-		set_physics_process(false)
+	if not _build_pause_menu():
+		_fail_initialization("Pause menu construction failed.")
+		return
+	if not _configure_runtime_for_session_track():
+		_fail_initialization("Runtime controllers could not be configured for the default track.")
+		return
+	if not _configure_session_start_transaction():
+		_fail_initialization("Session-start transaction configuration failed.")
 		return
 
 	_set_driving_ui_visible(false)
@@ -89,16 +94,21 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	_set_track_rebuild_locked(false)
 	if get_tree() != null:
 		get_tree().paused = false
 
 
 func _process(_delta: float) -> void:
+	if _initialization_failed:
+		return
 	if not get_tree().paused and Input.is_action_just_pressed(GameInputActions.SWITCH_CAR):
 		_switch_to_next_car()
 
 
 func _physics_process(_delta: float) -> void:
+	if _initialization_failed:
+		return
 	if _race_session != null:
 		_race_session.update_physics()
 
@@ -173,6 +183,15 @@ func _validate_content_catalogs() -> bool:
 	if opponent_count < 0:
 		push_error("GameManager opponent_count must be non-negative.")
 		return false
+	if not is_finite(opponent_lane_spacing) or opponent_lane_spacing < 0.0:
+		push_error("GameManager opponent_lane_spacing must be finite and non-negative.")
+		return false
+	if not is_finite(opponent_row_spacing) or opponent_row_spacing < 0.0:
+		push_error("GameManager opponent_row_spacing must be finite and non-negative.")
+		return false
+	if not use_track_recommended_laps and race_lap_count <= 0:
+		push_error("GameManager race_lap_count must be positive when recommended laps are disabled.")
+		return false
 	if opponent_count > 0:
 		var has_ai_variant: bool = false
 		for variant: CarVariantDefinition in car_catalog.get_all_variants():
@@ -227,6 +246,7 @@ func _commit_staged_track() -> bool:
 
 func _finalize_staged_track_commit() -> void:
 	_track_spawn_controller.finalize_track_commit()
+	_set_track_rebuild_locked(true)
 
 
 func _sync_active_track_state() -> void:
@@ -250,18 +270,23 @@ func _get_session_track_definition() -> TrackDefinition:
 
 func _get_session_lap_count() -> int:
 	var definition: TrackDefinition = _get_session_track_definition()
-	return _resolve_lap_count(definition) if definition != null else _active_lap_count
+	return _resolve_lap_count(definition) if definition != null else 0
 
 
 func _resolve_lap_count(definition: TrackDefinition) -> int:
-	return maxi(definition.recommended_laps, 1) if use_track_recommended_laps else maxi(race_lap_count, 1)
+	if definition == null:
+		return 0
+	return definition.recommended_laps if use_track_recommended_laps else race_lap_count
 
 
 func _configure_runtime_for_session_track() -> bool:
 	var session_track: GeneratedTrack = _get_session_track()
-	if not is_instance_valid(session_track):
+	if not is_instance_valid(session_track) or not session_track.has_committed_generation():
 		return false
 	var session_lap_count: int = _get_session_lap_count()
+	if session_lap_count <= 0:
+		push_error("GameManager resolved a non-positive race lap count.")
+		return false
 	var next_car_spawner: CarSpawner = CarSpawner.new()
 	if not next_car_spawner.configure(
 		self,
@@ -284,6 +309,9 @@ func _configure_runtime_for_session_track() -> bool:
 		opponent_count
 	):
 		return false
+	var runtime_fault_callback: Callable = Callable(self, "_on_race_runtime_fault")
+	if not next_race_session.runtime_fault.is_connected(runtime_fault_callback):
+		next_race_session.runtime_fault.connect(runtime_fault_callback)
 
 	_car_spawner = next_car_spawner
 	_race_session = next_race_session
@@ -384,15 +412,21 @@ func _is_player_input_enabled_for_spawn() -> bool:
 
 
 func _set_driving_ui_visible(visible: bool) -> void:
-	_speedometer.visible = visible
-	_minimap.visible = visible
+	if _speedometer != null:
+		_speedometer.visible = visible
+	if _minimap != null:
+		_minimap.visible = visible
 	if _pause_menu != null:
 		_pause_menu.set_pause_enabled(visible)
 
 
 func _update_car_targets() -> void:
-	_camera.set_target_node(_current_car)
-	_speedometer.set_target_node(_current_car)
+	if _camera != null:
+		_camera.set_target_node(_current_car)
+	if _speedometer != null:
+		_speedometer.set_target_node(_current_car)
+	if _minimap == null:
+		return
 	_minimap.set_target_node(_current_car)
 	_minimap.set_track_node(_get_session_track())
 	var opponents: Array[PlayerCarController] = []
@@ -409,10 +443,13 @@ func _clear_current_car() -> void:
 	if _car_spawner != null:
 		_car_spawner.clear_current_car()
 	_current_car = null
-	_camera.set_target_node(null)
-	_speedometer.set_target_node(null)
-	_minimap.set_target_node(null)
-	_minimap.set_opponents([])
+	if _camera != null:
+		_camera.set_target_node(null)
+	if _speedometer != null:
+		_speedometer.set_target_node(null)
+	if _minimap != null:
+		_minimap.set_target_node(null)
+		_minimap.set_opponents([])
 
 
 func _clear_runtime_state(resume_game: bool) -> void:
@@ -431,9 +468,11 @@ func _reset_session_start_runtime() -> void:
 	if _track_spawn_controller != null:
 		_track_spawn_controller.rollback_track_transaction()
 		_sync_active_track_state()
+	_set_track_rebuild_locked(false)
 
 
 func _clear_active_session(resume_game: bool) -> void:
+	_set_track_rebuild_locked(false)
 	_clear_runtime_state(resume_game)
 	_session_state.reset()
 
@@ -442,7 +481,8 @@ func _reset_to_main_menu(message: String = "", resume_game: bool = false) -> voi
 	if not message.is_empty():
 		push_error(message)
 	_clear_active_session(resume_game)
-	_menu.reset_menu()
+	if _menu != null:
+		_menu.reset_menu()
 
 
 func _return_to_main_menu() -> void:
@@ -453,11 +493,66 @@ func _on_session_phase_changed(phase: GameSessionState.Phase) -> void:
 	session_phase_changed.emit(phase)
 
 
-func _build_pause_menu() -> void:
+func _on_race_runtime_fault(message: String) -> void:
+	_reset_to_main_menu(message, true)
+
+
+func _build_pause_menu() -> bool:
 	_pause_menu = PAUSE_MENU_SCENE.instantiate() as PauseMenu
 	if _pause_menu == null:
 		push_error("Pause menu scene must instantiate PauseMenu.")
-		return
+		return false
 	add_child(_pause_menu)
 	_pause_menu.set_pause_enabled(false)
 	_pause_menu.main_menu_requested.connect(_return_to_main_menu)
+	return true
+
+
+func _set_track_rebuild_locked(locked: bool) -> void:
+	var session_track: GeneratedTrack = _get_session_track() if _track_spawn_controller != null else _track
+	if is_instance_valid(session_track):
+		session_track.set_runtime_rebuild_locked(locked)
+	if is_instance_valid(_track) and _track != session_track:
+		_track.set_runtime_rebuild_locked(locked)
+
+
+func _fail_initialization(message: String) -> void:
+	if _initialization_failed:
+		return
+	_initialization_failed = true
+	push_error(message)
+	set_process(false)
+	set_physics_process(false)
+	_set_track_rebuild_locked(false)
+	if _race_session != null or _car_spawner != null or is_instance_valid(_current_car):
+		_clear_runtime_state(true)
+	_set_driving_ui_visible(false)
+	if _menu != null:
+		_menu.hide()
+	_show_fatal_error(message)
+	if OS.has_feature("export_smoke_test") and get_tree() != null:
+		get_tree().call_deferred("quit", 1)
+
+
+func _show_fatal_error(message: String) -> void:
+	if _fatal_error_layer != null:
+		return
+	_fatal_error_layer = CanvasLayer.new()
+	_fatal_error_layer.name = "FatalInitializationError"
+	_fatal_error_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_fatal_error_layer)
+
+	var panel: PanelContainer = PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fatal_error_layer.add_child(panel)
+
+	var center: CenterContainer = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.add_child(center)
+
+	var label: Label = Label.new()
+	label.custom_minimum_size = Vector2(640.0, 0.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.text = "%s\n\n%s" % [tr("Nie można uruchomić gry"), message]
+	center.add_child(label)

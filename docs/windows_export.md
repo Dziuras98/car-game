@@ -1,20 +1,27 @@
 # Windows export
 
-The project defines one release preset:
+The project defines two Windows Desktop presets in `export_presets.cfg`:
 
 ```text
-export_presets.cfg
 Windows Desktop
+Windows Test
 ```
 
-The preset exports a 64-bit Windows build to:
+The production preset exports a 64-bit Windows build to:
 
 ```text
 build/windows/car-game.exe
 build/windows/car-game.pck
 ```
 
-The PCK remains separate from the executable so the exported data package can be inspected and replaced independently during development.
+The packaged regression preset exports to:
+
+```text
+build/windows-test/car-game-test.exe
+build/windows-test/car-game-test.pck
+```
+
+The PCK remains separate from the executable so the exported data package can be inspected independently during development.
 
 ## Local export
 
@@ -35,26 +42,46 @@ Optional `-OutputDirectory` and `-TestOutputDirectory` overrides must resolve to
 
 The script:
 
-1. validates both output paths and clears `build/windows` and `build/windows-test`;
-2. exports the `Windows Desktop` release preset;
-3. verifies that both the executable and PCK were created;
-4. starts the exported executable without user arguments;
-5. supplies `CAR_GAME_NORMAL_STARTUP_MARKER_PATH`, waits for `scenes/main.tscn` to write the readiness marker and requires the process to exit with code `0` without Godot runtime-error lines;
-6. starts the executable again and passes `--export-smoke-test` after Godot's `--` separator;
-7. requires a zero exit code, the packaged regression success marker and a runtime log without `SCRIPT ERROR:`, `ERROR:` or timestamped Godot `E` entries.
+1. resolves the current source revision and semantic tag when available;
+2. temporarily injects source-derived product and numeric file versions into both Windows presets;
+3. validates both output paths and clears `build/windows` and `build/windows-test`;
+4. exports the `Windows Desktop` release preset;
+5. verifies that both the executable and PCK were created and validates production PCK contents;
+6. starts the exported executable without user arguments;
+7. supplies `CAR_GAME_NORMAL_STARTUP_MARKER_PATH`, waits for `scenes/main.tscn` to write the readiness marker and requires the process to exit with code `0` without Godot runtime-error lines;
+8. starts the production executable again with `--export-smoke-test` to prove that private packaged-test routing is unavailable in production;
+9. exports and runs the `Windows Test` preset with the private smoke argument;
+10. requires a zero exit code, the packaged regression success marker and a runtime log without `SCRIPT ERROR:`, `ERROR:` or timestamped Godot `E` entries;
+11. restores the exact committed `export_presets.cfg` contents in a `finally` block after success or failure.
 
-The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches and `scenes/tests/exported_build_smoke_test.tscn` when the smoke-test argument is present. The argument-based route is required because official Windows export templates do not support the `--scene` path override.
+## Version metadata
 
-The environment variable affects only the CI handshake after the normal main scene is ready; it is not a user argument and does not alter router selection. Without it, the exported game continues running normally.
+`scripts/ci/export_version.ps1` derives package identity as follows:
 
-The normal launch writes `build/windows/normal-startup-smoke.log`. The production argument-isolation check writes `build/windows/production-smoke-argument.log`. The packaged regression launch writes `build/windows-test/exported-build-smoke.log` and validates that the release contains the main scene, car catalog, both 370Z variants, the track Resource and the generated racing-line/checkpoint APIs. All three logs are checked by the shared runtime-error detector used by the editor-side test runner.
+- a tag such as `v2.3.4` produces product version `2.3.4` and test product version `2.3.4-test`;
+- an untagged build includes the seven-character commit SHA in both product versions;
+- the Windows numeric file version uses the semantic components plus the bounded GitHub Actions run number;
+- local exports resolve `git rev-parse HEAD` when `GITHUB_SHA` is unavailable.
+
+The static values committed in `export_presets.cfg` are development defaults only. Exported artifacts receive derived values without leaving the working tree modified.
+
+## Startup routes
+
+The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches and `scenes/tests/exported_build_smoke_test.tscn` only in a `Windows Test` export when the private smoke argument is present. The argument-based route is required because official Windows export templates do not support the `--scene` path override.
+
+The readiness environment variable affects only the CI handshake after the normal main scene is ready; it is not a user argument and does not alter router selection. Without it, the exported game continues running normally.
+
+The normal launch writes `build/windows/normal-startup-smoke.log`. The production argument-isolation check writes `build/windows/production-smoke-argument.log`. The packaged regression launch writes `build/windows-test/exported-build-smoke.log`. All logs are checked by the shared runtime-error detector used by the editor-side test runner.
 
 ## Continuous integration
 
-The required Windows workflow installs or restores the matching export templates after the editor test suite passes. It then runs the same export script and attempts to upload:
+The required Windows workflow installs or restores the matching export templates after the editor test suite passes. The editor and template archives are verified against `scripts/ci/godot_4_7_sha512.txt`, not against a checksum file downloaded from the same release endpoint.
+
+Pull-request runs retain diagnostic logs but do not publish executable packages. Successful trusted push and manual runs upload both:
 
 ```text
 build/windows/
+build/windows-test/
 ```
 
 as an Actions artifact named:
@@ -63,8 +90,8 @@ as an Actions artifact named:
 car-game-windows-<commit-sha>
 ```
 
-The upload step runs even after a preceding failure so partial builds and available logs remain inspectable. Successful artifacts are retained for 14 days and contain the executable, PCK and packaged-startup logs.
+The trusted upload fails when either expected package directory is absent. Artifacts are retained for 14 days.
 
 ## Distribution status
 
-The current preset is an unsigned development build. It does not configure Authenticode signing, an installer, automatic updates or store packaging. Windows may display a reputation warning when the downloaded artifact is launched manually.
+The current presets produce unsigned development builds. They do not configure Authenticode signing, an installer, automatic updates or store packaging. Windows may display a reputation warning when a downloaded artifact is launched manually.

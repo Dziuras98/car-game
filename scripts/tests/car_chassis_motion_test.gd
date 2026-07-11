@@ -108,7 +108,6 @@ func _test_steering_ignores_low_speed() -> void:
 	chassis.update_steering(state, 1.0, car, 0.10)
 
 	_expect(_basis_equal_approx(car.global_transform.basis, before_basis), "chassis steering ignores very low forward speed")
-
 	car.queue_free()
 
 
@@ -219,7 +218,7 @@ func _test_grounded_tire_lateral_recovery() -> void:
 	var chassis: CarChassisController = CarChassisController.new()
 	chassis.configure(config)
 
-	var floor: StaticBody3D = _create_test_floor()
+	var floor: TrackSurfaceBody = _create_test_floor()
 	var car: CharacterBody3D = _create_grounded_test_car()
 	await get_tree().physics_frame
 	_ground_test_car(car)
@@ -243,7 +242,7 @@ func _test_current_frame_slip_reduces_steering() -> void:
 	var chassis: CarChassisController = CarChassisController.new()
 	chassis.configure(config)
 
-	var floor: StaticBody3D = _create_test_floor()
+	var floor: TrackSurfaceBody = _create_test_floor()
 	var stale_slip_car: CharacterBody3D = _create_grounded_test_car(-2.0)
 	var current_slip_car: CharacterBody3D = _create_grounded_test_car(2.0)
 	await get_tree().physics_frame
@@ -279,7 +278,7 @@ func _test_handbrake_reduces_lateral_recovery() -> void:
 	var chassis: CarChassisController = CarChassisController.new()
 	chassis.configure(config)
 
-	var floor: StaticBody3D = _create_test_floor()
+	var floor: TrackSurfaceBody = _create_test_floor()
 	var normal_car: CharacterBody3D = _create_grounded_test_car(-2.0)
 	var handbrake_car: CharacterBody3D = _create_grounded_test_car(2.0)
 	await get_tree().physics_frame
@@ -320,8 +319,11 @@ func _create_grounded_test_car(x_position: float = 0.0) -> CharacterBody3D:
 	return car
 
 
-func _create_test_floor() -> StaticBody3D:
-	var floor: StaticBody3D = StaticBody3D.new()
+func _create_test_floor() -> TrackSurfaceBody:
+	var floor: TrackSurfaceBody = TrackSurfaceBody.new()
+	floor.collision_layer = 1
+	floor.collision_mask = 1
+	floor.grip_multiplier = 1.0
 	add_child(floor)
 	floor.global_position = Vector3(0.0, -0.1, 0.0)
 	_add_box_collision(floor, Vector3(20.0, 0.2, 20.0))

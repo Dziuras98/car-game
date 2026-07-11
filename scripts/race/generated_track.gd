@@ -28,6 +28,8 @@ var _checkpoint_builder: TrackCheckpointBuilder
 var _geometry: TrackGeometryData
 var _checkpoint_gates: Array[TrackCheckpointGate] = []
 var _rebuild_pending: bool = false
+var _runtime_rebuild_locked: bool = false
+var _queued_rebuild_while_locked: bool = false
 var _has_generation_signature: bool = false
 var _last_generation_signature: int = 0
 var _rebuild_count: int = 0
@@ -44,7 +46,12 @@ func _exit_tree() -> void:
 
 
 func _request_rebuild() -> void:
-	if not is_inside_tree() or _rebuild_pending:
+	if not is_inside_tree():
+		return
+	if _runtime_rebuild_locked:
+		_queued_rebuild_while_locked = true
+		return
+	if _rebuild_pending:
 		return
 	_rebuild_pending = true
 	call_deferred("_perform_pending_rebuild")
@@ -52,11 +59,17 @@ func _request_rebuild() -> void:
 
 func _perform_pending_rebuild() -> void:
 	_rebuild_pending = false
+	if _runtime_rebuild_locked:
+		_queued_rebuild_while_locked = true
+		return
 	_rebuild_track(false)
 
 
 func _rebuild_track(force: bool = false) -> bool:
 	if not is_inside_tree() or track_layout == null or not track_layout.is_valid():
+		return false
+	if _runtime_rebuild_locked and not force:
+		_queued_rebuild_while_locked = true
 		return false
 
 	var generation_signature: int = _get_generation_signature()
@@ -112,11 +125,6 @@ func _rebuild_track(force: bool = false) -> bool:
 
 
 func get_racing_line_points() -> Array[Vector3]:
-	if _geometry == null:
-		_ensure_builders()
-		var candidate_geometry: TrackGeometryData = _layout_builder.build(_build_track_generation_config())
-		if _is_geometry_valid(candidate_geometry):
-			_geometry = candidate_geometry
 	return _geometry.get_racing_line_points_array() if _is_geometry_valid(_geometry) else []
 
 
@@ -151,6 +159,19 @@ func has_committed_generation() -> bool:
 		and get_node_or_null(TrackGeneratedContentRoot.GENERATED_CONTENT_NAME) is Node3D
 		and get_checkpoint_gate_count() == get_checkpoint_count() + 1
 	)
+
+
+func set_runtime_rebuild_locked(locked: bool) -> void:
+	if _runtime_rebuild_locked == locked:
+		return
+	_runtime_rebuild_locked = locked
+	if not locked and _queued_rebuild_while_locked:
+		_queued_rebuild_while_locked = false
+		_request_rebuild()
+
+
+func is_runtime_rebuild_locked() -> bool:
+	return _runtime_rebuild_locked
 
 
 func request_rebuild() -> void:
@@ -205,20 +226,7 @@ func _get_generation_signature() -> int:
 
 
 func _is_geometry_valid(geometry: TrackGeometryData) -> bool:
-	if geometry == null:
-		return false
-	var point_count: int = geometry.center_points.size()
-	return (
-		point_count >= 2
-		and geometry.left_edge_points.size() == point_count
-		and geometry.right_edge_points.size() == point_count
-		and geometry.left_shoulder_outer_points.size() == point_count
-		and geometry.right_shoulder_outer_points.size() == point_count
-		and geometry.racing_line_points.size() == point_count
-		and geometry.forward_vectors.size() == point_count
-		and geometry.right_vectors.size() == point_count
-		and geometry.half_widths.size() == point_count
-	)
+	return geometry != null and geometry.is_valid()
 
 
 func _are_generated_meshes_valid(generated_meshes: TrackGeneratedMeshes) -> bool:

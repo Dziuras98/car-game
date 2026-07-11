@@ -1,6 +1,7 @@
 extends Resource
 class_name CarSpecs
 
+
 enum TransmissionType {
 	DIRECT_DRIVE,
 	MANUAL,
@@ -82,6 +83,8 @@ enum TransmissionType {
 @export var suspension_travel: float = 0.18
 @export var suspension_stiffness: float = 32.0
 @export var suspension_damping: float = 5.0
+@export var ground_probe_collision_mask: int = 1
+@export_range(0.0, 1.0, 0.01) var minimum_ground_normal_dot: float = 0.35
 
 
 func is_manual_transmission() -> bool:
@@ -220,6 +223,9 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "suspension_travel", suspension_travel)
 	_append_non_negative(errors, "suspension_stiffness", suspension_stiffness)
 	_append_non_negative(errors, "suspension_damping", suspension_damping)
+	if ground_probe_collision_mask <= 0:
+		errors.append("ground_probe_collision_mask must include at least one physics layer")
+	_append_range(errors, "minimum_ground_normal_dot", minimum_ground_normal_dot, 0.0, 1.0)
 	return errors
 
 

@@ -62,7 +62,7 @@ func _run() -> void:
 	var shape_rebuilt: bool = await _wait_for_geometry_revision(track, shape_revision)
 	_expect(shape_rebuilt, "sampling-only layout change rebuilds committed geometry")
 	_expect(tracker.get_completed_laps(player) == 1, "shape rebuild preserves already completed laps")
-	_expect(tracker.get_expected_checkpoint_index(player) == 2, "shape rebuild preserves a compatible checkpoint sequence")
+	_expect(tracker.get_expected_checkpoint_index(player) == 1, "every geometry rebuild resets a partial checkpoint sequence safely")
 	_expect(
 		tracker.get_progress_distance(player) >= 0.0
 		and tracker.get_progress_distance(player) <= tracker.get_track_length(),

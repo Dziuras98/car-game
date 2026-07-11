@@ -1,6 +1,8 @@
 extends RefCounted
 class_name RaceSessionController
 
+signal runtime_fault(message: String)
+
 const HUD_UPDATE_FRAME_INTERVAL: int = 6
 
 var _race_manager: RaceManager
@@ -17,6 +19,7 @@ var _race_lap_count: int = 1
 var _opponent_count: int = 0
 var _hud_update_frames_remaining: int = 0
 var _configured: bool = false
+var _runtime_fault_active: bool = false
 
 
 func configure(
@@ -56,9 +59,11 @@ func configure(
 	_minimap = minimap
 	_race_lap_count = race_lap_count
 	_opponent_count = opponent_count
+	_runtime_fault_active = false
 
 	_lap_tracker = LapTracker.new()
 	_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
+	_lap_tracker.runtime_contract_failed.connect(_on_lap_tracker_runtime_contract_failed)
 
 	_race_manager = RaceManager.new()
 	_race_manager.countdown_changed.connect(_show_countdown)
@@ -67,6 +72,7 @@ func configure(
 	_race_manager.ai_enabled_changed.connect(_set_ai_enabled)
 	_race_manager.opponent_should_stop.connect(_stop_participant_car)
 	_race_manager.race_finished.connect(_on_race_finished)
+	_car_spawner.driver_fault.connect(_on_ai_driver_fault)
 	_configured = true
 	return true
 
@@ -111,6 +117,8 @@ func update_physics() -> void:
 		return
 
 	_lap_tracker.update_positions()
+	if _runtime_fault_active:
+		return
 	if _hud_update_frames_remaining > 0:
 		_hud_update_frames_remaining -= 1
 		return
@@ -121,18 +129,7 @@ func update_physics() -> void:
 
 func reset_to_menu_state() -> void:
 	_reset_runtime_state(true)
-
-
-func clear_opponents() -> void:
-	if _race_manager != null:
-		_race_manager.reset_to_idle()
-	_clear_opponent_runtime()
-	_clear_participants()
-
-
-func clear_tracking() -> void:
-	if _lap_tracker != null:
-		_lap_tracker.clear()
+	_runtime_fault_active = false
 
 
 func hide_countdown() -> void:
@@ -158,12 +155,24 @@ func get_participants() -> Array[RaceParticipant]:
 	return _participants.duplicate()
 
 
-func get_lap_tracker() -> LapTracker:
-	return _lap_tracker
+func get_race_state() -> RaceManager.State:
+	return _race_manager.get_state() if _race_manager != null else RaceManager.State.IDLE
 
 
-func get_race_manager() -> RaceManager:
-	return _race_manager
+func get_player_current_lap() -> int:
+	if _lap_tracker == null or not _lap_tracker.has_participant(_current_car):
+		return 0
+	return _lap_tracker.get_current_lap(_current_car)
+
+
+func get_player_race_position() -> int:
+	if _lap_tracker == null or not _lap_tracker.has_participant(_current_car):
+		return 0
+	return _lap_tracker.get_race_position(_current_car)
+
+
+func get_participant_count() -> int:
+	return _lap_tracker.get_participant_count() if _lap_tracker != null else 0
 
 
 func are_player_controls_locked() -> bool:
@@ -251,13 +260,23 @@ func _show_lap_ui() -> void:
 
 
 func _update_lap_ui() -> void:
-	if _current_car == null or _lap_tracker == null or _race_hud == null:
+	if not is_instance_valid(_current_car) or _lap_tracker == null or _race_hud == null:
+		_report_runtime_fault("RaceSessionController lost a required lap-HUD dependency.")
+		return
+	if not _lap_tracker.has_participant(_current_car):
+		_report_runtime_fault("RaceSessionController player car is not registered in LapTracker.")
+		return
+	var current_lap: int = _lap_tracker.get_current_lap(_current_car)
+	var race_position: int = _lap_tracker.get_race_position(_current_car)
+	var participant_count: int = _lap_tracker.get_participant_count()
+	if current_lap <= 0 or race_position <= 0 or participant_count <= 0:
+		_report_runtime_fault("RaceSessionController received invalid player race telemetry.")
 		return
 	_race_hud.update_lap(
-		_lap_tracker.get_current_lap(_current_car),
+		current_lap,
 		_race_lap_count,
-		_lap_tracker.get_race_position(_current_car),
-		maxi(_lap_tracker.get_participant_count(), 1)
+		race_position,
+		participant_count
 	)
 
 
@@ -265,9 +284,10 @@ func _prepare_race_tracking() -> bool:
 	if _lap_tracker == null or _track == null:
 		return false
 	var prepared: bool = _lap_tracker.prepare(_track, _race_lap_count, _current_car, _opponents)
-	if prepared:
+	if prepared and _lap_tracker.has_participant(_current_car):
 		_show_lap_ui()
-	return prepared
+		return not _runtime_fault_active
+	return false
 
 
 func _abort_race_start() -> void:
@@ -281,11 +301,16 @@ func _reset_runtime_state(hide_result_screen: bool) -> void:
 	hide_countdown()
 	if _race_manager != null:
 		_race_manager.reset_to_idle()
-	clear_tracking()
+	_clear_tracking()
 	_clear_opponent_runtime()
 	_clear_participants()
 	_current_car = null
 	_hud_update_frames_remaining = 0
+
+
+func _clear_tracking() -> void:
+	if _lap_tracker != null:
+		_lap_tracker.clear()
 
 
 func _clear_opponent_runtime() -> void:
@@ -298,6 +323,7 @@ func _clear_opponent_runtime() -> void:
 func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
 	var participant: RaceParticipant = _get_participant_for_car(car)
 	if participant == null:
+		_report_runtime_fault("LapTracker finished an unknown race participant.")
 		return
 	if participant.is_player():
 		_finish_race()
@@ -307,10 +333,11 @@ func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
 
 func _finish_race() -> void:
 	if _race_manager == null:
+		_report_runtime_fault("RaceSessionController lost RaceManager while finishing.")
 		return
 	var finish_result: RaceManager.Result = _race_manager.finish_race(_current_car, _opponents)
 	if not RaceManager.is_success(finish_result):
-		push_error(RaceManager.get_failure_message(finish_result))
+		_report_runtime_fault(RaceManager.get_failure_message(finish_result))
 
 
 func _on_race_finished() -> void:
@@ -320,15 +347,36 @@ func _on_race_finished() -> void:
 
 func _show_results() -> void:
 	if _lap_tracker == null or _race_hud == null:
+		_report_runtime_fault("RaceSessionController lost result-screen dependencies.")
 		return
 
 	var result_labels: Array[String] = []
 	for car: PlayerCarController in _lap_tracker.get_result_order():
 		var participant: RaceParticipant = _get_participant_for_car(car)
-		result_labels.append(participant.get_display_label() if participant != null else tr("Kierowca"))
+		if participant == null:
+			_report_runtime_fault("Race result order contains an unknown participant.")
+			return
+		result_labels.append(participant.get_display_label())
 	_race_hud.show_results(result_labels)
 
 
 func _update_minimap_opponents() -> void:
 	if _minimap != null:
 		_minimap.set_opponents(_opponents)
+
+
+func _on_ai_driver_fault(message: String) -> void:
+	_report_runtime_fault("AI driver fault: %s" % message)
+
+
+func _on_lap_tracker_runtime_contract_failed(message: String) -> void:
+	_report_runtime_fault(message)
+
+
+func _report_runtime_fault(message: String) -> void:
+	if _runtime_fault_active:
+		return
+	_runtime_fault_active = true
+	push_error(message)
+	_reset_runtime_state(true)
+	runtime_fault.emit(message)

@@ -32,31 +32,42 @@ func _run() -> void:
 	fine_car.set_external_drive_inputs(0.7, 0.0, 0.45)
 
 	var airborne_basis_before: Basis = airborne_car.global_transform.basis
-	dry_car._physics_process(0.10)
-	low_grip_car._physics_process(0.10)
-	airborne_car._physics_process(0.10)
+	for runtime_car: PlayerCarController in [dry_car, low_grip_car, airborne_car]:
+		runtime_car.set_physics_process(true)
+	await get_tree().physics_frame
+	for runtime_car: PlayerCarController in [dry_car, low_grip_car, airborne_car]:
+		runtime_car.set_physics_process(false)
+
+	# The hitch-vs-fine integration comparison intentionally drives the coordinator directly;
+	# all observable assertions consume immutable public telemetry snapshots.
 	coarse_car._physics_process(0.10)
 	for step: int in range(12):
 		fine_car._physics_process(1.0 / 120.0)
 
-	_expect(dry_car._runtime_state.ground_contact_count == 4, "dry car samples four current-frame contacts before powertrain integration")
-	_expect(low_grip_car._runtime_state.ground_contact_count == 4, "low-grip car samples four current-frame contacts before powertrain integration")
-	_expect(is_equal_approx(dry_car._runtime_state.surface_grip_multiplier, 1.0), "dry car reads the typed asphalt grip value")
-	_expect(is_equal_approx(low_grip_car._runtime_state.surface_grip_multiplier, 0.5), "low-grip car reads the typed surface grip value")
-	_expect(dry_car.get_forward_speed() > low_grip_car.get_forward_speed(), "current-frame low grip reduces acceleration without a one-frame delay")
-	_expect(low_grip_car.get_forward_speed() > 0.0, "low-grip surface still transmits a reduced drive force")
+	var dry_snapshot: CarTelemetrySnapshot = dry_car.get_telemetry_snapshot()
+	var low_grip_snapshot: CarTelemetrySnapshot = low_grip_car.get_telemetry_snapshot()
+	var airborne_snapshot: CarTelemetrySnapshot = airborne_car.get_telemetry_snapshot()
+	var coarse_snapshot: CarTelemetrySnapshot = coarse_car.get_telemetry_snapshot()
+	var fine_snapshot: CarTelemetrySnapshot = fine_car.get_telemetry_snapshot()
 
-	_expect(airborne_car._runtime_state.ground_contact_count == 0, "airborne car reports no tire contacts")
-	_expect(is_zero_approx(airborne_car.get_forward_speed()), "airborne throttle does not accelerate vehicle translation")
-	_expect(airborne_car.get_engine_rpm() > specs.idle_rpm, "airborne throttle can free-rev the engine")
+	_expect(dry_snapshot.get_ground_contact_count() == 4, "dry car samples four current-frame contacts before powertrain integration")
+	_expect(low_grip_snapshot.get_ground_contact_count() == 4, "low-grip car samples four current-frame contacts before powertrain integration")
+	_expect(is_equal_approx(dry_snapshot.get_surface_grip_multiplier(), 1.0), "dry car reads the typed asphalt grip value")
+	_expect(is_equal_approx(low_grip_snapshot.get_surface_grip_multiplier(), 0.5), "low-grip car reads the typed surface grip value")
+	_expect(dry_snapshot.get_forward_speed() > low_grip_snapshot.get_forward_speed(), "current-frame low grip reduces acceleration without a one-frame delay")
+	_expect(low_grip_snapshot.get_forward_speed() > 0.0, "low-grip surface still transmits a reduced drive force")
+
+	_expect(airborne_snapshot.get_ground_contact_count() == 0, "airborne car reports no tire contacts")
+	_expect(is_zero_approx(airborne_snapshot.get_forward_speed()), "airborne throttle does not accelerate vehicle translation")
+	_expect(airborne_snapshot.get_engine_rpm() > specs.idle_rpm, "airborne throttle can free-rev the engine")
 	_expect(_bases_match(airborne_car.global_transform.basis, airborne_basis_before), "airborne steering input does not rotate the chassis")
 
 	_expect(
-		absf(coarse_car.get_forward_speed() - fine_car.get_forward_speed()) < 0.05,
+		absf(coarse_snapshot.get_forward_speed() - fine_snapshot.get_forward_speed()) < 0.05,
 		"whole-vehicle substeps keep frame-hitch and fine-step speed integration close"
 	)
 	_expect(
-		absf(coarse_car.get_engine_rpm() - fine_car.get_engine_rpm()) < 20.0,
+		absf(coarse_snapshot.get_engine_rpm() - fine_snapshot.get_engine_rpm()) < 20.0,
 		"whole-vehicle substeps keep frame-hitch and fine-step RPM integration close"
 	)
 	_expect(

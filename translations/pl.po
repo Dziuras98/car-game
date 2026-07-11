@@ -110,3 +110,6 @@ msgstr "PRĘDKOŚĆ"
 
 msgid "BIEG"
 msgstr "BIEG"
+
+msgid "Nie można uruchomić gry"
+msgstr "Nie można uruchomić gry"

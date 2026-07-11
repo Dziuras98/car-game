@@ -23,6 +23,7 @@ env:
   GODOT_EXPORT_TEMPLATES_ARCHIVE: Godot_v4.7-stable_export_templates.tpz
   GODOT_EXPORT_TEMPLATE_VERSION: 4.7.stable
   GODOT_CACHE_DIRECTORY: tools/cache/godot
+  GODOT_CHECKSUMS_FILE: scripts/ci/godot_4_7_sha512.txt
 
 jobs:
   tests:
@@ -49,16 +50,18 @@ jobs:
 
           $baseUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION"
           $archivePath = Join-Path $env:RUNNER_TEMP $env:GODOT_ARCHIVE
-          $sumsPath = Join-Path $env:RUNNER_TEMP "SHA512-SUMS.txt"
+          $sumsPath = Join-Path $PWD $env:GODOT_CHECKSUMS_FILE
+          if (-not (Test-Path -LiteralPath $sumsPath -PathType Leaf)) {
+            throw "Pinned Godot checksum manifest was not found: $sumsPath"
+          }
           Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_ARCHIVE" -OutFile $archivePath
-          Invoke-WebRequest -Uri "$baseUrl/SHA512-SUMS.txt" -OutFile $sumsPath
 
           $escapedArchiveName = [regex]::Escape($env:GODOT_ARCHIVE)
           $checksumLine = Get-Content -LiteralPath $sumsPath | Where-Object {
             $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
           } | Select-Object -First 1
           if ([string]::IsNullOrWhiteSpace($checksumLine)) {
-            throw "SHA512-SUMS.txt does not contain $env:GODOT_ARCHIVE."
+            throw "Pinned checksum manifest does not contain $env:GODOT_ARCHIVE."
           }
           $expectedHash = [regex]::Match(
             $checksumLine,
@@ -152,7 +155,7 @@ jobs:
             $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
           } | Select-Object -First 1
           if ([string]::IsNullOrWhiteSpace($checksumLine)) {
-            throw "SHA512-SUMS.txt does not contain $env:GODOT_EXPORT_TEMPLATES_ARCHIVE."
+            throw "Pinned checksum manifest does not contain $env:GODOT_EXPORT_TEMPLATES_ARCHIVE."
           }
           $expectedHash = [regex]::Match(
             $checksumLine,

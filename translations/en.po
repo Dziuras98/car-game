@@ -110,3 +110,6 @@ msgstr "SPEED"
 
 msgid "BIEG"
 msgstr "GEAR"
+
+msgid "Nie można uruchomić gry"
+msgstr "The game could not be started"

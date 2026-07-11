@@ -14,6 +14,7 @@ $presetPath = Join-Path $projectRoot "export_presets.cfg"
 . (Join-Path $PSScriptRoot "output_directory_safety.ps1")
 . (Join-Path $PSScriptRoot "godot_runtime_log_validation.ps1")
 . (Join-Path $PSScriptRoot "production_pack_content.ps1")
+. (Join-Path $PSScriptRoot "export_version.ps1")
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -130,113 +131,129 @@ function Invoke-MainSceneReadinessCheck {
     Remove-Item -LiteralPath $MarkerPath -Force
 }
 
-$productionOutputPath = Resolve-OutputPath -ConfiguredPath $OutputDirectory -DefaultRelativePath "build/windows"
-$testOutputPath = Resolve-OutputPath -ConfiguredPath $TestOutputDirectory -DefaultRelativePath "build/windows-test"
-$productionOutputPath = Assert-SafeExportOutputPath `
-    -Path $productionOutputPath `
-    -ProjectRoot $projectRoot `
-    -Label "Production Windows"
-$testOutputPath = Assert-SafeExportOutputPath `
-    -Path $testOutputPath `
-    -ProjectRoot $projectRoot `
-    -Label "Windows test"
-Assert-IndependentExportOutputPaths `
-    -FirstPath $productionOutputPath `
-    -FirstLabel "Production Windows" `
-    -SecondPath $testOutputPath `
-    -SecondLabel "Windows test"
-Reset-SafeExportOutputDirectory `
-    -Path $productionOutputPath `
-    -ProjectRoot $projectRoot `
-    -Label "Production Windows"
-Reset-SafeExportOutputDirectory `
-    -Path $testOutputPath `
-    -ProjectRoot $projectRoot `
-    -Label "Windows test"
+$originalPresetContent = Get-Content -LiteralPath $presetPath -Raw
+$versionInfo = Get-WindowsExportVersionInfo -ProjectRoot $projectRoot
+Write-Host "Export source revision: $($versionInfo.Revision)"
+Write-Host "Production product version: $($versionInfo.ProductVersion)"
+Write-Host "Windows file version: $($versionInfo.FileVersion)"
+Set-WindowsExportPresetVersions -PresetPath $presetPath -VersionInfo $versionInfo
 
-$productionExecutable = Join-Path $productionOutputPath "car-game.exe"
-$productionPack = Join-Path $productionOutputPath "car-game.pck"
-$normalStartupLog = Join-Path $productionOutputPath "normal-startup-smoke.log"
-$normalStartupMarker = Join-Path $productionOutputPath "normal-startup-ready.marker"
-$productionSmokeArgumentLog = Join-Path $productionOutputPath "production-smoke-argument.log"
-$productionSmokeArgumentMarker = Join-Path $productionOutputPath "production-smoke-argument.marker"
+try {
+    $productionOutputPath = Resolve-OutputPath -ConfiguredPath $OutputDirectory -DefaultRelativePath "build/windows"
+    $testOutputPath = Resolve-OutputPath -ConfiguredPath $TestOutputDirectory -DefaultRelativePath "build/windows-test"
+    $productionOutputPath = Assert-SafeExportOutputPath `
+        -Path $productionOutputPath `
+        -ProjectRoot $projectRoot `
+        -Label "Production Windows"
+    $testOutputPath = Assert-SafeExportOutputPath `
+        -Path $testOutputPath `
+        -ProjectRoot $projectRoot `
+        -Label "Windows test"
+    Assert-IndependentExportOutputPaths `
+        -FirstPath $productionOutputPath `
+        -FirstLabel "Production Windows" `
+        -SecondPath $testOutputPath `
+        -SecondLabel "Windows test"
+    Reset-SafeExportOutputDirectory `
+        -Path $productionOutputPath `
+        -ProjectRoot $projectRoot `
+        -Label "Production Windows"
+    Reset-SafeExportOutputDirectory `
+        -Path $testOutputPath `
+        -ProjectRoot $projectRoot `
+        -Label "Windows test"
 
-Write-Host ""
-Write-Host "=== Export production Windows release ==="
-& $GodotBinary --headless --path $projectRoot --export-release "Windows Desktop" $productionExecutable
-if ($LASTEXITCODE -ne 0) {
-    throw "Production Windows export failed with exit code $LASTEXITCODE."
-}
-Assert-ExportFiles -ExecutablePath $productionExecutable -PackPath $productionPack -Label "Production Windows"
-Assert-ProductionPackContent -PackPath $productionPack
+    $productionExecutable = Join-Path $productionOutputPath "car-game.exe"
+    $productionPack = Join-Path $productionOutputPath "car-game.pck"
+    $normalStartupLog = Join-Path $productionOutputPath "normal-startup-smoke.log"
+    $normalStartupMarker = Join-Path $productionOutputPath "normal-startup-ready.marker"
+    $productionSmokeArgumentLog = Join-Path $productionOutputPath "production-smoke-argument.log"
+    $productionSmokeArgumentMarker = Join-Path $productionOutputPath "production-smoke-argument.marker"
 
-Write-Host ""
-Write-Host "=== Validate production startup ==="
-Invoke-MainSceneReadinessCheck `
-    -ExecutablePath $productionExecutable `
-    -WorkingDirectory $productionOutputPath `
-    -LogPath $normalStartupLog `
-    -MarkerPath $normalStartupMarker
-
-Write-Host ""
-Write-Host "=== Validate production build ignores private smoke argument ==="
-Invoke-MainSceneReadinessCheck `
-    -ExecutablePath $productionExecutable `
-    -WorkingDirectory $productionOutputPath `
-    -LogPath $productionSmokeArgumentLog `
-    -MarkerPath $productionSmokeArgumentMarker `
-    -AdditionalArguments @("--", "--export-smoke-test")
-
-$testExecutable = Join-Path $testOutputPath "car-game-test.exe"
-$testPack = Join-Path $testOutputPath "car-game-test.pck"
-$smokeLog = Join-Path $testOutputPath "exported-build-smoke.log"
-
-Write-Host ""
-Write-Host "=== Export packaged regression build ==="
-& $GodotBinary --headless --path $projectRoot --export-release "Windows Test" $testExecutable
-if ($LASTEXITCODE -ne 0) {
-    throw "Windows test export failed with exit code $LASTEXITCODE."
-}
-Assert-ExportFiles -ExecutablePath $testExecutable -PackPath $testPack -Label "Windows test"
-
-Write-Host ""
-Write-Host "=== Run packaged regression build ==="
-$smokeArguments = @(
-    "--headless",
-    "--log-file",
-    ('"' + $smokeLog + '"'),
-    "--",
-    "--export-smoke-test"
-)
-$smokeProcess = Start-Process `
-    -FilePath $testExecutable `
-    -ArgumentList $smokeArguments `
-    -WorkingDirectory $testOutputPath `
-    -PassThru
-
-$smokeCompleted = $smokeProcess.WaitForExit(90000)
-if (-not $smokeCompleted) {
-    $smokeProcess.Kill($true)
-    throw "Exported build smoke test exceeded the 90-second timeout."
-}
-if ($smokeProcess.ExitCode -ne 0) {
-    if (Test-Path -LiteralPath $smokeLog -PathType Leaf) {
-        Get-Content -LiteralPath $smokeLog | Write-Host
+    Write-Host ""
+    Write-Host "=== Export production Windows release ==="
+    & $GodotBinary --headless --path $projectRoot --export-release "Windows Desktop" $productionExecutable
+    if ($LASTEXITCODE -ne 0) {
+        throw "Production Windows export failed with exit code $LASTEXITCODE."
     }
-    throw "Exported build smoke test failed with exit code $($smokeProcess.ExitCode)."
-}
-if (-not (Test-Path -LiteralPath $smokeLog -PathType Leaf)) {
-    throw "Exported build smoke log was not created: $smokeLog"
-}
+    Assert-ExportFiles -ExecutablePath $productionExecutable -PackPath $productionPack -Label "Production Windows"
+    Assert-ProductionPackContent -PackPath $productionPack
 
-$smokeLogContent = Get-Content -LiteralPath $smokeLog -Raw
-Get-Content -LiteralPath $smokeLog | Write-Host
-if (-not $smokeLogContent.Contains("[EXPORTED_BUILD_SMOKE_TEST] Passed:")) {
-    throw "Exported build exited successfully but did not write the expected smoke-test success marker."
-}
-Assert-GodotRuntimeLogFile -Path $smokeLog -Label "Exported build smoke test"
+    Write-Host ""
+    Write-Host "=== Validate production startup ==="
+    Invoke-MainSceneReadinessCheck `
+        -ExecutablePath $productionExecutable `
+        -WorkingDirectory $productionOutputPath `
+        -LogPath $normalStartupLog `
+        -MarkerPath $normalStartupMarker
 
-Write-Host ""
-Write-Host "Production and packaged regression Windows exports passed."
-Write-Host "Production artifact directory: $productionOutputPath"
-Write-Host "Test artifact directory: $testOutputPath"
+    Write-Host ""
+    Write-Host "=== Validate production build ignores private smoke argument ==="
+    Invoke-MainSceneReadinessCheck `
+        -ExecutablePath $productionExecutable `
+        -WorkingDirectory $productionOutputPath `
+        -LogPath $productionSmokeArgumentLog `
+        -MarkerPath $productionSmokeArgumentMarker `
+        -AdditionalArguments @("--", "--export-smoke-test")
+
+    $testExecutable = Join-Path $testOutputPath "car-game-test.exe"
+    $testPack = Join-Path $testOutputPath "car-game-test.pck"
+    $smokeLog = Join-Path $testOutputPath "exported-build-smoke.log"
+
+    Write-Host ""
+    Write-Host "=== Export packaged regression build ==="
+    & $GodotBinary --headless --path $projectRoot --export-release "Windows Test" $testExecutable
+    if ($LASTEXITCODE -ne 0) {
+        throw "Windows test export failed with exit code $LASTEXITCODE."
+    }
+    Assert-ExportFiles -ExecutablePath $testExecutable -PackPath $testPack -Label "Windows test"
+
+    Write-Host ""
+    Write-Host "=== Run packaged regression build ==="
+    $smokeArguments = @(
+        "--headless",
+        "--log-file",
+        ('"' + $smokeLog + '"'),
+        "--",
+        "--export-smoke-test"
+    )
+    $smokeProcess = Start-Process `
+        -FilePath $testExecutable `
+        -ArgumentList $smokeArguments `
+        -WorkingDirectory $testOutputPath `
+        -PassThru
+
+    $smokeCompleted = $smokeProcess.WaitForExit(90000)
+    if (-not $smokeCompleted) {
+        $smokeProcess.Kill($true)
+        throw "Exported build smoke test exceeded the 90-second timeout."
+    }
+    if ($smokeProcess.ExitCode -ne 0) {
+        if (Test-Path -LiteralPath $smokeLog -PathType Leaf) {
+            Get-Content -LiteralPath $smokeLog | Write-Host
+        }
+        throw "Exported build smoke test failed with exit code $($smokeProcess.ExitCode)."
+    }
+    if (-not (Test-Path -LiteralPath $smokeLog -PathType Leaf)) {
+        throw "Exported build smoke log was not created: $smokeLog"
+    }
+
+    $smokeLogContent = Get-Content -LiteralPath $smokeLog -Raw
+    Get-Content -LiteralPath $smokeLog | Write-Host
+    if (-not $smokeLogContent.Contains("[EXPORTED_BUILD_SMOKE_TEST] Passed:")) {
+        throw "Exported build exited successfully but did not write the expected smoke-test success marker."
+    }
+    Assert-GodotRuntimeLogFile -Path $smokeLog -Label "Exported build smoke test"
+
+    Write-Host ""
+    Write-Host "Production and packaged regression Windows exports passed."
+    Write-Host "Production artifact directory: $productionOutputPath"
+    Write-Host "Test artifact directory: $testOutputPath"
+}
+finally {
+    [System.IO.File]::WriteAllText(
+        $presetPath,
+        $originalPresetContent,
+        [System.Text.UTF8Encoding]::new($false)
+    )
+}

@@ -43,7 +43,7 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 	if _excluded_car_rid != car_rid:
 		_excluded_car_rid = car_rid
 		_ray_query.exclude = [_excluded_car_rid]
-	_ray_query.collision_mask = car.collision_mask
+	_ray_query.collision_mask = _config.ground_probe_collision_mask
 
 	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
 	var maximum_probe_length: float = (
@@ -66,12 +66,16 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 		if hit.is_empty():
 			continue
 
+		var surface: TrackSurfaceBody = hit.get("collider") as TrackSurfaceBody
+		if surface == null:
+			continue
 		var hit_position: Vector3 = hit.get("position", ray_end)
 		var hit_normal: Vector3 = hit.get("normal", Vector3.UP)
 		if hit_normal.length_squared() <= 0.000001:
-			hit_normal = Vector3.UP
-		else:
-			hit_normal = hit_normal.normalized()
+			continue
+		hit_normal = hit_normal.normalized()
+		if hit_normal.dot(Vector3.UP) < _config.minimum_ground_normal_dot:
+			continue
 		var normal_velocity: float = car.velocity.dot(hit_normal)
 		support_acceleration += _ground_contact_model.calculate_spring_acceleration(
 			ray_start.distance_to(hit_position),
@@ -83,7 +87,7 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 		)
 		contact_count += 1
 		normal_sum += hit_normal
-		grip_sum += _get_surface_grip(hit.get("collider"))
+		grip_sum += surface.get_grip_multiplier()
 
 	state.ground_contact_count = contact_count
 	if contact_count <= 0:
@@ -207,11 +211,6 @@ func set_local_speeds_from_horizontal_velocity(
 	)
 	state.forward_speed = local_speeds.x
 	state.lateral_speed = local_speeds.y
-
-
-func _get_surface_grip(collider_value: Variant) -> float:
-	var surface: TrackSurfaceBody = collider_value as TrackSurfaceBody
-	return surface.get_grip_multiplier() if surface != null else 1.0
 
 
 func _smoothstep(value: float) -> float:
