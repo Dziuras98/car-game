@@ -13,6 +13,10 @@ $localizationLogPath = Join-Path $diagnosticDirectory "localization-validation.l
 New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
 
 Write-Host ""
+Write-Host "=== Export output directory safety ==="
+& (Join-Path $PSScriptRoot "test_output_directory_safety.ps1")
+
+Write-Host ""
 Write-Host "=== Localization contract ==="
 try {
     $localizationOutput = @(& (Join-Path $PSScriptRoot "validate_localization.ps1") 2>&1)
