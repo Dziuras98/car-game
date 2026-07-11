@@ -212,7 +212,7 @@ if ($null -ne $baseCatalog) {
         }
         foreach ($key in $catalog.Keys) {
             if (-not $baseCatalog.ContainsKey($key)) {
-                Add-Failure "Catalog $catalogPath contains key absent from $baseCatalogPath: '$key'"
+                Add-Failure "Catalog $catalogPath contains key absent from ${baseCatalogPath}: '$key'"
             }
         }
     }
