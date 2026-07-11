@@ -99,12 +99,18 @@ func simulate_player_finish() -> void:
 	if _main == null:
 		return
 	var current_car: PlayerCarController = get_current_car()
-	var session: RaceSessionController = _main.get("_race_session") as RaceSessionController
-	if current_car == null or session == null:
+	var track: GeneratedTrack = _main.call("get_active_track") as GeneratedTrack
+	var lap_count: int = int(_main.call("get_active_lap_count"))
+	if not is_instance_valid(current_car) or not is_instance_valid(track) or lap_count <= 0:
 		return
-	var race_manager: RaceManager = session.get_race_manager()
-	if race_manager != null:
-		race_manager.finish_race(current_car, session.get_opponents())
+
+	var checkpoint_count: int = track.get_checkpoint_count()
+	if checkpoint_count <= 0:
+		return
+	for _lap_index: int in range(lap_count):
+		for checkpoint_index: int in range(1, checkpoint_count + 1):
+			track.checkpoint_crossed.emit(current_car, checkpoint_index, true)
+		track.checkpoint_crossed.emit(current_car, 0, true)
 
 
 func find_visible_button_with_text(root_node: Node, label_text: String) -> Button:
