@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap prioritizes correctness, maintainability and reproducible exports before visible feature expansion.
+This roadmap prioritizes correctness, maintainability and reproducible Windows exports before visible feature expansion.
 
 ## Current baseline
 
@@ -9,7 +9,7 @@ The following remediation stages are complete for the present prototype:
 - catalog-driven car models, variants and specs with typed exported arrays;
 - catalog-driven track selection with an explicit default track ID;
 - modular game, spawning, race and vehicle coordinators;
-- scene-driven menu, race, pause, HUD, minimap and mobile UI;
+- scene-driven menu, race, pause, HUD and minimap UI;
 - Resource-backed generated-track layout and typed builder pipeline;
 - atomic track rebuilds and geometry revision notifications;
 - plane-crossing checkpoints and ordered lap validation;
@@ -21,9 +21,9 @@ The following remediation stages are complete for the present prototype:
 - collision-resolved velocity synchronization;
 - bounded skid marks, procedural-audio voices and stadium/render batches;
 - Polish/English localization and global UI theme;
+- keyboard/gamepad player input and a separate external AI channel;
 - automatic test discovery, per-test timeouts and runtime-error detection;
-- Windows export plus normal/package smoke validation;
-- Android APK export, integrity and manifest validation.
+- Windows production/test export plus packaged startup validation.
 
 The branch should remain regression-first: every behavior or ownership change needs focused coverage and compatibility with the canonical full-program smoke test.
 
@@ -35,7 +35,7 @@ Status: complete; documentation must be maintained incrementally.
 - [x] architecture baseline;
 - [x] vehicle-model baseline;
 - [x] catalog documentation;
-- [x] Windows and Android CI documentation;
+- [x] Windows CI documentation;
 - [x] roadmap.
 
 ## Phase 1 — High-level coordination split
@@ -96,7 +96,7 @@ Possible later work:
 - wheel-load transfer;
 - per-wheel tire state;
 - damage and mechanical failures;
-- more complete manual clutch input;
+- analog clutch support for suitable controllers;
 - more realistic automatic transmission control.
 
 ## Phase 4 — Generated track and race correctness
@@ -123,14 +123,14 @@ Possible later work:
 
 ## Phase 5 — UI, localization and input
 
-Status: complete for current screens.
+Status: complete for current screens and input sources.
 
 - [x] menu, countdown, lap/position, results and pause scenes;
 - [x] speedometer/tachometer and minimap scenes;
 - [x] global theme;
 - [x] Polish and English catalogs loaded before main-scene routing;
-- [x] safe-area layout support;
-- [x] independent player, AI and touch input channels;
+- [x] keyboard and gamepad action mappings;
+- [x] independent player and external AI input channels;
 - [x] rear-view camera behavior;
 - [x] pause lifecycle and input cleanup.
 
@@ -138,7 +138,7 @@ Possible later work:
 
 - remappable controls;
 - gamepad calibration and dead-zone UI;
-- final mobile control layout;
+- steering-wheel and pedal profiles;
 - accessibility settings;
 - garage presentation.
 
@@ -157,20 +157,18 @@ Status: complete for the current content scale.
 - [x] batched edge markers and barriers;
 - [x] bounded stadium `MultiMesh` groups;
 - [x] deterministic performance regression budgets;
-- [x] Windows production/test export and packaged smoke tests;
-- [x] Android APK export and manifest validation.
+- [x] Windows production/test export and packaged smoke tests.
 
 Distribution work remains deferred until required:
 
-- executable/APK signing;
+- executable signing;
 - installer or store packaging;
 - tagged release workflow and retention policy;
-- automatic update delivery;
-- physical-device Android smoke automation.
+- automatic update delivery.
 
 ## Phase 7 — Test and repository hygiene
 
-Status: complete for this remediation PR; maintained continuously afterward.
+Status: complete for the current remediation baseline; maintained continuously afterward.
 
 Completed:
 
@@ -184,7 +182,8 @@ Completed:
 - [x] explicit default-track regression coverage;
 - [x] no test-only suffixes in production GDScript APIs;
 - [x] no test simulation facades in production coordinators;
-- [x] static guards for completed scene, catalog and transmission migrations.
+- [x] static guards for completed scene, catalog and transmission migrations;
+- [x] one Windows platform workflow and two Windows export presets.
 
 Ongoing rules:
 
@@ -195,7 +194,7 @@ Ongoing rules:
 
 ## Phase 8 — Feature expansion
 
-Status: outside this remediation PR and ready for separate prioritization.
+Status: ready for separate prioritization.
 
 Candidates:
 
@@ -206,7 +205,8 @@ Candidates:
 - ghost laps and replay data;
 - configurable assists;
 - garage/car-selection presentation;
-- tire temperature, wear and damage consequences.
+- tire temperature, wear and damage consequences;
+- richer keyboard, gamepad and steering-wheel configuration.
 
 ## Change rule
 
@@ -216,4 +216,4 @@ Every subsystem change should include:
 2. compatibility with the canonical full-program smoke test;
 3. relevant documentation updates;
 4. no unrelated handling-tuning changes in the same commit;
-5. verification of both required workflows before a PR is marked ready.
+5. successful Windows verification and packaged export checks before a pull request is marked ready.
