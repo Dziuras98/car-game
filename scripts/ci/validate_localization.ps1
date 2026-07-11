@@ -54,7 +54,7 @@ function Read-PoCatalog {
     $fullPath = Join-Path $projectRoot $RelativePath
     if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
         Add-Failure "Translation catalog is missing: $RelativePath"
-        return $entries
+        return [pscustomobject]@{ Entries = $entries }
     }
 
     $currentId = $null
@@ -105,7 +105,7 @@ function Read-PoCatalog {
         Add-Failure "Unsupported PO syntax in ${RelativePath}: $line"
     }
 
-    return $entries
+    return [pscustomobject]@{ Entries = $entries }
 }
 
 function Get-FormatTokens {
@@ -150,7 +150,7 @@ function Test-IsNonTranslatableUiToken {
 
 $projectFile = Join-Path $projectRoot 'project.godot'
 if (-not (Test-Path -LiteralPath $projectFile -PathType Leaf)) {
-    Add-Failure 'project.godot is missing'
+    throw 'project.godot is missing'
 }
 
 $projectContent = Get-Content -LiteralPath $projectFile -Raw -Encoding UTF8
@@ -187,7 +187,8 @@ foreach ($resourcePath in $catalogResourcePaths) {
         continue
     }
     $relativePath = $resourcePath.Substring('res://'.Length)
-    $catalogs.Add($resourcePath, (Read-PoCatalog -RelativePath $relativePath))
+    $catalogResult = Read-PoCatalog -RelativePath $relativePath
+    $catalogs.Add($resourcePath, $catalogResult.Entries)
 }
 
 $baseCatalogPath = if ($catalogResourcePaths.Count -gt 0) { $catalogResourcePaths[0] } else { '' }
