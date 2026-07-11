@@ -31,9 +31,11 @@ From the repository root, run:
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
+Optional `-OutputDirectory` and `-TestOutputDirectory` overrides must resolve to separate, non-nested descendants of the repository `build` directory. The exporter rejects the repository root, the `build` root, paths outside `build`, existing files and paths that pass through symbolic links or junctions before it removes any previous artifacts.
+
 The script:
 
-1. clears `build/windows`;
+1. validates both output paths and clears `build/windows` and `build/windows-test`;
 2. exports the `Windows Desktop` release preset;
 3. verifies that both the executable and PCK were created;
 4. starts the exported executable without user arguments;
