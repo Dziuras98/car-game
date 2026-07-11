@@ -36,11 +36,11 @@ func _test_ground_contact_math() -> void:
 
 
 func _test_runtime_ground_probe() -> void:
-	var floor_body: StaticBody3D = StaticBody3D.new()
+	var floor_body: TrackSurfaceBody = TrackSurfaceBody.new()
 	floor_body.name = "TestSurface"
 	floor_body.collision_layer = 1
 	floor_body.collision_mask = 1
-	floor_body.set_meta("surface_grip_multiplier", 0.62)
+	floor_body.grip_multiplier = 0.62
 	var floor_shape: CollisionShape3D = CollisionShape3D.new()
 	var floor_box: BoxShape3D = BoxShape3D.new()
 	floor_box.size = Vector3(20.0, 0.2, 20.0)
@@ -73,7 +73,7 @@ func _test_runtime_ground_probe() -> void:
 
 	_expect(state.ground_contact_count == 4, "four runtime probes detect a flat surface within suspension travel")
 	_expect(state.ground_normal.distance_to(Vector3.UP) < 0.001, "flat surface produces an upward averaged normal")
-	_expect(is_equal_approx(state.surface_grip_multiplier, 0.62), "runtime probes read the contacted surface grip metadata")
+	_expect(is_equal_approx(state.surface_grip_multiplier, 0.62), "runtime probes read the contacted typed surface grip")
 	_expect(state.suspension_acceleration > 0.0, "runtime probes calculate suspension support acceleration")
 
 	car.global_position.y = 0.10
