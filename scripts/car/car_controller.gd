@@ -1,14 +1,22 @@
 extends CharacterBody3D
 class_name PlayerCarController
 
+
+enum SpecsApplyResult {
+	OK,
+	NULL_SPECS,
+	INVALID_SPECS,
+}
+
 var _car_specs: CarSpecs
 
 @export_group("Specs")
 @export var car_specs: CarSpecs:
 	set(value):
-		_car_specs = value
-		if is_inside_tree():
-			_reconfigure_drive_runtime(true)
+		if not is_inside_tree():
+			_car_specs = value
+			return
+		try_apply_car_specs(value)
 	get:
 		return _car_specs
 
@@ -22,7 +30,10 @@ var _skid_mark_emitter: SkidMarkEmitter
 
 
 func _ready() -> void:
-	_reconfigure_drive_runtime(false)
+	var result: SpecsApplyResult = _initialize_drive_runtime()
+	if result != SpecsApplyResult.OK:
+		set_physics_process(false)
+		return
 	_reset_controller.capture_start_transform(_runtime_state, global_transform)
 
 
@@ -87,6 +98,19 @@ func set_external_input_enabled(enabled: bool) -> void:
 
 func set_external_drive_inputs(throttle: float, brake: float, steering: float, handbrake_active: bool = false) -> void:
 	_car_input.set_external_drive_inputs(throttle, brake, steering, handbrake_active)
+
+
+func try_apply_car_specs(next_specs: CarSpecs) -> SpecsApplyResult:
+	if next_specs == null:
+		push_error("PlayerCarController rejected null CarSpecs; keeping the active runtime configuration.")
+		return SpecsApplyResult.NULL_SPECS
+	var next_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(next_specs)
+	if next_config == null:
+		push_error("PlayerCarController rejected invalid CarSpecs; keeping the active runtime configuration.")
+		return SpecsApplyResult.INVALID_SPECS
+	_car_specs = next_specs
+	_apply_drive_config(next_config, true)
+	return SpecsApplyResult.OK
 
 
 func _physics_process(delta: float) -> void:
@@ -164,18 +188,19 @@ func _physics_process(delta: float) -> void:
 	)
 
 
-func _reconfigure_drive_runtime(preserve_motion_state: bool = true) -> void:
-	if car_specs == null:
-		_drive_config = null
-		set_physics_process(false)
+func _initialize_drive_runtime() -> SpecsApplyResult:
+	if _car_specs == null:
 		push_error("PlayerCarController requires a non-null CarSpecs resource.")
-		return
+		return SpecsApplyResult.NULL_SPECS
+	var initial_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(_car_specs)
+	if initial_config == null:
+		return SpecsApplyResult.INVALID_SPECS
+	_apply_drive_config(initial_config, false)
+	return SpecsApplyResult.OK
 
-	_drive_config = CarDriveConfigBuilder.build_from_specs(car_specs)
-	if _drive_config == null:
-		set_physics_process(false)
-		return
 
+func _apply_drive_config(next_config: CarDriveConfig, preserve_motion_state: bool) -> void:
+	_drive_config = next_config
 	set_physics_process(true)
 	_powertrain_controller.configure(_drive_config)
 	_chassis_controller.configure(_drive_config)
