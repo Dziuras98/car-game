@@ -2,11 +2,12 @@ extends RefCounted
 class_name RaceSessionController
 
 const HUD_UPDATE_FRAME_INTERVAL: int = 6
-const OPPONENT_NODE_PREFIX: String = "Opponent"
 
 var _race_manager: RaceManager
 var _lap_tracker: LapTracker
 var _opponents: Array[PlayerCarController] = []
+var _participants: Array[RaceParticipant] = []
+var _participants_by_car_id: Dictionary = {}
 var _current_car: PlayerCarController
 var _car_spawner: CarSpawner
 var _race_hud: RaceHud
@@ -80,6 +81,10 @@ func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> bool
 	if not _spawn_opponents():
 		_abort_race_start()
 		return false
+	if not _build_participants():
+		push_error("RaceSessionController could not create the typed participant set.")
+		_abort_race_start()
+		return false
 	if not _prepare_race_tracking():
 		push_error("RaceSessionController could not prepare race tracking for the complete participant set.")
 		_abort_race_start()
@@ -102,22 +107,14 @@ func update_physics() -> void:
 
 
 func reset_to_menu_state() -> void:
-	hide_results()
-	hide_lap_ui()
-	hide_countdown()
-	clear_opponents()
-	clear_tracking()
-	_current_car = null
-	_hud_update_frames_remaining = 0
+	_reset_runtime_state(true)
 
 
 func clear_opponents() -> void:
 	if _race_manager != null:
 		_race_manager.reset_to_idle()
-	if _car_spawner != null:
-		_car_spawner.clear_opponents()
-	_opponents.clear()
-	_update_minimap_opponents()
+	_clear_opponent_runtime()
+	_clear_participants()
 
 
 func clear_tracking() -> void:
@@ -144,6 +141,10 @@ func get_opponents() -> Array[PlayerCarController]:
 	return _opponents.duplicate()
 
 
+func get_participants() -> Array[RaceParticipant]:
+	return _participants.duplicate()
+
+
 func get_lap_tracker() -> LapTracker:
 	return _lap_tracker
 
@@ -168,6 +169,44 @@ func _spawn_opponents() -> bool:
 		return false
 	_update_minimap_opponents()
 	return true
+
+
+func _build_participants() -> bool:
+	_clear_participants()
+	if not _register_participant(RaceParticipant.create_player(_current_car)):
+		return false
+	for opponent_index: int in range(_opponents.size()):
+		if not _register_participant(
+			RaceParticipant.create_opponent(_opponents[opponent_index], opponent_index + 1)
+		):
+			_clear_participants()
+			return false
+	return _participants.size() == _opponents.size() + 1
+
+
+func _register_participant(participant: RaceParticipant) -> bool:
+	if participant == null or not participant.is_valid():
+		return false
+	for existing: RaceParticipant in _participants:
+		if existing.participant_id == participant.participant_id:
+			return false
+	var car_instance_id: int = participant.car.get_instance_id()
+	if _participants_by_car_id.has(car_instance_id):
+		return false
+	_participants.append(participant)
+	_participants_by_car_id[car_instance_id] = participant
+	return true
+
+
+func _get_participant_for_car(car: PlayerCarController) -> RaceParticipant:
+	if not is_instance_valid(car):
+		return null
+	return _participants_by_car_id.get(car.get_instance_id()) as RaceParticipant
+
+
+func _clear_participants() -> void:
+	_participants.clear()
+	_participants_by_car_id.clear()
 
 
 func _set_ai_enabled(enabled: bool) -> void:
@@ -218,24 +257,38 @@ func _prepare_race_tracking() -> bool:
 
 
 func _abort_race_start() -> void:
+	_reset_runtime_state(false)
+
+
+func _reset_runtime_state(hide_result_screen: bool) -> void:
+	if hide_result_screen:
+		hide_results()
 	hide_lap_ui()
 	hide_countdown()
+	if _race_manager != null:
+		_race_manager.reset_to_idle()
 	clear_tracking()
+	_clear_opponent_runtime()
+	_clear_participants()
+	_current_car = null
+	_hud_update_frames_remaining = 0
+
+
+func _clear_opponent_runtime() -> void:
 	if _car_spawner != null:
 		_car_spawner.clear_opponents()
 	_opponents.clear()
 	_update_minimap_opponents()
-	_current_car = null
-	_hud_update_frames_remaining = 0
-	if _race_manager != null:
-		_race_manager.reset_to_idle()
 
 
 func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
-	if car == _current_car:
+	var participant: RaceParticipant = _get_participant_for_car(car)
+	if participant == null:
+		return
+	if participant.is_player():
 		_finish_race()
-	elif is_instance_valid(car):
-		_stop_participant_car(car)
+	else:
+		_stop_participant_car(participant.car)
 
 
 func _finish_race() -> void:
@@ -254,27 +307,9 @@ func _show_results() -> void:
 
 	var result_labels: Array[String] = []
 	for car: PlayerCarController in _lap_tracker.get_result_order():
-		result_labels.append(_get_participant_label(car))
+		var participant: RaceParticipant = _get_participant_for_car(car)
+		result_labels.append(participant.get_display_label() if participant != null else tr("Kierowca"))
 	_race_hud.show_results(result_labels)
-
-
-func _get_participant_label(car: PlayerCarController) -> String:
-	if car == _current_car:
-		return tr("Ty")
-	if car != null:
-		var opponent_number: int = _get_standard_opponent_number(str(car.name))
-		if opponent_number > 0:
-			return tr("Kierowca %d") % opponent_number
-		if not str(car.name).is_empty():
-			return str(car.name)
-	return tr("Kierowca")
-
-
-func _get_standard_opponent_number(node_name: String) -> int:
-	if not node_name.begins_with(OPPONENT_NODE_PREFIX):
-		return -1
-	var suffix: String = node_name.trim_prefix(OPPONENT_NODE_PREFIX)
-	return suffix.to_int() if suffix.is_valid_int() else -1
 
 
 func _update_minimap_opponents() -> void:
