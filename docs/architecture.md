@@ -1,16 +1,15 @@
 # Architecture baseline
 
-This document defines the current subsystem boundaries of the Godot car-game prototype. It describes the code that is expected to remain stable while new cars, tracks and race features are added.
+This document defines the current subsystem boundaries of the Godot car-game prototype. Windows is the sole target platform. Player control is provided by the project input map through keyboard and gamepad bindings; AI uses a separate external input channel.
 
 ## Validation baseline
 
 The required pull-request gates are:
 
-- Windows localization validation, headless import and regression tests;
-- Windows production/test export and packaged startup smoke tests;
-- Android debug APK export, integrity and manifest validation.
+- localization validation, headless import and regression tests on Windows;
+- Windows production/test export and packaged startup smoke tests.
 
-`scripts/ci/verify_project.ps1` is the single complete Windows verification entrypoint. It validates localization and then delegates test execution to `scripts/ci/run_tests.ps1`, which discovers tests automatically instead of maintaining a handwritten list:
+`scripts/ci/verify_project.ps1` is the single complete verification entrypoint. It validates localization and then delegates test execution to `scripts/ci/run_tests.ps1`, which discovers tests automatically instead of maintaining a handwritten list:
 
 - standalone scripts under `scripts/tests/` must extend `SceneTree`;
 - all scenes under `scenes/tests/` are executed, except explicit packaged-only fixtures;
@@ -55,7 +54,7 @@ The normal main scene composes:
 8. Car spawners assign the requested global transform and then capture it as the reset origin.
 9. Race opponent creation prepares the complete requested set of typed car/AI-driver pairs before any participant is committed to the scene.
 10. Camera, speedometer and minimap bind only after the player car exists.
-11. Free drive enables input immediately; race mode commits only after all opponents and lap tracking are ready, then starts the countdown.
+11. Free drive enables player input immediately; race mode commits only after all opponents and lap tracking are ready, then starts the countdown.
 12. `LapTracker` consumes ordered checkpoint crossings and continuous racing-line progress.
 13. Any failed session-start step clears partial runtime state and returns to the main menu.
 14. Returning to the menu disposes cars, opponents, input state and race UI.
@@ -72,7 +71,7 @@ The normal main scene composes:
 - transactional session startup and rollback;
 - camera/HUD/minimap binding;
 - free-drive and race session entry/cleanup;
-- pause and mobile-control lifecycle.
+- pause lifecycle.
 
 It must not accumulate vehicle physics, procedural track construction, detailed lap rules, low-level UI layout logic or test-simulation facades.
 
@@ -168,10 +167,17 @@ scripts/car/torque_converter_model.gd
 scripts/car/skid_mark_emitter.gd
 ```
 
+`CarInput` has two explicit sources:
+
+- player actions from `Input`, backed by keyboard/gamepad mappings in `project.godot`;
+- typed external values used by AI and deterministic tests.
+
+External input has priority while enabled. Disabling player control clears the current drive snapshot; disabling external input neutralizes its stored values.
+
 ### Physics-frame pipeline
 
-1. process reset requests;
-2. read player, AI or touch input;
+1. process player reset requests;
+2. read player or external AI input;
 3. snapshot throttle/brake telemetry;
 4. cast four suspension/ground-contact probes within configured suspension reach;
 5. average contact normal and current surface grip, then calculate support;
@@ -222,7 +228,7 @@ TrackLayoutResource
 
 Render/collision meshes share generated geometry. Surfaces publish grip metadata. Repeated boxes such as edge markers, barriers and stadium elements are grouped in bounded `MultiMesh` batches.
 
-## UI and input architecture
+## UI architecture
 
 Major layouts are scene-driven:
 
@@ -232,16 +238,20 @@ scenes/ui/pause_menu.tscn
 scenes/ui/countdown_overlay.tscn
 scenes/ui/lap_position_hud.tscn
 scenes/ui/results_screen.tscn
-scenes/ui/mobile_drive_controls.tscn
 scenes/ui/speedometer.tscn
 scenes/ui/minimap.tscn
 ```
 
-Dynamic menu buttons and result rows remain runtime-generated because their content is catalog/session dependent.
+Dynamic menu buttons and result rows remain runtime-generated because their content is catalog/session dependent. All controls use the global theme from `resources/ui/default_theme.tres`. Localization catalogs are loaded before normal main-scene routing.
 
-All controls use the global theme from `resources/ui/default_theme.tres`. Localization catalogs are loaded before normal main-scene routing.
+## Export architecture
 
-`CarInput` keeps player, external AI and touch channels separate. Mobile controls call the active car's touch API; they do not mutate global input actions.
+`export_presets.cfg` contains two Windows Desktop presets:
+
+- `Windows Desktop` for the production package;
+- `Windows Test` for the packaged regression route.
+
+`.github/workflows/windows-tests.yml` is the only platform workflow. It verifies the project, creates both packages and executes both packaged startup checks.
 
 ## Audio and effects
 
