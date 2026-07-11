@@ -103,7 +103,7 @@ function Assert-NoProductionTestOnlyIdentifiers {
     }
 }
 
-# High-level orchestration may not regain reflective fallback paths or duplicated mode literals.
+# High-level orchestration may not regain reflective fallback paths, duplicated mode literals or detailed startup sequencing.
 Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     "available_cars",
     ".has_method(",
@@ -113,47 +113,101 @@ Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     "func simulate_current_player_finish(",
     "func is_child_visible(",
     '"free_drive"',
-    '"race"'
+    '"race"',
+    "track_catalog.get_track_by_id(",
+    "_session_state.begin_start(",
+    "_session_state.commit("
 )
 Assert-GDScriptFunctions "scripts/game/game_manager.gd" @(
     "is_supported_mode_id",
+    "get_session_phase",
+    "_configure_session_start_transaction",
     "_on_menu_selection_completed",
+    "_handle_session_start_failure",
     "_clear_active_session",
     "_reset_to_main_menu",
-    "_abort_session_start",
-    "_return_to_main_menu"
+    "_return_to_main_menu",
+    "_on_session_phase_changed"
 )
 Assert-Contains "scripts/game/game_manager.gd" @(
+    "signal session_phase_changed",
     "var _session_state: GameSessionState = GameSessionState.new()",
+    "var _session_start_transaction: GameSessionStartTransaction",
     "car_catalog.validate()"
 )
-Assert-DoesNotContain "scripts/ui/main_menu.gd" @('"free_drive"', '"race"')
+Assert-DoesNotContain "scripts/ui/main_menu.gd" @('"free_drive"', '"race"', "str(track_option.track_id)")
+Assert-Contains "scripts/ui/main_menu.gd" @(
+    "signal selection_completed(mode_id: StringName, track_id: StringName, car_variant_id: StringName)",
+    "var _selected_mode_id: StringName",
+    "var _selected_track_id: StringName"
+)
 
 Assert-GDScriptClassName "scripts/game/game_modes.gd" "GameModes"
 Assert-GDScriptFunctions "scripts/game/game_modes.gd" @("is_supported")
 Assert-Contains "scripts/game/game_modes.gd" @(
-    'const FREE_DRIVE: String = "free_drive"',
-    'const RACE: String = "race"'
+    'const FREE_DRIVE: StringName = &"free_drive"',
+    'const RACE: StringName = &"race"',
+    "const ALL: Array[StringName]"
 )
 
 Assert-GDScriptClassName "scripts/game/game_session_state.gd" "GameSessionState"
 Assert-GDScriptFunctions "scripts/game/game_session_state.gd" @(
+    "is_success",
     "begin_start",
     "commit",
     "update_free_drive_car_variant",
     "reset",
+    "get_phase",
     "is_free_drive",
     "is_race"
 )
+Assert-Contains "scripts/game/game_session_state.gd" @(
+    "signal phase_changed",
+    "enum Result",
+    "var _mode_id: StringName",
+    "var _track_id: StringName"
+)
 Assert-DoesNotContain "scripts/game/game_session_state.gd" @('"free_drive"', '"race"')
+
+Assert-GDScriptClassName "scripts/game/game_session_start_transaction.gd" "GameSessionStartTransaction"
+Assert-GDScriptFunctions "scripts/game/game_session_start_transaction.gd" @(
+    "configure",
+    "execute",
+    "get_failure_message",
+    "_fail"
+)
+Assert-Contains "scripts/game/game_session_start_transaction.gd" @(
+    "_session_state.begin_start()",
+    "_activate_track.call(selected_track)",
+    "_configure_runtime.call()",
+    "_spawn_player.call(selected_car_index, spawn_global_transform)",
+    "_session_state.commit("
+)
 
 Assert-DoesNotContain "scripts/game/race_session_controller.gd" @(
     ".has_method(",
     ".call(",
     "func get_moving_opponent_count(",
-    "func simulate_current_player_finish("
+    "func simulate_current_player_finish(",
+    "OPPONENT_NODE_PREFIX",
+    "trim_prefix(",
+    "str(car.name)"
 )
-Assert-GDScriptFunctions "scripts/game/race_session_controller.gd" @("start_race", "_abort_race_start")
+Assert-GDScriptFunctions "scripts/game/race_session_controller.gd" @(
+    "start_race",
+    "get_participants",
+    "_build_participants",
+    "_reset_runtime_state",
+    "_abort_race_start"
+)
+Assert-GDScriptClassName "scripts/race/race_participant.gd" "RaceParticipant"
+Assert-GDScriptFunctions "scripts/race/race_participant.gd" @(
+    "create_player",
+    "create_opponent",
+    "is_valid",
+    "get_display_label"
+)
+Assert-Contains "scripts/race/race_participant.gd" @("participant_id: StringName", "enum Kind")
 Assert-DoesNotContain "scripts/race/lap_tracker.gd" @(".has_method(", ".call(")
 Assert-DoesNotContain "scripts/race/ai_race_driver.gd" @(".has_method(", ".has_signal(", ".call(")
 Assert-DoesNotContain "scripts/game/player_car_spawn_controller.gd" @("clampi(car_index")
@@ -161,7 +215,7 @@ Assert-GDScriptFunctions "scripts/game/opponent_participant_spawner.gd" @("spawn
 Assert-GDScriptFunctions "scripts/game/car_instance_factory.gd" @("has_ai_eligible_cars")
 Assert-DoesNotContain "scripts/game/car_instance_factory.gd" @("automatic_variants", "source = _available_variants")
 
-# Vehicle configuration remains resource-driven and free of completed migration compatibility paths.
+# Vehicle configuration remains resource-driven and ground-contact processing remains allocation-aware.
 Assert-GDScriptFunctions "scripts/car/car_specs.gd" @("validate")
 Assert-Contains "scripts/car/car_specs.gd" @("enum TransmissionType", "transmission_type")
 Assert-DoesNotContain "scripts/car/car_specs.gd" @(
@@ -183,6 +237,17 @@ Assert-DoesNotContain "scripts/car/car_controller.gd" @(
     "REMOVED_LEGACY_TUNING_PROPERTIES",
     "func _set(",
     "func _apply_car_specs("
+)
+Assert-Contains "scripts/car/car_chassis_controller.gd" @(
+    "var _probe_local_positions: Array[Vector3]",
+    "for local_probe_position: Vector3 in _probe_local_positions",
+    "var contact_count: int",
+    "var normal_sum: Vector3",
+    "var grip_sum: float"
+)
+Assert-DoesNotContain "scripts/car/car_chassis_controller.gd" @(
+    "var normals: Array[Vector3]",
+    "var grip_values: Array[float]"
 )
 Assert-DoesNotMatch "scenes/cars/370z.tscn" @(
     '(?m)^\s*(acceleration|brake_deceleration|reverse_acceleration|coast_deceleration|handbrake_deceleration|max_forward_speed|max_reverse_speed|steering_speed|wheel_base|max_steering_angle_degrees|idle_rpm|peak_torque_rpm|redline_rpm|rev_limiter_rpm|low_rpm_torque_multiplier|mid_rpm_torque_multiplier|redline_torque_multiplier|engine_force|engine_brake_force|rpm_response|manual_transmission_enabled|automatic_transmission_enabled|gear_ratios|reverse_gear_ratio|final_drive_ratio|peak_engine_torque|wheel_radius|drivetrain_efficiency|shift_delay|automatic_upshift_rpm|automatic_downshift_rpm|automatic_kickdown_throttle|automatic_kickdown_rpm|automatic_shift_delay|torque_converter_stall_rpm|torque_converter_coupling_rpm|torque_converter_stall_torque_multiplier|vehicle_mass|drag_coefficient|frontal_area|air_density|rolling_resistance_coefficient|lateral_grip|handbrake_lateral_grip_multiplier|steering_slip_gain|slip_speed_threshold|slip_steering_lock_threshold|slip_steering_same_direction_multiplier|skid_mark_min_slip|skid_mark_interval|skid_mark_lifetime|skid_mark_width|skid_mark_length|gravity|floor_stick_force)\s*='

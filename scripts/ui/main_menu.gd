@@ -1,15 +1,15 @@
 extends CanvasLayer
 class_name MainMenu
 
-signal selection_completed(mode_id: String, track_id: String, car_variant_id: StringName)
+signal selection_completed(mode_id: StringName, track_id: StringName, car_variant_id: StringName)
 
 const STEP_MODE: int = 0
 const STEP_TRACK: int = 1
 const STEP_MODEL: int = 2
 const STEP_VARIANT: int = 3
 
-var _selected_mode_id: String = ""
-var _selected_track_id: String = ""
+var _selected_mode_id: StringName = &""
+var _selected_track_id: StringName = &""
 var _selected_model_index: int = -1
 var _current_step: int = STEP_MODE
 var _car_models: Array[CarModelMenuOption] = []
@@ -75,8 +75,8 @@ func _show_current_step() -> void:
 
 func _show_mode_step() -> void:
 	_current_step = STEP_MODE
-	_selected_mode_id = ""
-	_selected_track_id = ""
+	_selected_mode_id = &""
+	_selected_track_id = &""
 	_selected_model_index = -1
 	_title_label.text = tr("Car Game")
 	_subtitle_label.text = tr("Wybierz tryb")
@@ -89,7 +89,7 @@ func _show_mode_step() -> void:
 
 func _show_track_step() -> void:
 	_current_step = STEP_TRACK
-	_selected_track_id = ""
+	_selected_track_id = &""
 	_selected_model_index = -1
 	_title_label.text = tr("Wybierz tor")
 	_subtitle_label.text = "%s: %s" % [tr("Tryb"), _get_mode_label(_selected_mode_id)]
@@ -103,7 +103,7 @@ func _show_track_step() -> void:
 		if track_option != null and track_option.is_valid():
 			_add_option_button(
 				track_option.label,
-				Callable(self, "_on_track_pressed").bind(str(track_option.track_id))
+				Callable(self, "_on_track_pressed").bind(track_option.track_id)
 			)
 	_focus_first_option()
 
@@ -187,7 +187,7 @@ func _focus_back_button() -> void:
 		_back_button.call_deferred("grab_focus")
 
 
-func _on_mode_pressed(mode_id: String) -> void:
+func _on_mode_pressed(mode_id: StringName) -> void:
 	if not GameModes.is_supported(mode_id):
 		_show_configuration_error(tr("Wybrany tryb nie jest dostępny"))
 		return
@@ -198,7 +198,7 @@ func _on_mode_pressed(mode_id: String) -> void:
 	_show_track_step()
 
 
-func _on_track_pressed(track_id: String) -> void:
+func _on_track_pressed(track_id: StringName) -> void:
 	if _find_track_option(track_id) == null:
 		_show_configuration_error(tr("Wybrany tor nie jest dostępny"))
 		return
@@ -237,7 +237,7 @@ func _on_back_pressed() -> void:
 			_show_mode_step()
 
 
-func _get_mode_label(mode_id: String) -> String:
+func _get_mode_label(mode_id: StringName) -> String:
 	match mode_id:
 		GameModes.FREE_DRIVE:
 			return tr("Jazda swobodna")
@@ -247,14 +247,14 @@ func _get_mode_label(mode_id: String) -> String:
 			return tr("Nieznany tryb")
 
 
-func _get_track_label(track_id: String) -> String:
+func _get_track_label(track_id: StringName) -> String:
 	var option: TrackMenuOption = _find_track_option(track_id)
 	return option.label if option != null else tr("Nieznany tor")
 
 
-func _find_track_option(track_id: String) -> TrackMenuOption:
+func _find_track_option(track_id: StringName) -> TrackMenuOption:
 	for option: TrackMenuOption in _track_options:
-		if option != null and str(option.track_id) == track_id:
+		if option != null and option.track_id == track_id:
 			return option
 	return null
 

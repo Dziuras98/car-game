@@ -7,11 +7,17 @@ var _tire_model: TireModel = TireModel.new()
 var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
 var _ground_contact_model: GroundContactModel = GroundContactModel.new()
 var _config: CarDriveConfig
+var _probe_local_positions: Array[Vector3] = []
 
 
 func configure(config: CarDriveConfig) -> void:
 	_config = config.duplicate_config()
 	_config.sanitize()
+	_probe_local_positions = _ground_contact_model.get_probe_local_positions(
+		_config.wheel_base,
+		_config.axle_track_width,
+		_config.suspension_probe_height
+	)
 
 
 func update_tires(
@@ -116,26 +122,27 @@ func _update_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> voi
 	state.ground_normal = Vector3.UP
 	state.surface_grip_multiplier = 1.0
 	state.suspension_acceleration = 0.0
-	if _config == null or not car.is_inside_tree() or car.get_world_3d() == null:
+	if (
+		_config == null
+		or _probe_local_positions.is_empty()
+		or not car.is_inside_tree()
+		or car.get_world_3d() == null
+	):
 		return
 
-	var probe_positions: Array[Vector3] = _ground_contact_model.get_probe_local_positions(
-		_config.wheel_base,
-		_config.axle_track_width,
-		_config.suspension_probe_height
-	)
 	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
 	var maximum_probe_length: float = (
 		_config.suspension_rest_length
 		+ _config.suspension_travel
 		+ PROBE_END_MARGIN
 	)
-	var normals: Array[Vector3] = []
-	var grip_values: Array[float] = []
+	var contact_count: int = 0
+	var normal_sum: Vector3 = Vector3.ZERO
+	var grip_sum: float = 0.0
 	var support_acceleration: float = 0.0
 	var direct_space_state: PhysicsDirectSpaceState3D = car.get_world_3d().direct_space_state
 
-	for local_probe_position: Vector3 in probe_positions:
+	for local_probe_position: Vector3 in _probe_local_positions:
 		var ray_start: Vector3 = car.global_transform * local_probe_position
 		var ray_end: Vector3 = ray_start + ray_direction * maximum_probe_length
 		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
@@ -165,14 +172,15 @@ func _update_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> voi
 			_config.suspension_stiffness,
 			_config.suspension_damping
 		)
-		normals.append(hit_normal)
-		grip_values.append(_get_surface_grip(hit.get("collider")))
+		contact_count += 1
+		normal_sum += hit_normal
+		grip_sum += _get_surface_grip(hit.get("collider"))
 
-	state.ground_contact_count = normals.size()
-	if state.ground_contact_count <= 0:
+	state.ground_contact_count = contact_count
+	if contact_count <= 0:
 		return
-	state.ground_normal = _ground_contact_model.calculate_average_normal(normals)
-	state.surface_grip_multiplier = _ground_contact_model.calculate_average_grip(grip_values)
+	state.ground_normal = normal_sum.normalized() if normal_sum.length_squared() > 0.000001 else Vector3.UP
+	state.surface_grip_multiplier = clampf(grip_sum / float(contact_count), 0.05, 2.0)
 	state.suspension_acceleration = support_acceleration
 
 

@@ -6,12 +6,14 @@ var _failures: Array[String] = []
 
 func _initialize() -> void:
 	_expect(GameModes.ALL.size() == 2, "exactly two gameplay modes are declared")
+	_expect(typeof(GameModes.FREE_DRIVE) == TYPE_STRING_NAME, "free-drive identifier uses StringName")
+	_expect(typeof(GameModes.RACE) == TYPE_STRING_NAME, "race identifier uses StringName")
 	_expect(GameModes.ALL.has(GameModes.FREE_DRIVE), "free drive is declared")
 	_expect(GameModes.ALL.has(GameModes.RACE), "race is declared")
 	_expect(GameModes.FREE_DRIVE != GameModes.RACE, "mode identifiers are unique")
 	_expect(GameModes.is_supported(GameModes.FREE_DRIVE), "free drive is supported")
 	_expect(GameModes.is_supported(GameModes.RACE), "race is supported")
-	_expect(not GameModes.is_supported("unsupported"), "unknown modes are rejected")
+	_expect(not GameModes.is_supported(&"unsupported"), "unknown modes are rejected")
 	_finish()
 
 

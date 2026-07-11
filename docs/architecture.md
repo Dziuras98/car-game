@@ -1,84 +1,74 @@
 # Architecture baseline
 
-This document defines the current subsystem boundaries of the Godot car-game prototype. Windows is the sole target platform. Player control is provided by the project input map through keyboard and gamepad bindings; AI uses a separate external input channel.
+This document defines the current subsystem boundaries of the Godot car-game prototype. Windows is the sole target platform. Player control uses the project input map through keyboard and gamepad bindings; AI uses a separate external input channel.
 
 ## Validation baseline
 
 The required pull-request gates are:
 
 - public-repository current-tree and complete-history safety validation;
-- localization validation, headless import and regression tests on Windows;
-- Windows production/test export and packaged startup smoke tests.
+- localization validation, headless import and automatically discovered regression tests on Windows;
+- Windows production/test export, production-PCK content validation and packaged startup smoke tests.
 
-`scripts/ci/verify_project.ps1` is the single complete verification entrypoint. It validates repository safety and localization and then delegates test execution to `scripts/ci/run_tests.ps1`, which discovers tests automatically instead of maintaining a handwritten list:
-
-- standalone scripts under `scripts/tests/` must extend `SceneTree`;
-- all scenes under `scenes/tests/` are executed, except explicit packaged-only fixtures;
-- each command receives an independent timeout and log;
-- Godot runtime-error output fails the command even when its exit code is zero;
-- static checks enforce architectural ownership/API boundaries, reject completed-migration fallback paths, production test-only identifiers, mutable GitHub Action tags and orphaned test scripts;
-- runtime tests, rather than exact source-layout assertions, own behavioral contracts.
-
-The canonical end-to-end test is `scenes/tests/full_program_smoke_test.tscn`, which runs `scripts/tests/full_program_smoke_test.gd`.
+`scripts/ci/verify_project.ps1` is the complete verification entrypoint. Static checks enforce ownership boundaries and completed migrations, while runtime tests own behavioral contracts. The canonical end-to-end scenario is `scenes/tests/full_program_smoke_test.tscn`.
 
 ## Runtime composition
 
-The configured project entry scene is:
+The configured entry scene is `scenes/startup.tscn`. `StartupRouter` loads:
 
-```text
-scenes/startup.tscn
-```
+- `scenes/main.tscn` for normal startup;
+- `scenes/tests/exported_build_smoke_test.tscn` only for the test-export feature and private smoke argument.
 
-`StartupRouter` selects:
-
-- `scenes/main.tscn` for a normal launch;
-- `scenes/tests/exported_build_smoke_test.tscn` for the packaged smoke-test argument.
-
-The normal main scene composes:
-
-- track container and generated active track;
-- player spawn point;
-- follow camera;
-- speedometer/tachometer and minimap;
-- menu, pause and race UI;
-- lighting/environment;
-- the high-level game coordinator.
+The normal main scene composes the active-track container, player spawn, camera, speedometer/tachometer, minimap, menu, pause/race UI and `GameManager`.
 
 ## High-level game flow
 
-1. `GameManager` validates the car and track catalogs, including the existence of an explicit AI-eligible variant when opponents are enabled.
+1. `GameManager` validates car and track catalogs, including explicit AI eligibility when opponents are enabled.
 2. `TrackCatalog.default_track_id` resolves the initial track.
-3. `TrackSpawnController` instantiates and validates the selected `TrackDefinition` before committing it as `TrackContainer/ActiveTrack`.
-4. Menu options are built from catalog data.
-5. The user selects an explicitly supported mode, track, model and variant.
-6. `GameManager` validates the exact IDs, clears the previous runtime session and asks `GameSessionState` to enter `STARTING`.
-7. `GameManager` configures a staged `CarSpawner` / `RaceSessionController` pair for the selected track.
-8. `CarInstanceFactory` instantiates the exact selected variant and assigns its `CarSpecs` before scene-tree entry; invalid indices are rejected rather than clamped.
-9. Car spawners assign the requested global transform and then capture it as the reset origin.
-10. Race opponent creation prepares the complete requested set of typed car/AI-driver pairs before any participant is committed to the scene.
-11. Camera, speedometer and minimap bind only after the player car exists.
-12. Free drive enables player input immediately; race mode commits only after all opponents and lap tracking are ready, then starts the countdown.
-13. `GameSessionState` commits the validated IDs and transitions from `STARTING` to `FREE_DRIVE` or `RACE` only after runtime setup succeeds.
-14. `LapTracker` consumes ordered checkpoint crossings and continuous racing-line progress.
-15. Any failed session-start step uses the same teardown path as a normal return and transitions the lifecycle back to `MENU`.
-16. Returning to the menu disposes cars, opponents, committed selection state, input state and race UI.
+3. `TrackSpawnController` stages and commits the selected `GeneratedTrack`.
+4. `MenuOptionsBuilder` creates typed car and track options from catalogs.
+5. `MainMenu` emits `StringName` mode, track and variant IDs.
+6. `GameSessionStartTransaction` validates exact IDs and resolves the catalog car index and `TrackDefinition`.
+7. The transaction clears prior runtime state and asks `GameSessionState` to enter `STARTING`.
+8. The transaction activates the selected track and configures detached `CarSpawner` / `RaceSessionController` objects.
+9. `CarInstanceFactory` creates the exact selected variant and assigns `CarSpecs` before scene-tree entry.
+10. The player car receives its requested global transform before capturing its reset origin.
+11. Race opponent creation prepares the complete typed car/AI-driver set before committing any opponent.
+12. `RaceSessionController` builds stable `RaceParticipant` records for the player and opponents.
+13. Camera, speedometer and minimap bind after the player car exists.
+14. Race mode starts only after the complete opponent and lap-tracking set is ready.
+15. `GameSessionState` commits mode, track and variant IDs and transitions to `FREE_DRIVE` or `RACE` only after all runtime stages succeed.
+16. Any failed stage invokes the same runtime-reset callback and returns the lifecycle to `MENU`.
+17. Returning to the menu disposes cars, opponents, participant records, tracking, committed IDs, input state and race UI.
 
-## Game and race responsibilities
+## Session and orchestration responsibilities
 
 ### `GameManager`
 
-`scripts/game/game_manager.gd` is a coordinator. It owns:
+`scripts/game/game_manager.gd` is a scene coordinator. It owns:
 
-- menu wiring and high-level transitions;
-- active-track activation;
-- transactional session startup and rollback orchestration;
-- camera/HUD/minimap binding;
-- free-drive and race session entry/cleanup;
-- pause lifecycle.
+- catalog and scene-contract validation;
+- menu and pause wiring;
+- active-track references;
+- construction of runtime coordinators;
+- camera/HUD/minimap target binding;
+- public read-only lifecycle access.
 
-`GameSessionState` owns the gameplay lifecycle phase and committed mode, track and car-variant IDs. `GameManager` exposes those values through read-only getters and uses one cleanup path for failed startup and normal menu return.
+It exposes `get_session_phase()` and re-emits `GameSessionState.phase_changed` as `session_phase_changed`. It must not duplicate session IDs, infer state from UI visibility or contain the detailed startup stage sequence.
 
-It must not accumulate vehicle physics, procedural track construction, detailed lap rules, low-level UI layout logic, duplicate session-state fields or test-simulation facades.
+### `GameModes` and `GameSessionState`
+
+- `GameModes` owns the supported `StringName` mode identifiers.
+- Mode, track and car-variant identifiers are `StringName` throughout menu, catalog, transaction and committed session state.
+- `GameSessionState` owns `MENU`, `STARTING`, `FREE_DRIVE` and `RACE`.
+- State-changing operations return `GameSessionState.Result`, distinguishing invalid phase, unsupported mode, empty track ID and empty variant ID.
+- Rejected operations do not mutate committed state or emit phase transitions.
+
+### `GameSessionStartTransaction`
+
+`scripts/game/game_session_start_transaction.gd` owns selection validation, stage ordering, final commit and rollback. It uses explicit callbacks supplied by `GameManager`, allowing the transition contract to be tested without a complete main scene.
+
+The transaction is prepare-then-commit: no active session IDs are committed until the track, runtime controllers, player and—when applicable—race participant set are complete.
 
 ### Selection and spawning
 
@@ -87,6 +77,7 @@ Key helpers:
 ```text
 scripts/game/game_modes.gd
 scripts/game/game_session_state.gd
+scripts/game/game_session_start_transaction.gd
 scripts/game/car_selection_state.gd
 scripts/game/menu_options_builder.gd
 scripts/game/track_spawn_controller.gd
@@ -98,26 +89,22 @@ scripts/game/opponent_participant_spawner.gd
 
 Rules:
 
-- `GameModes` is the sole owner of gameplay mode identifiers;
-- `GameSessionState` is the sole owner of lifecycle phase and committed session IDs;
 - catalog IDs are authoritative;
 - car and track catalog arrays are statically typed;
 - `TrackCatalog.default_track_id` is the only default-track mechanism;
-- every car variant supplies a scene and `CarSpecs`;
-- `CarSpecs` is assigned before a car enters the tree;
-- player-car indices outside the configured catalog range are rejected rather than corrected;
-- spawn transforms are applied before `capture_current_transform_as_start()` records the reset origin;
-- opponents use only variants with explicit `ai_eligible = true` and a supported automatic-transmission contract;
-- opponent drivers are configured through typed references before entering the scene tree;
-- the requested opponent count is all-or-nothing: incomplete sets are discarded before scene commit;
-- an opponent session seed of `-1` randomizes the session, while a non-negative seed reproduces variants, paint and driver profiles;
-- missing or invalid content fails validation rather than selecting an implicit fallback;
-- free-drive car switching may update only the committed variant ID and cannot change mode or track state.
+- invalid content and indices are rejected rather than clamped or replaced with the first item;
+- every car receives its variant `CarSpecs` before entering the tree;
+- spawn transforms are applied before reset-origin capture;
+- opponents use only explicitly AI-eligible supported variants;
+- opponent count is all-or-nothing;
+- a seed of `-1` randomizes the session, while non-negative seeds reproduce participant setup;
+- free-drive switching may update only the committed variant ID.
 
-### Race subsystem
+## Race subsystem
 
 ```text
 scripts/game/race_session_controller.gd
+scripts/race/race_participant.gd
 scripts/race/race_manager.gd
 scripts/race/lap_tracker.gd
 scripts/race/participant_race_state.gd
@@ -129,15 +116,16 @@ scripts/ui/race_hud.gd
 
 Responsibilities:
 
-- `RaceSessionController` validates and wires participants, track signals, HUD and lifecycle, and reports whether startup committed successfully;
+- `RaceParticipant` owns stable participant ID, player/opponent kind, car reference, ordinal and display label; labels never depend on `Node.name` parsing;
+- `RaceSessionController` wires typed participants, track, lap tracking, minimap, HUD and race state;
+- `RaceSessionController._reset_runtime_state()` is the shared cleanup path for failed startup and normal return;
 - `RaceManager` owns IDLE/COUNTDOWN/RUNNING/FINISHED state and input locks;
-- `LapTracker` owns ordered checkpoint state, lap completion, continuous progress, positions and finish order;
-- `AiRaceDriver` consumes typed `PlayerCarController`, committed `GeneratedTrack` and validated `AiDriverProfile` contracts and only produces drive input;
-- `OpponentAiProfileFactory` derives per-opponent speed profiles from the session seed and opponent index without depending on unrelated random draws.
+- `LapTracker` owns checkpoint order, laps, progress, positions and finish order;
+- `AiRaceDriver` produces external drive inputs from typed car, track and profile references.
 
-Checkpoint crossings, not nearest-line progress, are authoritative for lap completion. Progress is used for position ordering between gates. Disabling or removing an AI driver neutralizes its external input so stale throttle, braking or steering cannot remain active.
+Checkpoint crossings are authoritative for lap completion. Racing-line projection is used only for ordering between gates.
 
-## Car architecture
+## Vehicle architecture
 
 The car root is a `CharacterBody3D` controlled by `PlayerCarController`.
 
@@ -145,138 +133,73 @@ The car root is a `CharacterBody3D` controlled by `PlayerCarController`.
 
 ```text
 CarCatalog
-  -> Array[CarModelDefinition]
-    -> Array[CarVariantDefinition]
+  -> CarModelDefinition
+    -> CarVariantDefinition
       -> CarSpecs
         -> CarDriveConfig
           -> runtime controllers
 ```
 
-`CarSpecs` is the persistent tuning resource. `CarDriveConfigBuilder` validates it and creates a sanitized runtime copy. `CarSpecs.transmission_type` is the sole transmission-mode state. There are no legacy boolean transmission selectors and no controller-export fallback.
+`CarSpecs.transmission_type` is the only transmission-mode source. The visual car scene contains visual, collision and audio structure but no tuning overrides.
 
-The base car scene contains visual, collision and audio structure only. It does not serialize tuning fields, and `PlayerCarController` does not intercept unknown properties or retain compatibility-only specification wrappers.
+### Runtime pipeline
 
-### Runtime helpers
+1. sample player or external input;
+2. snapshot input telemetry;
+3. cast four cached suspension probes;
+4. aggregate contact count, normal sum, grip sum and spring-support sum without temporary per-frame arrays;
+5. recover lateral speed and calculate slip;
+6. update transmission, clutch, engine RPM and longitudinal speed using bounded substeps;
+7. update steering while contact exists;
+8. apply bounded gravity and suspension support;
+9. call `move_and_slide()`;
+10. write collision-resolved velocity back to local runtime state.
 
-```text
-scripts/car/car_runtime_state.gd
-scripts/car/car_drive_config.gd
-scripts/car/car_drive_config_builder.gd
-scripts/car/car_powertrain_controller.gd
-scripts/car/car_chassis_controller.gd
-scripts/car/car_reset_controller.gd
-scripts/car/car_input.gd
-scripts/car/engine_model.gd
-scripts/car/drivetrain_model.gd
-scripts/car/resistance_model.gd
-scripts/car/tire_model.gd
-scripts/car/ground_contact_model.gd
-scripts/car/automatic_transmission_model.gd
-scripts/car/manual_transmission_model.gd
-scripts/car/torque_converter_model.gd
-scripts/car/skid_mark_emitter.gd
-```
+Probe positions are rebuilt only when `CarDriveConfig` changes. Spring support is an explicit sum of active probe contributions; tests cover exactly one, two, three and four contacts. Contact normals and grip are averaged over active probes.
 
-`CarInput` has two explicit sources:
-
-- player actions from `Input`, backed by keyboard/gamepad mappings in `project.godot`;
-- typed external values used by AI and deterministic tests.
-
-External input has priority while enabled. Disabling player control clears the current drive snapshot; disabling external input neutralizes its stored values.
-
-### Physics-frame pipeline
-
-1. process player reset requests;
-2. read player or external AI input;
-3. snapshot throttle/brake telemetry;
-4. cast four suspension/ground-contact probes within configured suspension reach;
-5. average contact normal and current surface grip, then calculate support;
-6. recover lateral speed and calculate current-frame slip;
-7. update transmission, clutch, coupled engine RPM and longitudinal speed using bounded substeps and current-frame tire state;
-8. update steering only while tire contact exists;
-9. apply gravity and suspension support;
-10. call `move_and_slide()`;
-11. write collision-resolved horizontal velocity back to runtime state.
-
-Surface grip and the friction-circle factor affect drive and braking in the same physics frame in which the surface is sampled. Tire-generated drive, brake, handbrake and steering forces require active ground contact. An airborne engine may free-rev, while only aerodynamic drag and gravity continue to affect chassis motion.
-
-A manual or automatic gear change starts the configured shift timer. Geared wheel torque is blocked until that timer completes. Engine RPM blends between free-rev and wheel-driven coupling according to transmission and clutch state.
-
-### Runtime reconfiguration
-
-Changing `car_specs` rebuilds `CarDriveConfig`, reconfigures controllers, clamps the active gear, preserves motion where requested, refreshes skid-mark settings and synchronizes RPM into the new valid range.
+Generated track surfaces use the typed `TrackSurfaceBody` contract for grip. Surface grip and friction-circle coupling affect drive, braking, lateral recovery and handbrake behavior in the same physics frame.
 
 ## Track architecture
 
-### Persistent data
-
 ```text
 TrackCatalog
-  -> default_track_id
-  -> Array[TrackDefinition]
-    -> PackedScene
-      -> GeneratedTrack
-        -> TrackLayoutResource
+  -> TrackDefinition
+    -> GeneratedTrack
+      -> TrackLayoutResource
+        -> TrackGenerationConfig
+        -> TrackGeometryData
+        -> TrackGeneratedMeshes
 ```
 
-- `TrackCatalog` owns selection and the explicit default ID;
-- `TrackDefinition` owns display/runtime metadata and the track scene;
-- `TrackLayoutResource` owns control points, sampling, width, checkpoints and decoration parameters.
+`GeneratedTrack` builds into detached staged content and swaps it only after geometry, surfaces and checkpoint gates validate. Failed rebuilds preserve the prior committed track. Geometry revisions refresh AI, minimap and lap-tracking caches.
 
-### Typed generation pipeline
+Render and collision geometry share generated meshes. Asphalt, shoulder and grass collision bodies are typed `TrackSurfaceBody` instances. Repeated markers, barriers and stadium elements use bounded `MultiMesh` groups.
 
-```text
-TrackLayoutResource
-  -> TrackGenerationConfig
-  -> TrackLayoutBuilder
-  -> TrackGeometryData
-  -> TrackGeneratedMeshes
-  -> surface/collision/marker/barrier/checkpoint/decoration builders
-```
+## UI, input and localization
 
-`GeneratedTrack` builds into a detached generated-content root and swaps it atomically only after geometry, surfaces and checkpoint gates validate. Failed rebuilds preserve the last committed generated subtree. Geometry revision notifications invalidate cached data in AI, minimap and lap tracking.
+Major layouts are scene-driven. Catalog/session-dependent menu buttons and result rows are generated at runtime. All controls use the global theme. Localization catalogs are loaded before normal main-scene routing; startup terminates with a non-zero exit when catalog initialization fails.
 
-Render/collision meshes share generated geometry. Surfaces publish grip metadata. Repeated boxes such as edge markers, barriers and stadium elements are grouped in bounded `MultiMesh` batches.
-
-## UI architecture
-
-Major layouts are scene-driven:
-
-```text
-scenes/ui/main_menu.tscn
-scenes/ui/pause_menu.tscn
-scenes/ui/countdown_overlay.tscn
-scenes/ui/lap_position_hud.tscn
-scenes/ui/results_screen.tscn
-scenes/ui/speedometer.tscn
-scenes/ui/minimap.tscn
-```
-
-Dynamic menu buttons and result rows remain runtime-generated because their content is catalog/session dependent. All controls use the global theme from `resources/ui/default_theme.tres`. Localization catalogs are loaded before normal main-scene routing.
+`GameInputActions` owns action identifiers. `project.godot` owns keyboard/gamepad bindings and deadzones. Player actions and external AI input remain separate channels.
 
 ## Export architecture
 
-`export_presets.cfg` contains two Windows Desktop presets:
+`export_presets.cfg` contains exactly two Windows Desktop presets:
 
-- `Windows Desktop` for the production package;
-- `Windows Test` for the packaged regression route.
+- `Windows Desktop` for production;
+- `Windows Test` for packaged regressions.
 
-`.github/workflows/windows-tests.yml` is the only platform workflow. It verifies the project, creates both packages and executes both packaged startup checks.
-
-## Audio and effects
-
-Procedural engine and tire audio use bounded voice budgets and listener-distance gates. Skid marks use a bounded reusable buffer and continue aging even when their source car loses tire contact. These systems must remain safe when several AI cars exist simultaneously.
+The production PCK is inspected after export. CI fails when test scenes/scripts, CI scripts or documentation are packaged, or when required production paths are absent.
 
 ## Change rules
 
-- Keep catalog/resource ownership explicit; do not add implicit first-entry, clamped-index or mode fallbacks.
+- Keep catalog/resource ownership explicit; do not add implicit fallback selection.
 - Keep `GameManager` and `PlayerCarController` as coordinators.
-- Preserve prepare-then-commit semantics for tracks, gameplay sessions and opponent sets.
-- Keep lifecycle phase and committed gameplay IDs inside `GameSessionState`; do not duplicate them in `GameManager` or UI nodes.
-- Use one teardown sequence for failed startup and normal return to the menu.
-- Do not add test-only suffixes or simulation entry points to production classes.
-- Add focused tests with each subsystem change.
-- Ensure every test script is discoverable, scene-referenced or an explicitly allowed helper.
-- Preserve the canonical full-program smoke flow.
-- Keep architecture changes separate from detailed handling tuning.
-- Update documentation when responsibilities, data ownership or CI behavior changes.
+- Keep detailed startup sequencing in `GameSessionStartTransaction`.
+- Preserve prepare-then-commit semantics for tracks, sessions and opponent sets.
+- Keep lifecycle phase and committed IDs solely in `GameSessionState`.
+- Use typed lifecycle results rather than boolean-only transition failures.
+- Use `RaceParticipant` for identity and labels; never parse participant semantics from node names.
+- Use one race-runtime cleanup implementation for rollback and menu return.
+- Keep ground-contact probes cached and contact aggregation allocation-free.
+- Add focused regression coverage with each subsystem change.
+- Preserve the canonical full-program smoke flow and complete Windows verification.

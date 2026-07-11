@@ -8,10 +8,10 @@ var _failures: Array[String] = []
 
 
 func _init() -> void:
-	_expect(GAME_MANAGER_SCRIPT.is_supported_mode_id("free_drive"), "free-drive mode is explicitly supported")
-	_expect(GAME_MANAGER_SCRIPT.is_supported_mode_id("race"), "race mode is explicitly supported")
-	_expect(not GAME_MANAGER_SCRIPT.is_supported_mode_id(""), "empty mode IDs are rejected")
-	_expect(not GAME_MANAGER_SCRIPT.is_supported_mode_id("practice"), "unknown mode IDs are rejected instead of falling back")
+	_expect(GAME_MANAGER_SCRIPT.is_supported_mode_id(GameModes.FREE_DRIVE), "free-drive mode is explicitly supported")
+	_expect(GAME_MANAGER_SCRIPT.is_supported_mode_id(GameModes.RACE), "race mode is explicitly supported")
+	_expect(not GAME_MANAGER_SCRIPT.is_supported_mode_id(&""), "empty mode IDs are rejected")
+	_expect(not GAME_MANAGER_SCRIPT.is_supported_mode_id(&"practice"), "unknown mode IDs are rejected instead of falling back")
 
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 20260711
