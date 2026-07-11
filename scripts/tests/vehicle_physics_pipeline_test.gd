@@ -19,9 +19,11 @@ func _run() -> void:
 	var airborne_car: PlayerCarController = _create_car("AirborneCar", Vector3(0.0, 3.0, 0.0), specs)
 	var coarse_car: PlayerCarController = _create_car("CoarseCar", Vector3(-12.0, 0.0, 0.0), specs)
 	var fine_car: PlayerCarController = _create_car("FineCar", Vector3(12.0, 0.0, 0.0), specs)
+	var cars: Array[PlayerCarController] = [dry_car, low_grip_car, airborne_car, coarse_car, fine_car]
+	var floors: Array[TrackSurfaceBody] = [dry_floor, low_grip_floor, coarse_floor, fine_floor]
 
 	await get_tree().physics_frame
-	for car: PlayerCarController in [dry_car, low_grip_car, airborne_car, coarse_car, fine_car]:
+	for car: PlayerCarController in cars:
 		car.set_external_input_enabled(true)
 	dry_car.set_external_drive_inputs(1.0, 0.0, 0.0)
 	low_grip_car.set_external_drive_inputs(1.0, 0.0, 0.0)
@@ -61,11 +63,11 @@ func _run() -> void:
 		_bases_match(coarse_car.global_transform.basis, fine_car.global_transform.basis),
 		"whole-vehicle substeps keep frame-hitch and fine-step steering integration close"
 	)
-	_expect(is_equal_approx(TrackSurfaceBody.new().get_grip_multiplier(), 1.0), "typed surfaces default to neutral grip")
+	_expect(is_equal_approx(dry_floor.get_grip_multiplier(), 1.0), "typed surfaces default to neutral grip")
 
-	for car: PlayerCarController in [dry_car, low_grip_car, airborne_car, coarse_car, fine_car]:
+	for car: PlayerCarController in cars:
 		car.queue_free()
-	for floor: TrackSurfaceBody in [dry_floor, low_grip_floor, coarse_floor, fine_floor]:
+	for floor: TrackSurfaceBody in floors:
 		floor.queue_free()
 	await get_tree().process_frame
 	_finish()
