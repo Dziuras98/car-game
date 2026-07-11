@@ -5,6 +5,14 @@ const ANALYSIS_START: int = 4096
 const SAMPLE_RATE: float = 32000.0
 const SILENCE_FLOOR: float = 0.000000001
 
+const PRODUCTION_PROFILE: Dictionary = {
+	"exhaust_roughness": 0.13,
+	"intake_presence": 0.22,
+	"exhaust_resonance": 0.38,
+	"mechanical_noise": 0.07,
+	"overrun_crackle": 0.11,
+}
+
 const OPERATING_POINTS: Array[Dictionary] = [
 	{"name": "idle", "rpm": 700.0, "load": 0.05, "throttle": 0.04},
 	{"name": "cruise", "rpm": 2500.0, "load": 0.32, "throttle": 0.24},
@@ -39,7 +47,7 @@ func _report_operating_point(point: Dictionary) -> void:
 	var peak: float = _peak(full_frames)
 	var bands: Dictionary = _band_levels(full_frames)
 	print(
-		"[ENGINE_AUDIO_COMPONENT_AUDIT] point=%s total_rms=%.7f total_dbfs=%.2f peak=%.7f peak_dbfs=%.2f low_dbfs=%.2f mid_dbfs=%.2f high_dbfs=%.2f low_energy_pct=%.1f mid_energy_pct=%.1f high_energy_pct=%.1f" % [
+		"[ENGINE_AUDIO_COMPONENT_AUDIT] profile=production point=%s total_rms=%.7f total_dbfs=%.2f peak=%.7f peak_dbfs=%.2f low_dbfs=%.2f mid_dbfs=%.2f high_dbfs=%.2f low_energy_pct=%.1f mid_energy_pct=%.1f high_energy_pct=%.1f" % [
 			String(point.name),
 			full_rms,
 			_to_dbfs(full_rms),
@@ -59,7 +67,7 @@ func _report_operating_point(point: Dictionary) -> void:
 		var ablated_rms: float = _rms(ablated_frames)
 		var marginal_rms: float = _difference_rms(full_frames, ablated_frames)
 		print(
-			"[ENGINE_AUDIO_COMPONENT_LEVEL] point=%s component=%s marginal_rms=%.7f marginal_db_relative=%.2f output_change_db=%.2f ablated_rms=%.7f" % [
+			"[ENGINE_AUDIO_COMPONENT_LEVEL] profile=production point=%s component=%s marginal_rms=%.7f marginal_db_relative=%.2f output_change_db=%.2f ablated_rms=%.7f" % [
 				String(point.name),
 				String(ablation.name),
 				marginal_rms,
@@ -72,6 +80,8 @@ func _report_operating_point(point: Dictionary) -> void:
 
 func _render(point: Dictionary, overrides: Dictionary) -> PackedFloat32Array:
 	var synthesizer := EngineAudioSynthesizer.new()
+	for property_name: String in PRODUCTION_PROFILE:
+		synthesizer.set(StringName(property_name), PRODUCTION_PROFILE[property_name])
 	for property_name: String in overrides:
 		synthesizer.set(StringName(property_name), overrides[property_name])
 	var frames: PackedFloat32Array = synthesizer.generate_test_frames(
