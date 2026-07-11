@@ -2,6 +2,7 @@ extends RefCounted
 class_name CarInstanceFactory
 
 var _available_variants: Array[CarVariantDefinition] = []
+var _ai_eligible_variants: Array[CarVariantDefinition] = []
 var _rng: RandomNumberGenerator
 
 
@@ -10,6 +11,10 @@ func configure(
 	rng: RandomNumberGenerator
 ) -> void:
 	_available_variants = available_car_variants.duplicate()
+	_ai_eligible_variants.clear()
+	for variant: CarVariantDefinition in _available_variants:
+		if variant != null and variant.is_ai_eligible_for_race():
+			_ai_eligible_variants.append(variant)
 	_rng = rng
 
 
@@ -17,8 +22,16 @@ func has_available_cars() -> bool:
 	return not _available_variants.is_empty()
 
 
+func has_ai_eligible_cars() -> bool:
+	return not _ai_eligible_variants.is_empty()
+
+
 func get_available_count() -> int:
 	return _available_variants.size()
+
+
+func get_ai_eligible_count() -> int:
+	return _ai_eligible_variants.size()
 
 
 func instantiate_indexed_car(car_index: int) -> PlayerCarController:
@@ -29,28 +42,17 @@ func instantiate_indexed_car(car_index: int) -> PlayerCarController:
 
 
 func instantiate_opponent_car() -> PlayerCarController:
-	if _available_variants.is_empty():
+	if _ai_eligible_variants.is_empty():
+		push_error("CarInstanceFactory requires at least one explicit AI-eligible variant.")
 		return null
 	return _instantiate_variant(_get_opponent_variant())
 
 
 func _get_opponent_variant() -> CarVariantDefinition:
-	var automatic_variants: Array[CarVariantDefinition] = []
-	for variant: CarVariantDefinition in _available_variants:
-		if variant == null:
-			continue
-		var specs: CarSpecs = variant.get_specs()
-		if specs != null and specs.is_valid() and specs.is_automatic_transmission():
-			automatic_variants.append(variant)
-
-	var source: Array[CarVariantDefinition] = automatic_variants
-	if source.is_empty():
-		source = _available_variants
-
 	var selected_index: int = 0
 	if _rng != null:
-		selected_index = _rng.randi_range(0, source.size() - 1)
-	return source[selected_index]
+		selected_index = _rng.randi_range(0, _ai_eligible_variants.size() - 1)
+	return _ai_eligible_variants[selected_index]
 
 
 func _instantiate_variant(variant: CarVariantDefinition) -> PlayerCarController:
