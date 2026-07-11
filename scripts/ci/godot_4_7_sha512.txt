@@ -1,0 +1,4 @@
+# SHA-512 values copied from godotengine/godot-builds releases/godot-4.7-stable.json.
+# Updating Godot requires an explicit review of this manifest in the same pull request.
+41645a908eb3181d6f2d1201ed7b6d6f095f6a23aaed8903d5d255277cc8d142814f3e6817f865b3cac142c39b8aff99280091d3bbdaa301517730b3ba0522b9 *Godot_v4.7-stable_win64.exe.zip
+1035dfde4edcc2472bb0c0b9610ce3ee9302642c2b9957e9066372f9f6bb759ab250c8887551a66f0bc5f51bbd9a58bb45e33a0f29844e97615a9b1138c1120e *Godot_v4.7-stable_export_templates.tpz
