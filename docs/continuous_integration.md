@@ -1,17 +1,16 @@
 # Continuous integration
 
-The repository uses two required GitHub Actions workflows for pushes to `master`, pull requests targeting `master` and manual `workflow_dispatch` runs:
+The repository has one required GitHub Actions workflow for pushes to `master`, pull requests targeting `master` and manual `workflow_dispatch` runs:
 
 ```text
 .github/workflows/windows-tests.yml
-.github/workflows/android-export.yml
 ```
 
-Both workflows use Godot `4.7-stable`, cache matching export templates, cancel superseded runs on the same ref and retain build/diagnostic artifacts for 14 days. GitHub-maintained actions are pinned to full commit SHAs rather than mutable major-version tags.
+The workflow uses Godot `4.7-stable`, runs on the explicit `windows-2025` image, cancels superseded runs on the same ref and retains build/diagnostic artifacts for 14 days. GitHub-maintained actions are pinned to full commit SHAs rather than mutable major-version tags.
 
 ## Windows gate
 
-The Windows job runs on the explicit `windows-2025` image and executes:
+The job executes:
 
 1. download the Godot 4.7 console editor and the official `SHA512-SUMS.txt` file;
 2. verify the editor archive SHA-512 checksum and engine version;
@@ -41,16 +40,14 @@ Using `run_tests.ps1` directly remains possible for focused test work, but it is
 
 `scripts/ci/run_static_checks.ps1` guards architectural contracts that are difficult to express as runtime assertions. Current checks include:
 
-- mobile controls must not synthesize global input actions;
 - high-level game/race/lap coordinators must not regain dynamic `call()`/`has_method()` fallback paths;
 - gameplay modes, player indices and AI variant selection must remain explicit rather than falling back;
 - opponent spawning must retain prepare-then-commit semantics;
 - car specs and variant resources must not regain removed legacy fields;
 - the track catalog must use explicit `default_track_id` ownership and must not use per-track boolean or first-entry fallbacks;
 - the generated-track pipeline must retain typed config and mesh containers;
-- both workflows must use explicit runner labels and full action commit SHAs;
-- the Windows workflow must retain SHA-512 verification for downloaded Godot archives;
-- required Windows/Android export settings must remain present;
+- the project and export presets must retain the Windows renderer and both Windows package routes;
+- the Windows workflow must use an explicit runner label, full action commit SHAs and SHA-512 verification for downloaded Godot archives;
 - test scripts must be discoverable, referenced by a test scene, an editor launcher or an explicitly allowed helper;
 - the canonical full-program scene must remain bound to the canonical smoke-test script.
 
@@ -89,9 +86,9 @@ scripts/tests/full_program_smoke_test.gd
 
 The scenario validates menu back-navigation, automatic and manual free drive, acceleration, steering, braking, reverse, reset, free-drive car switching, race participant setup, countdown locks, AI movement, result presentation, cleanup and post-race re-entry.
 
-### Windows packaged validation
+### Packaged validation
 
-`scripts/ci/export_windows.ps1` produces the Windows release and test builds and validates two startup routes.
+`scripts/ci/export_windows.ps1` produces the release and test builds and validates two startup routes.
 
 Normal packaged launch:
 
@@ -115,80 +112,34 @@ car-game-windows-<commit-sha>
 
 They contain the generated executable/PCK, packaged smoke logs and per-command test diagnostics.
 
-## Android gate
-
-The Android job runs on the explicit `ubuntu-24.04` image with Java 17 and the runner-provided Android SDK. It executes:
-
-1. validate localization catalogs;
-2. download Godot 4.7 and verify its SHA-512 checksum;
-3. restore or install matching export templates and verify their checksum;
-4. configure Godot's Android SDK and Java paths;
-5. import the project headlessly;
-6. export and validate the debug APK;
-7. upload `build/android/` even when validation fails after producing diagnostics.
-
-The export/validation script is:
-
-```text
-scripts/ci/export_android.sh
-```
-
-It validates:
-
-- a non-empty APK is produced;
-- ZIP/archive integrity;
-- application ID `com.dziuras98.cargame`;
-- version name `0.1.0`;
-- manifest extraction and SDK metadata through `apkanalyzer`;
-- compiled package and application label through `aapt`;
-- APK signature through `apksigner`;
-- absence of obvious `res://scripts/tests/` and `res://scenes/tests/` paths in the production package.
-
-The workflow deliberately does not invoke `adb`. Export correctness must not depend on a connected emulator or physical device. Device installation, graphics compatibility and touch usability remain manual/platform-lab tests.
-
-Successful artifacts are named:
-
-```text
-car-game-android-<commit-sha>
-```
-
-They contain the APK, export log, validation log, extracted manifest and Android tool diagnostics.
-
 ## Running locally
 
-Complete Windows project verification:
+Complete project verification:
 
 ```powershell
 ./scripts/ci/verify_project.ps1 `
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-Focused Windows tests without the localization orchestration step:
+Focused tests without the localization orchestration step:
 
 ```powershell
 ./scripts/ci/run_tests.ps1 `
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-Windows export and packaged smoke tests:
+Production/test export and packaged smoke tests:
 
 ```powershell
 ./scripts/ci/export_windows.ps1 `
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-Android export on Linux/macOS with a configured Android SDK:
-
-```bash
-chmod +x ./scripts/ci/export_android.sh
-./scripts/ci/export_android.sh /path/to/Godot_v4.7-stable_linux.x86_64
-```
-
-Matching Godot 4.7 export templates are required for local export commands.
+Matching Godot 4.7 Windows export templates are required for local export commands.
 
 ## Failure diagnosis
 
-For Windows failures, inspect in this order:
+Inspect in this order:
 
 1. `build/test-logs/localization-validation.log` when localization was reached;
 2. `build/test-logs/current-command.log` when present;
@@ -196,12 +147,4 @@ For Windows failures, inspect in this order:
 4. the log named after the failed import/script/scene command;
 5. packaged startup/export logs.
 
-For Android failures, inspect:
-
-1. `android-export.log`;
-2. `android-validation.log`;
-3. `android-manifest.xml`;
-4. `aapt-badging.txt` and `aapt-diagnostics.txt`;
-5. `apksigner-verification.txt`.
-
-A green PR requires both workflow conclusions to be `success` on the same head commit.
+A green pull request requires the Windows workflow conclusion to be `success` on the current head commit.
