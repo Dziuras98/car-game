@@ -17,9 +17,11 @@ func _run() -> void:
 	var airborne_car: PlayerCarController = _create_car("AirborneCar", Vector3(0.0, 3.0, 0.0), specs)
 
 	await get_tree().physics_frame
-	dry_car.set_touch_drive_inputs(1.0, 0.0, 0.0)
-	low_grip_car.set_touch_drive_inputs(1.0, 0.0, 0.0)
-	airborne_car.set_touch_drive_inputs(1.0, 0.0, 1.0)
+	for car: PlayerCarController in [dry_car, low_grip_car, airborne_car]:
+		car.set_external_input_enabled(true)
+	dry_car.set_external_drive_inputs(1.0, 0.0, 0.0)
+	low_grip_car.set_external_drive_inputs(1.0, 0.0, 0.0)
+	airborne_car.set_external_drive_inputs(1.0, 0.0, 1.0)
 
 	var airborne_basis_before: Basis = airborne_car.global_transform.basis
 	dry_car._physics_process(0.10)
