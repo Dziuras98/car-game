@@ -89,8 +89,8 @@ function Get-FormatTokens {
 
 function Test-SequencesEqual {
     param(
-        [Parameter(Mandatory = $true)][string[]]$Left,
-        [Parameter(Mandatory = $true)][string[]]$Right
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Left,
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Right
     )
     if ($Left.Count -ne $Right.Count) {
         return $false
