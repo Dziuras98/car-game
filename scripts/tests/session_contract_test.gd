@@ -1,7 +1,7 @@
 extends SceneTree
 
 const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
-const GAME_MANAGER_SCRIPT: Script = preload("res://scripts/game/game_manager.gd")
+const GAME_MANAGER_SCRIPT = preload("res://scripts/game/game_manager.gd")
 
 var _checks: int = 0
 var _failures: Array[String] = []
