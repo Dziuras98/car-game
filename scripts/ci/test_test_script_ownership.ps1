@@ -39,6 +39,8 @@ function Expect-Contains {
     }
 }
 
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
+$staticChecksPath = Join-Path $projectRoot "scripts/ci/run_static_checks.ps1"
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("car-game-test-ownership-" + [guid]::NewGuid().ToString("N"))
 $sceneRoot = Join-Path $tempRoot "scenes/tests"
 $scriptRoot = Join-Path $tempRoot "scripts/tests"
@@ -110,6 +112,16 @@ script = ExtResource("1")
         -Values $ownershipFailures `
         -Fragment "scripts/tests/nested/deeper/referenced.gd" `
         -Message "The validator should discover nested scene-script ownership changes."
+
+    $staticChecks = Get-Content -LiteralPath $staticChecksPath -Raw
+    Expect-Equal `
+        -Actual $staticChecks.Contains("function Assert-TestScriptOwnership") `
+        -Expected $false `
+        -Message "Static checks should not retain a second ownership implementation."
+    Expect-Equal `
+        -Actual $staticChecks.Contains("Assert-TestScriptOwnership") `
+        -Expected $false `
+        -Message "Static checks should not invoke the removed shallow ownership check."
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
