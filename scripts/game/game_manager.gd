@@ -24,9 +24,6 @@ const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 @export var race_lap_count: int = 3
 @export var use_track_recommended_laps: bool = true
 
-const MODE_FREE: String = "free_drive"
-const MODE_RACE: String = "race"
-
 var _current_car: PlayerCarController
 var selected_mode_id: String = ""
 var selected_track_id: String = ""
@@ -50,7 +47,7 @@ var _pause_menu: PauseMenu
 
 
 static func is_supported_mode_id(mode_id: String) -> bool:
-	return mode_id == MODE_FREE or mode_id == MODE_RACE
+	return GameModes.is_supported(mode_id)
 
 
 func _ready() -> void:
@@ -161,8 +158,12 @@ func _validate_scene_contract() -> bool:
 
 
 func _validate_content_catalogs() -> bool:
-	if car_catalog == null or car_catalog.get_all_variants().is_empty():
-		push_error("GameManager requires a CarCatalog with at least one variant.")
+	if car_catalog == null:
+		push_error("GameManager requires a non-null CarCatalog.")
+		return false
+	var car_errors: PackedStringArray = car_catalog.validate()
+	if not car_errors.is_empty():
+		push_error("GameManager received an invalid CarCatalog: %s" % "; ".join(car_errors))
 		return false
 	if opponent_count < 0:
 		push_error("GameManager opponent_count must be non-negative.")
@@ -250,7 +251,7 @@ func _configure_runtime_for_active_track() -> bool:
 
 
 func _switch_to_next_car() -> void:
-	if selected_mode_id != MODE_FREE or _car_spawner == null:
+	if selected_mode_id != GameModes.FREE_DRIVE or _car_spawner == null:
 		return
 	var spawn_global_transform: Transform3D = (
 		_current_car.global_transform if is_instance_valid(_current_car) else _car_spawn.global_transform
@@ -296,14 +297,14 @@ func _on_menu_selection_completed(
 	if not _spawn_car(selected_car_index, _car_spawn.global_transform):
 		_abort_session_start("The selected car could not be created.")
 		return
-	if mode_id == MODE_RACE and not _start_race():
+	if mode_id == GameModes.RACE and not _start_race():
 		_abort_session_start("The race could not be started with the complete participant set.")
 		return
 
 	selected_mode_id = mode_id
 	selected_track_id = str(selected_track.track_id)
 	selected_car_variant_id = _car_selection_state.get_variant_id_for_index(selected_car_index)
-	if selected_mode_id == MODE_FREE:
+	if selected_mode_id == GameModes.FREE_DRIVE:
 		_race_session.hide_lap_ui()
 
 
