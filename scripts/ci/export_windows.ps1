@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $presetPath = Join-Path $projectRoot "export_presets.cfg"
+. (Join-Path $PSScriptRoot "output_directory_safety.ps1")
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -32,12 +33,6 @@ function Resolve-OutputPath {
         $ConfiguredPath = Join-Path $projectRoot $ConfiguredPath
     }
     return [System.IO.Path]::GetFullPath($ConfiguredPath)
-}
-
-function Reset-OutputDirectory {
-    param([Parameter(Mandatory = $true)][string]$Path)
-    New-Item -ItemType Directory -Path $Path -Force | Out-Null
-    Get-ChildItem -LiteralPath $Path -Force | Remove-Item -Recurse -Force
 }
 
 function Assert-ExportFiles {
@@ -134,8 +129,27 @@ function Invoke-MainSceneReadinessCheck {
 
 $productionOutputPath = Resolve-OutputPath -ConfiguredPath $OutputDirectory -DefaultRelativePath "build/windows"
 $testOutputPath = Resolve-OutputPath -ConfiguredPath $TestOutputDirectory -DefaultRelativePath "build/windows-test"
-Reset-OutputDirectory -Path $productionOutputPath
-Reset-OutputDirectory -Path $testOutputPath
+$productionOutputPath = Assert-SafeExportOutputPath `
+    -Path $productionOutputPath `
+    -ProjectRoot $projectRoot `
+    -Label "Production Windows"
+$testOutputPath = Assert-SafeExportOutputPath `
+    -Path $testOutputPath `
+    -ProjectRoot $projectRoot `
+    -Label "Windows test"
+Assert-IndependentExportOutputPaths `
+    -FirstPath $productionOutputPath `
+    -FirstLabel "Production Windows" `
+    -SecondPath $testOutputPath `
+    -SecondLabel "Windows test"
+Reset-SafeExportOutputDirectory `
+    -Path $productionOutputPath `
+    -ProjectRoot $projectRoot `
+    -Label "Production Windows"
+Reset-SafeExportOutputDirectory `
+    -Path $testOutputPath `
+    -ProjectRoot $projectRoot `
+    -Label "Windows test"
 
 $productionExecutable = Join-Path $productionOutputPath "car-game.exe"
 $productionPack = Join-Path $productionOutputPath "car-game.pck"
