@@ -31,6 +31,7 @@ var _main: Node
 var _test_adapter: GameTestAdapter
 var _checks: int = 0
 var _failures: Array[String] = []
+var _original_locale: String = ""
 
 
 func _ready() -> void:
@@ -39,10 +40,15 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_release_test_actions()
+	_restore_locale()
 
 
 func _run() -> void:
 	print("[SMOKE] Starting extended full program smoke test")
+	_original_locale = TranslationServer.get_locale()
+	var localization_errors: PackedStringArray = LocalizationCatalogLoader.ensure_loaded()
+	_expect(localization_errors.is_empty(), "localization catalogs load for the full program smoke test")
+	TranslationServer.set_locale("pl")
 	await _load_main_scene()
 	await _test_menu_back_navigation()
 	await _test_free_drive_automatic()
@@ -68,23 +74,23 @@ func _load_main_scene() -> void:
 
 func _test_menu_back_navigation() -> void:
 	print("[SMOKE] Testing menu back navigation")
-	await _press_button_with_text("Dowolny")
-	await _press_button_with_text("Prosty owal")
+	await _press_button_with_text(tr("Jazda swobodna"))
+	await _press_button_with_text(tr("Prosty owal"))
 	await _press_button_with_text(MODEL_NISSAN_370Z)
-	await _press_button_with_text("Wstecz")
+	await _press_button_with_text(tr("Wstecz"))
 	_expect(_find_visible_button_with_text(_main, MODEL_NISSAN_370Z) != null, "back from variant selection returns to model selection")
 
-	await _press_button_with_text("Wstecz")
-	_expect(_find_visible_button_with_text(_main, "Prosty owal") != null, "back from model selection returns to track selection")
+	await _press_button_with_text(tr("Wstecz"))
+	_expect(_find_visible_button_with_text(_main, tr("Prosty owal")) != null, "back from model selection returns to track selection")
 
-	await _press_button_with_text("Wstecz")
-	_expect(_find_visible_button_with_text(_main, "Dowolny") != null, "back from track selection returns to mode selection")
-	_expect(_find_visible_button_with_text(_main, "Wyscig") != null, "race mode remains visible after backing to mode selection")
+	await _press_button_with_text(tr("Wstecz"))
+	_expect(_find_visible_button_with_text(_main, tr("Jazda swobodna")) != null, "back from track selection returns to mode selection")
+	_expect(_find_visible_button_with_text(_main, tr("Wyścig")) != null, "race mode remains visible after backing to mode selection")
 
 
 func _test_free_drive_automatic() -> void:
 	print("[SMOKE] Testing extended free drive automatic flow")
-	await _select_menu_path("Dowolny", MODEL_NISSAN_370Z, "370Z automat")
+	await _select_menu_path(tr("Jazda swobodna"), MODEL_NISSAN_370Z, tr("370Z automat"))
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected")
 	_expect(_selected_track_id() == TRACK_SIMPLE_OVAL, "simple oval track is selected")
@@ -143,7 +149,7 @@ func _test_free_drive_automatic() -> void:
 
 func _test_free_drive_manual() -> void:
 	print("[SMOKE] Testing extended free drive manual flow")
-	await _select_menu_path("Dowolny", MODEL_NISSAN_370Z, "370Z manual")
+	await _select_menu_path(tr("Jazda swobodna"), MODEL_NISSAN_370Z, tr("370Z manual"))
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected for manual car")
 	_expect(_selected_car_variant_id() == VARIANT_NISSAN_370Z_6MT, "manual variant id is selected")
@@ -189,7 +195,7 @@ func _test_free_drive_manual() -> void:
 
 func _test_race_mode() -> void:
 	print("[SMOKE] Testing extended race flow")
-	await _select_menu_path("Wyscig", MODEL_NISSAN_370Z, "370Z automat")
+	await _select_menu_path(tr("Wyścig"), MODEL_NISSAN_370Z, tr("370Z automat"))
 
 	_expect(_selected_mode_id() == MODE_RACE, "race mode is selected")
 	_expect(_selected_car_variant_id() == VARIANT_NISSAN_370Z_7AT, "race automatic variant id is selected")
@@ -221,7 +227,7 @@ func _test_race_mode() -> void:
 	if race_car != null:
 		_test_adapter.simulate_player_finish()
 		await _frames(8)
-		var results_button: Button = _find_visible_button_with_text(_main, "Powrot do menu glownego")
+		var results_button: Button = _find_visible_button_with_text(_main, tr("Wróć do menu"))
 		_expect(results_button != null, "results screen is shown after simulated player finish")
 		if results_button != null:
 			results_button.emit_signal("pressed")
@@ -233,7 +239,7 @@ func _test_race_mode() -> void:
 
 func _test_post_race_free_drive_reentry() -> void:
 	print("[SMOKE] Testing post-race free-drive reentry")
-	await _select_menu_path("Dowolny", MODEL_NISSAN_370Z, "370Z automat")
+	await _select_menu_path(tr("Jazda swobodna"), MODEL_NISSAN_370Z, tr("370Z automat"))
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode can be selected again after race cleanup")
 	_expect(_current_car() != null, "player car respawns after race cleanup")
 	var car_after_reentry: PlayerCarController = _current_car()
@@ -243,7 +249,7 @@ func _test_post_race_free_drive_reentry() -> void:
 
 func _select_menu_path(mode_label: String, model_label: String, car_label: String) -> void:
 	await _press_button_with_text(mode_label)
-	await _press_button_with_text("Prosty owal")
+	await _press_button_with_text(tr("Prosty owal"))
 	await _press_button_with_text(model_label)
 	await _press_button_with_text(car_label)
 	await _frames(8)
@@ -399,8 +405,14 @@ func _release_test_actions() -> void:
 		Input.action_release(action_name)
 
 
+func _restore_locale() -> void:
+	if not _original_locale.is_empty():
+		TranslationServer.set_locale(_original_locale)
+
+
 func _finish() -> void:
 	_release_test_actions()
+	_restore_locale()
 	if _failures.is_empty():
 		print("[SMOKE] Extended full program smoke test passed: %d checks" % _checks)
 		get_tree().quit(0)
