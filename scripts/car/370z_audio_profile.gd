@@ -7,11 +7,13 @@ func _ready() -> void:
 		push_error("370Z audio profile requires an EngineAudioSynthesizer child named EngineAudio.")
 		return
 
-	# The powertrain reports engine load as accelerator input. Keep idle and
-	# closed-throttle engine braking audible instead of applying the old -21 dB
-	# scene floor whenever the accelerator is released.
+	# Add a constant 5 dB to the whole production profile, independently of load.
+	engine_audio.output_volume_boost_db = 9.0
+
+	# Keep closed-throttle operation audible while using an exact 10 dB span
+	# between minimum and maximum player level.
 	engine_audio.idle_volume_db = -10.0
-	engine_audio.load_volume_db = -5.0
+	engine_audio.load_volume_db = 0.0
 
 	# Keep the stock VQ37VHR rasp as texture instead of a dominant narrow tone.
 	engine_audio.high_rpm_rasp = 0.12
