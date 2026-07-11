@@ -121,9 +121,14 @@ Assert-DoesNotContain "scripts/game/game_manager.gd" @(
 Assert-GDScriptFunctions "scripts/game/game_manager.gd" @(
     "is_supported_mode_id",
     "get_session_phase",
+    "_stage_track",
+    "_commit_staged_track",
+    "_finalize_staged_track_commit",
     "_configure_session_start_transaction",
     "_on_menu_selection_completed",
     "_handle_session_start_failure",
+    "_clear_runtime_state",
+    "_reset_session_start_runtime",
     "_clear_active_session",
     "_reset_to_main_menu",
     "_return_to_main_menu",
@@ -133,7 +138,11 @@ Assert-Contains "scripts/game/game_manager.gd" @(
     "signal session_phase_changed",
     "var _session_state: GameSessionState = GameSessionState.new()",
     "var _session_start_transaction: GameSessionStartTransaction",
-    "car_catalog.validate()"
+    "car_catalog.validate()",
+    'Callable(self, "_reset_session_start_runtime")',
+    'Callable(self, "_stage_track")',
+    'Callable(self, "_commit_staged_track")',
+    'Callable(self, "_finalize_staged_track_commit")'
 )
 Assert-DoesNotContain "scripts/ui/main_menu.gd" @('"free_drive"', '"race"', "str(track_option.track_id)")
 Assert-Contains "scripts/ui/main_menu.gd" @(
@@ -178,10 +187,35 @@ Assert-GDScriptFunctions "scripts/game/game_session_start_transaction.gd" @(
 )
 Assert-Contains "scripts/game/game_session_start_transaction.gd" @(
     "_session_state.begin_start()",
-    "_activate_track.call(selected_track)",
+    "_reset_runtime.call()",
+    "_stage_track.call(selected_track)",
     "_configure_runtime.call()",
     "_spawn_player.call(selected_car_index, spawn_global_transform)",
-    "_session_state.commit("
+    "_commit_track.call()",
+    "_session_state.commit(",
+    "_finalize_track_commit.call()"
+)
+Assert-DoesNotContain "scripts/game/game_session_start_transaction.gd" @(
+    "return _fail(Result.UNSUPPORTED_MODE)",
+    "return _fail(Result.UNAVAILABLE_CAR_VARIANT)",
+    "return _fail(Result.UNAVAILABLE_TRACK)",
+    "_activate_track.call(selected_track)"
+)
+
+Assert-GDScriptClassName "scripts/game/track_spawn_controller.gd" "TrackSpawnController"
+Assert-GDScriptFunctions "scripts/game/track_spawn_controller.gd" @(
+    "stage_track",
+    "commit_staged_track",
+    "finalize_track_commit",
+    "rollback_track_transaction",
+    "discard_staged_track",
+    "spawn_track"
+)
+Assert-Contains "scripts/game/track_spawn_controller.gd" @(
+    "var _staged_track: GeneratedTrack",
+    "var _previous_track: GeneratedTrack",
+    "var _has_unfinalized_commit: bool",
+    "pending_track.name = PENDING_TRACK_NAME"
 )
 
 Assert-DoesNotContain "scripts/game/race_session_controller.gd" @(
