@@ -15,12 +15,13 @@ The job executes:
 1. download the Godot 4.7 console editor and the official `SHA512-SUMS.txt` file;
 2. verify the editor archive SHA-512 checksum and engine version;
 3. run the single project-verification entrypoint and finalize its complete JUnit report;
-4. restore or install matching Windows export templates after verifying their SHA-512 checksum;
-5. verify release and debug templates;
-6. export the production and test presets;
-7. smoke-test normal packaged startup;
-8. smoke-test the packaged regression route;
-9. upload the complete `build/` directory, including the JUnit report, even after a failure when diagnostic files exist.
+4. publish JUnit totals and failure details to the GitHub Actions job summary, including after a verification failure;
+5. restore or install matching Windows export templates after verifying their SHA-512 checksum;
+6. verify release and debug templates;
+7. export the production and test presets;
+8. smoke-test normal packaged startup;
+9. smoke-test the packaged regression route;
+10. upload the complete `build/` directory, including the JUnit report, even after a failure when diagnostic files exist.
 
 The authoritative local/CI verification entrypoint is:
 
@@ -84,11 +85,14 @@ build/test-logs/junit.xml
 - export output-directory safety;
 - Godot runtime-log validation;
 - JUnit serialization and merge behavior;
+- JUnit job-summary rendering and workflow wiring;
 - localization validation.
 
 `run_tests.ps1` independently records static checks, project import, both discovery phases and every discovered script/scene test. The top-level verifier writes a temporary preflight report outside `build/test-logs/`, then merges it with the runner report from a `finally` block. Therefore `junit.xml` contains all completed phases and the first recorded failure even when verification stops before the full suite finishes. The merge itself is covered by the JUnit regression test.
 
 Each testcase includes its status, duration, failure message and captured output when available. Reports use UTF-8 without a byte-order mark, XML-safe text and invariant decimal formatting.
+
+After the verification step, `scripts/ci/write_junit_step_summary.ps1` reads the final report and appends a compact Markdown summary to `$GITHUB_STEP_SUMMARY`. It displays the result, test count, failure count, total duration and up to 20 escaped failure rows. The step uses `if: always()`, so a valid partial report remains visible when verification fails. Missing, malformed or zero-test reports fail the summary step; recorded test failures are displayed without replacing the original verification failure.
 
 ### Canonical full-program smoke test
 
@@ -161,11 +165,12 @@ Matching Godot 4.7 Windows export templates are required for local export comman
 
 Inspect in this order:
 
-1. `build/test-logs/junit.xml` for the completed phase list and first recorded failure;
-2. `build/test-logs/localization-validation.log` when localization was reached;
-3. `build/test-logs/current-command.log` when present;
-4. `workflow-runner-failure.log`;
-5. the log named after the failed import/script/scene command;
-6. packaged startup/export logs.
+1. the GitHub Actions job summary for totals and the first failure rows;
+2. `build/test-logs/junit.xml` for the completed phase list and full structured failure data;
+3. `build/test-logs/localization-validation.log` when localization was reached;
+4. `build/test-logs/current-command.log` when present;
+5. `workflow-runner-failure.log`;
+6. the log named after the failed import/script/scene command;
+7. packaged startup/export logs.
 
 A green pull request requires the Windows workflow conclusion to be `success` on the current head commit.
