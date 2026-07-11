@@ -201,6 +201,7 @@ function Get-WindowsPlatformContractFailures {
         $requiredWorkflowPatterns = [ordered]@{
             "Windows editor archive" = '(?m)^\s*GODOT_ARCHIVE:\s+Godot_v[^\s]+_win64\.exe\.zip\s*$'
             "Windows console executable" = '(?m)^\s*GODOT_EXECUTABLE:\s+Godot_v[^\s]+_win64_console\.exe\s*$'
+            "repository-pinned Godot checksums" = '(?m)^\s*GODOT_CHECKSUMS_FILE:\s+scripts/ci/godot_4_7_sha512\.txt\s*$'
             "Windows release template" = 'windows_release_x86_64\.exe'
             "Windows debug template" = 'windows_debug_x86_64\.exe'
             "project verification entrypoint" = '\./scripts/ci/verify_project\.ps1'
@@ -215,6 +216,9 @@ function Get-WindowsPlatformContractFailures {
         }
         if ($workflowContent -match '(?m)^\s*cancel-in-progress:\s*true\s*$') {
             $failures.Add("The Windows workflow must not cancel in-progress master or manual validation runs.")
+        }
+        if ($workflowContent -match 'SHA512-SUMS\.txt') {
+            $failures.Add("The Windows workflow must not download checksums from the same mutable release endpoint as the archives.")
         }
     }
     catch {
