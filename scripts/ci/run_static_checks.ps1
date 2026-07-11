@@ -104,10 +104,6 @@ function Assert-NoProductionTestOnlyIdentifiers {
     }
 }
 
-Assert-DoesNotContain "scripts/ui/mobile_drive_controls.gd" @(
-    "Input.action_press",
-    "Input.action_release"
-)
 Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     "available_cars",
     ".has_method(",
@@ -277,19 +273,16 @@ Assert-Contains "scripts/track/track_surface_mesh_builder.gd" @(
 )
 
 Assert-Contains "project.godot" @(
-    "textures/vram_compression/import_etc2_astc=true"
+    'rendering_device/driver.windows="d3d12"'
 )
 Assert-Contains "export_presets.cfg" @(
     'name="Windows Desktop"',
     'name="Windows Test"',
-    'name="Android"',
-    'platform="Android"',
-    'texture_format/etc2_astc=true',
-    'package/unique_name="com.dziuras98.cargame"'
+    'platform="Windows Desktop"',
+    'texture_format/s3tc_bptc=true'
 )
-Assert-Contains "scripts/ci/export_android.sh" @(
-    '--export-debug "Android"',
-    "com.dziuras98.cargame"
+Assert-DoesNotMatch "export_presets.cfg" @(
+    '(?m)^\[preset\.2\]$'
 )
 Assert-Contains "scripts/ci/verify_project.ps1" @(
     'validate_localization.ps1',
@@ -302,27 +295,15 @@ Assert-Contains "scripts/ci/run_tests.ps1" @(
     "extends\s+SceneTree",
     'Where-Object { $_.Name -ne "localization-validation.log" }'
 )
-foreach ($workflowPath in @(
-    ".github/workflows/windows-tests.yml",
-    ".github/workflows/android-export.yml"
-)) {
-    Assert-DoesNotMatch $workflowPath @(
-        'uses:\s+actions/(checkout|cache|upload-artifact|setup-java)@v\d+'
-    )
-    Assert-Contains $workflowPath @(
-        "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-        "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f"
-    )
-}
+Assert-DoesNotMatch ".github/workflows/windows-tests.yml" @(
+    'uses:\s+actions/(checkout|cache|upload-artifact)@v\d+'
+)
 Assert-Contains ".github/workflows/windows-tests.yml" @(
+    "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+    "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
     "runs-on: windows-2025",
     "./scripts/ci/verify_project.ps1 -GodotBinary `$env:GODOT_BIN",
     "Get-FileHash -LiteralPath `$archivePath -Algorithm SHA512",
-    "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8"
-)
-Assert-Contains ".github/workflows/android-export.yml" @(
-    "runs-on: ubuntu-24.04",
-    "actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165",
     "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8"
 )
 Assert-Contains "scenes/tests/full_program_smoke_test.tscn" @(
