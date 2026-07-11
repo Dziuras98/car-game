@@ -26,43 +26,14 @@ env:
 jobs:
   tests:
     name: Godot 4.7 Windows tests and export
-    runs-on: windows-latest
+    runs-on: windows-2025
     timeout-minutes: 35
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Validate localization catalogs
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $diagnosticDirectory = Join-Path $PWD "build/test-logs"
-          $logPath = Join-Path $diagnosticDirectory "localization-validation.log"
-          New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
-
-          try {
-            $validationOutput = @(./scripts/ci/validate_localization.ps1 2>&1)
-            foreach ($line in $validationOutput) {
-              Write-Host ([string]$line)
-            }
-            Set-Content -LiteralPath $logPath -Value @($validationOutput | ForEach-Object { [string]$_ }) -Encoding utf8
-          }
-          catch {
-            $failureText = $_ | Out-String
-            $capturedOutput = @()
-            if (Test-Path variable:validationOutput) {
-              $capturedOutput = @($validationOutput | ForEach-Object { [string]$_ })
-              foreach ($line in $capturedOutput) {
-                Write-Host $line
-              }
-            }
-            Set-Content -LiteralPath $logPath -Value ($capturedOutput + @("", $failureText)) -Encoding utf8
-            Write-Host $failureText
-            throw
-          }
-
-      - name: Download Godot
+      - name: Download and verify Godot
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -71,18 +42,35 @@ jobs:
           $toolsDirectory = Join-Path $PWD "tools/godot"
           New-Item -ItemType Directory -Path $toolsDirectory -Force | Out-Null
 
-          $downloadUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION/$env:GODOT_ARCHIVE"
+          $baseUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION"
           $archivePath = Join-Path $env:RUNNER_TEMP $env:GODOT_ARCHIVE
+          $sumsPath = Join-Path $env:RUNNER_TEMP "SHA512-SUMS.txt"
+          Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_ARCHIVE" -OutFile $archivePath
+          Invoke-WebRequest -Uri "$baseUrl/SHA512-SUMS.txt" -OutFile $sumsPath
 
-          Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
+          $escapedArchiveName = [regex]::Escape($env:GODOT_ARCHIVE)
+          $checksumLine = Get-Content -LiteralPath $sumsPath | Where-Object {
+            $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
+          } | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($checksumLine)) {
+            throw "SHA512-SUMS.txt does not contain $env:GODOT_ARCHIVE."
+          }
+          $expectedHash = [regex]::Match(
+            $checksumLine,
+            "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
+          ).Groups["hash"].Value.ToLowerInvariant()
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA512).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "Godot archive SHA512 mismatch. Expected $expectedHash, received $actualHash."
+          }
+
           Expand-Archive -LiteralPath $archivePath -DestinationPath $toolsDirectory -Force
-
           $godotPath = Join-Path $toolsDirectory $env:GODOT_EXECUTABLE
           if (-not (Test-Path -LiteralPath $godotPath -PathType Leaf)) {
             throw "Godot executable was not found after extraction: $godotPath"
           }
-
           "GODOT_BIN=$godotPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GODOT_SHA512_SUMS=$sumsPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Verify Godot version
         shell: pwsh
@@ -92,16 +80,16 @@ jobs:
             throw "Godot version check failed with exit code $LASTEXITCODE."
           }
 
-      - name: Run automated tests
+      - name: Verify project
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           $diagnosticDirectory = Join-Path $PWD "build/test-logs"
           New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
-          "Workflow test wrapper started." | Set-Content -LiteralPath (Join-Path $diagnosticDirectory "workflow-wrapper.log") -Encoding utf8
+          "Workflow verification wrapper started." | Set-Content -LiteralPath (Join-Path $diagnosticDirectory "workflow-wrapper.log") -Encoding utf8
 
           try {
-            ./scripts/ci/run_tests.ps1 -GodotBinary $env:GODOT_BIN
+            ./scripts/ci/verify_project.ps1 -GodotBinary $env:GODOT_BIN
           }
           catch {
             $failureText = $_ | Out-String
@@ -112,7 +100,7 @@ jobs:
 
       - name: Restore Godot export templates
         id: export-template-cache
-        uses: actions/cache@v6
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         with:
           path: ~/AppData/Roaming/Godot/export_templates/${{ env.GODOT_EXPORT_TEMPLATE_VERSION }}
           key: windows-godot-export-templates-${{ env.GODOT_VERSION }}-x86_64
@@ -124,16 +112,31 @@ jobs:
           $ErrorActionPreference = "Stop"
           $ProgressPreference = "SilentlyContinue"
 
-          $downloadUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION/$env:GODOT_EXPORT_TEMPLATES_ARCHIVE"
-          $archivePath = Join-Path $env:RUNNER_TEMP "godot-export-templates.zip"
+          $baseUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION"
+          $archivePath = Join-Path $env:RUNNER_TEMP $env:GODOT_EXPORT_TEMPLATES_ARCHIVE
           $extractDirectory = Join-Path $env:RUNNER_TEMP "godot-export-templates"
           $sourceDirectory = Join-Path $extractDirectory "templates"
           $targetDirectory = Join-Path $env:APPDATA "Godot/export_templates/$env:GODOT_EXPORT_TEMPLATE_VERSION"
 
-          Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
+          Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_EXPORT_TEMPLATES_ARCHIVE" -OutFile $archivePath
+          $escapedArchiveName = [regex]::Escape($env:GODOT_EXPORT_TEMPLATES_ARCHIVE)
+          $checksumLine = Get-Content -LiteralPath $env:GODOT_SHA512_SUMS | Where-Object {
+            $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
+          } | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($checksumLine)) {
+            throw "SHA512-SUMS.txt does not contain $env:GODOT_EXPORT_TEMPLATES_ARCHIVE."
+          }
+          $expectedHash = [regex]::Match(
+            $checksumLine,
+            "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
+          ).Groups["hash"].Value.ToLowerInvariant()
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA512).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "Godot export templates SHA512 mismatch. Expected $expectedHash, received $actualHash."
+          }
+
           Remove-Item -LiteralPath $extractDirectory -Recurse -Force -ErrorAction SilentlyContinue
           Expand-Archive -LiteralPath $archivePath -DestinationPath $extractDirectory -Force
-
           $releaseSource = Join-Path $sourceDirectory "windows_release_x86_64.exe"
           $debugSource = Join-Path $sourceDirectory "windows_debug_x86_64.exe"
           if (-not (Test-Path -LiteralPath $releaseSource -PathType Leaf)) {
@@ -167,7 +170,7 @@ jobs:
 
       - name: Upload Windows build and diagnostics
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: car-game-windows-${{ github.sha }}
           path: build/

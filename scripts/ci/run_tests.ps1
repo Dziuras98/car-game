@@ -14,8 +14,10 @@ if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
 }
 
-Remove-Item -LiteralPath $testLogDirectory -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $testLogDirectory -Force | Out-Null
+Get-ChildItem -LiteralPath $testLogDirectory -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -ne "localization-validation.log" } |
+    Remove-Item -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "=== Static repository checks ==="

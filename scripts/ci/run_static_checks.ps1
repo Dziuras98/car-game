@@ -117,11 +117,22 @@ Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     "func simulate_current_player_finish(",
     "func is_child_visible("
 )
+Assert-Contains "scripts/game/game_manager.gd" @(
+    "static func is_supported_mode_id",
+    "func _abort_session_start(",
+    "if mode_id == MODE_RACE and not _start_race():",
+    "if not _configure_runtime_for_active_track():"
+)
 Assert-DoesNotContain "scripts/game/race_session_controller.gd" @(
     ".has_method(",
     ".call(",
     "func get_moving_opponent_count(",
     "func simulate_current_player_finish("
+)
+Assert-Contains "scripts/game/race_session_controller.gd" @(
+    "func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> bool:",
+    "if _opponents.size() != _opponent_count:",
+    "func _abort_race_start() -> void:"
 )
 Assert-DoesNotContain "scripts/race/lap_tracker.gd" @(
     ".has_method(",
@@ -131,6 +142,24 @@ Assert-DoesNotContain "scripts/race/ai_race_driver.gd" @(
     ".has_method(",
     ".has_signal(",
     ".call("
+)
+Assert-DoesNotContain "scripts/game/player_car_spawn_controller.gd" @(
+    "clampi(car_index"
+)
+Assert-Contains "scripts/game/opponent_participant_spawner.gd" @(
+    "var staged_cars: Array[PlayerCarController]",
+    "var staged_drivers: Array[AiRaceDriver]",
+    "if staged_cars.size() != requested_count",
+    "clear_opponents()"
+)
+Assert-Contains "scripts/game/car_instance_factory.gd" @(
+    "var _ai_eligible_variants: Array[CarVariantDefinition]",
+    "func has_ai_eligible_cars() -> bool:",
+    "CarInstanceFactory requires at least one explicit AI-eligible variant."
+)
+Assert-DoesNotContain "scripts/game/car_instance_factory.gd" @(
+    "automatic_variants",
+    "source = _available_variants"
 )
 
 Assert-Contains "scripts/car/car_specs.gd" @(
@@ -166,6 +195,10 @@ Assert-Contains "scripts/car/car_catalog.gd" @(
 Assert-Contains "scripts/car/car_model_definition.gd" @(
     "@export var variants: Array[CarVariantDefinition]"
 )
+Assert-Contains "scripts/car/car_variant_definition.gd" @(
+    "@export var ai_eligible: bool = false",
+    "func is_ai_eligible_for_race() -> bool:"
+)
 Assert-DoesNotContain "scripts/car/car_catalog.gd" @(
     "Array[Resource]"
 )
@@ -184,11 +217,15 @@ foreach ($specPath in @(
 }
 Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_6mt.tres" @(
     '(?m)^\s*mass_kg\s*=',
-    '(?m)^\s*transmission_label\s*='
+    '(?m)^\s*transmission_label\s*=',
+    '(?m)^\s*ai_eligible\s*=\s*true\s*$'
 )
 Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_7at.tres" @(
     '(?m)^\s*mass_kg\s*=',
     '(?m)^\s*transmission_label\s*='
+)
+Assert-Contains "resources/cars/nissan/370z/variants/370z_7at.tres" @(
+    "ai_eligible = true"
 )
 
 Assert-Contains "scripts/track/track_catalog.gd" @(
@@ -254,10 +291,39 @@ Assert-Contains "scripts/ci/export_android.sh" @(
     '--export-debug "Android"',
     "com.dziuras98.cargame"
 )
+Assert-Contains "scripts/ci/verify_project.ps1" @(
+    'validate_localization.ps1',
+    'run_tests.ps1',
+    'Project verification completed successfully.'
+)
 Assert-Contains "scripts/ci/run_tests.ps1" @(
     "run_static_checks.ps1",
     "Get-ChildItem",
-    "extends\s+SceneTree"
+    "extends\s+SceneTree",
+    'Where-Object { $_.Name -ne "localization-validation.log" }'
+)
+foreach ($workflowPath in @(
+    ".github/workflows/windows-tests.yml",
+    ".github/workflows/android-export.yml"
+)) {
+    Assert-DoesNotMatch $workflowPath @(
+        'uses:\s+actions/(checkout|cache|upload-artifact|setup-java)@v\d+'
+    )
+    Assert-Contains $workflowPath @(
+        "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+        "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f"
+    )
+}
+Assert-Contains ".github/workflows/windows-tests.yml" @(
+    "runs-on: windows-2025",
+    "./scripts/ci/verify_project.ps1 -GodotBinary `$env:GODOT_BIN",
+    "Get-FileHash -LiteralPath `$archivePath -Algorithm SHA512",
+    "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8"
+)
+Assert-Contains ".github/workflows/android-export.yml" @(
+    "runs-on: ubuntu-24.04",
+    "actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165",
+    "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8"
 )
 Assert-Contains "scenes/tests/full_program_smoke_test.tscn" @(
     'path="res://scripts/tests/full_program_smoke_test.gd"'

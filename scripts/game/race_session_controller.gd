@@ -15,6 +15,7 @@ var _minimap: Minimap
 var _race_lap_count: int = 1
 var _opponent_count: int = 0
 var _hud_update_frames_remaining: int = 0
+var _configured: bool = false
 
 
 func configure(
@@ -24,7 +25,24 @@ func configure(
 	minimap: Minimap,
 	race_lap_count: int,
 	opponent_count: int
-) -> void:
+) -> bool:
+	_configured = false
+	if car_spawner == null or not car_spawner.is_configured():
+		push_error("RaceSessionController requires a configured CarSpawner.")
+		return false
+	if race_hud == null:
+		push_error("RaceSessionController requires a RaceHud.")
+		return false
+	if not is_instance_valid(track) or not track.has_committed_generation():
+		push_error("RaceSessionController requires a committed GeneratedTrack.")
+		return false
+	if not is_instance_valid(minimap):
+		push_error("RaceSessionController requires a Minimap.")
+		return false
+	if opponent_count > 0 and not car_spawner.has_ai_eligible_cars():
+		push_error("RaceSessionController requires an AI-eligible car variant when opponents are enabled.")
+		return false
+
 	_car_spawner = car_spawner
 	_race_hud = race_hud
 	_track = track
@@ -42,18 +60,32 @@ func configure(
 	_race_manager.ai_enabled_changed.connect(_set_ai_enabled)
 	_race_manager.opponent_should_stop.connect(_stop_participant_car)
 	_race_manager.race_finished.connect(_on_race_finished)
+	_configured = true
+	return true
 
 
-func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> void:
-	if current_car == null or scene_tree == null:
+func is_configured() -> bool:
+	return _configured
+
+
+func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> bool:
+	if not _configured:
+		push_error("RaceSessionController must be configured before starting a race.")
+		return false
+	if not is_instance_valid(current_car) or scene_tree == null:
 		push_error("RaceSessionController requires a player car and SceneTree.")
-		return
+		return false
+
 	_current_car = current_car
-	_spawn_opponents()
+	if not _spawn_opponents():
+		_abort_race_start()
+		return false
 	if not _prepare_race_tracking():
-		clear_opponents()
-		return
+		push_error("RaceSessionController could not prepare race tracking for the complete participant set.")
+		_abort_race_start()
+		return false
 	_race_manager.start_race(_current_car, scene_tree)
+	return true
 
 
 func update_physics() -> void:
@@ -124,11 +156,18 @@ func are_player_controls_locked() -> bool:
 	return _race_manager != null and _race_manager.are_player_controls_locked()
 
 
-func _spawn_opponents() -> void:
+func _spawn_opponents() -> bool:
 	if _car_spawner == null:
-		return
+		return false
 	_opponents = _car_spawner.spawn_opponents(_opponent_count)
+	if _opponents.size() != _opponent_count:
+		push_error(
+			"RaceSessionController requested %d opponents but received %d."
+			% [_opponent_count, _opponents.size()]
+		)
+		return false
 	_update_minimap_opponents()
+	return true
 
 
 func _set_ai_enabled(enabled: bool) -> void:
@@ -176,6 +215,20 @@ func _prepare_race_tracking() -> bool:
 	if prepared:
 		_show_lap_ui()
 	return prepared
+
+
+func _abort_race_start() -> void:
+	hide_lap_ui()
+	hide_countdown()
+	clear_tracking()
+	if _car_spawner != null:
+		_car_spawner.clear_opponents()
+	_opponents.clear()
+	_update_minimap_opponents()
+	_current_car = null
+	_hud_update_frames_remaining = 0
+	if _race_manager != null:
+		_race_manager.reset_to_idle()
 
 
 func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:

@@ -11,5 +11,6 @@ display_name = "370Z automat"
 sort_order = 0
 car_scene = ExtResource("2_scene")
 specs = ExtResource("3_specs")
+ai_eligible = true
 engine_label = "VQ37VHR 3.7 V6"
 drivetrain_label = "RWD"

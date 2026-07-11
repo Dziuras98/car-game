@@ -9,6 +9,7 @@ class_name CarVariantDefinition
 @export_group("Runtime")
 @export var car_scene: PackedScene
 @export var specs: CarSpecs
+@export var ai_eligible: bool = false
 
 @export_group("Metadata")
 @export var engine_label: String = ""
@@ -39,6 +40,16 @@ func get_specs() -> CarSpecs:
 
 func get_car_scene() -> PackedScene:
 	return car_scene
+
+
+func is_ai_eligible_for_race() -> bool:
+	return (
+		ai_eligible
+		and car_scene != null
+		and specs != null
+		and specs.is_valid()
+		and specs.is_automatic_transmission()
+	)
 
 
 func get_transmission_label() -> String:
