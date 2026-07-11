@@ -98,7 +98,7 @@ func execute(
 	if not GameSessionState.is_success(_session_state.begin_start()):
 		return Result.SESSION_BEGIN_REJECTED
 	_reset_runtime.call()
-	# The legacy _activate_track.call(selected_track) path was replaced by reversible staging.
+	# Track replacement remains staged until runtime preparation succeeds.
 	if not bool(_stage_track.call(selected_track)):
 		return _fail(Result.TRACK_STAGE_FAILED)
 	if not bool(_configure_runtime.call()):
