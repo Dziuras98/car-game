@@ -58,6 +58,19 @@ function Test-ForbiddenFileName {
     )
 }
 
+function Get-MaskedEmail {
+    param([Parameter(Mandatory = $true)][string]$Email)
+
+    $separatorIndex = $Email.IndexOf('@')
+    if ($separatorIndex -le 0) {
+        return "***"
+    }
+    $localPart = $Email.Substring(0, $separatorIndex)
+    $domainPart = $Email.Substring($separatorIndex + 1)
+    $visiblePrefixLength = [Math]::Min(2, $localPart.Length)
+    return "$($localPart.Substring(0, $visiblePrefixLength))***@$domainPart"
+}
+
 function Write-DiagnosticReport {
     param(
         [Parameter(Mandatory = $true)]
@@ -135,7 +148,7 @@ try {
         }
     }
     foreach ($email in $nonNoreplyEmails) {
-        $failures.Add("Commit metadata exposes a non-noreply email address: $email")
+        $failures.Add("Commit metadata exposes a non-noreply email address: $(Get-MaskedEmail -Email $email)")
     }
 
     if ($failures.Count -gt 0) {
