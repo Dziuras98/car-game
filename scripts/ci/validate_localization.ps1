@@ -28,23 +28,6 @@ function Convert-EscapedString {
     }
 }
 
-function Add-PoEntry {
-    param(
-        [Parameter(Mandatory = $true)]$Entries,
-        [AllowNull()][string]$MessageId,
-        [AllowNull()][string]$Translation,
-        [Parameter(Mandatory = $true)][string]$RelativePath
-    )
-    if ([string]::IsNullOrEmpty($MessageId)) {
-        return
-    }
-    if ($Entries.ContainsKey($MessageId)) {
-        Add-Failure "Duplicate msgid '$MessageId' in $RelativePath"
-        return
-    }
-    $Entries.Add($MessageId, [string]$Translation)
-}
-
 function Read-PoCatalog {
     param([Parameter(Mandatory = $true)][string]$RelativePath)
 
@@ -54,58 +37,45 @@ function Read-PoCatalog {
     $fullPath = Join-Path $projectRoot $RelativePath
     if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
         Add-Failure "Translation catalog is missing: $RelativePath"
-        return [pscustomobject]@{ Entries = $entries }
+        return [pscustomobject]@{ Locale = ''; Entries = $entries }
     }
 
-    $currentId = $null
-    $currentTranslation = $null
-    $activeField = $null
-    $lines = @((Get-Content -LiteralPath $fullPath -Encoding UTF8)) + @('')
-
-    foreach ($line in $lines) {
-        if ($line -match '^msgid\s+"(?<value>(?:\\.|[^"])*)"\s*$') {
-            Add-PoEntry -Entries $entries -MessageId $currentId -Translation $currentTranslation -RelativePath $RelativePath
-            $currentId = Convert-EscapedString -Value $Matches.value -Context $RelativePath
-            $currentTranslation = ''
-            $activeField = 'msgid'
-            continue
-        }
-        if ($line -match '^msgstr\s+"(?<value>(?:\\.|[^"])*)"\s*$') {
-            if ($null -eq $currentId) {
-                Add-Failure "msgstr appears before msgid in $RelativePath"
-                continue
-            }
-            $currentTranslation = Convert-EscapedString -Value $Matches.value -Context $RelativePath
-            $activeField = 'msgstr'
-            continue
-        }
-        if ($line -match '^"(?<value>(?:\\.|[^"])*)"\s*$') {
-            $fragment = Convert-EscapedString -Value $Matches.value -Context $RelativePath
-            if ($activeField -eq 'msgid') {
-                $currentId += $fragment
-            }
-            elseif ($activeField -eq 'msgstr') {
-                $currentTranslation += $fragment
-            }
-            else {
-                Add-Failure "Detached quoted string in $RelativePath"
-            }
-            continue
-        }
-        if ([string]::IsNullOrWhiteSpace($line)) {
-            Add-PoEntry -Entries $entries -MessageId $currentId -Translation $currentTranslation -RelativePath $RelativePath
-            $currentId = $null
-            $currentTranslation = $null
-            $activeField = $null
-            continue
-        }
-        if ($line.StartsWith('#')) {
-            continue
-        }
-        Add-Failure "Unsupported PO syntax in ${RelativePath}: $line"
+    $content = Get-Content -LiteralPath $fullPath -Raw -Encoding UTF8
+    $localeMatch = [regex]::Match(
+        $content,
+        '(?m)^"Language:\s*(?<locale>[^\\"]+)\\n"\s*$'
+    )
+    $locale = if ($localeMatch.Success) { $localeMatch.Groups['locale'].Value.Trim() } else { '' }
+    if ([string]::IsNullOrWhiteSpace($locale)) {
+        Add-Failure "Catalog does not declare a Language header: $RelativePath"
     }
 
-    return [pscustomobject]@{ Entries = $entries }
+    $declaredIds = [regex]::Matches($content, '(?m)^msgid\s+"(?<id>(?:\\.|[^"])*)"\s*$')
+    foreach ($match in [regex]::Matches(
+        $content,
+        '(?ms)^msgid\s+"(?<id>(?:\\.|[^"])*)"\s*\r?\nmsgstr\s+"(?<translation>(?:\\.|[^"])*)"\s*(?=\r?\n\r?\n|\z)'
+    )) {
+        $messageId = Convert-EscapedString -Value $match.Groups['id'].Value -Context $RelativePath
+        if ([string]::IsNullOrEmpty($messageId)) {
+            continue
+        }
+        $translation = Convert-EscapedString -Value $match.Groups['translation'].Value -Context $RelativePath
+        if ($entries.ContainsKey($messageId)) {
+            Add-Failure "Duplicate msgid '$messageId' in $RelativePath"
+            continue
+        }
+        $entries.Add($messageId, $translation)
+    }
+
+    $nonHeaderIdCount = @(
+        $declaredIds |
+            Where-Object { -not [string]::IsNullOrEmpty($_.Groups['id'].Value) }
+    ).Count
+    if ($entries.Count -ne $nonHeaderIdCount) {
+        Add-Failure "Catalog contains unsupported or malformed PO entries: $RelativePath"
+    }
+
+    return [pscustomobject]@{ Locale = $locale; Entries = $entries }
 }
 
 function Get-FormatTokens {
@@ -148,6 +118,17 @@ function Test-IsNonTranslatableUiToken {
     return -not [regex]::IsMatch($withoutFormatTokens, '\p{L}')
 }
 
+function Assert-CataloguedValue {
+    param(
+        [Parameter(Mandatory = $true)][string]$Value,
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)]$BaseCatalog
+    )
+    if (-not (Test-IsNonTranslatableUiToken -Value $Value) -and -not $BaseCatalog.ContainsKey($Value)) {
+        Add-Failure "Uncatalogued UI text '$Value' in $Context"
+    }
+}
+
 $projectFile = Join-Path $projectRoot 'project.godot'
 if (-not (Test-Path -LiteralPath $projectFile -PathType Leaf)) {
     throw 'project.godot is missing'
@@ -175,11 +156,13 @@ else {
 if ($catalogResourcePaths.Count -lt 2) {
     Add-Failure 'At least two translation catalogs must be configured'
 }
-if (-not $fallbackSetting.Success) {
+$fallbackLocale = if ($fallbackSetting.Success) { $fallbackSetting.Groups['locale'].Value } else { '' }
+if ([string]::IsNullOrWhiteSpace($fallbackLocale)) {
     Add-Failure 'project.godot does not define internationalization/locale/fallback'
 }
 
 $seenCatalogPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+$localePaths = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
 $catalogs = [System.Collections.Generic.Dictionary[string, object]]::new([System.StringComparer]::Ordinal)
 foreach ($resourcePath in $catalogResourcePaths) {
     if (-not $seenCatalogPaths.Add($resourcePath)) {
@@ -188,7 +171,18 @@ foreach ($resourcePath in $catalogResourcePaths) {
     }
     $relativePath = $resourcePath.Substring('res://'.Length)
     $catalogResult = Read-PoCatalog -RelativePath $relativePath
+    if (-not [string]::IsNullOrWhiteSpace($catalogResult.Locale)) {
+        if ($localePaths.ContainsKey($catalogResult.Locale)) {
+            Add-Failure "Locale '$($catalogResult.Locale)' is declared by both $($localePaths[$catalogResult.Locale]) and $resourcePath"
+        }
+        else {
+            $localePaths.Add($catalogResult.Locale, $resourcePath)
+        }
+    }
     $catalogs.Add($resourcePath, $catalogResult.Entries)
+}
+if (-not [string]::IsNullOrWhiteSpace($fallbackLocale) -and -not $localePaths.ContainsKey($fallbackLocale)) {
+    Add-Failure "Fallback locale '$fallbackLocale' has no configured catalog"
 }
 
 $baseCatalogPath = if ($catalogResourcePaths.Count -gt 0) { $catalogResourcePaths[0] } else { '' }
@@ -241,9 +235,25 @@ if ($null -ne $baseCatalog) {
         $sceneContent = Get-Content -LiteralPath $sceneFile.FullName -Raw -Encoding UTF8
         foreach ($match in [regex]::Matches($sceneContent, '(?m)^\s*text\s*=\s*"(?<value>(?:\\.|[^"])*)"\s*$')) {
             $value = Convert-EscapedString -Value $match.Groups['value'].Value -Context $relativePath
-            if (-not (Test-IsNonTranslatableUiToken -Value $value) -and -not $baseCatalog.ContainsKey($value)) {
-                Add-Failure "Uncatalogued UI scene text '$value' in $relativePath"
-            }
+            Assert-CataloguedValue -Value $value -Context $relativePath -BaseCatalog $baseCatalog
+        }
+    }
+
+    $localizedResourceFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $projectRoot 'resources/tracks') -Filter '*_definition.tres' -File) {
+        $localizedResourceFiles.Add($file)
+    }
+    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $projectRoot 'resources/cars') -Filter '*.tres' -File -Recurse) {
+        if ((Get-ProjectRelativePath -FullPath $file.FullName) -match '/variants/') {
+            $localizedResourceFiles.Add($file)
+        }
+    }
+    foreach ($resourceFile in $localizedResourceFiles) {
+        $relativePath = Get-ProjectRelativePath -FullPath $resourceFile.FullName
+        $resourceContent = Get-Content -LiteralPath $resourceFile.FullName -Raw -Encoding UTF8
+        foreach ($match in [regex]::Matches($resourceContent, '(?m)^\s*display_name\s*=\s*"(?<value>(?:\\.|[^"])*)"\s*$')) {
+            $value = Convert-EscapedString -Value $match.Groups['value'].Value -Context $relativePath
+            Assert-CataloguedValue -Value $value -Context $relativePath -BaseCatalog $baseCatalog
         }
     }
 
@@ -270,4 +280,5 @@ if ($failures.Count -gt 0) {
     throw "Localization validation failed with $($failures.Count) issue(s)."
 }
 
-Write-Output "Localization validation passed for $($catalogResourcePaths.Count) catalogs and $($baseCatalog.Count) keys."
+$baseKeyCount = if ($null -eq $baseCatalog) { 0 } else { $baseCatalog.Count }
+Write-Output "Localization validation passed for $($catalogResourcePaths.Count) catalogs and $baseKeyCount keys."
