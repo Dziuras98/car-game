@@ -91,6 +91,30 @@ try {
         -Action { & (Join-Path $PSScriptRoot "test_output_directory_safety.ps1") }
 
     Write-Host ""
+    Write-Host "=== Public repository safety validator regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Public repository safety validator regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_public_repository_safety.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Public repository current snapshot ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Public repository current snapshot" `
+        -Action { & (Join-Path $PSScriptRoot "validate_public_repository_safety.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Git history safety validator regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Git history safety validator regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_git_history_safety.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Complete Git history safety ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Complete Git history safety" `
+        -Action { & (Join-Path $PSScriptRoot "validate_git_history_safety.ps1") }
+
+    Write-Host ""
     Write-Host "=== Windows platform contract regression ==="
     $null = Invoke-RecordedPreflightCheck `
         -Name "Windows platform contract regression" `
