@@ -1,3 +1,38 @@
-# Godot 4+ specific ignores
+# Godot-generated state
 .godot/
 /build/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and IDEs
+.vscode/
+.idea/
+.vs/
+*.user
+*.suo
+*.code-workspace
+
+# Signing material and credentials
+*.pfx
+*.p12
+*.pem
+*.key
+*.jks
+*.keystore
+credentials.json
+service-account*.json
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary, backup and crash files
+*.tmp
+*.temp
+*.bak
+*.stackdump
+crash*.txt
