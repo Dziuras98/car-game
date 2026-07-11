@@ -125,11 +125,17 @@ func clear_opponents() -> void:
 	for ai_driver: AiRaceDriver in _ai_drivers:
 		if is_instance_valid(ai_driver):
 			ai_driver.set_driver_enabled(false)
+			var driver_parent: Node = ai_driver.get_parent()
+			if driver_parent != null:
+				driver_parent.remove_child(ai_driver)
 			ai_driver.queue_free()
 	_ai_drivers.clear()
 
 	for opponent: PlayerCarController in _opponents:
 		if is_instance_valid(opponent):
+			var opponent_parent: Node = opponent.get_parent()
+			if opponent_parent != null:
+				opponent_parent.remove_child(opponent)
 			opponent.queue_free()
 	_opponents.clear()
 
