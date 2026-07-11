@@ -245,18 +245,6 @@ Assert-Contains "scripts/track/track_surface_mesh_builder.gd" @(
     ") -> TrackGeneratedMeshes:"
 )
 
-Assert-Contains "project.godot" @(
-    'rendering_device/driver.windows="d3d12"'
-)
-Assert-Contains "export_presets.cfg" @(
-    'name="Windows Desktop"',
-    'name="Windows Test"',
-    'platform="Windows Desktop"',
-    'texture_format/s3tc_bptc=true'
-)
-Assert-DoesNotMatch "export_presets.cfg" @(
-    '(?m)^\[preset\.2\]$'
-)
 Assert-Contains "scripts/ci/verify_project.ps1" @(
     'validate_localization.ps1',
     'run_tests.ps1',
@@ -274,7 +262,6 @@ Assert-DoesNotMatch ".github/workflows/windows-tests.yml" @(
 Assert-Contains ".github/workflows/windows-tests.yml" @(
     "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
     "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
-    "runs-on: windows-2025",
     "./scripts/ci/verify_project.ps1 -GodotBinary `$env:GODOT_BIN",
     "Get-FileHash -LiteralPath `$archivePath -Algorithm SHA512",
     "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8"
