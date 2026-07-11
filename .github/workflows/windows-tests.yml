@@ -208,7 +208,7 @@ jobs:
           compression-level: 6
 
       - name: Upload trusted Windows packages
-        if: ${{ always() && github.event_name != 'pull_request' }}
+        if: ${{ success() && github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: car-game-windows-${{ github.sha }}
