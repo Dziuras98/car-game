@@ -43,6 +43,19 @@ func _run() -> void:
 	_expect(_find_button(mode_buttons, "Wyścig") != null, "mode label uses the correct Polish spelling")
 	_expect(mode_buttons[0].has_focus(), "first mode option receives keyboard/gamepad focus")
 
+	menu._on_mode_pressed("unsupported")
+	await get_tree().process_frame
+	_expect(_selection_count == 0, "unsupported mode does not emit a selection")
+	_expect(_get_option_buttons(menu).is_empty(), "unsupported mode cannot advance to track selection")
+	_expect(
+		_get_subtitle(menu).text == "Wybrany tryb nie jest dostępny",
+		"unsupported mode reports an explicit configuration error"
+	)
+	_expect(menu._get_mode_label("unsupported") == "Nieznany tryb", "unknown mode label has no free-drive fallback")
+	menu.reset_menu()
+	await get_tree().process_frame
+
+	mode_buttons = _get_option_buttons(menu)
 	mode_buttons[0].pressed.emit()
 	await get_tree().process_frame
 	var track_buttons: Array[Button] = _get_option_buttons(menu)
@@ -87,6 +100,10 @@ func _get_option_buttons(menu: MainMenu) -> Array[Button]:
 		if child is Button:
 			result.append(child as Button)
 	return result
+
+
+func _get_subtitle(menu: MainMenu) -> Label:
+	return menu.get_node("Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SubtitleLabel") as Label
 
 
 func _find_button(buttons: Array[Button], text: String) -> Button:
