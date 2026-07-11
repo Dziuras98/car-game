@@ -7,27 +7,35 @@ The repository uses two required GitHub Actions workflows for pushes to `master`
 .github/workflows/android-export.yml
 ```
 
-Both workflows use Godot `4.7-stable`, cache matching export templates, cancel superseded runs on the same ref and retain build/diagnostic artifacts for 14 days.
+Both workflows use Godot `4.7-stable`, cache matching export templates, cancel superseded runs on the same ref and retain build/diagnostic artifacts for 14 days. GitHub-maintained actions are pinned to full commit SHAs rather than mutable major-version tags.
 
 ## Windows gate
 
-The Windows job runs on `windows-latest` and executes:
+The Windows job runs on the explicit `windows-2025` image and executes:
 
-1. download the Godot 4.7 console editor;
-2. verify the engine version;
-3. run static checks, project import and all discovered regression tests;
-4. restore or install matching Windows export templates;
+1. download the Godot 4.7 console editor and the official `SHA512-SUMS.txt` file;
+2. verify the editor archive SHA-512 checksum and engine version;
+3. run the single project-verification entrypoint;
+4. restore or install matching Windows export templates after verifying their SHA-512 checksum;
 5. verify release and debug templates;
 6. export the production and test presets;
 7. smoke-test normal packaged startup;
 8. smoke-test the packaged regression route;
 9. upload the complete `build/` directory even after a failure when diagnostic files exist.
 
-The shared runner is:
+The authoritative local/CI verification entrypoint is:
+
+```text
+scripts/ci/verify_project.ps1
+```
+
+It runs the localization contract first and then delegates static checks, project import and all discovered Godot tests to:
 
 ```text
 scripts/ci/run_tests.ps1
 ```
+
+Using `run_tests.ps1` directly remains possible for focused test work, but it is not the complete repository gate because it intentionally does not duplicate localization orchestration.
 
 ### Static checks
 
@@ -35,9 +43,13 @@ scripts/ci/run_tests.ps1
 
 - mobile controls must not synthesize global input actions;
 - high-level game/race/lap coordinators must not regain dynamic `call()`/`has_method()` fallback paths;
+- gameplay modes, player indices and AI variant selection must remain explicit rather than falling back;
+- opponent spawning must retain prepare-then-commit semantics;
 - car specs and variant resources must not regain removed legacy fields;
 - the track catalog must use explicit `default_track_id` ownership and must not use per-track boolean or first-entry fallbacks;
 - the generated-track pipeline must retain typed config and mesh containers;
+- both workflows must use explicit runner labels and full action commit SHAs;
+- the Windows workflow must retain SHA-512 verification for downloaded Godot archives;
 - required Windows/Android export settings must remain present;
 - test scripts must be discoverable, referenced by a test scene, an editor launcher or an explicitly allowed helper;
 - the canonical full-program scene must remain bound to the canonical smoke-test script.
@@ -59,7 +71,7 @@ Each Godot invocation has:
 - exit-code validation;
 - scanning for `SCRIPT ERROR:`, `ERROR:` and editor-style `E 0:00:...` lines.
 
-The runtime-error detector has its own self-check so a broken regex cannot silently make the suite permissive.
+The runtime-error detector has its own self-check so a broken regex cannot silently make the suite permissive. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
 
 ### Canonical full-program smoke test
 
@@ -105,14 +117,15 @@ They contain the generated executable/PCK, packaged smoke logs and per-command t
 
 ## Android gate
 
-The Android job runs on `ubuntu-latest` with Java 17 and the runner-provided Android SDK. It executes:
+The Android job runs on the explicit `ubuntu-24.04` image with Java 17 and the runner-provided Android SDK. It executes:
 
-1. download Godot 4.7 and verify its SHA-512 checksum;
-2. restore or install matching export templates and verify their checksum;
-3. configure Godot's Android SDK and Java paths;
-4. import the project headlessly;
-5. export and validate the debug APK;
-6. upload `build/android/` even when validation fails after producing diagnostics.
+1. validate localization catalogs;
+2. download Godot 4.7 and verify its SHA-512 checksum;
+3. restore or install matching export templates and verify their checksum;
+4. configure Godot's Android SDK and Java paths;
+5. import the project headlessly;
+6. export and validate the debug APK;
+7. upload `build/android/` even when validation fails after producing diagnostics.
 
 The export/validation script is:
 
@@ -143,7 +156,14 @@ They contain the APK, export log, validation log, extracted manifest and Android
 
 ## Running locally
 
-Windows tests:
+Complete Windows project verification:
+
+```powershell
+./scripts/ci/verify_project.ps1 `
+    -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
+```
+
+Focused Windows tests without the localization orchestration step:
 
 ```powershell
 ./scripts/ci/run_tests.ps1 `
@@ -170,10 +190,11 @@ Matching Godot 4.7 export templates are required for local export commands.
 
 For Windows failures, inspect in this order:
 
-1. `build/test-logs/current-command.log` when present;
-2. `workflow-runner-failure.log`;
-3. the log named after the failed import/script/scene command;
-4. packaged startup/export logs.
+1. `build/test-logs/localization-validation.log` when localization was reached;
+2. `build/test-logs/current-command.log` when present;
+3. `workflow-runner-failure.log`;
+4. the log named after the failed import/script/scene command;
+5. packaged startup/export logs.
 
 For Android failures, inspect:
 
