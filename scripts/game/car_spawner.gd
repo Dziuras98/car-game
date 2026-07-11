@@ -11,6 +11,7 @@ var _player_spawner: PlayerCarSpawnController
 var _opponent_layout: OpponentSpawnLayout
 var _paint_randomizer: OpponentPaintRandomizer
 var _opponent_spawner: OpponentParticipantSpawner
+var _configured: bool = false
 
 
 func configure(
@@ -21,7 +22,27 @@ func configure(
 	lane_spacing: float,
 	row_spacing: float,
 	random_seed: int = -1
-) -> void:
+) -> bool:
+	_configured = false
+	if not is_instance_valid(owner_node):
+		push_error("CarSpawner requires a valid owner node.")
+		return false
+	if not is_instance_valid(car_spawn):
+		push_error("CarSpawner requires a valid player spawn marker.")
+		return false
+	if not is_instance_valid(track) or not track.has_committed_generation():
+		push_error("CarSpawner requires a committed generated track.")
+		return false
+	if available_car_variants.is_empty():
+		push_error("CarSpawner requires at least one configured car variant.")
+		return false
+	if not is_finite(lane_spacing) or lane_spacing < 0.0:
+		push_error("CarSpawner lane spacing must be finite and non-negative.")
+		return false
+	if not is_finite(row_spacing) or row_spacing < 0.0:
+		push_error("CarSpawner row spacing must be finite and non-negative.")
+		return false
+
 	opponent_lane_spacing = lane_spacing
 	opponent_row_spacing = row_spacing
 	if random_seed >= 0:
@@ -32,6 +53,9 @@ func configure(
 
 	_factory = CarInstanceFactory.new()
 	_factory.configure(available_car_variants, _rng)
+	if not _factory.has_available_cars():
+		push_error("CarSpawner produced no available player car variants.")
+		return false
 
 	_player_spawner = PlayerCarSpawnController.new()
 	_player_spawner.configure(owner_node, _factory)
@@ -52,10 +76,20 @@ func configure(
 		_paint_randomizer,
 		_session_seed
 	)
+	_configured = true
+	return true
+
+
+func is_configured() -> bool:
+	return _configured
 
 
 func has_available_cars() -> bool:
-	return _factory != null and _factory.has_available_cars()
+	return _configured and _factory != null and _factory.has_available_cars()
+
+
+func has_ai_eligible_cars() -> bool:
+	return _configured and _factory != null and _factory.has_ai_eligible_cars()
 
 
 func get_session_seed() -> int:
@@ -89,13 +123,13 @@ func get_ai_drivers() -> Array[AiRaceDriver]:
 
 
 func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
-	if _player_spawner == null:
+	if not _configured or _player_spawner == null:
 		return null
 	return _player_spawner.spawn_player_car(car_index, spawn_global_transform, player_input_enabled)
 
 
 func switch_to_next_car(spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
-	if _player_spawner == null:
+	if not _configured or _player_spawner == null:
 		return null
 	return _player_spawner.switch_to_next_car(spawn_global_transform, player_input_enabled)
 
@@ -107,9 +141,13 @@ func clear_current_car() -> void:
 
 
 func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
-	if _opponent_spawner == null:
+	if not _configured or _opponent_spawner == null:
 		var empty_opponents: Array[PlayerCarController] = []
 		return empty_opponents
+	if opponent_count > 0 and not has_ai_eligible_cars():
+		push_error("CarSpawner cannot create opponents without an explicit AI-eligible variant.")
+		var no_opponents: Array[PlayerCarController] = []
+		return no_opponents
 	return _opponent_spawner.spawn_opponents(opponent_count)
 
 
