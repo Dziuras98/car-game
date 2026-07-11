@@ -6,13 +6,15 @@ const NON_RUNTIME_PROPERTIES: Array[StringName] = [
 ]
 
 
-static func build_from_specs(car_specs: CarSpecs) -> CarDriveConfig:
+static func build_from_specs(car_specs: CarSpecs, report_errors: bool = true) -> CarDriveConfig:
 	if car_specs == null:
-		push_error("CarDriveConfigBuilder requires a non-null CarSpecs resource.")
+		if report_errors:
+			push_error("CarDriveConfigBuilder requires a non-null CarSpecs resource.")
 		return null
 	var validation_errors: PackedStringArray = car_specs.validate()
 	if not validation_errors.is_empty():
-		push_error("CarDriveConfigBuilder received invalid specs: %s" % "; ".join(validation_errors))
+		if report_errors:
+			push_error("CarDriveConfigBuilder received invalid specs: %s" % "; ".join(validation_errors))
 		return null
 
 	var config: CarDriveConfig = CarDriveConfig.new()
