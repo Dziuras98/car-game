@@ -6,16 +6,18 @@ This document defines the current subsystem boundaries of the Godot car-game pro
 
 The required pull-request gates are:
 
+- public-repository current-tree and complete-history safety validation;
 - localization validation, headless import and regression tests on Windows;
 - Windows production/test export and packaged startup smoke tests.
 
-`scripts/ci/verify_project.ps1` is the single complete verification entrypoint. It validates localization and then delegates test execution to `scripts/ci/run_tests.ps1`, which discovers tests automatically instead of maintaining a handwritten list:
+`scripts/ci/verify_project.ps1` is the single complete verification entrypoint. It validates repository safety and localization and then delegates test execution to `scripts/ci/run_tests.ps1`, which discovers tests automatically instead of maintaining a handwritten list:
 
 - standalone scripts under `scripts/tests/` must extend `SceneTree`;
 - all scenes under `scenes/tests/` are executed, except explicit packaged-only fixtures;
 - each command receives an independent timeout and log;
 - Godot runtime-error output fails the command even when its exit code is zero;
-- static checks reject architectural fallback paths, completed-migration regressions, production test-only identifiers, mutable GitHub Action tags and orphaned test scripts.
+- static checks enforce architectural ownership/API boundaries, reject completed-migration fallback paths, production test-only identifiers, mutable GitHub Action tags and orphaned test scripts;
+- runtime tests, rather than exact source-layout assertions, own behavioral contracts.
 
 The canonical end-to-end test is `scenes/tests/full_program_smoke_test.tscn`, which runs `scripts/tests/full_program_smoke_test.gd`.
 
@@ -49,15 +51,17 @@ The normal main scene composes:
 3. `TrackSpawnController` instantiates and validates the selected `TrackDefinition` before committing it as `TrackContainer/ActiveTrack`.
 4. Menu options are built from catalog data.
 5. The user selects an explicitly supported mode, track, model and variant.
-6. `GameManager` validates the exact IDs and configures a staged `CarSpawner` / `RaceSessionController` pair for the selected track.
-7. `CarInstanceFactory` instantiates the exact selected variant and assigns its `CarSpecs` before scene-tree entry; invalid indices are rejected rather than clamped.
-8. Car spawners assign the requested global transform and then capture it as the reset origin.
-9. Race opponent creation prepares the complete requested set of typed car/AI-driver pairs before any participant is committed to the scene.
-10. Camera, speedometer and minimap bind only after the player car exists.
-11. Free drive enables player input immediately; race mode commits only after all opponents and lap tracking are ready, then starts the countdown.
-12. `LapTracker` consumes ordered checkpoint crossings and continuous racing-line progress.
-13. Any failed session-start step clears partial runtime state and returns to the main menu.
-14. Returning to the menu disposes cars, opponents, input state and race UI.
+6. `GameManager` validates the exact IDs, clears the previous runtime session and asks `GameSessionState` to enter `STARTING`.
+7. `GameManager` configures a staged `CarSpawner` / `RaceSessionController` pair for the selected track.
+8. `CarInstanceFactory` instantiates the exact selected variant and assigns its `CarSpecs` before scene-tree entry; invalid indices are rejected rather than clamped.
+9. Car spawners assign the requested global transform and then capture it as the reset origin.
+10. Race opponent creation prepares the complete requested set of typed car/AI-driver pairs before any participant is committed to the scene.
+11. Camera, speedometer and minimap bind only after the player car exists.
+12. Free drive enables player input immediately; race mode commits only after all opponents and lap tracking are ready, then starts the countdown.
+13. `GameSessionState` commits the validated IDs and transitions from `STARTING` to `FREE_DRIVE` or `RACE` only after runtime setup succeeds.
+14. `LapTracker` consumes ordered checkpoint crossings and continuous racing-line progress.
+15. Any failed session-start step uses the same teardown path as a normal return and transitions the lifecycle back to `MENU`.
+16. Returning to the menu disposes cars, opponents, committed selection state, input state and race UI.
 
 ## Game and race responsibilities
 
@@ -65,21 +69,24 @@ The normal main scene composes:
 
 `scripts/game/game_manager.gd` is a coordinator. It owns:
 
-- selected mode, track and car variant IDs;
 - menu wiring and high-level transitions;
 - active-track activation;
-- transactional session startup and rollback;
+- transactional session startup and rollback orchestration;
 - camera/HUD/minimap binding;
 - free-drive and race session entry/cleanup;
 - pause lifecycle.
 
-It must not accumulate vehicle physics, procedural track construction, detailed lap rules, low-level UI layout logic or test-simulation facades.
+`GameSessionState` owns the gameplay lifecycle phase and committed mode, track and car-variant IDs. `GameManager` exposes those values through read-only getters and uses one cleanup path for failed startup and normal menu return.
+
+It must not accumulate vehicle physics, procedural track construction, detailed lap rules, low-level UI layout logic, duplicate session-state fields or test-simulation facades.
 
 ### Selection and spawning
 
 Key helpers:
 
 ```text
+scripts/game/game_modes.gd
+scripts/game/game_session_state.gd
 scripts/game/car_selection_state.gd
 scripts/game/menu_options_builder.gd
 scripts/game/track_spawn_controller.gd
@@ -91,6 +98,8 @@ scripts/game/opponent_participant_spawner.gd
 
 Rules:
 
+- `GameModes` is the sole owner of gameplay mode identifiers;
+- `GameSessionState` is the sole owner of lifecycle phase and committed session IDs;
 - catalog IDs are authoritative;
 - car and track catalog arrays are statically typed;
 - `TrackCatalog.default_track_id` is the only default-track mechanism;
@@ -102,7 +111,8 @@ Rules:
 - opponent drivers are configured through typed references before entering the scene tree;
 - the requested opponent count is all-or-nothing: incomplete sets are discarded before scene commit;
 - an opponent session seed of `-1` randomizes the session, while a non-negative seed reproduces variants, paint and driver profiles;
-- missing or invalid content fails validation rather than selecting an implicit fallback.
+- missing or invalid content fails validation rather than selecting an implicit fallback;
+- free-drive car switching may update only the committed variant ID and cannot change mode or track state.
 
 ### Race subsystem
 
@@ -144,7 +154,7 @@ CarCatalog
 
 `CarSpecs` is the persistent tuning resource. `CarDriveConfigBuilder` validates it and creates a sanitized runtime copy. `CarSpecs.transmission_type` is the sole transmission-mode state. There are no legacy boolean transmission selectors and no controller-export fallback.
 
-The base car scene contains visual, collision and audio structure only. It does not serialize tuning fields, and `PlayerCarController` does not intercept unknown properties.
+The base car scene contains visual, collision and audio structure only. It does not serialize tuning fields, and `PlayerCarController` does not intercept unknown properties or retain compatibility-only specification wrappers.
 
 ### Runtime helpers
 
@@ -262,6 +272,8 @@ Procedural engine and tire audio use bounded voice budgets and listener-distance
 - Keep catalog/resource ownership explicit; do not add implicit first-entry, clamped-index or mode fallbacks.
 - Keep `GameManager` and `PlayerCarController` as coordinators.
 - Preserve prepare-then-commit semantics for tracks, gameplay sessions and opponent sets.
+- Keep lifecycle phase and committed gameplay IDs inside `GameSessionState`; do not duplicate them in `GameManager` or UI nodes.
+- Use one teardown sequence for failed startup and normal return to the menu.
 - Do not add test-only suffixes or simulation entry points to production classes.
 - Add focused tests with each subsystem change.
 - Ensure every test script is discoverable, scene-referenced or an explicitly allowed helper.
