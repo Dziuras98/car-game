@@ -14,12 +14,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	var rpm_axis: float = Input.get_axis("gear-down", "gear-up")
-	var load_axis: float = Input.get_axis("brake", "accelerate")
+	var rpm_axis: float = Input.get_axis(GameInputActions.GEAR_DOWN, GameInputActions.GEAR_UP)
+	var load_axis: float = Input.get_axis(GameInputActions.BRAKE, GameInputActions.ACCELERATE)
 	_rpm = clampf(_rpm + rpm_axis * 2400.0 * delta, 500.0, 7800.0)
 	_load = clampf(_load + load_axis * 0.75 * delta, 0.0, 1.0)
 	_throttle = lerpf(_throttle, _load, 1.0 - exp(-10.0 * delta))
-	if Input.is_action_just_pressed("switch-car"):
+	if Input.is_action_just_pressed(GameInputActions.SWITCH_CAR):
 		_rpm = 7600.0 if _rpm < 7000.0 else 700.0
 		_load = 1.0 if _rpm > 7000.0 else 0.05
 		_throttle = _load
