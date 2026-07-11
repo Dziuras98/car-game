@@ -1,8 +1,8 @@
 extends Node
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
-const RESULTS_SCREEN_SCENE: PackedScene = preload("res://scenes/ui/results_screen.tscn")
 const MOBILE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile_drive_controls.tscn")
+const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
 const SIMPLE_OVAL_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
@@ -61,21 +61,39 @@ func _run() -> void:
 	_expect(speed_title != null and speed_title.text == "SPEED", "exported speedometer renders its translated title")
 	_expect(gear_label != null and gear_label.text == "GEAR", "exported speedometer renders its translated gear label")
 
-	var results_screen: CanvasLayer = RESULTS_SCREEN_SCENE.instantiate() as CanvasLayer
-	add_child(results_screen)
-	var results_title: Label = results_screen.get_node_or_null(
+	var results_screen: ResultsScreen = ResultsScreen.new()
+	results_screen.build(self, Callable())
+	var results_layer: CanvasLayer = get_node_or_null("ResultsScreen") as CanvasLayer
+	var results_title: Label = results_layer.get_node_or_null(
 		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleLabel"
-	) as Label
-	_expect(results_title != null and results_title.text == "Results", "exported results scene auto-translates")
-	results_screen.queue_free()
+	) as Label if results_layer != null else null
+	var results_menu_button: Button = results_layer.get_node_or_null(
+		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MenuButton"
+	) as Button if results_layer != null else null
+	_expect(results_title != null and results_title.text == "Results", "exported results builder translates its title")
+	_expect(results_menu_button != null and results_menu_button.text == "Return to menu", "exported results builder translates its menu action")
+	if results_layer != null:
+		results_layer.queue_free()
 
 	var mobile_controls: CanvasLayer = MOBILE_CONTROLS_SCENE.instantiate() as CanvasLayer
 	add_child(mobile_controls)
 	var throttle_button: Button = mobile_controls.get_node_or_null("Root/Accelerate") as Button
 	var brake_button: Button = mobile_controls.get_node_or_null("Root/Brake") as Button
-	_expect(throttle_button != null and throttle_button.text == "THROTTLE", "exported mobile throttle label auto-translates")
-	_expect(brake_button != null and brake_button.text == "BRAKE", "exported mobile brake label auto-translates")
+	_expect(throttle_button != null and throttle_button.text == "THROTTLE", "exported mobile throttle label is translated explicitly")
+	_expect(brake_button != null and brake_button.text == "BRAKE", "exported mobile brake label is translated explicitly")
 	mobile_controls.queue_free()
+
+	var pause_menu: PauseMenu = PAUSE_MENU_SCENE.instantiate() as PauseMenu
+	add_child(pause_menu)
+	var pause_title: Label = pause_menu.get_node_or_null(
+		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Title"
+	) as Label
+	var resume_button: Button = pause_menu.get_node_or_null(
+		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ResumeButton"
+	) as Button
+	_expect(pause_title != null and pause_title.text == "Paused", "exported pause menu translates its title")
+	_expect(resume_button != null and resume_button.text == "Resume", "exported pause menu translates its resume action")
+	pause_menu.queue_free()
 
 	var track: Node = main_instance.get_node_or_null("TrackContainer/ActiveTrack")
 	_expect(track != null, "default catalog track is instantiated in the exported main scene")
