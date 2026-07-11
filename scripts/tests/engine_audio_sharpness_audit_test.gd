@@ -6,20 +6,23 @@ const SAMPLE_RATE: float = 32000.0
 const SILENCE_FLOOR: float = 0.000000001
 
 const PRODUCTION_PROFILE: Dictionary = {
-	"output_volume_boost_db": 9.0,
+	"synthesis_gain_db": 1.0,
+	"output_volume_boost_db": 11.5,
 	"idle_volume_db": -10.0,
 	"load_volume_db": 0.0,
-	"exhaust_roughness": 0.16,
-	"intake_presence": 0.20,
-	"exhaust_resonance": 0.52,
-	"mechanical_noise": 0.045,
+	"exhaust_roughness": 0.12,
+	"intake_presence": 0.18,
+	"exhaust_resonance": 0.54,
+	"mechanical_noise": 0.035,
 	"overrun_crackle": 0.10,
-	"high_rpm_rasp": 0.12,
+	"high_rpm_rasp": 0.07,
 	"exhaust_bank_separation": 0.30,
-	"exhaust_reflection": 0.12,
-	"intake_plenum_detail": 0.16,
-	"airflow_noise": 0.08,
-	"rotating_assembly_detail": 0.04,
+	"exhaust_reflection": 0.08,
+	"intake_plenum_detail": 0.10,
+	"airflow_noise": 0.05,
+	"rotating_assembly_detail": 0.03,
+	"limiter_cut_ratio": 0.40,
+	"limiter_residual_combustion": 0.20,
 }
 
 const OPERATING_POINTS: Array[Dictionary] = [
@@ -31,11 +34,14 @@ const OPERATING_POINTS: Array[Dictionary] = [
 	{"name": "limiter", "rpm": 7600.0, "load": 1.0, "throttle": 1.0},
 ]
 
+var _checks: int = 0
+var _failures: Array[String] = []
+
 
 func _initialize() -> void:
 	for point: Dictionary in OPERATING_POINTS:
 		_report(point)
-	quit(0)
+	_finish()
 
 
 func _report(point: Dictionary) -> void:
@@ -51,6 +57,7 @@ func _report(point: Dictionary) -> void:
 	var rms: float = _rms(frames)
 	var peak: float = _peak(frames)
 	var difference_rms: float = _difference_rms(frames)
+	var difference_ratio: float = difference_rms / maxf(rms, SILENCE_FLOOR)
 	var high_ratio: float = _high_band_energy_ratio(frames)
 	var loudness: float = clampf(float(point.load) * 0.90 + float(point.throttle) * 0.26, 0.0, 1.0)
 	var player_db: float = lerpf(
@@ -59,18 +66,29 @@ func _report(point: Dictionary) -> void:
 		loudness
 	) + float(PRODUCTION_PROFILE.output_volume_boost_db)
 	var projected_peak: float = peak * db_to_linear(player_db)
+	var projected_rms: float = rms * db_to_linear(player_db)
+	var point_name := String(point.name)
 	print(
-		"[ENGINE_AUDIO_SHARPNESS_AUDIT] point=%s rms_dbfs=%.2f peak_dbfs=%.2f crest_db=%.2f difference_ratio=%.3f high_energy_pct=%.1f player_db=%.2f projected_peak_dbfs=%.2f" % [
-			String(point.name),
+		"[ENGINE_AUDIO_SHARPNESS_AUDIT] point=%s rms_dbfs=%.2f peak_dbfs=%.2f crest_db=%.2f difference_ratio=%.3f high_energy_pct=%.1f player_db=%.2f projected_rms_dbfs=%.2f projected_peak_dbfs=%.2f" % [
+			point_name,
 			_to_dbfs(rms),
 			_to_dbfs(peak),
 			linear_to_db(maxf(peak, SILENCE_FLOOR) / maxf(rms, SILENCE_FLOOR)),
-			difference_rms / maxf(rms, SILENCE_FLOOR),
+			difference_ratio,
 			high_ratio * 100.0,
 			player_db,
+			_to_dbfs(projected_rms),
 			_to_dbfs(projected_peak),
 		]
 	)
+	_expect(_to_dbfs(projected_peak) <= -0.25, "%s keeps at least 0.25 dB of final peak headroom" % point_name)
+	if point_name == "high_load":
+		_expect(difference_ratio < 0.31, "high-load waveform sharpness remains below the previous 0.339 ratio")
+		_expect(high_ratio < 0.065, "high-load energy above 2.2 kHz remains below 6.5 percent")
+		_expect(_to_dbfs(projected_rms) > -11.5, "high-load perceived level remains close to the approved loudness")
+	elif point_name == "limiter":
+		_expect(difference_ratio < 0.52, "limiter waveform sharpness remains below the previous 0.559 ratio")
+		_expect(high_ratio < 0.125, "limiter energy above 2.2 kHz remains below 12.5 percent")
 	synthesizer.free()
 
 
@@ -117,3 +135,23 @@ func _high_band_energy_ratio(frames: PackedFloat32Array) -> float:
 
 func _to_dbfs(value: float) -> float:
 	return linear_to_db(maxf(absf(value), SILENCE_FLOOR))
+
+
+func _expect(condition: bool, message: String) -> void:
+	_checks += 1
+	if condition:
+		print("[ENGINE_AUDIO_SHARPNESS_AUDIT][PASS] %s" % message)
+		return
+	_failures.append(message)
+	push_error("[ENGINE_AUDIO_SHARPNESS_AUDIT][FAIL] %s" % message)
+
+
+func _finish() -> void:
+	if _failures.is_empty():
+		print("[ENGINE_AUDIO_SHARPNESS_AUDIT] Passed: %d checks" % _checks)
+		quit(0)
+		return
+	push_error("[ENGINE_AUDIO_SHARPNESS_AUDIT] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
+	for failure_message: String in _failures:
+		push_error("[ENGINE_AUDIO_SHARPNESS_AUDIT] - %s" % failure_message)
+	quit(1)
