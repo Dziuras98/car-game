@@ -13,6 +13,7 @@ var _staged_reuses_current: bool = false
 var _previous_track: GeneratedTrack
 var _previous_definition: TrackDefinition
 var _has_unfinalized_commit: bool = false
+var _unfinalized_reuses_current: bool = false
 
 
 func configure(container: Node3D) -> void:
@@ -74,10 +75,13 @@ func commit_staged_track() -> GeneratedTrack:
 	if not is_instance_valid(_staged_track) or _staged_definition == null:
 		return null
 	if _staged_reuses_current:
-		var reused_track: GeneratedTrack = _staged_track
+		_previous_track = _current_track
+		_previous_definition = _current_definition
 		_current_definition = _staged_definition
 		_clear_staged_references()
-		return reused_track
+		_has_unfinalized_commit = true
+		_unfinalized_reuses_current = true
+		return _current_track
 
 	_previous_track = _current_track
 	_previous_definition = _current_definition
@@ -91,11 +95,12 @@ func commit_staged_track() -> GeneratedTrack:
 	_current_definition = _staged_definition
 	_clear_staged_references()
 	_has_unfinalized_commit = true
+	_unfinalized_reuses_current = false
 	return _current_track
 
 
 func finalize_track_commit() -> void:
-	if is_instance_valid(_previous_track):
+	if not _unfinalized_reuses_current and is_instance_valid(_previous_track):
 		_previous_track.free()
 	_clear_previous_references()
 
@@ -103,6 +108,12 @@ func finalize_track_commit() -> void:
 func rollback_track_transaction() -> void:
 	if not _has_unfinalized_commit:
 		discard_staged_track()
+		return
+
+	if _unfinalized_reuses_current:
+		_current_track = _previous_track
+		_current_definition = _previous_definition
+		_clear_previous_references()
 		return
 
 	var rejected_track: GeneratedTrack = _current_track
@@ -161,6 +172,7 @@ func _clear_previous_references() -> void:
 	_previous_track = null
 	_previous_definition = null
 	_has_unfinalized_commit = false
+	_unfinalized_reuses_current = false
 
 
 func _discard_track_node(track: GeneratedTrack) -> void:
