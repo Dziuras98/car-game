@@ -45,6 +45,9 @@ msgstr "Brak wariantów dla wybranego modelu"
 msgid "Konfiguracja zawartości jest niepoprawna"
 msgstr "Konfiguracja zawartości jest niepoprawna"
 
+msgid "Wybrany tryb nie jest dostępny"
+msgstr "Wybrany tryb nie jest dostępny"
+
 msgid "Wybrany tor nie jest dostępny"
 msgstr "Wybrany tor nie jest dostępny"
 
@@ -53,6 +56,9 @@ msgstr "Wybrany model nie jest dostępny"
 
 msgid "Wybrany wariant nie jest dostępny"
 msgstr "Wybrany wariant nie jest dostępny"
+
+msgid "Nieznany tryb"
+msgstr "Nieznany tryb"
 
 msgid "Nieznany tor"
 msgstr "Nieznany tor"
