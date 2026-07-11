@@ -34,6 +34,8 @@ function Expect-Equal {
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("car-game-junit-report-" + [guid]::NewGuid().ToString("N"))
 $reportPath = Join-Path $tempRoot "nested/results.xml"
 $emptyReportPath = Join-Path $tempRoot "empty.xml"
+$additionalReportPath = Join-Path $tempRoot "additional.xml"
+$mergedReportPath = Join-Path $tempRoot "merged.xml"
 
 try {
     $results = @(
@@ -82,6 +84,29 @@ try {
     [xml]$emptyDocument = Get-Content -LiteralPath $emptyReportPath -Raw
     Expect-Equal -Actual $emptyDocument.testsuites.tests -Expected "0" -Message "An empty result list should produce a valid zero-test report."
     Expect-Equal -Actual $emptyDocument.testsuites.failures -Expected "0" -Message "An empty result list should report zero failures."
+
+    $additionalResults = @(
+        New-JUnitTestResult `
+            -Name "Localization contract" `
+            -ClassName "repository.preflight" `
+            -DurationSeconds 0.25 `
+            -Status "passed" `
+            -Output "localization valid"
+    )
+    Write-JUnitReport -Results $additionalResults -Path $additionalReportPath -SuiteName "preflight"
+    Merge-JUnitReports `
+        -SourcePaths @($additionalReportPath, $reportPath) `
+        -Path $mergedReportPath `
+        -SuiteName "complete verification"
+
+    [xml]$mergedDocument = Get-Content -LiteralPath $mergedReportPath -Raw
+    $mergedCases = @($mergedDocument.testsuites.testsuite.testcase)
+    Expect-Equal -Actual $mergedDocument.testsuites.tests -Expected "3" -Message "Merged reports should sum all test cases."
+    Expect-Equal -Actual $mergedDocument.testsuites.failures -Expected "1" -Message "Merged reports should preserve failure counts."
+    Expect-Equal -Actual $mergedDocument.testsuites.testsuite.time -Expected "1.875000" -Message "Merged reports should sum durations."
+    Expect-Equal -Actual $mergedCases[0].name -Expected "Localization contract" -Message "Merged reports should preserve source order."
+    Expect-Equal -Actual $mergedCases[1].name -Expected "Import <project>" -Message "Merged reports should preserve testcase order within each source."
+    Expect-Equal -Actual $mergedCases[2].failure.message -Expected "ERROR: bad <resource>" -Message "Merged reports should preserve failure diagnostics."
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
