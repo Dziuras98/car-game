@@ -176,9 +176,9 @@ func _create_grass(parent: Node3D, material_factory: TrackMaterialFactory, grass
 	var grass_mesh: BoxMesh = BoxMesh.new()
 	grass_mesh.size = Vector3(grass_size.x, 0.4, grass_size.y)
 
-	var grass_body: StaticBody3D = StaticBody3D.new()
+	var grass_body: TrackSurfaceBody = TrackSurfaceBody.new()
 	grass_body.name = "Grass"
-	grass_body.set_meta("surface_grip_multiplier", GRASS_GRIP)
+	grass_body.grip_multiplier = GRASS_GRIP
 	parent.add_child(grass_body)
 	grass_body.owner = parent.owner
 	grass_body.position.y = -0.25
@@ -192,9 +192,9 @@ func _create_grass(parent: Node3D, material_factory: TrackMaterialFactory, grass
 
 
 func _create_shoulders(parent: Node3D, mesh: ArrayMesh, material_factory: TrackMaterialFactory) -> void:
-	var shoulder_body: StaticBody3D = StaticBody3D.new()
+	var shoulder_body: TrackSurfaceBody = TrackSurfaceBody.new()
 	shoulder_body.name = "RoadsideTerrain"
-	shoulder_body.set_meta("surface_grip_multiplier", SHOULDER_GRIP)
+	shoulder_body.grip_multiplier = SHOULDER_GRIP
 	parent.add_child(shoulder_body)
 	shoulder_body.owner = parent.owner
 
@@ -207,9 +207,9 @@ func _create_shoulders(parent: Node3D, mesh: ArrayMesh, material_factory: TrackM
 
 
 func _create_track(parent: Node3D, mesh: ArrayMesh, material_factory: TrackMaterialFactory) -> void:
-	var track_body: StaticBody3D = StaticBody3D.new()
+	var track_body: TrackSurfaceBody = TrackSurfaceBody.new()
 	track_body.name = "TrackSurface"
-	track_body.set_meta("surface_grip_multiplier", ASPHALT_GRIP)
+	track_body.grip_multiplier = ASPHALT_GRIP
 	parent.add_child(track_body)
 	track_body.owner = parent.owner
 
