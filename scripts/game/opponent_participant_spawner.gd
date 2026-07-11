@@ -1,6 +1,8 @@
 extends RefCounted
 class_name OpponentParticipantSpawner
 
+signal driver_fault(message: String)
+
 enum Result {
 	OK,
 	INVALID_COUNT,
@@ -88,6 +90,7 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 		var no_eligible_variants: Array[PlayerCarController] = []
 		return no_eligible_variants
 
+	var random_state_before: int = _factory.capture_random_state()
 	var requested_count: int = opponent_count
 	var staged_cars: Array[PlayerCarController] = []
 	var staged_drivers: Array[AiRaceDriver] = []
@@ -96,7 +99,7 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 	for opponent_index: int in range(requested_count):
 		var car_controller: PlayerCarController = _factory.instantiate_opponent_car()
 		if car_controller == null:
-			_discard_staged_participants(staged_cars, staged_drivers)
+			_rollback_preparation(staged_cars, staged_drivers, random_state_before)
 			_last_spawn_result = Result.PREPARATION_FAILED
 			push_error("OpponentParticipantSpawner could not prepare opponent %d of %d." % [opponent_index + 1, requested_count])
 			var failed_cars: Array[PlayerCarController] = []
@@ -112,7 +115,7 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 		if not ai_driver.configure(car_controller, _track, profile):
 			car_controller.free()
 			ai_driver.free()
-			_discard_staged_participants(staged_cars, staged_drivers)
+			_rollback_preparation(staged_cars, staged_drivers, random_state_before)
 			_last_spawn_result = Result.PREPARATION_FAILED
 			push_error("OpponentParticipantSpawner could not configure opponent %d of %d." % [opponent_index + 1, requested_count])
 			var failed_drivers: Array[PlayerCarController] = []
@@ -128,7 +131,7 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 		staged_transforms.append(_layout.get_spawn_transform(_car_spawn, opponent_index))
 
 	if staged_cars.size() != requested_count or staged_drivers.size() != requested_count:
-		_discard_staged_participants(staged_cars, staged_drivers)
+		_rollback_preparation(staged_cars, staged_drivers, random_state_before)
 		_last_spawn_result = Result.PREPARATION_FAILED
 		push_error("OpponentParticipantSpawner did not prepare the complete requested participant set.")
 		var incomplete: Array[PlayerCarController] = []
@@ -142,6 +145,9 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 		car_controller.global_transform = staged_transforms[opponent_index]
 		car_controller.capture_current_transform_as_start()
 		_opponents.append(car_controller)
+		var fault_callback: Callable = Callable(self, "_on_ai_driver_fault")
+		if not ai_driver.driver_fault.is_connected(fault_callback):
+			ai_driver.driver_fault.connect(fault_callback)
 		_owner.add_child(ai_driver)
 		_ai_drivers.append(ai_driver)
 
@@ -174,6 +180,16 @@ func set_ai_enabled(enabled: bool) -> void:
 			ai_driver.set_driver_enabled(enabled)
 
 
+func _rollback_preparation(
+	staged_cars: Array[PlayerCarController],
+	staged_drivers: Array[AiRaceDriver],
+	random_state_before: int
+) -> void:
+	_discard_staged_participants(staged_cars, staged_drivers)
+	if _factory != null:
+		_factory.restore_random_state(random_state_before)
+
+
 func _discard_staged_participants(
 	staged_cars: Array[PlayerCarController],
 	staged_drivers: Array[AiRaceDriver]
@@ -184,3 +200,7 @@ func _discard_staged_participants(
 	for car_controller: PlayerCarController in staged_cars:
 		if is_instance_valid(car_controller):
 			car_controller.free()
+
+
+func _on_ai_driver_fault(message: String) -> void:
+	driver_fault.emit(message)
