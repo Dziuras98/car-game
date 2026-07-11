@@ -1,6 +1,7 @@
 extends Node
 
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
+const TEST_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -32,6 +33,7 @@ func _run() -> void:
 	var manager: RaceManager = RaceManager.new()
 	manager.configure(0.02, 0.02)
 	var player: PlayerCarController = PlayerCarController.new()
+	player.car_specs = TEST_SPECS
 	add_child(player)
 	var start_result: RaceManager.Result = manager.start_race(player, get_tree())
 	_expect(start_result == RaceManager.Result.OK, "pause fixture starts a race with a valid player")
