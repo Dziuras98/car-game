@@ -19,4 +19,4 @@ The scripts still own control flow, signal wiring, visibility updates and runtim
 
 - Full-program smoke test baseline: `[SMOKE] Extended full program smoke test passed: 79 checks`
 - This commit is documentation-only.
-- No gameplay code, scenes, car assets, physics, tuning, AI, track generation, input map or mobile controls were changed.
+- No gameplay code, scenes, car assets, physics, tuning, AI, track generation or input map was changed.

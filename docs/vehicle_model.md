@@ -16,7 +16,7 @@ This document describes the current game-oriented vehicle runtime. The project u
 | `scripts/car/ground_contact_model.gd` | Probe placement, spring support and contact averaging math |
 | `scripts/car/tire_model.gd` | Lateral recovery, slip intensity and longitudinal grip budget |
 | `scripts/car/car_reset_controller.gd` | Reset-to-start coordination |
-| `scripts/car/car_input.gd` | Independent player, external-AI and touch input channels |
+| `scripts/car/car_input.gd` | Player keyboard/gamepad actions and independent external-AI input |
 | `scripts/car/engine_model.gd` | RPM response, torque curve, driveline coupling and rev limiter |
 | `scripts/car/drivetrain_model.gd` | Ratios, coupled RPM, wheel force and acceleration |
 | `scripts/car/automatic_transmission_model.gd` | Automatic shifts, braking downshifts and direction interlock |
@@ -51,6 +51,17 @@ Rules:
 
 This separation ensures that changing a variant resource changes runtime behavior, while editing or replacing the visual scene cannot silently override physics configuration.
 
+## Input ownership
+
+`CarInput` exposes two mutually ordered sources:
+
+1. standard Godot actions for the player, mapped to keyboard and gamepad events in `project.godot`;
+2. typed external throttle, brake, steering and handbrake values used by AI and deterministic tests.
+
+While external input is enabled it owns the drive command. Player input is sampled only when the external source is disabled and player control is enabled. Reset, gear-step and camera actions remain standard player actions.
+
+Disabling player control clears the current input snapshot. Disabling the external channel neutralizes its stored values so stale AI commands cannot survive driver shutdown.
+
 ## Runtime state
 
 `CarRuntimeState` stores the mutable values shared by the controllers:
@@ -73,8 +84,8 @@ Persistent tuning does not belong in runtime state.
 
 `PlayerCarController._physics_process(delta)` performs:
 
-1. handle reset input;
-2. sample player, AI or touch input;
+1. handle player reset input;
+2. sample player or external AI input;
 3. store throttle/brake telemetry;
 4. cast four suspension/ground-contact probes;
 5. calculate averaged normal, current surface grip and spring support;
@@ -244,13 +255,9 @@ A null or invalid specs resource disables physics processing and reports an erro
 | `get_tire_slip_intensity()` | Slip signal for audio/effects |
 | `get_gear_text()` | HUD gear label |
 | `capture_current_transform_as_start()` | Capture the already assigned runtime spawn/reset transform |
-| `set_player_input_enabled()` | Enable/disable player sampling |
-| `set_external_input_enabled()` | Enable/disable AI/external channel |
-| `set_external_drive_inputs()` | Supply AI controls |
-| `set_touch_drive_inputs()` | Supply independent mobile controls |
-| `request_touch_gear_up/down()` | Queue touch gearbox requests |
-| `request_touch_reset()` | Queue touch reset request |
-| `clear_touch_input()` | Release mobile-control state |
+| `set_player_input_enabled()` | Enable/disable player action sampling |
+| `set_external_input_enabled()` | Enable/disable AI/external ownership |
+| `set_external_drive_inputs()` | Supply AI or deterministic-test controls |
 
 ## Regression gates
 
@@ -266,6 +273,7 @@ Vehicle changes are covered by automatically discovered tests for:
 - airborne force isolation;
 - chassis projection, steering and collision synchronization;
 - spawn/reset transform lifecycle;
+- keyboard action and external-input routing;
 - skid-mark bounds and procedural-audio voice budgets;
 - speedometer range refresh;
 - catalog/scene/spec consistency;

@@ -19,7 +19,7 @@ Date: 2026-07-09
 
 - Lap/position HUD behavior was not intended to change.
 - `RaceHud` still uses `LapPositionHud` through the same external API.
-- Gameplay systems were not changed: `GameManager`, `RaceManager`, countdown overlay, results screen, menus, physics, tuning, AI, track generation, inputs, mobile controls, and car scenes were not modified.
+- Gameplay systems were not changed: `GameManager`, `RaceManager`, countdown overlay, results screen, menus, physics, tuning, AI, track generation, inputs, and car scenes were not modified.
 
 ## Validation
 

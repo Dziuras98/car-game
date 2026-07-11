@@ -18,7 +18,7 @@ Date: 2026-07-09
 
 - Countdown behavior was not intended to change.
 - `RaceHud` still uses `CountdownOverlay` through the same external API.
-- Physics, tuning, AI, track generation, menu behavior, input map, mobile controls, car scenes, lap HUD, results screen, `GameManager`, and `RaceManager` were not changed.
+- Physics, tuning, AI, track generation, menu behavior, input map, car scenes, lap HUD, results screen, `GameManager`, and `RaceManager` were not changed.
 
 ## Validation
 

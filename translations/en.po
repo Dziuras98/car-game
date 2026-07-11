@@ -104,18 +104,3 @@ msgstr "SPEED"
 
 msgid "BIEG"
 msgstr "GEAR"
-
-msgid "GAZ"
-msgstr "THROTTLE"
-
-msgid "HAMULEC"
-msgstr "BRAKE"
-
-msgid "RĘCZNY"
-msgstr "HANDBRAKE"
-
-msgid "RESET"
-msgstr "RESET"
-
-msgid "KAMERA"
-msgstr "CAMERA"

@@ -104,18 +104,3 @@ msgstr "PRĘDKOŚĆ"
 
 msgid "BIEG"
 msgstr "BIEG"
-
-msgid "GAZ"
-msgstr "GAZ"
-
-msgid "HAMULEC"
-msgstr "HAMULEC"
-
-msgid "RĘCZNY"
-msgstr "RĘCZNY"
-
-msgid "RESET"
-msgstr "RESET"
-
-msgid "KAMERA"
-msgstr "KAMERA"

@@ -47,6 +47,6 @@ label.text = tr("Okrążenie %d/%d") % [current_lap, total_laps]
 - serialized text in all UI scenes;
 - direct literal text assignments in production UI/game/race scripts.
 
-`scripts/tests/localization_test.gd` then validates imported `Translation` resources, supported locales, fallback behavior and representative menu, HUD, results, speedometer and mobile-control strings.
+`scripts/tests/localization_test.gd` then validates imported `Translation` resources, supported locales, fallback behavior and representative menu, HUD, results and speedometer strings.
 
 The packaged Windows smoke test switches to English and verifies that translated UI labels are present in the exported PCK, not only in editor/headless tests.

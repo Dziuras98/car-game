@@ -12,7 +12,7 @@ Date: 2026-07-09
 
 ## Unchanged Areas
 
-The refactor was intended to leave menu behavior unchanged. Physics, tuning, AI, track generation, input map, mobile controls, car scenes, `GameManager`, `CarSpawner`, `CarCatalog`, and `CarSpecs` were not changed.
+The refactor was intended to leave menu behavior unchanged. Physics, tuning, AI, track generation, input map, car scenes, `GameManager`, `CarSpawner`, `CarCatalog`, and `CarSpecs` were not changed.
 
 ## Validation
 
