@@ -21,6 +21,7 @@ const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 @export var opponent_count: int = 3
 @export var opponent_lane_spacing: float = 4.2
 @export var opponent_row_spacing: float = 7.0
+@export var opponent_random_seed: int = -1
 @export var race_lap_count: int = 3
 @export var use_track_recommended_laps: bool = true
 
@@ -213,7 +214,8 @@ func _configure_runtime_for_active_track() -> void:
 		_track,
 		_car_selection_state.get_available_car_variants(),
 		opponent_lane_spacing,
-		opponent_row_spacing
+		opponent_row_spacing,
+		opponent_random_seed
 	)
 
 	_race_session = RaceSessionController.new()

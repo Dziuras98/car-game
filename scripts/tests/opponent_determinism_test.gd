@@ -1,0 +1,106 @@
+extends Node
+
+const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
+const SIMPLE_OVAL_SCENE: PackedScene = preload("res://scenes/tracks/simple_oval.tscn")
+const OPPONENT_COUNT: int = 4
+
+var _checks: int = 0
+var _failures: Array[String] = []
+
+
+func _ready() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
+	var world: Node3D = Node3D.new()
+	add_child(world)
+	var spawn_marker: Node3D = Node3D.new()
+	spawn_marker.global_transform = Transform3D(Basis(Vector3.UP, 0.35), Vector3(4.0, 1.0, -7.0))
+	world.add_child(spawn_marker)
+	var track: GeneratedTrack = SIMPLE_OVAL_SCENE.instantiate() as GeneratedTrack
+	world.add_child(track)
+	await get_tree().process_frame
+
+	var first_signature: Array[String] = await _capture_spawn_signature(world, spawn_marker, track, 20260710)
+	var replay_signature: Array[String] = await _capture_spawn_signature(world, spawn_marker, track, 20260710)
+	var alternate_signature: Array[String] = await _capture_spawn_signature(world, spawn_marker, track, 20260711)
+
+	_expect(first_signature.size() == OPPONENT_COUNT, "seeded spawner creates the requested number of opponents")
+	_expect(first_signature == replay_signature, "same session seed reproduces opponent variants and AI profiles")
+	_expect(first_signature != alternate_signature, "different session seed changes at least one opponent profile")
+
+	world.queue_free()
+	await get_tree().process_frame
+	_finish()
+
+
+func _capture_spawn_signature(
+	world: Node3D,
+	spawn_marker: Node3D,
+	track: GeneratedTrack,
+	seed: int
+) -> Array[String]:
+	var spawner: CarSpawner = CarSpawner.new()
+	spawner.configure(
+		world,
+		spawn_marker,
+		track,
+		CATALOG.get_all_variants(),
+		4.2,
+		7.0,
+		seed
+	)
+	_expect(spawner.get_session_seed() == seed, "CarSpawner retains the explicit session seed")
+	var opponents: Array[PlayerCarController] = spawner.spawn_opponents(OPPONENT_COUNT)
+	var drivers: Array[AiRaceDriver] = spawner.get_ai_drivers()
+	_expect(opponents.size() == drivers.size(), "each seeded opponent has exactly one typed AI driver")
+
+	spawner.set_ai_enabled(true)
+	var all_enabled: bool = true
+	for driver: AiRaceDriver in drivers:
+		all_enabled = all_enabled and driver.is_configured() and driver.is_physics_processing()
+	_expect(all_enabled, "typed AI enablement activates every configured driver")
+	spawner.set_ai_enabled(false)
+	var all_disabled: bool = true
+	for driver: AiRaceDriver in drivers:
+		all_disabled = all_disabled and not driver.is_physics_processing()
+	_expect(all_disabled, "typed AI disablement stops every driver")
+
+	var signature: Array[String] = []
+	for opponent_index: int in range(mini(opponents.size(), drivers.size())):
+		var car: PlayerCarController = opponents[opponent_index]
+		var profile: AiDriverProfile = drivers[opponent_index].get_profile()
+		var variant_name: String = car.car_specs.display_name if car.car_specs != null else "missing"
+		signature.append(
+			"%s|%.6f|%.6f|%.6f" % [
+				variant_name,
+				profile.target_speed_kmh,
+				profile.corner_speed_kmh,
+				profile.lane_offset,
+			]
+		)
+
+	spawner.clear_opponents()
+	await get_tree().process_frame
+	return signature
+
+
+func _expect(condition: bool, message: String) -> void:
+	_checks += 1
+	if condition:
+		print("[OPPONENT_DETERMINISM_TEST][PASS] %s" % message)
+		return
+	_failures.append(message)
+	push_error("[OPPONENT_DETERMINISM_TEST][FAIL] %s" % message)
+
+
+func _finish() -> void:
+	if _failures.is_empty():
+		print("[OPPONENT_DETERMINISM_TEST] Passed: %d checks" % _checks)
+		get_tree().quit(0)
+		return
+	push_error("[OPPONENT_DETERMINISM_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
+	for failure_message: String in _failures:
+		push_error("[OPPONENT_DETERMINISM_TEST] - %s" % failure_message)
+	get_tree().quit(1)

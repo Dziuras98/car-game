@@ -14,20 +14,22 @@ func _ready() -> void:
 
 func _run() -> void:
 	var mutable_layout: TrackLayoutResource = SIMPLE_OVAL_LAYOUT.duplicate(true) as TrackLayoutResource
-	var track: Node3D = SIMPLE_OVAL_SCENE.instantiate() as Node3D
+	var track: GeneratedTrack = SIMPLE_OVAL_SCENE.instantiate() as GeneratedTrack
 	track.name = "Track"
-	track.set("track_layout", mutable_layout)
+	track.track_layout = mutable_layout
 	add_child(track)
+	await get_tree().process_frame
 
 	var car: PlayerCarController = PlayerCarController.new()
 	car.name = "Car"
 	car.car_specs = TEST_SPECS
 	add_child(car)
 
+	var profile: AiDriverProfile = AiDriverProfile.new()
+	profile.lane_offset = 1.25
 	var driver: AiRaceDriver = AiRaceDriver.new()
 	driver.name = "Driver"
-	driver.car_path = NodePath("../Car")
-	driver.track_path = NodePath("../Track")
+	_expect(driver.configure(car, track, profile), "AI accepts a typed car, committed track and valid profile")
 	add_child(driver)
 
 	var minimap: Minimap = Minimap.new()
@@ -38,11 +40,14 @@ func _run() -> void:
 	minimap.set_target_node(car)
 
 	await get_tree().process_frame
-	var initial_track_revision: int = int(track.call("get_geometry_revision"))
+	var initial_track_revision: int = track.get_geometry_revision()
 	var initial_driver_revision: int = driver.get_point_revision()
 	var initial_minimap_revision: int = minimap.get_track_revision()
 	_expect(initial_track_revision >= 1, "generated track publishes an initial geometry revision")
 	_expect(initial_driver_revision >= 1, "AI caches the initial racing line")
+	_expect(driver.get_cached_point_count() >= 3, "AI validates and caches a usable racing line")
+	_expect(driver.is_configured(), "AI runtime contract remains valid after entering the tree")
+	_expect(is_equal_approx(driver.get_profile().lane_offset, 1.25), "AI retains a defensive copy of its typed profile")
 	_expect(initial_minimap_revision >= 1, "minimap caches the initial racing line")
 	_expect(not driver.is_physics_processing(), "disabled AI driver does not consume physics frames")
 
@@ -54,7 +59,7 @@ func _run() -> void:
 	mutable_layout.track_width += 0.5
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_expect(int(track.call("get_geometry_revision")) == initial_track_revision + 1, "layout change rebuilds the generated track once")
+	_expect(track.get_geometry_revision() == initial_track_revision + 1, "layout change rebuilds the generated track once")
 	_expect(driver.get_point_revision() == initial_driver_revision + 1, "AI refreshes its racing-line cache after rebuild")
 	_expect(minimap.get_track_revision() == initial_minimap_revision + 1, "minimap refreshes its projection after rebuild")
 

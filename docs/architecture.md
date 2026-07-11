@@ -95,6 +95,8 @@ Rules:
 - `CarSpecs` is assigned before a car enters the tree;
 - spawn transforms are applied before `capture_current_transform_as_start()` records the reset origin;
 - opponents use catalog variants rather than mutating controller tuning fields;
+- opponent drivers are configured through typed references before entering the scene tree;
+- an opponent session seed of `-1` randomizes the session, while a non-negative seed reproduces variants, paint and driver profiles;
 - missing or invalid content fails validation rather than selecting an implicit fallback.
 
 ### Race subsystem
@@ -105,6 +107,8 @@ scripts/race/race_manager.gd
 scripts/race/lap_tracker.gd
 scripts/race/participant_race_state.gd
 scripts/race/ai_race_driver.gd
+scripts/race/ai_driver_profile.gd
+scripts/race/opponent_ai_profile_factory.gd
 scripts/ui/race_hud.gd
 ```
 
@@ -113,9 +117,10 @@ Responsibilities:
 - `RaceSessionController` wires participants, track signals, HUD and lifecycle;
 - `RaceManager` owns IDLE/COUNTDOWN/RUNNING/FINISHED state and input locks;
 - `LapTracker` owns ordered checkpoint state, lap completion, continuous progress, positions and finish order;
-- `AiRaceDriver` consumes a typed `GeneratedTrack` contract and only produces drive input.
+- `AiRaceDriver` consumes typed `PlayerCarController`, committed `GeneratedTrack` and validated `AiDriverProfile` contracts and only produces drive input;
+- `OpponentAiProfileFactory` derives per-opponent speed profiles from the session seed and opponent index without depending on unrelated random draws.
 
-Checkpoint crossings, not nearest-line progress, are authoritative for lap completion. Progress is used for position ordering between gates.
+Checkpoint crossings, not nearest-line progress, are authoritative for lap completion. Progress is used for position ordering between gates. Disabling or removing an AI driver neutralizes its external input so stale throttle, braking or steering cannot remain active.
 
 ## Car architecture
 
