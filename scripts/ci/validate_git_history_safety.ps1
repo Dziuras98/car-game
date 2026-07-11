@@ -6,6 +6,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $resolvedProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
+$diagnosticDirectory = Join-Path $resolvedProjectRoot "build/test-logs"
+$diagnosticPath = Join-Path $diagnosticDirectory "git-history-safety.log"
 $failures = [System.Collections.Generic.List[string]]::new()
 $excludedContentPaths = @(
     "scripts/ci/validate_public_repository_safety.ps1",
@@ -54,6 +56,13 @@ function Test-ForbiddenFileName {
     return [System.IO.Path]::GetExtension($lowerName) -in @(
         ".jks", ".key", ".keystore", ".p12", ".pem", ".pfx"
     )
+}
+
+function Write-DiagnosticReport {
+    param([Parameter(Mandatory = $true)][string[]]$Lines)
+
+    New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
+    Set-Content -LiteralPath $diagnosticPath -Value $Lines -Encoding utf8
 }
 
 Push-Location $resolvedProjectRoot
@@ -126,13 +135,22 @@ try {
     }
 
     if ($failures.Count -gt 0) {
+        $reportLines = @(
+            "Git history safety validation failed.",
+            "Historical paths inspected: $($uniqueHistoricalPaths.Count)",
+            "Issues: $($failures.Count)",
+            ""
+        ) + @($failures)
+        Write-DiagnosticReport -Lines $reportLines
         foreach ($failure in $failures) {
             Write-Host "[GIT_HISTORY_SAFETY][FAIL] $failure"
         }
-        throw "Git history safety validation failed with $($failures.Count) issue(s)."
+        throw "Git history safety validation failed with $($failures.Count) issue(s). Diagnostic log: $diagnosticPath"
     }
 
-    Write-Host "Git history safety validation passed: $($uniqueHistoricalPaths.Count) historical path(s) inspected."
+    $successMessage = "Git history safety validation passed: $($uniqueHistoricalPaths.Count) historical path(s) inspected."
+    Write-DiagnosticReport -Lines @($successMessage)
+    Write-Host $successMessage
 }
 finally {
     Pop-Location
