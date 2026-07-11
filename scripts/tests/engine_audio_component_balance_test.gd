@@ -6,11 +6,17 @@ const SAMPLE_RATE: float = 32000.0
 const SILENCE_FLOOR: float = 0.000000001
 
 const PRODUCTION_PROFILE: Dictionary = {
-	"exhaust_roughness": 0.13,
-	"intake_presence": 0.22,
-	"exhaust_resonance": 0.38,
-	"mechanical_noise": 0.07,
-	"overrun_crackle": 0.11,
+	"exhaust_roughness": 0.16,
+	"intake_presence": 0.20,
+	"exhaust_resonance": 0.52,
+	"mechanical_noise": 0.045,
+	"overrun_crackle": 0.10,
+	"high_rpm_rasp": 0.12,
+	"exhaust_bank_separation": 0.30,
+	"exhaust_reflection": 0.12,
+	"intake_plenum_detail": 0.16,
+	"airflow_noise": 0.08,
+	"rotating_assembly_detail": 0.04,
 }
 
 const OPERATING_POINTS: Array[Dictionary] = [
@@ -47,7 +53,7 @@ func _report_operating_point(point: Dictionary) -> void:
 	var peak: float = _peak(full_frames)
 	var bands: Dictionary = _band_levels(full_frames)
 	print(
-		"[ENGINE_AUDIO_COMPONENT_AUDIT] profile=production point=%s total_rms=%.7f total_dbfs=%.2f peak=%.7f peak_dbfs=%.2f low_dbfs=%.2f mid_dbfs=%.2f high_dbfs=%.2f low_energy_pct=%.1f mid_energy_pct=%.1f high_energy_pct=%.1f" % [
+		"[ENGINE_AUDIO_COMPONENT_AUDIT] profile=balanced_production point=%s total_rms=%.7f total_dbfs=%.2f peak=%.7f peak_dbfs=%.2f low_dbfs=%.2f mid_dbfs=%.2f high_dbfs=%.2f low_energy_pct=%.1f mid_energy_pct=%.1f high_energy_pct=%.1f" % [
 			String(point.name),
 			full_rms,
 			_to_dbfs(full_rms),
@@ -67,7 +73,7 @@ func _report_operating_point(point: Dictionary) -> void:
 		var ablated_rms: float = _rms(ablated_frames)
 		var marginal_rms: float = _difference_rms(full_frames, ablated_frames)
 		print(
-			"[ENGINE_AUDIO_COMPONENT_LEVEL] profile=production point=%s component=%s marginal_rms=%.7f marginal_db_relative=%.2f output_change_db=%.2f ablated_rms=%.7f" % [
+			"[ENGINE_AUDIO_COMPONENT_LEVEL] profile=balanced_production point=%s component=%s marginal_rms=%.7f marginal_db_relative=%.2f output_change_db=%.2f ablated_rms=%.7f" % [
 				String(point.name),
 				String(ablation.name),
 				marginal_rms,
