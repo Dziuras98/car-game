@@ -106,8 +106,11 @@ Purpose:
 - stores one selectable version of a car model;
 - links to a playable car scene;
 - links to exactly one `CarSpecs` tuning resource;
+- declares `ai_eligible` explicitly for variants supported by the current AI input model;
 - stores presentation metadata that is not derivable from specs, such as the engine and drivetrain labels;
 - derives mass and transmission labels from `CarSpecs` so display data cannot drift from runtime physics.
+
+`ai_eligible` is not inferred from catalog order or from the presence of an automatic gearbox. The current AI requires a valid automatic-transmission variant and `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`. The manual 370Z remains player-selectable but is not an opponent fallback.
 
 Examples:
 
@@ -151,8 +154,9 @@ resources/cars/nissan/370z/specs/370z_6mt_specs.tres
 6. Do not duplicate mass or transmission labels in variant resources.
 7. If two variants share identical visuals, they may reference the same scene but different specs.
 8. If two variants need different meshes or nodes, they may reference different scenes.
-9. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
-10. Extend catalog validation and focused regression coverage with new content.
+9. Set `ai_eligible = true` only when the current AI can operate the variant without additional gearbox or control logic.
+10. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
+11. Extend catalog validation and focused regression coverage with new content.
 
 ## Selection and spawning flow
 
@@ -166,11 +170,14 @@ tryb -> tor -> model auta -> wariant auta
 
 The factory:
 
-1. resolves the `CarVariantDefinition`;
+1. resolves the exact `CarVariantDefinition` and rejects an index outside the catalog range;
 2. instantiates its `PackedScene`;
 3. verifies the root is `PlayerCarController`;
 4. assigns the variant's `CarSpecs` before adding the car to the scene tree;
-5. rejects missing or invalid catalog data instead of silently selecting fallback content.
+5. selects opponents only from the explicit AI-eligible subset;
+6. rejects missing or invalid catalog data instead of silently selecting fallback content.
+
+Opponent spawning prepares the complete requested set of car/driver pairs before adding any participant to the active scene. If any pair cannot be created or configured, no partial opponent set is committed and race startup is rejected.
 
 Current catalog-backed menu content:
 
