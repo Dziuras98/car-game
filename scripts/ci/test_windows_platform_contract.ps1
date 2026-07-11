@@ -116,14 +116,14 @@ function Get-FixtureFailures {
 
 try {
     Write-ValidFixture
-    $contractFailures = Get-FixtureFailures
+    $contractFailures = @(Get-FixtureFailures)
     Expect-Equal `
         -Actual $contractFailures.Count `
         -Expected 0 `
         -Message "A complete Windows-only fixture should pass."
 
     Set-Content -LiteralPath $projectPath -Value ($validProject -replace 'd3d12', 'opengl3') -Encoding utf8
-    $contractFailures = Get-FixtureFailures
+    $contractFailures = @(Get-FixtureFailures)
     Expect-Contains `
         -Values $contractFailures `
         -Fragment "D3D12" `
@@ -144,7 +144,7 @@ binary_format/architecture="x86_64"
 texture_format/s3tc_bptc=true
 texture_format/etc2_astc=false
 '@ -Encoding utf8
-    $contractFailures = Get-FixtureFailures
+    $contractFailures = @(Get-FixtureFailures)
     Expect-Contains `
         -Values $contractFailures `
         -Fragment "exactly two export presets" `
@@ -156,7 +156,7 @@ texture_format/etc2_astc=false
 
     Write-ValidFixture
     Set-Content -LiteralPath $exportPresetsPath -Value ($validExportPresets -replace 'binary_format/architecture="x86_64"', 'binary_format/architecture="arm64"') -Encoding utf8
-    $contractFailures = Get-FixtureFailures
+    $contractFailures = @(Get-FixtureFailures)
     Expect-Contains `
         -Values $contractFailures `
         -Fragment "binary_format/architecture='x86_64'" `
@@ -164,7 +164,7 @@ texture_format/etc2_astc=false
 
     Write-ValidFixture
     Set-Content -LiteralPath $workflowPath -Value ($validWorkflow -replace 'runs-on: windows-2025', 'runs-on: ubuntu-24.04') -Encoding utf8
-    $contractFailures = Get-FixtureFailures
+    $contractFailures = @(Get-FixtureFailures)
     Expect-Contains `
         -Values $contractFailures `
         -Fragment "Every workflow job must use windows-2025" `
@@ -172,7 +172,7 @@ texture_format/etc2_astc=false
 
     Write-ValidFixture
     Set-Content -LiteralPath $workflowPath -Value ($validWorkflow -replace '\./scripts/ci/export_windows\.ps1', './scripts/ci/export_other.ps1') -Encoding utf8
-    $contractFailures = Get-FixtureFailures
+    $contractFailures = @(Get-FixtureFailures)
     Expect-Contains `
         -Values $contractFailures `
         -Fragment "Windows export entrypoint" `
