@@ -1,6 +1,7 @@
 extends SceneTree
 
 const DEFAULT_TRACK_DEFINITION: TrackDefinition = preload("res://resources/tracks/simple_oval_definition.tres")
+const GAME_MANAGER_SCRIPT: Script = preload("res://scripts/game/game_manager.gd")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -135,10 +136,10 @@ func _test_geometry_validation_and_side_effect_free_getter() -> void:
 
 
 func _test_lap_count_is_not_silently_corrected() -> void:
-	var manager: GameManager = GameManager.new()
-	manager.use_track_recommended_laps = false
-	manager.race_lap_count = 0
-	_expect(manager._resolve_lap_count(DEFAULT_TRACK_DEFINITION) == 0, "invalid configured lap count is preserved for rejection")
+	var manager: Node = GAME_MANAGER_SCRIPT.new()
+	manager.set("use_track_recommended_laps", false)
+	manager.set("race_lap_count", 0)
+	_expect(int(manager.call("_resolve_lap_count", DEFAULT_TRACK_DEFINITION)) == 0, "invalid configured lap count is preserved for rejection")
 	manager.free()
 
 
