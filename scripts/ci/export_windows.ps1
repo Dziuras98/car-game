@@ -13,6 +13,7 @@ $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $presetPath = Join-Path $projectRoot "export_presets.cfg"
 . (Join-Path $PSScriptRoot "output_directory_safety.ps1")
 . (Join-Path $PSScriptRoot "godot_runtime_log_validation.ps1")
+. (Join-Path $PSScriptRoot "production_pack_content.ps1")
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -167,6 +168,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Production Windows export failed with exit code $LASTEXITCODE."
 }
 Assert-ExportFiles -ExecutablePath $productionExecutable -PackPath $productionPack -Label "Production Windows"
+Assert-ProductionPackContent -PackPath $productionPack
 
 Write-Host ""
 Write-Host "=== Validate production startup ==="
