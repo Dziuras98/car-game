@@ -35,7 +35,32 @@ jobs:
 
       - name: Validate localization catalogs
         shell: pwsh
-        run: ./scripts/ci/validate_localization.ps1
+        run: |
+          $ErrorActionPreference = "Stop"
+          $diagnosticDirectory = Join-Path $PWD "build/test-logs"
+          $logPath = Join-Path $diagnosticDirectory "localization-validation.log"
+          New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
+
+          try {
+            $validationOutput = @(./scripts/ci/validate_localization.ps1 2>&1)
+            foreach ($line in $validationOutput) {
+              Write-Host ([string]$line)
+            }
+            Set-Content -LiteralPath $logPath -Value @($validationOutput | ForEach-Object { [string]$_ }) -Encoding utf8
+          }
+          catch {
+            $failureText = $_ | Out-String
+            $capturedOutput = @()
+            if (Test-Path variable:validationOutput) {
+              $capturedOutput = @($validationOutput | ForEach-Object { [string]$_ })
+              foreach ($line in $capturedOutput) {
+                Write-Host $line
+              }
+            }
+            Set-Content -LiteralPath $logPath -Value ($capturedOutput + @("", $failureText)) -Encoding utf8
+            Write-Host $failureText
+            throw
+          }
 
       - name: Download Godot
         shell: pwsh
