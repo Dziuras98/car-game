@@ -43,9 +43,9 @@ func _run() -> void:
 	_expect(meshes.shoulder_mesh.get_surface_count() > 0, "shoulder mesh contains a render surface")
 
 	TrackCollisionBuilder.new().build_collisions(generated_root, geometry, config, meshes)
-	var track_body: StaticBody3D = generated_root.get_node_or_null("TrackSurface") as StaticBody3D
-	var shoulder_body: StaticBody3D = generated_root.get_node_or_null("RoadsideTerrain") as StaticBody3D
-	var grass_body: StaticBody3D = generated_root.get_node_or_null("Grass") as StaticBody3D
+	var track_body: TrackSurfaceBody = generated_root.get_node_or_null("TrackSurface") as TrackSurfaceBody
+	var shoulder_body: TrackSurfaceBody = generated_root.get_node_or_null("RoadsideTerrain") as TrackSurfaceBody
+	var grass_body: TrackSurfaceBody = generated_root.get_node_or_null("Grass") as TrackSurfaceBody
 	_expect(track_body != null and track_body.get_node_or_null("CollisionShape3D") != null, "shared track mesh creates collision")
 	_expect(shoulder_body != null and shoulder_body.get_node_or_null("CollisionShape3D") != null, "shared shoulder mesh creates collision")
 	_expect(grass_body != null and grass_body.get_node_or_null("CollisionShape3D") != null, "typed config creates grass collision")
@@ -58,10 +58,8 @@ func _run() -> void:
 	_finish()
 
 
-func _get_grip(body: StaticBody3D) -> float:
-	if body == null or not body.has_meta("surface_grip_multiplier"):
-		return -1.0
-	return float(body.get_meta("surface_grip_multiplier"))
+func _get_grip(body: TrackSurfaceBody) -> float:
+	return body.get_grip_multiplier() if body != null else -1.0
 
 
 func _expect(condition: bool, message: String) -> void:

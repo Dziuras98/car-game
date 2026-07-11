@@ -188,6 +188,9 @@ func _focus_back_button() -> void:
 
 
 func _on_mode_pressed(mode_id: String) -> void:
+	if not GameModes.is_supported(mode_id):
+		_show_configuration_error(tr("Wybrany tryb nie jest dostępny"))
+		return
 	if not has_valid_options():
 		_show_configuration_error(tr("Konfiguracja zawartości jest niepoprawna"))
 		return
@@ -235,7 +238,13 @@ func _on_back_pressed() -> void:
 
 
 func _get_mode_label(mode_id: String) -> String:
-	return tr("Wyścig") if mode_id == GameModes.RACE else tr("Jazda swobodna")
+	match mode_id:
+		GameModes.FREE_DRIVE:
+			return tr("Jazda swobodna")
+		GameModes.RACE:
+			return tr("Wyścig")
+		_:
+			return tr("Nieznany tryb")
 
 
 func _get_track_label(track_id: String) -> String:

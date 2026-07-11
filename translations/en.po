@@ -45,6 +45,9 @@ msgstr "No variants available for the selected model"
 msgid "Konfiguracja zawartości jest niepoprawna"
 msgstr "Content configuration is invalid"
 
+msgid "Wybrany tryb nie jest dostępny"
+msgstr "The selected mode is unavailable"
+
 msgid "Wybrany tor nie jest dostępny"
 msgstr "The selected track is unavailable"
 
@@ -53,6 +56,9 @@ msgstr "The selected model is unavailable"
 
 msgid "Wybrany wariant nie jest dostępny"
 msgstr "The selected variant is unavailable"
+
+msgid "Nieznany tryb"
+msgstr "Unknown mode"
 
 msgid "Nieznany tor"
 msgstr "Unknown track"

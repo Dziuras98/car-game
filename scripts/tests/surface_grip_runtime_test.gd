@@ -13,7 +13,7 @@ func _ready() -> void:
 func _run() -> void:
 	_test_longitudinal_grip_budget()
 	_test_lateral_grip_budget()
-	await _test_generated_surface_metadata()
+	await _test_generated_surface_contract()
 	_finish()
 
 
@@ -57,16 +57,16 @@ func _test_lateral_grip_budget() -> void:
 	_expect(tire_model.get_longitudinal_grip_factor(1.0, 1.0) <= 0.001, "full lateral slip exhausts the longitudinal friction budget")
 
 
-func _test_generated_surface_metadata() -> void:
+func _test_generated_surface_contract() -> void:
 	var track: GeneratedTrack = SIMPLE_OVAL_SCENE.instantiate() as GeneratedTrack
 	add_child(track)
 	await get_tree().process_frame
-	var asphalt: StaticBody3D = track.get_node_or_null("GeneratedContent/TrackSurface") as StaticBody3D
-	var shoulder: StaticBody3D = track.get_node_or_null("GeneratedContent/RoadsideTerrain") as StaticBody3D
-	var grass: StaticBody3D = track.get_node_or_null("GeneratedContent/Grass") as StaticBody3D
-	_expect(asphalt != null and is_equal_approx(float(asphalt.get_meta("surface_grip_multiplier", -1.0)), TrackSurfaceMeshBuilder.ASPHALT_GRIP), "asphalt publishes its runtime grip coefficient")
-	_expect(shoulder != null and is_equal_approx(float(shoulder.get_meta("surface_grip_multiplier", -1.0)), TrackSurfaceMeshBuilder.SHOULDER_GRIP), "roadside publishes its runtime grip coefficient")
-	_expect(grass != null and is_equal_approx(float(grass.get_meta("surface_grip_multiplier", -1.0)), TrackSurfaceMeshBuilder.GRASS_GRIP), "grass publishes its runtime grip coefficient")
+	var asphalt: TrackSurfaceBody = track.get_node_or_null("GeneratedContent/TrackSurface") as TrackSurfaceBody
+	var shoulder: TrackSurfaceBody = track.get_node_or_null("GeneratedContent/RoadsideTerrain") as TrackSurfaceBody
+	var grass: TrackSurfaceBody = track.get_node_or_null("GeneratedContent/Grass") as TrackSurfaceBody
+	_expect(asphalt != null and is_equal_approx(asphalt.get_grip_multiplier(), TrackSurfaceMeshBuilder.ASPHALT_GRIP), "asphalt publishes its typed runtime grip coefficient")
+	_expect(shoulder != null and is_equal_approx(shoulder.get_grip_multiplier(), TrackSurfaceMeshBuilder.SHOULDER_GRIP), "roadside publishes its typed runtime grip coefficient")
+	_expect(grass != null and is_equal_approx(grass.get_grip_multiplier(), TrackSurfaceMeshBuilder.GRASS_GRIP), "grass publishes its typed runtime grip coefficient")
 	track.queue_free()
 	await get_tree().process_frame
 
