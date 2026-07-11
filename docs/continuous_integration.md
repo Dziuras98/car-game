@@ -49,7 +49,6 @@ Using `run_tests.ps1` directly remains possible for focused test work, but it is
 - the generated-track pipeline must retain typed config and mesh containers;
 - the project and export presets must retain the Windows renderer and both Windows package routes;
 - the Windows workflow must use an explicit runner label, full action commit SHAs and SHA-512 verification for downloaded Godot archives;
-- test scripts must be discoverable, referenced by a test scene, an editor launcher or an explicitly allowed helper;
 - the canonical full-program scene must remain bound to the canonical smoke-test script.
 
 ### Automatic test discovery
@@ -60,6 +59,17 @@ The runner imports the project, then recursively discovers:
 - every `scenes/tests/**/*.tscn` file except packaged-only fixtures explicitly excluded by the runner.
 
 This removes the need to maintain a duplicated handwritten test list. Adding a qualifying test at any directory depth automatically adds it to the Windows gate. Dedicated nested discovery fixtures are required by the runner so removing recursive enumeration cannot silently reduce test coverage.
+
+### Test script ownership
+
+`scripts/ci/validate_test_script_ownership.ps1` recursively scans both `scripts/tests/**` and `scenes/tests/**`. Every GDScript under the test tree must satisfy at least one ownership rule:
+
+- it is a standalone `SceneTree` test discovered by the runner;
+- it is an `EditorScript` launcher;
+- a test scene references it through `res://scripts/tests/...`;
+- it is listed as an explicit helper.
+
+This prevents helper-like or scene-bound scripts from being silently orphaned inside a nested directory. `scripts/ci/test_test_script_ownership.ps1` validates the algorithm against a temporary multi-level fixture: it detects a nested orphan, accepts a nested scene reference and detects the script again after that reference is removed.
 
 Each Godot invocation has:
 
@@ -86,6 +96,8 @@ build/test-logs/junit.xml
 - Godot runtime-log validation;
 - JUnit serialization and merge behavior;
 - JUnit job-summary rendering and workflow wiring;
+- recursive test-script ownership regression;
+- recursive ownership validation of the repository test trees;
 - localization validation.
 
 `run_tests.ps1` independently records static checks, project import, both discovery phases and every discovered script/scene test. The top-level verifier writes a temporary preflight report outside `build/test-logs/`, then merges it with the runner report from a `finally` block. Therefore `junit.xml` contains all completed phases and the first recorded failure even when verification stops before the full suite finishes. The merge itself is covered by the JUnit regression test.
