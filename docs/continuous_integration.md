@@ -6,24 +6,29 @@ The repository has one required GitHub Actions workflow for pushes to `master`, 
 .github/workflows/windows-tests.yml
 ```
 
-The workflow uses Godot `4.7-stable`, runs on the explicit `windows-2025` image, cancels superseded runs on the same ref and retains diagnostics for 14 days. GitHub-maintained actions are pinned to full commit SHAs rather than mutable major-version tags. Dependabot proposes weekly updates for those pinned actions through `.github/dependabot.yml`.
+The workflow uses Godot `4.7-stable`, runs on the explicit `windows-2025` image and retains diagnostics for 14 days. Superseded pull-request runs may be cancelled; authoritative `master` pushes and manually dispatched runs are never cancelled by newer executions. GitHub-maintained actions are pinned to full commit SHAs rather than mutable major-version tags. Dependabot proposes weekly updates for those pinned actions through `.github/dependabot.yml`.
 
 ## Windows gate
 
 The job executes:
 
 1. check out all reachable history and tags without persisting checkout credentials;
-2. download the Godot 4.7 console editor and the official `SHA512-SUMS.txt` file;
-3. verify the editor archive SHA-512 checksum and engine version;
-4. run the single project-verification entrypoint and finalize its complete JUnit report;
-5. publish JUnit totals and failure details to the GitHub Actions job summary, including after a verification failure;
-6. restore or download the export-template archive cache;
-7. verify the cached or downloaded archive against the official SHA-512 list on every run;
-8. extract and install matching Windows release/debug templates from the verified archive;
-9. export the production and test presets;
-10. smoke-test normal packaged startup and the packaged regression route;
-11. upload diagnostics for every run;
-12. upload executable Windows packages only for trusted non-pull-request events.
+2. download the Godot 4.7 Windows console editor archive;
+3. verify the editor archive against the reviewed SHA-512 value stored in `scripts/ci/godot_4_7_sha512.txt`;
+4. verify the engine version;
+5. run the single project-verification entrypoint and finalize its complete JUnit report;
+6. publish JUnit totals and failure details to the GitHub Actions job summary, including after a verification failure;
+7. restore or download the export-template archive cache;
+8. verify the cached or downloaded template archive against the same repository-owned manifest on every run;
+9. extract and install matching Windows release/debug templates from the verified archive;
+10. derive package versions from the semantic tag or current commit SHA and workflow run number;
+11. export the production and test presets;
+12. restore the committed export-preset contents in a `finally` block;
+13. smoke-test normal packaged startup and the packaged regression route;
+14. upload diagnostics for every run;
+15. upload executable Windows packages only for successful trusted non-pull-request events, failing when expected package directories are absent.
+
+The checksum manifest is an explicit trust root reviewed with source changes. CI does not download `SHA512-SUMS.txt` from the same release endpoint as the archives. Updating Godot therefore requires an intentional pull request that changes the engine version, archive names and reviewed checksum manifest together.
 
 The cache stores the original export-template archive, not an already extracted executable directory. A cache hit therefore does not bypass integrity verification.
 
@@ -34,19 +39,21 @@ build/windows/
 build/windows-test/
 ```
 
+## Verification entrypoint
+
 The authoritative local/CI verification entrypoint is:
 
 ```text
 scripts/ci/verify_project.ps1
 ```
 
-It records the PowerShell preflight checks, runs the localization contract and then delegates static checks, project import and all discovered Godot tests to:
+It records all PowerShell preflight checks, runs the localization contract and then delegates static checks, project import and all discovered Godot tests to:
 
 ```text
 scripts/ci/run_tests.ps1
 ```
 
-Using `run_tests.ps1` directly remains possible for focused test work, but it is not the complete repository gate because its JUnit report intentionally excludes the preflight and localization phases owned by `verify_project.ps1`.
+Using `run_tests.ps1` directly remains possible for focused test work, but it is not the complete repository gate because its JUnit report intentionally excludes preflight, supply-chain, export-version and localization phases owned by `verify_project.ps1`.
 
 ### Public-repository safety checks
 
@@ -59,21 +66,43 @@ The complete verifier runs both current-tree and complete-history safety control
 
 These repository-owned checks are heuristic safeguards. They complement, rather than replace, GitHub secret scanning or another independently maintained scanner.
 
+### Windows and supply-chain preflights
+
+`scripts/ci/windows_platform_contract.ps1` owns the Windows-only platform contract. It verifies:
+
+- D3D12 is the configured Windows rendering driver;
+- exactly two x86-64 Windows Desktop export presets exist;
+- the workflow uses `windows-2025` and canonical verification/export entrypoints;
+- pull-request-only cancellation and strict trusted-package publication remain configured;
+- `GODOT_CHECKSUMS_FILE` points to `scripts/ci/godot_4_7_sha512.txt`;
+- the workflow does not reintroduce a downloaded `SHA512-SUMS.txt` trust path.
+
+`scripts/ci/test_windows_platform_contract.ps1` validates positive and negative temporary fixtures. `scripts/ci/test_godot_checksum_manifest.ps1` separately requires exactly the reviewed editor and export-template archives, exact 128-character SHA-512 values, no duplicates and no unexpected entries.
+
+### Export versions
+
+`scripts/ci/export_version.ps1` derives version metadata without mutating committed repository state:
+
+- a semantic tag such as `v2.3.4` produces product version `2.3.4`;
+- an untagged build produces a product version containing the seven-character source SHA;
+- the numeric Windows file version uses semantic components and the bounded GitHub Actions run number;
+- the packaged regression preset receives the same identity with a `-test` suffix.
+
+`scripts/ci/export_windows.ps1` saves the original `export_presets.cfg`, injects both production and test metadata, performs all exports and smoke tests, and restores the exact original contents in `finally`. `scripts/ci/test_export_version.ps1` covers tagged, branch and two-preset mutation behavior.
+
 ### Static checks
 
 `scripts/ci/run_static_checks.ps1` guards architectural contracts that are difficult to express as runtime assertions. Current checks include:
 
-- high-level game/race/lap coordinators must not regain dynamic `call()`/`has_method()` fallback paths;
+- high-level game/race/lap coordinators must not regain dynamic production fallback paths;
 - gameplay modes are owned by `GameModes`, and player indices and AI variant selection remain explicit rather than falling back;
 - opponent spawning must retain prepare-then-commit semantics;
 - car catalogs, models, variants and specs must retain authoritative validation paths;
-- car specs and variant resources must not regain removed legacy fields;
 - the track catalog must use explicit `default_track_id` ownership and must not use per-track boolean or first-entry fallbacks;
 - the generated-track pipeline must retain typed config and mesh containers;
 - the project and export presets must retain the Windows renderer and both Windows package routes;
-- the Windows workflow must use an explicit runner label, full action commit SHAs, complete history, non-persisted checkout credentials and SHA-512 verification for cached/downloaded Godot archives;
-- pull-request runs must not publish executable package artifacts;
-- the canonical full-program scene must remain bound to the canonical smoke-test script.
+- actions remain SHA-pinned, history checkout remains complete, checkout credentials remain disabled and pull-request runs do not publish executable package artifacts;
+- the canonical full-program scene remains bound to the canonical smoke-test script.
 
 ### Automatic test discovery
 
@@ -93,7 +122,7 @@ This removes the need to maintain a duplicated handwritten test list. Adding a q
 - a test scene references it through `res://scripts/tests/...`;
 - it is listed as an explicit helper.
 
-This prevents helper-like or scene-bound scripts from being silently orphaned inside a nested directory. `scripts/ci/test_test_script_ownership.ps1` validates the algorithm against a temporary multi-level fixture: it detects a nested orphan, accepts a nested scene reference and detects the script again after that reference is removed.
+This prevents helper-like or scene-bound scripts from being silently orphaned inside a nested directory.
 
 Each Godot invocation has:
 
@@ -104,7 +133,7 @@ Each Godot invocation has:
 - scanning for `SCRIPT ERROR:`, `ERROR:` and editor-style `E 0:00:...` lines;
 - an individual JUnit testcase containing its status, duration and captured output.
 
-The runtime-error detector has a dedicated regression test so a broken regex cannot silently make the suite permissive. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
+The runtime-error detector has a dedicated regression test so a broken regex cannot silently make the suite permissive.
 
 ### JUnit diagnostics
 
@@ -118,18 +147,17 @@ build/test-logs/junit.xml
 
 - export output-directory safety;
 - current-snapshot and complete-history repository safety;
+- Windows platform and pinned-checksum contracts;
+- source-derived export versioning;
 - Godot runtime-log validation;
-- JUnit serialization and merge behavior;
-- JUnit job-summary rendering and workflow wiring;
-- recursive test-script ownership regression;
-- recursive ownership validation of the repository test trees;
+- JUnit serialization, merging and summary rendering;
+- recursive test-script ownership;
+- input-action ownership;
 - localization validation.
 
-`run_tests.ps1` independently records static checks, project import, both discovery phases and every discovered script/scene test. The top-level verifier writes a temporary preflight report outside `build/test-logs/`, then merges it with the runner report from a `finally` block. Therefore `junit.xml` contains all completed phases and the first recorded failure even when verification stops before the full suite finishes. The merge itself is covered by the JUnit regression test.
+`run_tests.ps1` independently records static checks, project import, both discovery phases and every discovered script/scene test. The top-level verifier writes a temporary preflight report outside `build/test-logs/`, then merges it with the runner report from a `finally` block. Therefore `junit.xml` contains all completed phases and the first recorded failure even when verification stops before the full suite finishes.
 
-Each testcase includes its status, duration, failure message and captured output when available. Reports use UTF-8 without a byte-order mark, XML-safe text and invariant decimal formatting.
-
-After the verification step, `scripts/ci/write_junit_step_summary.ps1` reads the final report and appends a compact Markdown summary to `$GITHUB_STEP_SUMMARY`. It displays the result, test count, failure count, total duration and up to 20 escaped failure rows. The step uses `if: always()`, so a valid partial report remains visible when verification fails. Missing, malformed or zero-test reports fail the summary step; recorded test failures are displayed without replacing the original verification failure.
+After the verification step, `scripts/ci/write_junit_step_summary.ps1` reads the final report and appends a compact Markdown summary to `$GITHUB_STEP_SUMMARY`. The step uses `if: always()`, so a valid partial report remains visible when verification fails.
 
 ### Canonical full-program smoke test
 
@@ -139,13 +167,7 @@ The end-to-end scene is:
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-It must run:
-
-```text
-scripts/tests/full_program_smoke_test.gd
-```
-
-The scenario validates menu back-navigation, automatic and manual free drive, acceleration, steering, braking, reverse, reset, free-drive car switching, race participant setup, countdown locks, AI movement, result presentation, cleanup and post-race re-entry.
+It runs `scripts/tests/full_program_smoke_test.gd` and validates menu navigation, automatic and manual free drive, acceleration, steering, braking, reverse, reset, car switching, race participant setup, countdown locks, AI movement, result presentation, cleanup and post-race re-entry.
 
 ### Packaged validation
 
@@ -156,7 +178,8 @@ Normal packaged launch:
 - starts at `scenes/startup.tscn`;
 - receives no user argument;
 - routes to `scenes/main.tscn`;
-- writes a readiness marker only when the CI environment variable requests it.
+- writes a readiness marker only when the CI environment variable requests it;
+- exits non-zero when main-scene initialization fails.
 
 Packaged smoke launch:
 
@@ -165,17 +188,7 @@ Packaged smoke launch:
 - verifies required project settings, catalog resources, car scenes and generated-track/checkpoint runtime;
 - must emit the expected success marker and return code `0`.
 
-Diagnostic artifacts are named:
-
-```text
-car-game-diagnostics-<commit-sha>
-```
-
-Trusted push/manual package artifacts are named:
-
-```text
-car-game-windows-<commit-sha>
-```
+Diagnostic artifacts are named `car-game-diagnostics-<commit-sha>`. Trusted push/manual package artifacts are named `car-game-windows-<commit-sha>`.
 
 ## Running locally
 
@@ -186,7 +199,7 @@ Complete project verification:
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-Focused tests without the preflight and localization orchestration:
+Focused tests without preflight and localization orchestration:
 
 ```powershell
 ./scripts/ci/run_tests.ps1 `
@@ -200,7 +213,7 @@ Production/test export and packaged smoke tests:
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-Matching Godot 4.7 Windows export templates are required for local export commands.
+Matching Godot 4.7 Windows export templates are required for local export commands. Local untagged exports use the current Git commit when available and `unknown` only when no source revision can be resolved.
 
 ## Required repository settings
 
@@ -220,11 +233,10 @@ Inspect in this order:
 
 1. the GitHub Actions job summary for totals and the first failure rows;
 2. `build/test-logs/junit.xml` for the completed phase list and full structured failure data;
-3. `build/test-logs/git-history-safety.log` for complete-history findings;
-4. `build/test-logs/localization-validation.log` when localization was reached;
-5. `build/test-logs/current-command.log` when present;
-6. `workflow-runner-failure.log`;
-7. the log named after the failed import/script/scene command;
-8. packaged startup/export logs.
+3. repository-safety and localization logs;
+4. `build/test-logs/current-command.log` when present;
+5. `workflow-runner-failure.log`;
+6. the log named after the failed import/script/scene command;
+7. packaged startup/export logs.
 
 A green pull request requires the Windows workflow conclusion to be `success` on the current head commit.
