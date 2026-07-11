@@ -39,7 +39,7 @@ func update(current_lap: int, total_laps: int, position: int, participant_count:
 		_lap_label != null
 		and (current_lap != _last_current_lap or safe_total_laps != _last_total_laps)
 	):
-		_lap_label.text = "Okrazenie %d/%d" % [current_lap, safe_total_laps]
+		_lap_label.text = tr("Okrążenie %d/%d") % [current_lap, safe_total_laps]
 		_last_current_lap = current_lap
 		_last_total_laps = safe_total_laps
 		_text_update_count += 1
@@ -48,7 +48,7 @@ func update(current_lap: int, total_laps: int, position: int, participant_count:
 		_position_label != null
 		and (position != _last_position or safe_participant_count != _last_participant_count)
 	):
-		_position_label.text = "Pozycja %d/%d" % [position, safe_participant_count]
+		_position_label.text = tr("Pozycja %d/%d") % [position, safe_participant_count]
 		_last_position = position
 		_last_participant_count = safe_participant_count
 		_text_update_count += 1

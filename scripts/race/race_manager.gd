@@ -44,7 +44,7 @@ func start_race(player_car: PlayerCarController, scene_tree: SceneTree) -> void:
 		if _should_cancel_countdown(sequence):
 			return
 
-	countdown_changed.emit("START")
+	countdown_changed.emit(tr("START"))
 	_transition_to(State.RUNNING)
 	if player_car != null:
 		player_input_enabled_changed.emit(true)

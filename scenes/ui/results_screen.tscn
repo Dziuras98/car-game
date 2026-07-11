@@ -47,7 +47,7 @@ theme_override_constants/separation = 14
 [node name="TitleLabel" type="Label" parent="Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 34
-text = "Koniec wyscigu"
+text = "Wyniki"
 horizontal_alignment = 1
 
 [node name="ResultsList" type="VBoxContainer" parent="Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
@@ -57,4 +57,4 @@ theme_override_constants/separation = 8
 [node name="MenuButton" type="Button" parent="Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
-text = "Powrot do menu glownego"
+text = "Wróć do menu"

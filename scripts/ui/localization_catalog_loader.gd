@@ -1,30 +1,91 @@
 extends RefCounted
 class_name LocalizationCatalogLoader
 
-const POLISH_CATALOG_PATH: String = "res://translations/pl.po"
-const ENGLISH_CATALOG_PATH: String = "res://translations/en.po"
+const TRANSLATION_PATHS_SETTING: String = "internationalization/locale/translations"
+const FALLBACK_LOCALE_SETTING: String = "internationalization/locale/fallback"
 
-static var _catalogs_registered: bool = false
+static var _registered_catalog_paths: Dictionary = {}
 
 
 static func ensure_loaded() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
-	if _catalogs_registered:
+	var catalog_paths: PackedStringArray = get_catalog_paths()
+	if catalog_paths.is_empty():
+		errors.append("project defines no translation catalogs")
 		return errors
 
-	for catalog_path: String in [POLISH_CATALOG_PATH, ENGLISH_CATALOG_PATH]:
+	var catalogs: Array[Translation] = []
+	var locale_paths: Dictionary = {}
+	for catalog_path: String in catalog_paths:
+		if catalog_path.strip_edges().is_empty():
+			errors.append("translation catalog path must not be empty")
+			continue
 		if not ResourceLoader.exists(catalog_path, "Translation"):
 			errors.append("translation catalog does not exist: %s" % catalog_path)
 			continue
-		var catalog: Resource = ResourceLoader.load(catalog_path, "Translation")
-		if not catalog is Translation:
+		var catalog: Translation = ResourceLoader.load(catalog_path, "Translation") as Translation
+		if catalog == null:
 			errors.append("translation catalog did not load as Translation: %s" % catalog_path)
 			continue
-		TranslationServer.add_translation(catalog as Translation)
 
-	_catalogs_registered = errors.is_empty()
+		var locale: String = catalog.get_locale().strip_edges()
+		if locale.is_empty():
+			errors.append("translation catalog has no locale: %s" % catalog_path)
+			continue
+		if locale_paths.has(locale):
+			errors.append(
+				"translation locale '%s' is defined by both %s and %s"
+				% [locale, str(locale_paths[locale]), catalog_path]
+			)
+			continue
+		locale_paths[locale] = catalog_path
+		catalogs.append(catalog)
+
+	var fallback_locale: String = get_fallback_locale()
+	if fallback_locale.is_empty():
+		errors.append("project localization fallback must not be empty")
+	elif not locale_paths.has(fallback_locale):
+		errors.append(
+			"project localization fallback '%s' has no configured catalog" % fallback_locale
+		)
+	if not errors.is_empty():
+		return errors
+
+	for catalog_index: int in range(catalogs.size()):
+		var catalog_path: String = catalog_paths[catalog_index]
+		if _registered_catalog_paths.has(catalog_path):
+			continue
+		TranslationServer.add_translation(catalogs[catalog_index])
+		_registered_catalog_paths[catalog_path] = true
 	return errors
 
 
 static func get_catalog_paths() -> PackedStringArray:
-	return PackedStringArray([POLISH_CATALOG_PATH, ENGLISH_CATALOG_PATH])
+	var result: PackedStringArray = PackedStringArray()
+	var configured_paths: Variant = ProjectSettings.get_setting(
+		TRANSLATION_PATHS_SETTING,
+		PackedStringArray()
+	)
+	if configured_paths is PackedStringArray:
+		for path: String in configured_paths:
+			result.append(path)
+	elif configured_paths is Array:
+		for path: Variant in configured_paths:
+			result.append(str(path))
+	return result
+
+
+static func get_fallback_locale() -> String:
+	return str(ProjectSettings.get_setting(FALLBACK_LOCALE_SETTING, "")).strip_edges()
+
+
+static func get_supported_locales() -> PackedStringArray:
+	var locales: PackedStringArray = PackedStringArray()
+	for catalog_path: String in get_catalog_paths():
+		var catalog: Translation = ResourceLoader.load(catalog_path, "Translation") as Translation
+		if catalog == null:
+			continue
+		var locale: String = catalog.get_locale().strip_edges()
+		if not locale.is_empty() and locale not in locales:
+			locales.append(locale)
+	return locales

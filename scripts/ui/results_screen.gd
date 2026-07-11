@@ -11,8 +11,17 @@ func build(owner: Node, return_to_menu_callable: Callable) -> void:
 	_layer = RESULTS_SCREEN_SCENE.instantiate() as CanvasLayer
 	owner.add_child(_layer)
 
-	_results_list = _layer.get_node("Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ResultsList") as VBoxContainer
-	var menu_button: Button = _layer.get_node("Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MenuButton") as Button
+	var title_label: Label = _layer.get_node(
+		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleLabel"
+	) as Label
+	_results_list = _layer.get_node(
+		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ResultsList"
+	) as VBoxContainer
+	var menu_button: Button = _layer.get_node(
+		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MenuButton"
+	) as Button
+	title_label.text = tr("Wyniki")
+	menu_button.text = tr("Wróć do menu")
 	if return_to_menu_callable.is_valid():
 		menu_button.pressed.connect(return_to_menu_callable)
 

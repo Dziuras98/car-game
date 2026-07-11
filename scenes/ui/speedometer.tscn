@@ -39,7 +39,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.84, 0.9, 1)
 theme_override_font_sizes/font_size = 16
-text = "SPEED"
+text = "PRĘDKOŚĆ"
 
 [node name="SpeedRow" type="HBoxContainer" parent="Panel/VBoxContainer"]
 layout_mode = 2
@@ -67,7 +67,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.84, 0.9, 1)
 theme_override_font_sizes/font_size = 16
-text = "GEAR"
+text = "BIEG"
 
 [node name="GearValue" type="Label" parent="Panel/VBoxContainer/GearRow"]
 unique_name_in_owner = true

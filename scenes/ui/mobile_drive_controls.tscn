@@ -50,7 +50,7 @@ offset_top = -116.0
 offset_right = -158.0
 offset_bottom = -28.0
 focus_mode = 0
-text = "BRAKE"
+text = "HAMULEC"
 
 [node name="Accelerate" type="Button" parent="Root"]
 custom_minimum_size = Vector2(112, 88)
@@ -64,7 +64,7 @@ offset_top = -116.0
 offset_right = -28.0
 offset_bottom = -28.0
 focus_mode = 0
-text = "GAS"
+text = "GAZ"
 
 [node name="Handbrake" type="Button" parent="Root"]
 custom_minimum_size = Vector2(112, 63.36)
@@ -78,7 +78,7 @@ offset_top = -197.36
 offset_right = -28.0
 offset_bottom = -134.0
 focus_mode = 0
-text = "HB"
+text = "RĘCZNY"
 
 [node name="GearDown" type="Button" parent="Root"]
 custom_minimum_size = Vector2(80.64, 54.56)
@@ -122,4 +122,4 @@ offset_top = 28.0
 offset_right = 261.04
 offset_bottom = 82.56
 focus_mode = 0
-text = "CAM"
+text = "KAMERA"

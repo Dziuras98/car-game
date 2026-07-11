@@ -2,6 +2,7 @@ extends RefCounted
 class_name RaceSessionController
 
 const HUD_UPDATE_FRAME_INTERVAL: int = 6
+const OPPONENT_NODE_PREFIX: String = "Opponent"
 
 var _race_manager: RaceManager
 var _lap_tracker: LapTracker
@@ -206,10 +207,21 @@ func _show_results() -> void:
 
 func _get_participant_label(car: PlayerCarController) -> String:
 	if car == _current_car:
-		return "Ty"
-	if car != null and car.name != "":
-		return car.name
-	return "Kierowca"
+		return tr("Ty")
+	if car != null:
+		var opponent_number: int = _get_standard_opponent_number(str(car.name))
+		if opponent_number > 0:
+			return tr("Kierowca %d") % opponent_number
+		if not str(car.name).is_empty():
+			return str(car.name)
+	return tr("Kierowca")
+
+
+func _get_standard_opponent_number(node_name: String) -> int:
+	if not node_name.begins_with(OPPONENT_NODE_PREFIX):
+		return -1
+	var suffix: String = node_name.trim_prefix(OPPONENT_NODE_PREFIX)
+	return suffix.to_int() if suffix.is_valid_int() else -1
 
 
 func _update_minimap_opponents() -> void:
