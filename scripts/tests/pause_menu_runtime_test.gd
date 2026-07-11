@@ -31,7 +31,10 @@ func _run() -> void:
 
 	var manager: RaceManager = RaceManager.new()
 	manager.configure(0.02, 0.02)
-	manager.start_race(null, get_tree())
+	var player: PlayerCarController = PlayerCarController.new()
+	add_child(player)
+	var start_result: RaceManager.Result = manager.start_race(player, get_tree())
+	_expect(start_result == RaceManager.Result.OK, "pause fixture starts a race with a valid player")
 	await get_tree().create_timer(0.08, true).timeout
 	_expect(manager.get_state() == RaceManager.State.COUNTDOWN, "race countdown cannot advance while the tree is paused")
 
@@ -53,6 +56,7 @@ func _run() -> void:
 	_expect(not get_tree().paused and not pause_menu.is_pause_visible(), "disabling pause for the main menu clears any active pause")
 
 	manager.reset_to_idle()
+	player.queue_free()
 	pause_menu.queue_free()
 	await get_tree().process_frame
 	_finish()
