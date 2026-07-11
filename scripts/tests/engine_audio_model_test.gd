@@ -10,6 +10,8 @@ func _initialize() -> void:
 	_test_limiter_gate()
 	_test_generated_signal_bounds()
 	_test_load_changes_signal_energy()
+	_test_synthesis_gain_increases_loudness()
+	_test_detail_layers_change_waveform()
 	_finish()
 
 
@@ -47,8 +49,8 @@ func _test_generated_signal_bounds() -> void:
 		all_finite = all_finite and is_finite(sample)
 		peak = maxf(peak, absf(sample))
 	_expect(all_finite, "generated samples remain finite")
-	_expect(peak > 0.01, "generated signal is not silent")
-	_expect(peak <= 0.961, "soft saturation keeps samples bounded")
+	_expect(peak > 0.02, "generated signal is not silent")
+	_expect(peak <= 0.971, "smooth saturation keeps samples bounded")
 	synthesizer.free()
 
 
@@ -58,9 +60,36 @@ func _test_load_changes_signal_energy() -> void:
 	var load_frames: PackedFloat32Array = synthesizer.generate_test_frames(8192, 4500.0, 0.9, 0.9)
 	var idle_rms: float = _rms(idle_frames)
 	var load_rms: float = _rms(load_frames)
-	_expect(idle_rms > 0.001, "idle contains audible combustion energy")
-	_expect(load_rms > idle_rms * 1.10, "high-load operation has greater signal energy than idle")
+	_expect(idle_rms > 0.003, "idle contains audible combustion energy")
+	_expect(load_rms > idle_rms * 1.12, "high-load operation has greater signal energy than idle")
 	synthesizer.free()
+
+
+func _test_synthesis_gain_increases_loudness() -> void:
+	var quiet := EngineAudioSynthesizer.new()
+	quiet.synthesis_gain_db = -3.0
+	var loud := EngineAudioSynthesizer.new()
+	loud.synthesis_gain_db = 3.5
+	var quiet_frames: PackedFloat32Array = quiet.generate_test_frames(8192, 2800.0, 0.42, 0.38)
+	var loud_frames: PackedFloat32Array = loud.generate_test_frames(8192, 2800.0, 0.42, 0.38)
+	_expect(_rms(loud_frames) > _rms(quiet_frames) * 1.25, "configured synthesis gain raises average signal level")
+	quiet.free()
+	loud.free()
+
+
+func _test_detail_layers_change_waveform() -> void:
+	var detailed := EngineAudioSynthesizer.new()
+	var reduced := EngineAudioSynthesizer.new()
+	reduced.exhaust_bank_separation = 0.0
+	reduced.exhaust_reflection = 0.0
+	reduced.intake_plenum_detail = 0.0
+	reduced.airflow_noise = 0.0
+	reduced.rotating_assembly_detail = 0.0
+	var detailed_frames: PackedFloat32Array = detailed.generate_test_frames(8192, 5600.0, 0.82, 0.86)
+	var reduced_frames: PackedFloat32Array = reduced.generate_test_frames(8192, 5600.0, 0.82, 0.86)
+	_expect(_mean_abs_difference(detailed_frames, reduced_frames) > 0.002, "additional bank, reflection, plenum, airflow and mechanical layers materially change the waveform")
+	detailed.free()
+	reduced.free()
 
 
 func _rms(samples: PackedFloat32Array) -> float:
@@ -70,6 +99,16 @@ func _rms(samples: PackedFloat32Array) -> float:
 	for sample: float in samples:
 		sum += sample * sample
 	return sqrt(sum / float(samples.size()))
+
+
+func _mean_abs_difference(left: PackedFloat32Array, right: PackedFloat32Array) -> float:
+	var count: int = mini(left.size(), right.size())
+	if count <= 0:
+		return 0.0
+	var sum: float = 0.0
+	for index: int in count:
+		sum += absf(left[index] - right[index])
+	return sum / float(count)
 
 
 func _expect(condition: bool, message: String) -> void:
