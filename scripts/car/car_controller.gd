@@ -106,11 +106,11 @@ func set_external_drive_inputs(throttle: float, brake: float, steering: float, h
 
 func try_apply_car_specs(next_specs: CarSpecs) -> SpecsApplyResult:
 	if next_specs == null:
-		push_error("PlayerCarController rejected null CarSpecs; keeping the active runtime configuration.")
+		push_warning("PlayerCarController rejected null CarSpecs; keeping the active runtime configuration.")
 		return SpecsApplyResult.NULL_SPECS
-	var next_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(next_specs)
+	var next_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(next_specs, false)
 	if next_config == null:
-		push_error("PlayerCarController rejected invalid CarSpecs; keeping the active runtime configuration.")
+		push_warning("PlayerCarController rejected invalid CarSpecs; keeping the active runtime configuration.")
 		return SpecsApplyResult.INVALID_SPECS
 	_car_specs = next_specs
 	_apply_drive_config(next_config, true)
