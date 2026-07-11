@@ -13,19 +13,15 @@ $excludedContentPaths = @(
     "scripts/ci/validate_git_history_safety.ps1",
     "scripts/ci/test_git_history_safety.ps1"
 )
-$textExtensions = @(
-    ".cfg", ".gd", ".json", ".md", ".po", ".ps1", ".tres", ".tscn",
-    ".txt", ".yaml", ".yml"
-)
 $contentPatterns = @(
-    [pscustomobject]@{ Label = "private-key header"; Pattern = '-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----' },
-    [pscustomobject]@{ Label = "GitHub classic token"; Pattern = '\bgh[pousr]_[A-Za-z0-9]{36,255}\b' },
-    [pscustomobject]@{ Label = "GitHub fine-grained token"; Pattern = '\bgithub_pat_[A-Za-z0-9_]{20,255}\b' },
-    [pscustomobject]@{ Label = "AWS access key"; Pattern = '\b(?:AKIA|ASIA)[0-9A-Z]{16}\b' },
-    [pscustomobject]@{ Label = "Google API key"; Pattern = '\bAIza[0-9A-Za-z_-]{35}\b' },
-    [pscustomobject]@{ Label = "Slack token"; Pattern = '\bxox[baprs]-[A-Za-z0-9-]{20,255}\b' },
-    [pscustomobject]@{ Label = "Windows user profile path"; Pattern = '(?i)\b[A-Z]:\\Users\\[^\\\r\n]+' },
-    [pscustomobject]@{ Label = "Unix user home path"; Pattern = '(?m)(?:^|[\s"''])/home/[^/\s]+/' }
+    [pscustomobject]@{ Label = "private-key header"; Pattern = '-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----' },
+    [pscustomobject]@{ Label = "GitHub classic token"; Pattern = 'gh[pousr]_[A-Za-z0-9]{36,255}' },
+    [pscustomobject]@{ Label = "GitHub fine-grained token"; Pattern = 'github_pat_[A-Za-z0-9_]{20,255}' },
+    [pscustomobject]@{ Label = "AWS access key"; Pattern = '(AKIA|ASIA)[0-9A-Z]{16}' },
+    [pscustomobject]@{ Label = "Google API key"; Pattern = 'AIza[0-9A-Za-z_-]{35}' },
+    [pscustomobject]@{ Label = "Slack token"; Pattern = 'xox[baprs]-[A-Za-z0-9-]{20,255}' },
+    [pscustomobject]@{ Label = "Windows user profile path"; Pattern = '[A-Za-z]:\\Users\\' },
+    [pscustomobject]@{ Label = "Unix user home path"; Pattern = '/home/[^/[:space:]]+/' }
 )
 
 function Invoke-Git {
@@ -72,56 +68,48 @@ try {
         throw "Complete Git history is unavailable because the checkout is shallow."
     }
 
-    $objectLines = Invoke-Git -Arguments @("-c", "core.quotePath=false", "rev-list", "--objects", "--all")
-    $inspectedBlobs = 0
-    foreach ($objectLine in $objectLines) {
-        $match = [regex]::Match($objectLine, '^(?<sha>[0-9a-f]{40,64})(?: (?<path>.*))?$')
-        if (-not $match.Success -or -not $match.Groups["path"].Success) {
+    $historicalPaths = Invoke-Git -Arguments @(
+        "-c", "core.quotePath=false", "log", "--all", "--format=", "--name-only", "--", "."
+    )
+    $uniqueHistoricalPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($historicalPath in $historicalPaths) {
+        $normalizedPath = $historicalPath.Trim().Replace('\', '/')
+        if ([string]::IsNullOrWhiteSpace($normalizedPath)) {
             continue
         }
+        [void]$uniqueHistoricalPaths.Add($normalizedPath)
+    }
+    foreach ($historicalPath in $uniqueHistoricalPaths) {
+        if (Test-ForbiddenFileName -RepositoryPath $historicalPath) {
+            $failures.Add("Forbidden credential or secret filename exists in Git history: $historicalPath")
+        }
+    }
 
-        $objectSha = $match.Groups["sha"].Value
-        $repositoryPath = $match.Groups["path"].Value.Replace('\', '/')
-        if ([string]::IsNullOrWhiteSpace($repositoryPath)) {
-            continue
-        }
+    $pathspecs = @(".")
+    foreach ($excludedPath in $excludedContentPaths) {
+        $pathspecs += ":(exclude)$excludedPath"
+    }
 
-        if (Test-ForbiddenFileName -RepositoryPath $repositoryPath) {
-            $failures.Add("Forbidden credential or secret filename exists in Git history: $repositoryPath ($objectSha)")
-            continue
-        }
-
-        if ($excludedContentPaths -contains $repositoryPath) {
-            continue
-        }
-        $extension = [System.IO.Path]::GetExtension($repositoryPath).ToLowerInvariant()
-        if ($textExtensions -notcontains $extension) {
-            continue
-        }
-
-        $objectType = (Invoke-Git -Arguments @("cat-file", "-t", $objectSha) | Select-Object -First 1).Trim()
-        if ($objectType -ne "blob") {
-            continue
-        }
-        $objectSize = [int64]((Invoke-Git -Arguments @("cat-file", "-s", $objectSha) | Select-Object -First 1).Trim())
-        if ($objectSize -gt 5MB) {
-            Write-Host "[GIT_HISTORY_SAFETY][NOTICE] Skipped text-like blob larger than 5 MiB: $repositoryPath ($objectSha)"
-            continue
-        }
-
-        $content = (Invoke-Git -Arguments @("cat-file", "blob", $objectSha)) -join "`n"
-        $inspectedBlobs += 1
-        foreach ($definition in $contentPatterns) {
-            if ([regex]::IsMatch($content, $definition.Pattern)) {
-                $failures.Add("$repositoryPath ($objectSha) contains a possible $($definition.Label).")
-            }
+    foreach ($definition in $contentPatterns) {
+        $arguments = @(
+            "-c", "core.quotePath=false", "log", "--all", "--format=commit:%H",
+            "--name-only", "-G$($definition.Pattern)", "--"
+        ) + $pathspecs
+        $matches = @(
+            Invoke-Git -Arguments $arguments |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                Select-Object -Unique
+        )
+        if ($matches.Count -gt 0) {
+            $evidence = ($matches | Select-Object -First 20) -join ", "
+            $failures.Add("Git history contains a possible $($definition.Label): $evidence")
         }
     }
 
     $emailLines = Invoke-Git -Arguments @("log", "--all", "--format=%ae%x09%ce")
     $nonNoreplyEmails = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($emailLine in $emailLines) {
-        foreach ($email in $emailLine.Split("`t", [System.StringSplitOptions]::RemoveEmptyEntries)) {
+        foreach ($email in ($emailLine -split "`t")) {
             $trimmedEmail = $email.Trim()
             if (
                 -not [string]::IsNullOrWhiteSpace($trimmedEmail) -and
@@ -143,7 +131,7 @@ try {
         throw "Git history safety validation failed with $($failures.Count) issue(s)."
     }
 
-    Write-Host "Git history safety validation passed: $inspectedBlobs text blob(s) inspected."
+    Write-Host "Git history safety validation passed: $($uniqueHistoricalPaths.Count) historical path(s) inspected."
 }
 finally {
     Pop-Location
