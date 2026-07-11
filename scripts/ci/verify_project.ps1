@@ -109,6 +109,18 @@ try {
         -Action { & (Join-Path $PSScriptRoot "test_junit_step_summary.ps1") }
 
     Write-Host ""
+    Write-Host "=== Test script ownership regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Test script ownership regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_test_script_ownership.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Recursive test script ownership ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Recursive test script ownership" `
+        -Action { & (Join-Path $PSScriptRoot "validate_test_script_ownership.ps1") }
+
+    Write-Host ""
     Write-Host "=== Localization contract ==="
     $null = Invoke-RecordedPreflightCheck `
         -Name "Localization contract" `
