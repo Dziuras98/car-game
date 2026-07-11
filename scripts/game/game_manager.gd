@@ -25,9 +25,7 @@ const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 @export var use_track_recommended_laps: bool = true
 
 var _current_car: PlayerCarController
-var selected_mode_id: String = ""
-var selected_track_id: String = ""
-var selected_car_variant_id: StringName = &""
+var _session_state: GameSessionState = GameSessionState.new()
 var _car_selection_state: CarSelectionState
 var _track_spawn_controller: TrackSpawnController
 var _active_track_definition: TrackDefinition
@@ -82,8 +80,7 @@ func _ready() -> void:
 		set_physics_process(false)
 		return
 
-	_speedometer.visible = false
-	_minimap.visible = false
+	_set_driving_ui_visible(false)
 	_menu.selection_completed.connect(_on_menu_selection_completed)
 
 
@@ -126,15 +123,15 @@ func get_configured_opponent_count() -> int:
 
 
 func get_selected_mode_id() -> String:
-	return selected_mode_id
+	return _session_state.get_mode_id()
 
 
 func get_selected_track_id() -> String:
-	return selected_track_id
+	return _session_state.get_track_id()
 
 
 func get_selected_car_variant_id() -> StringName:
-	return selected_car_variant_id
+	return _session_state.get_car_variant_id()
 
 
 func _validate_scene_contract() -> bool:
@@ -251,7 +248,7 @@ func _configure_runtime_for_active_track() -> bool:
 
 
 func _switch_to_next_car() -> void:
-	if selected_mode_id != GameModes.FREE_DRIVE or _car_spawner == null:
+	if not _session_state.is_free_drive() or _car_spawner == null:
 		return
 	var spawn_global_transform: Transform3D = (
 		_current_car.global_transform if is_instance_valid(_current_car) else _car_spawn.global_transform
@@ -263,10 +260,13 @@ func _switch_to_next_car() -> void:
 	if next_car == null:
 		return
 	_current_car = next_car
-	selected_car_variant_id = _car_selection_state.get_variant_id_for_index(
+	var next_variant_id: StringName = _car_selection_state.get_variant_id_for_index(
 		_car_spawner.get_current_car_index()
 	)
-	_show_driving_ui_if_needed()
+	if not _session_state.commit(GameModes.FREE_DRIVE, _session_state.get_track_id(), next_variant_id):
+		_session_state.reset()
+		if _session_state.begin_start():
+			_session_state.commit(GameModes.FREE_DRIVE, str(_active_track_definition.track_id), next_variant_id)
 	_update_car_targets()
 
 
@@ -285,9 +285,10 @@ func _on_menu_selection_completed(
 		_abort_session_start("Menu emitted an unavailable car or track selection.")
 		return
 
-	if _race_session != null:
-		_race_session.reset_to_menu_state()
-	_clear_current_car()
+	_clear_active_session(false)
+	if not _session_state.begin_start():
+		_abort_session_start("Session lifecycle rejected startup from the current state.")
+		return
 	if not _activate_track(selected_track):
 		_abort_session_start("The selected track could not be activated.")
 		return
@@ -301,10 +302,11 @@ func _on_menu_selection_completed(
 		_abort_session_start("The race could not be started with the complete participant set.")
 		return
 
-	selected_mode_id = mode_id
-	selected_track_id = str(selected_track.track_id)
-	selected_car_variant_id = _car_selection_state.get_variant_id_for_index(selected_car_index)
-	if selected_mode_id == GameModes.FREE_DRIVE:
+	var resolved_variant_id: StringName = _car_selection_state.get_variant_id_for_index(selected_car_index)
+	if not _session_state.commit(mode_id, str(selected_track.track_id), resolved_variant_id):
+		_abort_session_start("Session lifecycle rejected the validated session selection.")
+		return
+	if _session_state.is_free_drive():
 		_race_session.hide_lap_ui()
 
 
@@ -319,7 +321,7 @@ func _spawn_car(car_index: int, spawn_global_transform: Transform3D) -> bool:
 	if next_car == null:
 		return false
 	_current_car = next_car
-	_show_driving_ui_if_needed()
+	_set_driving_ui_visible(true)
 	_update_car_targets()
 	return true
 
@@ -328,13 +330,11 @@ func _is_player_input_enabled_for_spawn() -> bool:
 	return _race_session == null or not _race_session.are_player_controls_locked()
 
 
-func _show_driving_ui_if_needed() -> void:
-	if _current_car == null:
-		return
-	_speedometer.visible = true
-	_minimap.visible = true
+func _set_driving_ui_visible(visible: bool) -> void:
+	_speedometer.visible = visible
+	_minimap.visible = visible
 	if _pause_menu != null:
-		_pause_menu.set_pause_enabled(true)
+		_pause_menu.set_pause_enabled(visible)
 
 
 func _update_car_targets() -> void:
@@ -353,8 +353,6 @@ func _start_race() -> bool:
 
 
 func _clear_current_car() -> void:
-	if _pause_menu != null:
-		_pause_menu.set_pause_enabled(false)
 	if _car_spawner != null:
 		_car_spawner.clear_current_car()
 	_current_car = null
@@ -364,32 +362,29 @@ func _clear_current_car() -> void:
 	_minimap.set_opponents([])
 
 
-func _abort_session_start(message: String) -> void:
-	if not message.is_empty():
-		push_error(message)
-	if _race_session != null:
-		_race_session.reset_to_menu_state()
-	_clear_current_car()
-	selected_mode_id = ""
-	selected_track_id = ""
-	selected_car_variant_id = &""
-	_speedometer.visible = false
-	_minimap.visible = false
-	_menu.reset_menu()
-
-
-func _return_to_main_menu() -> void:
-	if _pause_menu != null:
+func _clear_active_session(resume_game: bool) -> void:
+	if resume_game and _pause_menu != null:
 		_pause_menu.resume_game()
 	if _race_session != null:
 		_race_session.reset_to_menu_state()
 	_clear_current_car()
-	selected_mode_id = ""
-	selected_track_id = ""
-	selected_car_variant_id = &""
-	_speedometer.visible = false
-	_minimap.visible = false
+	_session_state.reset()
+	_set_driving_ui_visible(false)
+
+
+func _reset_to_main_menu(message: String = "", resume_game: bool = false) -> void:
+	if not message.is_empty():
+		push_error(message)
+	_clear_active_session(resume_game)
 	_menu.reset_menu()
+
+
+func _abort_session_start(message: String) -> void:
+	_reset_to_main_menu(message)
+
+
+func _return_to_main_menu() -> void:
+	_reset_to_main_menu("", true)
 
 
 func _build_pause_menu() -> void:
