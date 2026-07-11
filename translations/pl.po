@@ -60,6 +60,15 @@ msgstr "Nieznany tor"
 msgid "Samochód"
 msgstr "Samochód"
 
+msgid "Prosty owal"
+msgstr "Prosty owal"
+
+msgid "370Z automat"
+msgstr "370Z automat"
+
+msgid "370Z manual"
+msgstr "370Z manual"
+
 msgid "Pauza"
 msgstr "Pauza"
 
