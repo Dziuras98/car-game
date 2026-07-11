@@ -71,7 +71,6 @@ func get_ai_drivers() -> Array[AiRaceDriver]:
 func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 	if opponent_count < 0:
 		_last_spawn_result = Result.INVALID_COUNT
-		push_error("OpponentParticipantSpawner opponent_count must be non-negative.")
 		var invalid_count: Array[PlayerCarController] = []
 		return invalid_count
 	if opponent_count == 0:
