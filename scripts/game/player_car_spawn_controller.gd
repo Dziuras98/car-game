@@ -23,9 +23,11 @@ func get_current_car_index() -> int:
 func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
 	if _owner == null or _factory == null or not _factory.has_available_cars():
 		return null
+	if car_index < 0 or car_index >= _factory.get_available_count():
+		push_error("Player car index %d is outside the configured catalog range." % car_index)
+		return null
 
-	var selected_car_index: int = clampi(car_index, 0, _factory.get_available_count() - 1)
-	var car_controller: PlayerCarController = _factory.instantiate_indexed_car(selected_car_index)
+	var car_controller: PlayerCarController = _factory.instantiate_indexed_car(car_index)
 	if car_controller == null:
 		return null
 
@@ -36,7 +38,7 @@ func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, playe
 	car_controller.set_player_input_enabled(player_input_enabled)
 
 	_current_car = car_controller
-	_current_car_index = selected_car_index
+	_current_car_index = car_index
 	return _current_car
 
 
