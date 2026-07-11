@@ -2,6 +2,7 @@ extends RefCounted
 class_name LapTracker
 
 signal participant_finished(car: PlayerCarController)
+signal runtime_contract_failed(message: String)
 
 var lap_count: int = 3
 
@@ -55,6 +56,7 @@ func update_positions() -> void:
 	if _race_points.size() < 2:
 		_refresh_track_contract()
 		if _race_points.size() < 2:
+			runtime_contract_failed.emit("LapTracker lost a usable racing line.")
 			return
 
 	_remove_invalid_participants()
@@ -103,13 +105,20 @@ func register_checkpoint_crossing(
 	return true
 
 
+func has_participant(car: PlayerCarController) -> bool:
+	return _get_state(car) != null
+
+
 func get_completed_laps(car: PlayerCarController) -> int:
 	var state: ParticipantRaceState = _get_state(car)
-	return state.completed_laps if state != null else 0
+	return state.completed_laps if state != null else -1
 
 
 func get_current_lap(car: PlayerCarController) -> int:
-	return clampi(get_completed_laps(car) + 1, 1, lap_count)
+	var completed_laps: int = get_completed_laps(car)
+	if completed_laps < 0:
+		return 0
+	return clampi(completed_laps + 1, 1, lap_count)
 
 
 func get_participant_count() -> int:
@@ -122,11 +131,11 @@ func get_participant_count() -> int:
 
 
 func get_race_position(car: PlayerCarController) -> int:
-	if car == null:
-		return 1
+	if not has_participant(car):
+		return 0
 	var ordered_participants: Array[PlayerCarController] = get_result_order()
 	var player_position: int = ordered_participants.find(car)
-	return player_position + 1 if player_position >= 0 else 1
+	return player_position + 1 if player_position >= 0 else 0
 
 
 func get_result_order() -> Array[PlayerCarController]:
@@ -152,12 +161,12 @@ func get_expected_checkpoint_index(car: PlayerCarController) -> int:
 
 func get_rejected_crossing_count(car: PlayerCarController) -> int:
 	var state: ParticipantRaceState = _get_state(car)
-	return state.rejected_crossings if state != null else 0
+	return state.rejected_crossings if state != null else -1
 
 
 func get_progress_distance(car: PlayerCarController) -> float:
 	var state: ParticipantRaceState = _get_state(car)
-	return state.progress_distance if state != null else 0.0
+	return state.progress_distance if state != null else -1.0
 
 
 func get_track_length() -> float:
@@ -315,19 +324,15 @@ func _on_track_checkpoint_crossed(
 
 
 func _on_track_geometry_rebuilt(_revision: int) -> void:
-	var previous_checkpoint_count: int = _checkpoint_count
 	_refresh_track_contract()
 	if not _has_valid_track_contract():
+		runtime_contract_failed.emit("Track geometry rebuild invalidated lap tracking.")
 		return
-	var checkpoint_topology_changed: bool = (
-		previous_checkpoint_count > 0
-		and previous_checkpoint_count != _checkpoint_count
-	)
 	for participant_id: int in _participant_order:
 		var state: ParticipantRaceState = _participant_states.get(participant_id) as ParticipantRaceState
 		if state == null or not is_instance_valid(state.car):
 			continue
 		state.reset_projection_tracking()
-		if checkpoint_topology_changed and not state.finished:
+		if not state.finished:
 			state.reset_checkpoint_sequence()
 		_update_participant_projection(state)
