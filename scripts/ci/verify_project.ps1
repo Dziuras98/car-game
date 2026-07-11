@@ -9,49 +9,143 @@ $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $diagnosticDirectory = Join-Path $projectRoot "build/test-logs"
 $localizationLogPath = Join-Path $diagnosticDirectory "localization-validation.log"
+$preflightReportPath = Join-Path $projectRoot "build/verification-preflight-junit.xml"
+$junitReportPath = Join-Path $diagnosticDirectory "junit.xml"
+$mergedReportPath = Join-Path $diagnosticDirectory "junit.merged.xml"
+$preflightResults = [System.Collections.Generic.List[object]]::new()
+. (Join-Path $PSScriptRoot "junit_report.ps1")
 
 New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
+Remove-Item -LiteralPath $preflightReportPath -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $junitReportPath -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $mergedReportPath -Force -ErrorAction SilentlyContinue
 
-Write-Host ""
-Write-Host "=== Export output directory safety ==="
-& (Join-Path $PSScriptRoot "test_output_directory_safety.ps1")
+function Invoke-RecordedPreflightCheck {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][scriptblock]$Action
+    )
 
-Write-Host ""
-Write-Host "=== Godot runtime log validation ==="
-& (Join-Path $PSScriptRoot "test_godot_runtime_log_validation.ps1")
-
-Write-Host ""
-Write-Host "=== JUnit report serialization ==="
-& (Join-Path $PSScriptRoot "test_junit_report.ps1")
-
-Write-Host ""
-Write-Host "=== Localization contract ==="
-try {
-    $localizationOutput = @(& (Join-Path $PSScriptRoot "validate_localization.ps1") 2>&1)
-    foreach ($line in $localizationOutput) {
-        Write-Host ([string]$line)
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $capturedOutput = @()
+    try {
+        $capturedOutput = @(& $Action 2>&1)
+        $stopwatch.Stop()
+        foreach ($line in $capturedOutput) {
+            Write-Host ([string]$line)
+        }
+        [void]$script:preflightResults.Add((New-JUnitTestResult `
+            -Name $Name `
+            -ClassName "repository.preflight" `
+            -DurationSeconds $stopwatch.Elapsed.TotalSeconds `
+            -Status "passed" `
+            -Output (($capturedOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+        ))
+        return $capturedOutput
     }
-    Set-Content -LiteralPath $localizationLogPath -Value @(
-        $localizationOutput | ForEach-Object { [string]$_ }
-    ) -Encoding utf8
+    catch {
+        $stopwatch.Stop()
+        foreach ($line in $capturedOutput) {
+            Write-Host ([string]$line)
+        }
+        $failureText = ($_ | Out-String).Trim()
+        [void]$script:preflightResults.Add((New-JUnitTestResult `
+            -Name $Name `
+            -ClassName "repository.preflight" `
+            -DurationSeconds $stopwatch.Elapsed.TotalSeconds `
+            -Status "failed" `
+            -Message $failureText `
+            -Output (($capturedOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+        ))
+        throw
+    }
+}
+
+function Invoke-LocalizationContract {
+    try {
+        $localizationOutput = @(& (Join-Path $PSScriptRoot "validate_localization.ps1") 2>&1)
+        Set-Content -LiteralPath $localizationLogPath -Value @(
+            $localizationOutput | ForEach-Object { [string]$_ }
+        ) -Encoding utf8
+        return $localizationOutput
+    }
+    catch {
+        $failureText = $_ | Out-String
+        $capturedOutput = @()
+        if (Test-Path variable:localizationOutput) {
+            $capturedOutput = @($localizationOutput | ForEach-Object { [string]$_ })
+        }
+        Set-Content -LiteralPath $localizationLogPath -Value (
+            $capturedOutput + @("", $failureText)
+        ) -Encoding utf8
+        throw
+    }
+}
+
+$verificationFailed = $false
+try {
+    Write-Host ""
+    Write-Host "=== Export output directory safety ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Export output directory safety" `
+        -Action { & (Join-Path $PSScriptRoot "test_output_directory_safety.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Godot runtime log validation ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Godot runtime log validation" `
+        -Action { & (Join-Path $PSScriptRoot "test_godot_runtime_log_validation.ps1") }
+
+    Write-Host ""
+    Write-Host "=== JUnit report serialization ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "JUnit report serialization" `
+        -Action { & (Join-Path $PSScriptRoot "test_junit_report.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Localization contract ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Localization contract" `
+        -Action { Invoke-LocalizationContract }
+
+    Write-JUnitReport `
+        -Results @($preflightResults) `
+        -Path $preflightReportPath `
+        -SuiteName "car-game verification preflight"
+
+    & (Join-Path $PSScriptRoot "run_tests.ps1") -GodotBinary $GodotBinary
 }
 catch {
-    $failureText = $_ | Out-String
-    $capturedOutput = @()
-    if (Test-Path variable:localizationOutput) {
-        $capturedOutput = @($localizationOutput | ForEach-Object { [string]$_ })
-        foreach ($line in $capturedOutput) {
-            Write-Host $line
-        }
-    }
-    Set-Content -LiteralPath $localizationLogPath -Value (
-        $capturedOutput + @("", $failureText)
-    ) -Encoding utf8
-    Write-Host $failureText
+    $verificationFailed = $true
     throw
 }
+finally {
+    try {
+        Write-JUnitReport `
+            -Results @($preflightResults) `
+            -Path $preflightReportPath `
+            -SuiteName "car-game verification preflight"
 
-& (Join-Path $PSScriptRoot "run_tests.ps1") -GodotBinary $GodotBinary
+        $sourceReports = @($preflightReportPath)
+        if (Test-Path -LiteralPath $junitReportPath -PathType Leaf) {
+            $sourceReports += $junitReportPath
+        }
+
+        Merge-JUnitReports `
+            -SourcePaths $sourceReports `
+            -Path $mergedReportPath `
+            -SuiteName "car-game complete Windows verification"
+        Move-Item -LiteralPath $mergedReportPath -Destination $junitReportPath -Force
+        Remove-Item -LiteralPath $preflightReportPath -Force -ErrorAction SilentlyContinue
+        Write-Host "Complete JUnit report: $junitReportPath"
+    }
+    catch {
+        Write-Host "Failed to finalize complete JUnit report: $($_.Exception.Message)"
+        if (-not $verificationFailed) {
+            throw
+        }
+    }
+}
 
 Write-Host ""
 Write-Host "Project verification completed successfully."
