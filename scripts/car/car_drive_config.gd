@@ -66,6 +66,8 @@ var suspension_rest_length: float = 0.28
 var suspension_travel: float = 0.18
 var suspension_stiffness: float = 32.0
 var suspension_damping: float = 5.0
+var ground_probe_collision_mask: int = 1
+var minimum_ground_normal_dot: float = 0.35
 
 
 func is_manual_transmission() -> bool:
@@ -110,6 +112,8 @@ func sanitize() -> void:
 	suspension_travel = maxf(suspension_travel, 0.01)
 	suspension_stiffness = maxf(suspension_stiffness, 0.0)
 	suspension_damping = maxf(suspension_damping, 0.0)
+	ground_probe_collision_mask = maxi(ground_probe_collision_mask, 1)
+	minimum_ground_normal_dot = clampf(minimum_ground_normal_dot, 0.0, 1.0)
 	if transmission_type < CarSpecs.TransmissionType.DIRECT_DRIVE or transmission_type > CarSpecs.TransmissionType.AUTOMATIC:
 		transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
 	if uses_geared_transmission() and gear_ratios.is_empty():
