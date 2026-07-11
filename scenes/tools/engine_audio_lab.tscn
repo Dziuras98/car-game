@@ -1,0 +1,45 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/tools/engine_audio_lab.gd" id="1_lab"]
+[ext_resource type="Script" path="res://scripts/car/engine_audio.gd" id="2_audio"]
+
+[node name="EngineAudioLab" type="Node3D"]
+script = ExtResource("1_lab")
+
+[node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("2_audio")
+cylinders = 6
+mix_rate = 32000
+idle_volume_db = -18.0
+load_volume_db = -3.0
+exhaust_roughness = 0.13
+intake_presence = 0.22
+exhaust_resonance = 0.38
+mechanical_noise = 0.07
+overrun_crackle = 0.11
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 5)
+current = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="PanelContainer" parent="CanvasLayer"]
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 590.0
+offset_bottom = 300.0
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/Panel"]
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/Panel/Margin"]
+
+[node name="Title" type="Label" parent="CanvasLayer/Panel/Margin/VBox"]
+text = "Stock Nissan 370Z procedural engine audio"
+
+[node name="Status" type="Label" parent="CanvasLayer/Panel/Margin/VBox"]
+text = "Starting..."
