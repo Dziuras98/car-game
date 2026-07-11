@@ -14,7 +14,7 @@ The job executes:
 
 1. download the Godot 4.7 console editor and the official `SHA512-SUMS.txt` file;
 2. verify the editor archive SHA-512 checksum and engine version;
-3. run the single project-verification entrypoint;
+3. run the single project-verification entrypoint and finalize its complete JUnit report;
 4. restore or install matching Windows export templates after verifying their SHA-512 checksum;
 5. verify release and debug templates;
 6. export the production and test presets;
@@ -28,13 +28,13 @@ The authoritative local/CI verification entrypoint is:
 scripts/ci/verify_project.ps1
 ```
 
-It runs the localization contract first and then delegates static checks, project import and all discovered Godot tests to:
+It records the PowerShell preflight checks, runs the localization contract and then delegates static checks, project import and all discovered Godot tests to:
 
 ```text
 scripts/ci/run_tests.ps1
 ```
 
-Using `run_tests.ps1` directly remains possible for focused test work, but it is not the complete repository gate because it intentionally does not duplicate localization orchestration.
+Using `run_tests.ps1` directly remains possible for focused test work, but it is not the complete repository gate because its JUnit report intentionally excludes the preflight and localization phases owned by `verify_project.ps1`.
 
 ### Static checks
 
@@ -69,7 +69,26 @@ Each Godot invocation has:
 - scanning for `SCRIPT ERROR:`, `ERROR:` and editor-style `E 0:00:...` lines;
 - an individual JUnit testcase containing its status, duration and captured output.
 
-`run_tests.ps1` writes `build/test-logs/junit.xml` in a `finally` block, so completed checks and the first failure are retained even when verification stops early. The report includes static repository checks, project import, both discovery phases and every executed Godot script or scene test. The runtime-error detector and JUnit writer each have dedicated regression tests so a broken diagnostic mechanism cannot silently make the suite permissive or produce invalid XML. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
+The runtime-error detector has a dedicated regression test so a broken regex cannot silently make the suite permissive. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
+
+### JUnit diagnostics
+
+The complete verification report is:
+
+```text
+build/test-logs/junit.xml
+```
+
+`verify_project.ps1` records these preflight cases before invoking Godot:
+
+- export output-directory safety;
+- Godot runtime-log validation;
+- JUnit serialization and merge behavior;
+- localization validation.
+
+`run_tests.ps1` independently records static checks, project import, both discovery phases and every discovered script/scene test. The top-level verifier writes a temporary preflight report outside `build/test-logs/`, then merges it with the runner report from a `finally` block. Therefore `junit.xml` contains all completed phases and the first recorded failure even when verification stops before the full suite finishes. The merge itself is covered by the JUnit regression test.
+
+Each testcase includes its status, duration, failure message and captured output when available. Reports use UTF-8 without a byte-order mark, XML-safe text and invariant decimal formatting.
 
 ### Canonical full-program smoke test
 
@@ -111,7 +130,7 @@ Successful artifacts are named:
 car-game-windows-<commit-sha>
 ```
 
-They contain the generated executable/PCK, packaged smoke logs, per-command test diagnostics and `build/test-logs/junit.xml`.
+They contain the generated executable/PCK, packaged smoke logs, per-command test diagnostics and the complete `build/test-logs/junit.xml` report.
 
 ## Running locally
 
@@ -122,7 +141,7 @@ Complete project verification:
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-Focused tests without the localization orchestration step:
+Focused tests without the preflight and localization orchestration:
 
 ```powershell
 ./scripts/ci/run_tests.ps1 `
@@ -142,8 +161,8 @@ Matching Godot 4.7 Windows export templates are required for local export comman
 
 Inspect in this order:
 
-1. `build/test-logs/localization-validation.log` when localization was reached;
-2. `build/test-logs/junit.xml` for the structured status and duration of completed checks;
+1. `build/test-logs/junit.xml` for the completed phase list and first recorded failure;
+2. `build/test-logs/localization-validation.log` when localization was reached;
 3. `build/test-logs/current-command.log` when present;
 4. `workflow-runner-failure.log`;
 5. the log named after the failed import/script/scene command;
