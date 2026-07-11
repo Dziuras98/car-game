@@ -26,7 +26,7 @@ function Initialize-TestRepository {
     New-Item -ItemType Directory -Path $RepositoryPath -Force | Out-Null
     Invoke-Git -RepositoryPath $RepositoryPath -Arguments @("init", "-b", "master")
     Invoke-Git -RepositoryPath $RepositoryPath -Arguments @("config", "user.name", "History Safety Test")
-    Invoke-Git -RepositoryPath $RepositoryPath -Arguments @("config", "user.email", "history-safety@example.invalid")
+    Invoke-Git -RepositoryPath $RepositoryPath -Arguments @("config", "user.email", "123+history-safety@users.noreply.github.com")
     Set-Content -LiteralPath (Join-Path $RepositoryPath "README.md") -Value "Safe history fixture." -Encoding utf8
     Invoke-Git -RepositoryPath $RepositoryPath -Arguments @("add", "README.md")
     Invoke-Git -RepositoryPath $RepositoryPath -Arguments @("commit", "-m", "Add safe fixture")
