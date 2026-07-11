@@ -102,6 +102,7 @@ concurrency:
 env:
   GODOT_ARCHIVE: Godot_v4.7-stable_win64.exe.zip
   GODOT_EXECUTABLE: Godot_v4.7-stable_win64_console.exe
+  GODOT_CHECKSUMS_FILE: scripts/ci/godot_4_7_sha512.txt
 
 jobs:
   tests:
@@ -217,6 +218,25 @@ texture_format/etc2_astc=false
         -Values $contractFailures `
         -Fragment "trusted package missing-file failure" `
         -Message "The validator should require missing trusted packages to fail the workflow."
+
+    Write-ValidFixture
+    Set-Content -LiteralPath $workflowPath -Value ($validWorkflow -replace '(?m)^\s*GODOT_CHECKSUMS_FILE:.*\r?\n', '') -Encoding utf8
+    $contractFailures = @(Get-FixtureFailures)
+    Expect-Contains `
+        -Values $contractFailures `
+        -Fragment "repository-pinned Godot checksums" `
+        -Message "The validator should require the repository checksum manifest."
+
+    Write-ValidFixture
+    Add-Content -LiteralPath $workflowPath -Value @'
+      - shell: pwsh
+        run: Invoke-WebRequest -Uri "$baseUrl/SHA512-SUMS.txt" -OutFile $sumsPath
+'@ -Encoding utf8
+    $contractFailures = @(Get-FixtureFailures)
+    Expect-Contains `
+        -Values $contractFailures `
+        -Fragment "must not download checksums" `
+        -Message "The validator should reject checksums downloaded with release artifacts."
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -233,7 +253,9 @@ foreach ($legacyFragment in @(
     '(?m)^\[preset\.2\]$',
     'runs-on: windows-2025',
     'cancel-in-progress:',
-    'if-no-files-found: error'
+    'if-no-files-found: error',
+    'GODOT_CHECKSUMS_FILE:',
+    'SHA512-SUMS.txt'
 )) {
     Expect-NotContains `
         -Value $staticChecksContent `
