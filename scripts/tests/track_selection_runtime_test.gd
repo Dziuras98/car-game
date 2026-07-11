@@ -42,6 +42,8 @@ func _run() -> void:
 	catalog.default_track_id = &"simple_oval"
 	_expect(catalog.validate().is_empty(), "runtime catalog with a failing generation fixture is structurally valid")
 
+	_test_track_spawn_transaction(simple_definition, alternate_definition)
+
 	var main: Node3D = MAIN_SCENE.instantiate() as Node3D
 	_expect(main != null, "main scene instantiates for track selection testing")
 	if main == null:
@@ -62,7 +64,7 @@ func _run() -> void:
 	_expect(menu != null and menu.has_signal("selection_completed"), "main menu exposes the selection signal")
 	_expect(not variants.is_empty(), "car catalog exposes a variant for integration testing")
 	if menu != null and not variants.is_empty():
-		menu.emit_signal("selection_completed", "free_drive", "alternate_track", variants[0].variant_id)
+		menu.emit_signal("selection_completed", &"free_drive", &"alternate_track", variants[0].variant_id)
 		await get_tree().process_frame
 		await get_tree().physics_frame
 
@@ -72,7 +74,7 @@ func _run() -> void:
 		selected_track != null and selected_track.get_instance_id() != initial_instance_id,
 		"selecting another track replaces the active track instance"
 	)
-	_expect(main.call("get_selected_track_id") == "alternate_track", "game state stores the selected track id")
+	_expect(main.call("get_selected_track_id") == &"alternate_track", "game state stores the selected track id")
 	_expect(main.call("get_active_lap_count") == 5, "selected track recommended lap count reconfigures the race session")
 	_expect(main.get_node_or_null("TrackContainer/ActiveTrack") == selected_track, "track container exposes exactly the selected active track")
 	_expect(main.call("get_current_car") != null, "player car is spawned against the selected track runtime")
@@ -90,6 +92,43 @@ func _run() -> void:
 	main.queue_free()
 	await get_tree().process_frame
 	_finish()
+
+
+func _test_track_spawn_transaction(
+	simple_definition: TrackDefinition,
+	alternate_definition: TrackDefinition
+) -> void:
+	var container: Node3D = Node3D.new()
+	container.name = "TransactionalTrackContainer"
+	add_child(container)
+	var controller: TrackSpawnController = TrackSpawnController.new()
+	controller.configure(container)
+
+	var initial_track: GeneratedTrack = controller.spawn_track(simple_definition)
+	_expect(initial_track != null, "transaction fixture commits an initial track")
+	var staged_track: GeneratedTrack = controller.stage_track(alternate_definition)
+	_expect(staged_track != null, "valid replacement track can be staged")
+	_expect(controller.get_current_track() == initial_track, "staging leaves the committed track active")
+	_expect(container.get_node_or_null("ActiveTrack") == initial_track, "staging preserves the active-track node")
+	_expect(container.get_node_or_null("PendingTrack") == staged_track, "staged replacement remains explicitly pending")
+
+	var promoted_track: GeneratedTrack = controller.commit_staged_track()
+	_expect(promoted_track == staged_track, "commit promotes the staged replacement")
+	_expect(controller.get_current_track() == promoted_track, "promoted replacement becomes the provisional current track")
+	_expect(initial_track.get_parent() == null, "previous track is retained outside the tree until finalization")
+	controller.rollback_track_transaction()
+	_expect(controller.get_current_track() == initial_track, "rollback restores the previous committed track")
+	_expect(container.get_node_or_null("ActiveTrack") == initial_track, "rollback restores the previous active-track node")
+	_expect(container.get_node_or_null("PendingTrack") == null, "rollback discards the rejected replacement")
+
+	var final_staged_track: GeneratedTrack = controller.stage_track(alternate_definition)
+	_expect(final_staged_track != null, "replacement can be staged again after rollback")
+	_expect(controller.commit_staged_track() == final_staged_track, "replacement can be promoted after rollback")
+	controller.finalize_track_commit()
+	_expect(controller.get_current_track() == final_staged_track, "finalization retains the promoted replacement")
+	_expect(not is_instance_valid(initial_track), "finalization disposes the superseded track")
+	controller.clear_track()
+	container.queue_free()
 
 
 func _make_definition(

@@ -14,11 +14,13 @@ class TransactionHarness:
 
 	var session_state: GameSessionState
 	var fail_step: StringName = &""
-	var preserve_session_on_reset: bool = false
 	var reset_count: int = 0
 	var call_order: Array[StringName] = []
 	var spawned_car_index: int = -1
 	var activated_track_id: StringName = &""
+	var phase_at_first_reset: GameSessionState.Phase = GameSessionState.Phase.MENU
+	var track_committed: bool = false
+	var track_finalized: bool = false
 
 	func _init(state: GameSessionState) -> void:
 		session_state = state
@@ -26,13 +28,15 @@ class TransactionHarness:
 	func reset_runtime() -> void:
 		reset_count += 1
 		call_order.append(&"reset")
-		if not preserve_session_on_reset:
-			session_state.reset()
+		if reset_count == 1:
+			phase_at_first_reset = session_state.get_phase()
+		track_committed = false
+		track_finalized = false
 
-	func activate_track(definition: TrackDefinition) -> bool:
-		call_order.append(&"activate")
+	func stage_track(definition: TrackDefinition) -> bool:
+		call_order.append(&"stage")
 		activated_track_id = definition.track_id if definition != null else &""
-		return fail_step != &"activate"
+		return fail_step != &"stage"
 
 	func configure_runtime() -> bool:
 		call_order.append(&"configure")
@@ -45,10 +49,20 @@ class TransactionHarness:
 
 	func start_race() -> bool:
 		call_order.append(&"race")
-		if fail_step == &"commit":
-			session_state.reset()
-			return true
 		return fail_step != &"race"
+
+	func commit_track() -> bool:
+		call_order.append(&"track_commit")
+		if fail_step == &"track_commit":
+			return false
+		track_committed = true
+		if fail_step == &"session_commit":
+			session_state.reset()
+		return true
+
+	func finalize_track_commit() -> void:
+		call_order.append(&"track_finalize")
+		track_finalized = true
 
 
 class TransactionCase:
@@ -91,8 +105,8 @@ func _test_validation_failures() -> void:
 		Transform3D.IDENTITY
 	)
 	_expect(invalid_mode_result == GameSessionStartTransaction.Result.UNSUPPORTED_MODE, "unsupported mode is rejected before runtime setup")
-	_expect(invalid_mode_case.harness.reset_count == 1, "unsupported mode restores the runtime once")
-	_expect(invalid_mode_case.state.is_menu(), "unsupported mode leaves lifecycle in menu")
+	_expect(invalid_mode_case.harness.reset_count == 0, "unsupported mode does not clear an existing runtime")
+	_expect(invalid_mode_case.state.is_menu(), "unsupported mode leaves lifecycle unchanged")
 
 	var invalid_car_case: TransactionCase = _build_case()
 	var invalid_car_result: GameSessionStartTransaction.Result = invalid_car_case.transaction.execute(
@@ -102,7 +116,7 @@ func _test_validation_failures() -> void:
 		Transform3D.IDENTITY
 	)
 	_expect(invalid_car_result == GameSessionStartTransaction.Result.UNAVAILABLE_CAR_VARIANT, "unavailable car variant has a distinct result")
-	_expect(invalid_car_case.harness.call_order == [&"reset"], "invalid car selection does not activate track or runtime")
+	_expect(invalid_car_case.harness.call_order.is_empty(), "invalid car selection does not clear or stage runtime")
 
 	var invalid_track_case: TransactionCase = _build_case()
 	var invalid_track_result: GameSessionStartTransaction.Result = invalid_track_case.transaction.execute(
@@ -112,7 +126,7 @@ func _test_validation_failures() -> void:
 		Transform3D.IDENTITY
 	)
 	_expect(invalid_track_result == GameSessionStartTransaction.Result.UNAVAILABLE_TRACK, "unavailable track has a distinct result")
-	_expect(invalid_track_case.harness.call_order == [&"reset"], "invalid track selection does not configure runtime")
+	_expect(invalid_track_case.harness.call_order.is_empty(), "invalid track selection does not clear or configure runtime")
 
 
 func _test_successful_free_drive_transaction() -> void:
@@ -128,9 +142,14 @@ func _test_successful_free_drive_transaction() -> void:
 	_expect(test_case.state.get_mode_id() == GameModes.FREE_DRIVE, "free-drive transaction commits mode id")
 	_expect(test_case.state.get_track_id() == VALID_TRACK_ID, "free-drive transaction commits track id")
 	_expect(test_case.state.get_car_variant_id() == VALID_VARIANT_ID, "free-drive transaction commits resolved variant id")
-	_expect(test_case.harness.call_order == [&"reset", &"activate", &"configure", &"spawn"], "free-drive stages execute in deterministic order")
-	_expect(test_case.harness.activated_track_id == VALID_TRACK_ID, "transaction activates the exact selected track")
+	_expect(
+		test_case.harness.call_order == [&"reset", &"stage", &"configure", &"spawn", &"track_commit", &"track_finalize"],
+		"free-drive stages execute in deterministic order"
+	)
+	_expect(test_case.harness.phase_at_first_reset == GameSessionState.Phase.STARTING, "runtime clearing occurs only after entering STARTING")
+	_expect(test_case.harness.activated_track_id == VALID_TRACK_ID, "transaction stages the exact selected track")
 	_expect(test_case.harness.spawned_car_index >= 0, "transaction resolves an exact catalog car index")
+	_expect(test_case.harness.track_committed and test_case.harness.track_finalized, "successful transaction commits and finalizes the staged track")
 
 
 func _test_successful_race_transaction() -> void:
@@ -143,14 +162,18 @@ func _test_successful_race_transaction() -> void:
 	)
 	_expect(result == GameSessionStartTransaction.Result.OK, "race transaction completes")
 	_expect(test_case.state.is_race(), "race transaction commits race phase")
-	_expect(test_case.harness.call_order == [&"reset", &"activate", &"configure", &"spawn", &"race"], "race startup runs only after player spawn")
+	_expect(
+		test_case.harness.call_order == [&"reset", &"stage", &"configure", &"spawn", &"race", &"track_commit", &"track_finalize"],
+		"race startup completes before track and lifecycle finalization"
+	)
 
 
 func _test_stage_failures() -> void:
-	_run_stage_failure(&"activate", GameSessionStartTransaction.Result.TRACK_ACTIVATION_FAILED)
+	_run_stage_failure(&"stage", GameSessionStartTransaction.Result.TRACK_STAGE_FAILED)
 	_run_stage_failure(&"configure", GameSessionStartTransaction.Result.RUNTIME_CONFIGURATION_FAILED)
 	_run_stage_failure(&"spawn", GameSessionStartTransaction.Result.PLAYER_SPAWN_FAILED)
 	_run_stage_failure(&"race", GameSessionStartTransaction.Result.RACE_START_FAILED, GameModes.RACE)
+	_run_stage_failure(&"track_commit", GameSessionStartTransaction.Result.TRACK_COMMIT_FAILED)
 
 
 func _run_stage_failure(
@@ -169,6 +192,7 @@ func _run_stage_failure(
 	_expect(test_case.state.is_menu(), "%s failure rolls lifecycle back to menu" % fail_step)
 	_expect(test_case.state.get_mode_id() == &"", "%s failure clears committed mode state" % fail_step)
 	_expect(test_case.harness.reset_count == 2, "%s failure performs prepare reset and rollback reset" % fail_step)
+	_expect(not test_case.harness.track_committed, "%s failure leaves no committed replacement track" % fail_step)
 
 
 func _test_session_begin_rejection() -> void:
@@ -178,7 +202,6 @@ func _test_session_begin_rejection() -> void:
 		test_case.state.commit(GameModes.FREE_DRIVE, VALID_TRACK_ID, VALID_VARIANT_ID) == GameSessionState.Result.OK,
 		"begin-rejection fixture commits an active session"
 	)
-	test_case.harness.preserve_session_on_reset = true
 	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
@@ -186,11 +209,13 @@ func _test_session_begin_rejection() -> void:
 		Transform3D.IDENTITY
 	)
 	_expect(result == GameSessionStartTransaction.Result.SESSION_BEGIN_REJECTED, "invalid lifecycle start maps to a transaction result")
-	_expect(test_case.harness.reset_count == 2, "begin rejection still invokes rollback")
+	_expect(test_case.harness.reset_count == 0, "begin rejection preserves the active runtime")
+	_expect(test_case.state.is_free_drive(), "begin rejection preserves the active lifecycle phase")
+	_expect(test_case.state.get_track_id() == VALID_TRACK_ID, "begin rejection preserves committed selection state")
 
 
 func _test_commit_rejection() -> void:
-	var test_case: TransactionCase = _build_case(&"commit")
+	var test_case: TransactionCase = _build_case(&"session_commit")
 	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
 		GameModes.RACE,
 		VALID_TRACK_ID,
@@ -199,6 +224,9 @@ func _test_commit_rejection() -> void:
 	)
 	_expect(result == GameSessionStartTransaction.Result.SESSION_COMMIT_REJECTED, "commit lifecycle failure maps to a transaction result")
 	_expect(test_case.state.is_menu(), "commit rejection rolls back partial race runtime")
+	_expect(test_case.harness.reset_count == 2, "commit rejection invokes runtime rollback")
+	_expect(not test_case.harness.track_committed, "commit rejection rolls back the promoted track")
+	_expect(not test_case.harness.track_finalized, "commit rejection does not finalize the promoted track")
 
 
 func _build_case(fail_step: StringName = &"") -> TransactionCase:
@@ -214,10 +242,12 @@ func _build_case(fail_step: StringName = &"") -> TransactionCase:
 		test_case.selection,
 		TRACK_CATALOG,
 		Callable(test_case.harness, "reset_runtime"),
-		Callable(test_case.harness, "activate_track"),
+		Callable(test_case.harness, "stage_track"),
 		Callable(test_case.harness, "configure_runtime"),
 		Callable(test_case.harness, "spawn_player"),
-		Callable(test_case.harness, "start_race")
+		Callable(test_case.harness, "start_race"),
+		Callable(test_case.harness, "commit_track"),
+		Callable(test_case.harness, "finalize_track_commit")
 	)
 	_expect(configured, "transaction fixture configures")
 	return test_case
