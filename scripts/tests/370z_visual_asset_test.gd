@@ -1,17 +1,23 @@
 extends SceneTree
 
 const CAR_SCENE_PATH: String = "res://scenes/cars/370z.tscn"
+const LAMP_MOUNT_PATH: String = "res://assets/cars/nissan/370z/370z_2016_eu_lamp_mounts.obj"
+const SPOILER_BRIDGE_PATH: String = "res://assets/cars/nissan/370z/370z_2016_eu_spoiler_bridge.obj"
 const VISUAL_ASSET_PATHS: Array[String] = [
 	"res://assets/cars/nissan/370z/370z_2016_eu_body_front.obj",
 	"res://assets/cars/nissan/370z/370z_2016_eu_body_center.obj",
 	"res://assets/cars/nissan/370z/370z_2016_eu_rear_and_details.obj",
 	"res://assets/cars/nissan/370z/370z_2016_eu_glass_lighting_trim.obj",
 	"res://assets/cars/nissan/370z/370z_2016_eu_wheel.obj",
+	LAMP_MOUNT_PATH,
+	SPOILER_BRIDGE_PATH,
 ]
 const VISUAL_NODE_PATHS: Array[String] = [
 	"VisualRoot/BodyFront",
 	"VisualRoot/BodyCenter",
 	"VisualRoot/RearAndDetails",
+	"VisualRoot/LampMounts",
+	"VisualRoot/RearSpoilerBridge",
 	"VisualRoot/GlassLightingTrim",
 	"VisualRoot/WheelFrontLeft",
 	"VisualRoot/WheelFrontRight",
@@ -25,6 +31,7 @@ var _failures: Array[String] = []
 
 func _initialize() -> void:
 	_test_visual_assets_import()
+	_test_attachment_mounting_geometry()
 	_test_base_scene_contract()
 	_finish()
 
@@ -36,7 +43,27 @@ func _test_visual_assets_import() -> void:
 		_expect(mesh != null, "%s imports as a Mesh" % asset_path)
 		if mesh != null:
 			surface_count += mesh.get_surface_count()
-	_expect(surface_count >= 5, "the visual asset exposes at least one imported surface per source mesh")
+	_expect(surface_count >= 7, "the visual asset exposes at least one imported surface per source mesh")
+
+
+func _test_attachment_mounting_geometry() -> void:
+	var lamp_mounts := load(LAMP_MOUNT_PATH) as Mesh
+	_expect(lamp_mounts != null, "lamp mounting pockets import")
+	if lamp_mounts != null:
+		var lamp_bounds: AABB = lamp_mounts.get_aabb()
+		_expect(lamp_bounds.position.y <= 0.5521, "headlight pockets extend into the front body surface")
+		_expect(lamp_bounds.end.y >= 0.9219, "taillight pockets reach the lamp undersides")
+		_expect(lamp_bounds.position.z <= -2.0099, "headlight pockets cover the forward lamp tips")
+		_expect(lamp_bounds.end.z >= 1.9649, "taillight pockets cover the rear lamp tips")
+
+	var spoiler_bridge := load(SPOILER_BRIDGE_PATH) as Mesh
+	_expect(spoiler_bridge != null, "rear spoiler bridge imports")
+	if spoiler_bridge != null:
+		var spoiler_bounds: AABB = spoiler_bridge.get_aabb()
+		_expect(spoiler_bounds.position.y <= 0.7001, "spoiler bridge intersects the rear deck")
+		_expect(spoiler_bounds.end.y >= 0.9679, "spoiler bridge reaches the spoiler underside")
+		_expect(spoiler_bounds.position.z <= 1.6551, "spoiler bridge starts under the spoiler leading edge")
+		_expect(spoiler_bounds.end.z >= 1.8849, "spoiler bridge reaches the spoiler trailing edge")
 
 
 func _test_base_scene_contract() -> void:
