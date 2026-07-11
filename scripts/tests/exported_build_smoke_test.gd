@@ -1,6 +1,8 @@
 extends Node
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const RESULTS_SCREEN_SCENE: PackedScene = preload("res://scenes/ui/results_screen.tscn")
+const MOBILE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile_drive_controls.tscn")
 const CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
 const SIMPLE_OVAL_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
@@ -23,9 +25,16 @@ func _run() -> void:
 	_expect(ResourceLoader.exists("res://scenes/cars/370zat.tscn"), "automatic car scene is included in the export")
 	_expect(ResourceLoader.exists("res://scenes/cars/370z.tscn"), "manual car scene is included in the export")
 
+	var original_locale: String = TranslationServer.get_locale()
+	_expect(LocalizationCatalogLoader.ensure_loaded().is_empty(), "translation catalogs load from the exported package")
+	TranslationServer.set_locale("en")
+	_expect(tr("Wyniki") == "Results", "English catalog is usable in the exported package")
+	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Lap 2/3", "packaged translations preserve format placeholders")
+
 	var main_instance: Node = MAIN_SCENE.instantiate()
 	_expect(main_instance != null, "main scene instantiates from the exported package")
 	if main_instance == null:
+		TranslationServer.set_locale(original_locale)
 		_finish()
 		return
 
@@ -33,11 +42,40 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().physics_frame
 
-	_expect(main_instance.get_node_or_null("MainMenu") != null, "main menu exists in the exported main scene")
+	var main_menu: Node = main_instance.get_node_or_null("MainMenu")
+	_expect(main_menu != null, "main menu exists in the exported main scene")
 	_expect(main_instance.get_node_or_null("Camera3D") != null, "follow camera exists in the exported main scene")
 	_expect(main_instance.get_node_or_null("Speedometer") != null, "speedometer exists in the exported main scene")
 	_expect(main_instance.get_node_or_null("Minimap") != null, "minimap exists in the exported main scene")
 	_expect(main_instance.get_node_or_null("TrackContainer") != null, "runtime track container exists in the exported main scene")
+	if main_menu != null:
+		var menu_subtitle: Label = main_menu.get_node_or_null(
+			"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SubtitleLabel"
+		) as Label
+		_expect(menu_subtitle != null and menu_subtitle.text == "Choose mode", "exported main menu renders English text")
+
+	var speed_title: Label = main_instance.get_node_or_null("Speedometer/Panel/VBoxContainer/Title") as Label
+	var gear_label: Label = main_instance.get_node_or_null(
+		"Speedometer/Panel/VBoxContainer/GearRow/GearLabel"
+	) as Label
+	_expect(speed_title != null and speed_title.text == "SPEED", "exported speedometer renders its translated title")
+	_expect(gear_label != null and gear_label.text == "GEAR", "exported speedometer renders its translated gear label")
+
+	var results_screen: CanvasLayer = RESULTS_SCREEN_SCENE.instantiate() as CanvasLayer
+	add_child(results_screen)
+	var results_title: Label = results_screen.get_node_or_null(
+		"Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleLabel"
+	) as Label
+	_expect(results_title != null and results_title.text == "Results", "exported results scene auto-translates")
+	results_screen.queue_free()
+
+	var mobile_controls: CanvasLayer = MOBILE_CONTROLS_SCENE.instantiate() as CanvasLayer
+	add_child(mobile_controls)
+	var throttle_button: Button = mobile_controls.get_node_or_null("Root/Accelerate") as Button
+	var brake_button: Button = mobile_controls.get_node_or_null("Root/Brake") as Button
+	_expect(throttle_button != null and throttle_button.text == "THROTTLE", "exported mobile throttle label auto-translates")
+	_expect(brake_button != null and brake_button.text == "BRAKE", "exported mobile brake label auto-translates")
+	mobile_controls.queue_free()
 
 	var track: Node = main_instance.get_node_or_null("TrackContainer/ActiveTrack")
 	_expect(track != null, "default catalog track is instantiated in the exported main scene")
@@ -50,6 +88,7 @@ func _run() -> void:
 		_expect(int(track.call("get_checkpoint_gate_count")) == 4, "exported track builds the finish and checkpoint gates")
 	_expect(main_instance.call("get_active_lap_count") == 3, "exported runtime applies track recommended lap metadata")
 
+	TranslationServer.set_locale(original_locale)
 	main_instance.queue_free()
 	await get_tree().process_frame
 	_finish()
