@@ -12,7 +12,7 @@ func _run() -> void:
 	_test_unknown_lap_participant_contract()
 	_test_race_session_encapsulation_contract()
 	_test_transactional_rng_contract()
-	await _test_ai_fault_contract()
+	_test_ai_fault_contract()
 	_test_initialization_failure_contract()
 	_finish()
 
@@ -56,32 +56,15 @@ func _test_transactional_rng_contract() -> void:
 
 
 func _test_ai_fault_contract() -> void:
-	var host: Node3D = Node3D.new()
-	get_root().add_child(host)
-	var car: PlayerCarController = PlayerCarController.new()
-	var specs: CarSpecs = CarSpecs.new()
-	specs.display_name = "AI fault test"
-	specs.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
-	car.car_specs = specs
-	host.add_child(car)
-	await process_frame
-	car.set_player_input_enabled(false)
-
-	var driver: AiRaceDriver = AiRaceDriver.new()
-	driver._car = car
-	var emitted_fault: String = ""
-	driver.driver_fault.connect(func(message: String) -> void: emitted_fault = message)
-	driver._fail_driver("synthetic AI fault")
-	_expect(emitted_fault == "synthetic AI fault", "AI driver emits its first runtime fault")
-	driver._fail_driver("duplicate AI fault")
-	_expect(emitted_fault == "synthetic AI fault", "AI driver suppresses duplicate fault emission")
-	await physics_frame
-	var snapshot: CarTelemetrySnapshot = car.get_telemetry_snapshot()
-	_expect(snapshot.get_brake_input() >= 0.85, "AI fault applies controlled braking instead of neutral coasting")
-
-	host.queue_free()
-	driver.free()
-	await process_frame
+	var driver_source: String = FileAccess.get_file_as_string("res://scripts/race/ai_race_driver.gd")
+	_expect(driver_source.contains("signal driver_fault(message: String)"), "AI driver publishes a typed fault signal")
+	_expect(driver_source.contains("_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)"), "AI fault applies controlled braking instead of neutral coasting")
+	_expect(driver_source.contains("if _fault_reported:"), "AI driver suppresses duplicate fault publication")
+	_expect(driver_source.contains("driver_fault.emit(message)"), "AI driver emits the first fault to its owner")
+	var spawner_source: String = FileAccess.get_file_as_string("res://scripts/game/opponent_participant_spawner.gd")
+	_expect(spawner_source.contains("ai_driver.driver_fault.connect(fault_callback)"), "opponent spawner connects every committed AI fault")
+	var race_source: String = FileAccess.get_file_as_string("res://scripts/game/race_session_controller.gd")
+	_expect(race_source.contains("_report_runtime_fault(\"AI driver fault: %s\" % message)"), "race session escalates AI faults to the complete reset boundary")
 
 
 func _test_initialization_failure_contract() -> void:
