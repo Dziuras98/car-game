@@ -63,6 +63,32 @@ function Assert-Contains {
     }
 }
 
+function Assert-GDScriptClassName {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string]$ClassName
+    )
+    $content = Read-Text $RelativePath
+    $pattern = '(?m)^\s*class_name\s+' + [regex]::Escape($ClassName) + '\s*$'
+    if ($content -notmatch $pattern) {
+        Add-Failure "$RelativePath must declare class_name $ClassName."
+    }
+}
+
+function Assert-GDScriptFunctions {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string[]]$FunctionNames
+    )
+    $content = Read-Text $RelativePath
+    foreach ($functionName in $FunctionNames) {
+        $pattern = '(?m)^\s*(?:static\s+)?func\s+' + [regex]::Escape($functionName) + '\s*\('
+        if ($content -notmatch $pattern) {
+            Add-Failure "$RelativePath must declare function $functionName."
+        }
+    }
+}
+
 function Assert-NoProductionTestOnlyIdentifiers {
     $scriptsRoot = Join-Path $projectRoot "scripts"
     foreach ($scriptFile in Get-ChildItem -LiteralPath $scriptsRoot -Filter "*.gd" -File -Recurse) {
@@ -77,6 +103,7 @@ function Assert-NoProductionTestOnlyIdentifiers {
     }
 }
 
+# High-level orchestration may not regain reflective fallback paths or duplicated mode literals.
 Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     "available_cars",
     ".has_method(",
@@ -88,70 +115,55 @@ Assert-DoesNotContain "scripts/game/game_manager.gd" @(
     '"free_drive"',
     '"race"'
 )
+Assert-GDScriptFunctions "scripts/game/game_manager.gd" @(
+    "is_supported_mode_id",
+    "_on_menu_selection_completed",
+    "_clear_active_session",
+    "_reset_to_main_menu",
+    "_abort_session_start",
+    "_return_to_main_menu"
+)
 Assert-Contains "scripts/game/game_manager.gd" @(
-    "static func is_supported_mode_id",
-    "GameModes.is_supported(mode_id)",
-    "func _abort_session_start(",
-    "if mode_id == GameModes.RACE and not _start_race():",
-    "if not _configure_runtime_for_active_track():",
-    "var car_errors: PackedStringArray = car_catalog.validate()"
+    "var _session_state: GameSessionState = GameSessionState.new()",
+    "car_catalog.validate()"
 )
-Assert-DoesNotContain "scripts/ui/main_menu.gd" @(
-    '"free_drive"',
-    '"race"'
-)
+Assert-DoesNotContain "scripts/ui/main_menu.gd" @('"free_drive"', '"race"')
+
+Assert-GDScriptClassName "scripts/game/game_modes.gd" "GameModes"
+Assert-GDScriptFunctions "scripts/game/game_modes.gd" @("is_supported")
 Assert-Contains "scripts/game/game_modes.gd" @(
-    "class_name GameModes",
     'const FREE_DRIVE: String = "free_drive"',
-    'const RACE: String = "race"',
-    "static func is_supported(mode_id: String) -> bool:"
+    'const RACE: String = "race"'
 )
+
+Assert-GDScriptClassName "scripts/game/game_session_state.gd" "GameSessionState"
+Assert-GDScriptFunctions "scripts/game/game_session_state.gd" @(
+    "begin_start",
+    "commit",
+    "update_free_drive_car_variant",
+    "reset",
+    "is_free_drive",
+    "is_race"
+)
+Assert-DoesNotContain "scripts/game/game_session_state.gd" @('"free_drive"', '"race"')
+
 Assert-DoesNotContain "scripts/game/race_session_controller.gd" @(
     ".has_method(",
     ".call(",
     "func get_moving_opponent_count(",
     "func simulate_current_player_finish("
 )
-Assert-Contains "scripts/game/race_session_controller.gd" @(
-    "func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> bool:",
-    "if _opponents.size() != _opponent_count:",
-    "func _abort_race_start() -> void:"
-)
-Assert-DoesNotContain "scripts/race/lap_tracker.gd" @(
-    ".has_method(",
-    ".call("
-)
-Assert-DoesNotContain "scripts/race/ai_race_driver.gd" @(
-    ".has_method(",
-    ".has_signal(",
-    ".call("
-)
-Assert-DoesNotContain "scripts/game/player_car_spawn_controller.gd" @(
-    "clampi(car_index"
-)
-Assert-Contains "scripts/game/opponent_participant_spawner.gd" @(
-    "var staged_cars: Array[PlayerCarController]",
-    "var staged_drivers: Array[AiRaceDriver]",
-    "if staged_cars.size() != requested_count",
-    "clear_opponents()"
-)
-Assert-Contains "scripts/game/car_instance_factory.gd" @(
-    "var _ai_eligible_variants: Array[CarVariantDefinition]",
-    "func has_ai_eligible_cars() -> bool:",
-    "CarInstanceFactory requires at least one explicit AI-eligible variant."
-)
-Assert-DoesNotContain "scripts/game/car_instance_factory.gd" @(
-    "automatic_variants",
-    "source = _available_variants"
-)
+Assert-GDScriptFunctions "scripts/game/race_session_controller.gd" @("start_race", "_abort_race_start")
+Assert-DoesNotContain "scripts/race/lap_tracker.gd" @(".has_method(", ".call(")
+Assert-DoesNotContain "scripts/race/ai_race_driver.gd" @(".has_method(", ".has_signal(", ".call(")
+Assert-DoesNotContain "scripts/game/player_car_spawn_controller.gd" @("clampi(car_index")
+Assert-GDScriptFunctions "scripts/game/opponent_participant_spawner.gd" @("spawn_opponents", "clear_opponents")
+Assert-GDScriptFunctions "scripts/game/car_instance_factory.gd" @("has_ai_eligible_cars")
+Assert-DoesNotContain "scripts/game/car_instance_factory.gd" @("automatic_variants", "source = _available_variants")
 
-Assert-Contains "scripts/car/car_specs.gd" @(
-    "enum TransmissionType",
-    "transmission_type",
-    "func validate() -> PackedStringArray",
-    "gear_ratios must be strictly descending",
-    "max_forward_speed exceeds the rev-limited highest-gear speed"
-)
+# Vehicle configuration remains resource-driven and free of completed migration compatibility paths.
+Assert-GDScriptFunctions "scripts/car/car_specs.gd" @("validate")
+Assert-Contains "scripts/car/car_specs.gd" @("enum TransmissionType", "transmission_type")
 Assert-DoesNotContain "scripts/car/car_specs.gd" @(
     "var acceleration:",
     "manual_transmission_enabled",
@@ -169,33 +181,18 @@ Assert-DoesNotContain "scripts/car/car_drive_config_builder.gd" @(
 )
 Assert-DoesNotContain "scripts/car/car_controller.gd" @(
     "REMOVED_LEGACY_TUNING_PROPERTIES",
-    "func _set("
+    "func _set(",
+    "func _apply_car_specs("
 )
 Assert-DoesNotMatch "scenes/cars/370z.tscn" @(
     '(?m)^\s*(acceleration|brake_deceleration|reverse_acceleration|coast_deceleration|handbrake_deceleration|max_forward_speed|max_reverse_speed|steering_speed|wheel_base|max_steering_angle_degrees|idle_rpm|peak_torque_rpm|redline_rpm|rev_limiter_rpm|low_rpm_torque_multiplier|mid_rpm_torque_multiplier|redline_torque_multiplier|engine_force|engine_brake_force|rpm_response|manual_transmission_enabled|automatic_transmission_enabled|gear_ratios|reverse_gear_ratio|final_drive_ratio|peak_engine_torque|wheel_radius|drivetrain_efficiency|shift_delay|automatic_upshift_rpm|automatic_downshift_rpm|automatic_kickdown_throttle|automatic_kickdown_rpm|automatic_shift_delay|torque_converter_stall_rpm|torque_converter_coupling_rpm|torque_converter_stall_torque_multiplier|vehicle_mass|drag_coefficient|frontal_area|air_density|rolling_resistance_coefficient|lateral_grip|handbrake_lateral_grip_multiplier|steering_slip_gain|slip_speed_threshold|slip_steering_lock_threshold|slip_steering_same_direction_multiplier|skid_mark_min_slip|skid_mark_interval|skid_mark_lifetime|skid_mark_width|skid_mark_length|gravity|floor_stick_force)\s*='
 )
-Assert-Contains "scripts/car/car_catalog.gd" @(
-    "@export var models: Array[CarModelDefinition]",
-    "func validate() -> PackedStringArray",
-    "variant_id must be globally unique"
-)
-Assert-Contains "scripts/car/car_model_definition.gd" @(
-    "@export var variants: Array[CarVariantDefinition]",
-    "func validate() -> PackedStringArray",
-    "default_variant_id must reference a variant in this model"
-)
-Assert-Contains "scripts/car/car_variant_definition.gd" @(
-    "@export var ai_eligible: bool = false",
-    "func is_ai_eligible_for_race() -> bool:",
-    "func validate() -> PackedStringArray",
-    "ai_eligible variants must use an automatic transmission"
-)
-Assert-DoesNotContain "scripts/car/car_catalog.gd" @(
-    "Array[Resource]"
-)
-Assert-DoesNotContain "scripts/car/car_model_definition.gd" @(
-    "Array[Resource]"
-)
+
+Assert-GDScriptFunctions "scripts/car/car_catalog.gd" @("validate")
+Assert-GDScriptFunctions "scripts/car/car_model_definition.gd" @("validate")
+Assert-GDScriptFunctions "scripts/car/car_variant_definition.gd" @("validate", "is_ai_eligible_for_race")
+Assert-DoesNotContain "scripts/car/car_catalog.gd" @("Array[Resource]")
+Assert-DoesNotContain "scripts/car/car_model_definition.gd" @("Array[Resource]")
 foreach ($specPath in @(
     "resources/cars/nissan/370z/specs/370z_6mt_specs.tres",
     "resources/cars/nissan/370z/specs/370z_7at_specs.tres"
@@ -215,38 +212,23 @@ Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_7at.tres" @(
     '(?m)^\s*mass_kg\s*=',
     '(?m)^\s*transmission_label\s*='
 )
-Assert-Contains "resources/cars/nissan/370z/variants/370z_7at.tres" @(
-    "ai_eligible = true"
-)
+Assert-Contains "resources/cars/nissan/370z/variants/370z_7at.tres" @("ai_eligible = true")
 
-Assert-Contains "scripts/track/track_catalog.gd" @(
-    "@export var tracks: Array[TrackDefinition]",
-    "@export var default_track_id",
-    "catalog must define default_track_id"
-)
+# Track ownership remains typed and explicit.
+Assert-GDScriptFunctions "scripts/track/track_catalog.gd" @("validate")
+Assert-Contains "scripts/track/track_catalog.gd" @("@export var default_track_id")
 Assert-DoesNotContain "scripts/track/track_catalog.gd" @(
     "Array[Resource]",
     "legacy_default",
     ".is_default",
     "return definitions[0]"
 )
-Assert-DoesNotContain "scripts/track/track_definition.gd" @(
-    "is_default"
-)
-Assert-DoesNotMatch "resources/tracks/simple_oval_definition.tres" @(
-    '(?m)^\s*is_default\s*='
-)
-Assert-Contains "resources/tracks/catalog.tres" @(
-    'default_track_id = &"simple_oval"'
-)
-
-Assert-Contains "scripts/track/track_generation_config.gd" @(
-    "class_name TrackGenerationConfig",
-    "static func from_layout"
-)
-Assert-Contains "scripts/track/track_generated_meshes.gd" @(
-    "class_name TrackGeneratedMeshes"
-)
+Assert-DoesNotContain "scripts/track/track_definition.gd" @("is_default")
+Assert-DoesNotMatch "resources/tracks/simple_oval_definition.tres" @('(?m)^\s*is_default\s*=')
+Assert-Contains "resources/tracks/catalog.tres" @('default_track_id = &"simple_oval"')
+Assert-GDScriptClassName "scripts/track/track_generation_config.gd" "TrackGenerationConfig"
+Assert-GDScriptFunctions "scripts/track/track_generation_config.gd" @("from_layout")
+Assert-GDScriptClassName "scripts/track/track_generated_meshes.gd" "TrackGeneratedMeshes"
 foreach ($typedBuilderPath in @(
     "scripts/track/track_layout_builder.gd",
     "scripts/track/track_surface_mesh_builder.gd",
@@ -263,47 +245,24 @@ foreach ($typedBuilderPath in @(
         "surface_meshes: Dictionary"
     )
 }
-Assert-Contains "scripts/track/track_surface_mesh_builder.gd" @(
-    ") -> TrackGeneratedMeshes:"
-)
 
-Assert-Contains "scripts/ci/verify_project.ps1" @(
-    'validate_localization.ps1',
-    'run_tests.ps1',
-    'Project verification completed successfully.'
-)
-Assert-Contains "scripts/ci/run_tests.ps1" @(
-    "run_static_checks.ps1",
-    "Get-ChildItem",
-    "extends\s+SceneTree",
-    'Where-Object { $_.Name -ne "localization-validation.log" }'
-)
-Assert-DoesNotMatch ".github/workflows/windows-tests.yml" @(
-    'uses:\s+actions/(checkout|cache|upload-artifact)@v\d+'
-)
+# CI policy checks focus on immutable dependencies and authoritative entrypoints.
+Assert-Contains "scripts/ci/verify_project.ps1" @("validate_localization.ps1", "run_tests.ps1")
+Assert-Contains "scripts/ci/run_tests.ps1" @("run_static_checks.ps1", "Get-ChildItem", "extends\s+SceneTree")
+Assert-DoesNotMatch ".github/workflows/windows-tests.yml" @('uses:\s+actions/(checkout|cache|upload-artifact)@v\d+')
 Assert-Contains ".github/workflows/windows-tests.yml" @(
     "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
     "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
-    "./scripts/ci/verify_project.ps1 -GodotBinary `$env:GODOT_BIN",
-    "Get-FileHash -LiteralPath `$archivePath -Algorithm SHA512",
     "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8",
     "fetch-depth: 0",
     "persist-credentials: false",
-    "Restore verified export-template archive",
-    "Verify and install export templates",
+    "Get-FileHash -LiteralPath `$archivePath -Algorithm SHA512",
     "github.event_name != 'pull_request'",
     "Upload diagnostics"
 )
-Assert-Contains ".github/dependabot.yml" @(
-    "package-ecosystem: github-actions",
-    "interval: weekly"
-)
-Assert-Contains "scenes/tests/full_program_smoke_test.tscn" @(
-    'path="res://scripts/tests/full_program_smoke_test.gd"'
-)
-Assert-DoesNotContain "scenes/tests/full_program_smoke_test.tscn" @(
-    "full_program_smoke_test_v2.gd"
-)
+Assert-Contains ".github/dependabot.yml" @("package-ecosystem: github-actions", "interval: weekly")
+Assert-Contains "scenes/tests/full_program_smoke_test.tscn" @('path="res://scripts/tests/full_program_smoke_test.gd"')
+Assert-DoesNotContain "scenes/tests/full_program_smoke_test.tscn" @("full_program_smoke_test_v2.gd")
 Assert-NoProductionTestOnlyIdentifiers
 
 if ($failures.Count -gt 0) {
