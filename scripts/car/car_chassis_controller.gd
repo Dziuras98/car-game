@@ -74,11 +74,15 @@ func apply_velocity(state: CarRuntimeState, car: CharacterBody3D, delta: float) 
 	car.velocity.x = horizontal_velocity.x
 	car.velocity.z = horizontal_velocity.z
 
-	car.velocity.y -= _config.gravity * delta
-	if state.ground_contact_count > 0:
-		car.velocity += state.ground_normal * state.suspension_acceleration * delta
-	elif car.is_on_floor():
-		car.velocity.y = minf(car.velocity.y, -_config.floor_stick_force)
+	var remaining_delta: float = clampf(delta, 0.0, CarPowertrainController.MAX_FRAME_DELTA)
+	while remaining_delta > 0.000001:
+		var step: float = minf(remaining_delta, CarPowertrainController.MAX_SIMULATION_SUBSTEP)
+		car.velocity.y -= _config.gravity * step
+		if state.ground_contact_count > 0:
+			car.velocity += state.ground_normal * state.suspension_acceleration * step
+		elif car.is_on_floor():
+			car.velocity.y = minf(car.velocity.y, -_config.floor_stick_force)
+		remaining_delta -= step
 
 	car.move_and_slide()
 
@@ -173,10 +177,8 @@ func _update_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> voi
 
 
 func _get_surface_grip(collider_value: Variant) -> float:
-	var collider: Object = collider_value as Object
-	if collider == null or not collider.has_meta("surface_grip_multiplier"):
-		return 1.0
-	return clampf(float(collider.get_meta("surface_grip_multiplier", 1.0)), 0.05, 2.0)
+	var surface: TrackSurfaceBody = collider_value as TrackSurfaceBody
+	return surface.get_grip_multiplier() if surface != null else 1.0
 
 
 func _update_skid_marks(
