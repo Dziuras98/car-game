@@ -46,8 +46,11 @@ function Write-JUnitReport {
 
     $resultList = @($Results)
     $failureCount = @($resultList | Where-Object { $_.Status -eq "failed" }).Count
-    $durationMeasure = $resultList | Measure-Object -Property DurationSeconds -Sum
-    $totalDuration = if ($null -eq $durationMeasure.Sum) { 0.0 } else { [double]$durationMeasure.Sum }
+    $totalDuration = 0.0
+    if ($resultList.Count -gt 0) {
+        $durationMeasure = $resultList | Measure-Object -Property DurationSeconds -Sum
+        $totalDuration = [double]$durationMeasure.Sum
+    }
     $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
     $fullPath = [System.IO.Path]::GetFullPath($Path)
     $parentDirectory = [System.IO.Path]::GetDirectoryName($fullPath)
