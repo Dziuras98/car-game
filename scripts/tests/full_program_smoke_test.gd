@@ -31,7 +31,6 @@ var _main: Node
 var _test_adapter: GameTestAdapter
 var _checks: int = 0
 var _failures: Array[String] = []
-var _original_locale: String = ""
 
 
 func _ready() -> void:
@@ -40,12 +39,10 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_release_test_actions()
-	_restore_locale()
 
 
 func _run() -> void:
 	print("[SMOKE] Starting extended full program smoke test")
-	_original_locale = TranslationServer.get_locale()
 	var localization_errors: PackedStringArray = LocalizationCatalogLoader.ensure_loaded()
 	_expect(localization_errors.is_empty(), "localization catalogs load for the full program smoke test")
 	TranslationServer.set_locale("pl")
@@ -405,14 +402,8 @@ func _release_test_actions() -> void:
 		Input.action_release(action_name)
 
 
-func _restore_locale() -> void:
-	if not _original_locale.is_empty():
-		TranslationServer.set_locale(_original_locale)
-
-
 func _finish() -> void:
 	_release_test_actions()
-	_restore_locale()
 	if _failures.is_empty():
 		print("[SMOKE] Extended full program smoke test passed: %d checks" % _checks)
 		get_tree().quit(0)
