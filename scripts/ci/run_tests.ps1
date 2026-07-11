@@ -9,6 +9,8 @@ $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $testLogDirectory = Join-Path $projectRoot "build/test-logs"
 $currentCommandPath = Join-Path $testLogDirectory "current-command.log"
+$requiredNestedScriptTest = "scripts/tests/discovery/nested_script_discovery_test.gd"
+$requiredNestedSceneTest = "scenes/tests/discovery/nested_scene_discovery_test.tscn"
 . (Join-Path $PSScriptRoot "godot_runtime_log_validation.ps1")
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
@@ -154,7 +156,7 @@ $excludedScriptTests = @(
     "scripts/tests/run_full_program_smoke_test.gd"
 )
 $scriptTests = @(
-    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scripts/tests") -Filter "*.gd" -File |
+    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scripts/tests") -Filter "*.gd" -File -Recurse |
         ForEach-Object {
             $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
             $content = Get-Content -LiteralPath $_.FullName -Raw
@@ -167,6 +169,9 @@ $scriptTests = @(
 
 if ($scriptTests.Count -eq 0) {
     throw "No standalone SceneTree tests were discovered in scripts/tests."
+}
+if ($scriptTests -notcontains $requiredNestedScriptTest) {
+    throw "Recursive script-test discovery did not include required fixture: $requiredNestedScriptTest"
 }
 
 foreach ($testScript in $scriptTests) {
@@ -181,7 +186,7 @@ $excludedSceneTests = @(
     "scenes/tests/exported_build_smoke_test.tscn"
 )
 $sceneTests = @(
-    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scenes/tests") -Filter "*.tscn" -File |
+    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scenes/tests") -Filter "*.tscn" -File -Recurse |
         ForEach-Object {
             $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
             if ($excludedSceneTests -notcontains $relativePath) {
@@ -193,6 +198,9 @@ $sceneTests = @(
 
 if ($sceneTests.Count -eq 0) {
     throw "No scene tests were discovered in scenes/tests."
+}
+if ($sceneTests -notcontains $requiredNestedSceneTest) {
+    throw "Recursive scene-test discovery did not include required fixture: $requiredNestedSceneTest"
 }
 
 foreach ($testScene in $sceneTests) {
