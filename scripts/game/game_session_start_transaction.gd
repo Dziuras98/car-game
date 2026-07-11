@@ -42,10 +42,15 @@ func configure(
 	if session_state == null or car_selection_state == null or track_catalog == null:
 		push_error("GameSessionStartTransaction requires session, car-selection and track-catalog state.")
 		return false
-	for callback: Callable in [reset_runtime, activate_track, configure_runtime, spawn_player, start_race]:
-		if not callback.is_valid():
-			push_error("GameSessionStartTransaction requires valid lifecycle callbacks.")
-			return false
+	if (
+		not reset_runtime.is_valid()
+		or not activate_track.is_valid()
+		or not configure_runtime.is_valid()
+		or not spawn_player.is_valid()
+		or not start_race.is_valid()
+	):
+		push_error("GameSessionStartTransaction requires valid lifecycle callbacks.")
+		return false
 
 	_session_state = session_state
 	_car_selection_state = car_selection_state
