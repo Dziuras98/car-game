@@ -13,6 +13,8 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	_test_catalog_ai_eligibility()
+
 	var world: Node3D = Node3D.new()
 	add_child(world)
 	var spawn_marker: Node3D = Node3D.new()
@@ -26,13 +28,24 @@ func _run() -> void:
 	var replay_signature: Array[String] = await _capture_spawn_signature(world, spawn_marker, track, 20260710)
 	var alternate_signature: Array[String] = await _capture_spawn_signature(world, spawn_marker, track, 20260711)
 
-	_expect(first_signature.size() == OPPONENT_COUNT, "seeded spawner creates the requested number of opponents")
+	_expect(first_signature.size() == OPPONENT_COUNT, "seeded spawner commits the complete requested opponent set")
 	_expect(first_signature == replay_signature, "same session seed reproduces opponent variants and AI profiles")
 	_expect(first_signature != alternate_signature, "different session seed changes at least one opponent profile")
 
 	world.queue_free()
 	await get_tree().process_frame
 	_finish()
+
+
+func _test_catalog_ai_eligibility() -> void:
+	var ai_eligible_variants: Array[CarVariantDefinition] = []
+	for variant: CarVariantDefinition in CATALOG.get_all_variants():
+		if variant != null and variant.is_ai_eligible_for_race():
+			ai_eligible_variants.append(variant)
+	_expect(ai_eligible_variants.size() == 1, "catalog exposes one explicit AI-eligible variant")
+	if ai_eligible_variants.size() == 1:
+		_expect(ai_eligible_variants[0].ai_eligible, "AI eligibility is declared by variant metadata")
+		_expect(ai_eligible_variants[0].get_specs().is_automatic_transmission(), "AI-eligible variant uses a supported automatic transmission")
 
 
 func _capture_spawn_signature(
@@ -42,7 +55,7 @@ func _capture_spawn_signature(
 	seed: int
 ) -> Array[String]:
 	var spawner: CarSpawner = CarSpawner.new()
-	spawner.configure(
+	var configured: bool = spawner.configure(
 		world,
 		spawn_marker,
 		track,
@@ -51,10 +64,22 @@ func _capture_spawn_signature(
 		7.0,
 		seed
 	)
+	_expect(configured and spawner.is_configured(), "CarSpawner accepts the complete valid runtime contract")
+	_expect(spawner.has_ai_eligible_cars(), "CarSpawner retains explicit AI-eligible variants")
 	_expect(spawner.get_session_seed() == seed, "CarSpawner retains the explicit session seed")
 	var opponents: Array[PlayerCarController] = spawner.spawn_opponents(OPPONENT_COUNT)
 	var drivers: Array[AiRaceDriver] = spawner.get_ai_drivers()
+	_expect(opponents.size() == OPPONENT_COUNT, "opponent commit is all-or-nothing for the requested count")
 	_expect(opponents.size() == drivers.size(), "each seeded opponent has exactly one typed AI driver")
+
+	var all_automatic: bool = true
+	for opponent: PlayerCarController in opponents:
+		all_automatic = (
+			all_automatic
+			and opponent.car_specs != null
+			and opponent.car_specs.is_automatic_transmission()
+		)
+	_expect(all_automatic, "opponent selection never falls back to an unsupported manual variant")
 
 	spawner.set_ai_enabled(true)
 	var all_enabled: bool = true
