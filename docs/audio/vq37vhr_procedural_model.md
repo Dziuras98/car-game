@@ -25,11 +25,13 @@ uneven-fire rhythm.
 5. A separate load-driven resonator creates the intake growl.
 6. A derivative/noise path creates the characteristic high-RPM rasp.
 7. A narrow valve-event pulse adds restrained mechanical texture.
-8. Abrupt throttle lift above the midrange can trigger sparse, quickly decaying
+8. A procedural starter motor and combustion-catch envelope reproduce startup;
+   a callable shutdown envelope removes combustion and lets resonances decay.
+9. Abrupt throttle lift above the midrange can trigger sparse, quickly decaying
    overrun events.
-9. Near the rev limit, a periodic ignition gate removes combustion energy while
-   leaving mechanical and resonant components active.
-10. A DC blocker and soft saturator keep the stream stable and bounded.
+10. Near the rev limit, a periodic ignition gate removes combustion energy while
+    leaving mechanical and resonant components active.
+11. A DC blocker and soft saturator keep the stream stable and bounded.
 
 ## Runtime behavior
 
@@ -37,6 +39,10 @@ The model retains distance culling and the shared procedural voice budget. It
 runs at 32 kHz by default, which preserves the useful rasp and mechanical band
 while keeping the per-voice GDScript cost bounded. The normal 370Z scene keeps
 its existing tuning values for exhaust, intake, mechanical noise and overrun.
+
+Startup is optional through `play_startup_on_ready` or `trigger_engine_start()`.
+Shutdown is available through `trigger_engine_shutdown()` for future engine-state
+integration without requiring an audio asset or a separate event player.
 
 ## Tuning priorities
 
@@ -50,6 +56,7 @@ For a stock exhaust, adjust in this order:
 6. `overrun_crackle` only after the steady-state sound is correct.
 
 The interactive scene `scenes/tools/engine_audio_lab.tscn` allows continuous RPM
-and load sweeps plus a direct idle/limiter toggle. The standalone model test
-checks operating-point safety, V6 firing frequency, limiter behavior, finite
-bounded output and the expected increase in signal energy under load.
+and load sweeps, startup playback and a direct idle/limiter toggle. The
+standalone model test checks operating-point safety, V6 firing frequency,
+limiter behavior, finite bounded output and the expected increase in signal
+energy under load.
