@@ -309,6 +309,9 @@ func _configure_runtime_for_session_track() -> bool:
 		opponent_count
 	):
 		return false
+	var runtime_fault_callback: Callable = Callable(self, "_on_race_runtime_fault")
+	if not next_race_session.runtime_fault.is_connected(runtime_fault_callback):
+		next_race_session.runtime_fault.connect(runtime_fault_callback)
 
 	_car_spawner = next_car_spawner
 	_race_session = next_race_session
@@ -488,6 +491,10 @@ func _return_to_main_menu() -> void:
 
 func _on_session_phase_changed(phase: GameSessionState.Phase) -> void:
 	session_phase_changed.emit(phase)
+
+
+func _on_race_runtime_fault(message: String) -> void:
+	_reset_to_main_menu(message, true)
 
 
 func _build_pause_menu() -> bool:
