@@ -22,8 +22,12 @@ The rear wheel instances are widened relative to the front to represent the stag
 - `370z_2016_eu_body_center.obj` — cabin-side and central body volume;
 - `370z_2016_eu_rear_and_details.obj` — rear body, mirrors and factory lip spoiler;
 - `370z_2016_eu_glass_lighting_trim.obj` — opaque glazing, boomerang lamps, vertical DRLs, grille, handles, diffuser and exhaust;
+- `370z_2016_eu_lamp_mounts.obj` — recessed dark mounting pockets that connect the headlamps and taillamps to the surrounding body surfaces;
+- `370z_2016_eu_spoiler_bridge.obj` — body-coloured bridge that integrates the factory rear lip with the rear deck;
 - `370z_2016_eu_wheel.obj` — reusable wheel mesh instanced four times;
 - `370z_2016_eu_low_poly.mtl` — source material palette retained for interchange and inspection.
+
+The mounting geometry deliberately intersects both the body shell and the underside of the corresponding trim part. This prevents visible air gaps while retaining the intentionally simplified layered low-poly construction.
 
 Godot applies the production body, detail and wheel materials in the base car scene. The model deliberately contains no manufacturer logo or copied third-party game asset.
 
