@@ -82,6 +82,10 @@ func get_lateral_speed() -> float:
 	return _runtime_state.lateral_speed
 
 
+func get_telemetry_snapshot() -> CarTelemetrySnapshot:
+	return CarTelemetrySnapshot.capture(_runtime_state)
+
+
 func capture_current_transform_as_start() -> void:
 	_reset_controller.capture_start_transform(_runtime_state, global_transform)
 
