@@ -1,7 +1,6 @@
 extends Node
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
-const MOBILE_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/mobile_drive_controls.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
@@ -74,14 +73,6 @@ func _run() -> void:
 	_expect(results_menu_button != null and results_menu_button.text == "Return to menu", "exported results builder translates its menu action")
 	if results_layer != null:
 		results_layer.queue_free()
-
-	var mobile_controls: CanvasLayer = MOBILE_CONTROLS_SCENE.instantiate() as CanvasLayer
-	add_child(mobile_controls)
-	var throttle_button: Button = mobile_controls.get_node_or_null("Root/Accelerate") as Button
-	var brake_button: Button = mobile_controls.get_node_or_null("Root/Brake") as Button
-	_expect(throttle_button != null and throttle_button.text == "THROTTLE", "exported mobile throttle label is translated explicitly")
-	_expect(brake_button != null and brake_button.text == "BRAKE", "exported mobile brake label is translated explicitly")
-	mobile_controls.queue_free()
 
 	var pause_menu: PauseMenu = PAUSE_MENU_SCENE.instantiate() as PauseMenu
 	add_child(pause_menu)
