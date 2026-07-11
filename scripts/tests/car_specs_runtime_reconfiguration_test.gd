@@ -39,6 +39,7 @@ func _run() -> void:
 
 	var initial_parent: Node3D = initial_emitter._parent
 	var target_specs: CarSpecs = _build_target_specs()
+	_expect(target_specs.validate().is_empty(), "target reconfiguration specs pass the authoritative validation contract")
 
 	car._runtime_state.forward_speed = 8.5
 	car._runtime_state.lateral_speed = 1.25
@@ -84,6 +85,7 @@ func _build_target_specs() -> CarSpecs:
 	var specs: CarSpecs = DEFAULT_CAR_SPECS.duplicate(true) as CarSpecs
 	specs.display_name = "Runtime Reconfiguration Test Specs"
 	specs.gear_ratios = [3.10, 2.05]
+	specs.max_forward_speed = 25.0
 	specs.skid_mark_min_slip = 0.72
 	specs.skid_mark_interval = 0.12
 	specs.skid_mark_lifetime = 3.5
