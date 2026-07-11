@@ -9,7 +9,9 @@ $resolvedProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
 $excludedContentPaths = @(
     "scripts/ci/validate_public_repository_safety.ps1",
-    "scripts/ci/test_public_repository_safety.ps1"
+    "scripts/ci/test_public_repository_safety.ps1",
+    "scripts/ci/validate_git_history_safety.ps1",
+    "scripts/ci/test_git_history_safety.ps1"
 )
 $textExtensions = @(
     ".cfg", ".gd", ".gitattributes", ".gitignore", ".godot", ".json",
@@ -82,7 +84,7 @@ foreach ($file in Get-ChildItem -LiteralPath $resolvedProjectRoot -File -Recurse
     }
 
     try {
-        $content = Get-Content -LiteralPath $file.FullName -Raw
+        $content = [string](Get-Content -LiteralPath $file.FullName -Raw)
     }
     catch {
         $failures.Add("Could not inspect text file: $relativePath ($($_.Exception.Message))")
