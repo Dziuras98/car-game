@@ -8,6 +8,8 @@ var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
 var _ground_contact_model: GroundContactModel = GroundContactModel.new()
 var _config: CarDriveConfig
 var _probe_local_positions: Array[Vector3] = []
+var _ray_query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.new()
+var _excluded_car_rid: RID = RID()
 
 
 func configure(config: CarDriveConfig) -> void:
@@ -18,20 +20,87 @@ func configure(config: CarDriveConfig) -> void:
 		_config.axle_track_width,
 		_config.suspension_probe_height
 	)
+	_excluded_car_rid = RID()
+	_ray_query.exclude = []
+	_ray_query.collide_with_areas = false
+	_ray_query.collide_with_bodies = true
 
 
-func update_tires(
+func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void:
+	state.ground_contact_count = 0
+	state.ground_normal = Vector3.UP
+	state.surface_grip_multiplier = 1.0
+	state.suspension_acceleration = 0.0
+	if (
+		_config == null
+		or _probe_local_positions.is_empty()
+		or not car.is_inside_tree()
+		or car.get_world_3d() == null
+	):
+		return
+
+	var car_rid: RID = car.get_rid()
+	if _excluded_car_rid != car_rid:
+		_excluded_car_rid = car_rid
+		_ray_query.exclude = [_excluded_car_rid]
+	_ray_query.collision_mask = car.collision_mask
+
+	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
+	var maximum_probe_length: float = (
+		_config.suspension_rest_length
+		+ _config.suspension_travel
+		+ PROBE_END_MARGIN
+	)
+	var contact_count: int = 0
+	var normal_sum: Vector3 = Vector3.ZERO
+	var grip_sum: float = 0.0
+	var support_acceleration: float = 0.0
+	var direct_space_state: PhysicsDirectSpaceState3D = car.get_world_3d().direct_space_state
+
+	for local_probe_position: Vector3 in _probe_local_positions:
+		var ray_start: Vector3 = car.global_transform * local_probe_position
+		var ray_end: Vector3 = ray_start + ray_direction * maximum_probe_length
+		_ray_query.from = ray_start
+		_ray_query.to = ray_end
+		var hit: Dictionary = direct_space_state.intersect_ray(_ray_query)
+		if hit.is_empty():
+			continue
+
+		var hit_position: Vector3 = hit.get("position", ray_end)
+		var hit_normal: Vector3 = hit.get("normal", Vector3.UP)
+		if hit_normal.length_squared() <= 0.000001:
+			hit_normal = Vector3.UP
+		else:
+			hit_normal = hit_normal.normalized()
+		var normal_velocity: float = car.velocity.dot(hit_normal)
+		support_acceleration += _ground_contact_model.calculate_spring_acceleration(
+			ray_start.distance_to(hit_position),
+			_config.suspension_rest_length,
+			_config.suspension_travel,
+			normal_velocity,
+			_config.suspension_stiffness,
+			_config.suspension_damping
+		)
+		contact_count += 1
+		normal_sum += hit_normal
+		grip_sum += _get_surface_grip(hit.get("collider"))
+
+	state.ground_contact_count = contact_count
+	if contact_count <= 0:
+		return
+	state.ground_normal = normal_sum.normalized() if normal_sum.length_squared() > 0.000001 else Vector3.UP
+	state.surface_grip_multiplier = clampf(grip_sum / float(contact_count), 0.05, 2.0)
+	state.suspension_acceleration = support_acceleration
+
+
+func update_tire_dynamics(
 	state: CarRuntimeState,
 	steering: float,
 	handbrake_active: bool,
-	car: CharacterBody3D,
-	skid_mark_emitter: SkidMarkEmitter,
 	delta: float
 ) -> void:
-	_update_ground_contact(state, car)
 	if state.ground_contact_count <= 0:
 		state.tire_slip_intensity = 0.0
-		_update_skid_marks(state, car, skid_mark_emitter, delta)
 		return
 
 	state.lateral_speed = _tire_model.recover_lateral_speed(
@@ -52,7 +121,30 @@ func update_tires(
 		handbrake_active
 	)
 
-	_update_skid_marks(state, car, skid_mark_emitter, delta)
+
+func update_skid_marks(
+	state: CarRuntimeState,
+	car: CharacterBody3D,
+	skid_mark_emitter: SkidMarkEmitter,
+	delta: float
+) -> void:
+	if skid_mark_emitter != null:
+		skid_mark_emitter.update(delta, state.tire_slip_intensity, car.global_transform)
+
+
+# Convenience entrypoint for focused chassis tests. Production physics samples contact
+# once before its bounded substep loop and calls update_tire_dynamics() per substep.
+func update_tires(
+	state: CarRuntimeState,
+	steering: float,
+	handbrake_active: bool,
+	car: CharacterBody3D,
+	skid_mark_emitter: SkidMarkEmitter,
+	delta: float
+) -> void:
+	sample_ground_contact(state, car)
+	update_tire_dynamics(state, steering, handbrake_active, delta)
+	update_skid_marks(state, car, skid_mark_emitter, delta)
 
 
 func update_steering(state: CarRuntimeState, steering: float, car: CharacterBody3D, delta: float) -> void:
@@ -117,86 +209,9 @@ func set_local_speeds_from_horizontal_velocity(
 	state.lateral_speed = local_speeds.y
 
 
-func _update_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void:
-	state.ground_contact_count = 0
-	state.ground_normal = Vector3.UP
-	state.surface_grip_multiplier = 1.0
-	state.suspension_acceleration = 0.0
-	if (
-		_config == null
-		or _probe_local_positions.is_empty()
-		or not car.is_inside_tree()
-		or car.get_world_3d() == null
-	):
-		return
-
-	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
-	var maximum_probe_length: float = (
-		_config.suspension_rest_length
-		+ _config.suspension_travel
-		+ PROBE_END_MARGIN
-	)
-	var contact_count: int = 0
-	var normal_sum: Vector3 = Vector3.ZERO
-	var grip_sum: float = 0.0
-	var support_acceleration: float = 0.0
-	var direct_space_state: PhysicsDirectSpaceState3D = car.get_world_3d().direct_space_state
-
-	for local_probe_position: Vector3 in _probe_local_positions:
-		var ray_start: Vector3 = car.global_transform * local_probe_position
-		var ray_end: Vector3 = ray_start + ray_direction * maximum_probe_length
-		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
-			ray_start,
-			ray_end,
-			car.collision_mask,
-			[car.get_rid()]
-		)
-		query.collide_with_areas = false
-		query.collide_with_bodies = true
-		var hit: Dictionary = direct_space_state.intersect_ray(query)
-		if hit.is_empty():
-			continue
-
-		var hit_position: Vector3 = hit.get("position", ray_end)
-		var hit_normal: Vector3 = hit.get("normal", Vector3.UP)
-		if hit_normal.length_squared() <= 0.000001:
-			hit_normal = Vector3.UP
-		else:
-			hit_normal = hit_normal.normalized()
-		var normal_velocity: float = car.velocity.dot(hit_normal)
-		support_acceleration += _ground_contact_model.calculate_spring_acceleration(
-			ray_start.distance_to(hit_position),
-			_config.suspension_rest_length,
-			_config.suspension_travel,
-			normal_velocity,
-			_config.suspension_stiffness,
-			_config.suspension_damping
-		)
-		contact_count += 1
-		normal_sum += hit_normal
-		grip_sum += _get_surface_grip(hit.get("collider"))
-
-	state.ground_contact_count = contact_count
-	if contact_count <= 0:
-		return
-	state.ground_normal = normal_sum.normalized() if normal_sum.length_squared() > 0.000001 else Vector3.UP
-	state.surface_grip_multiplier = clampf(grip_sum / float(contact_count), 0.05, 2.0)
-	state.suspension_acceleration = support_acceleration
-
-
 func _get_surface_grip(collider_value: Variant) -> float:
 	var surface: TrackSurfaceBody = collider_value as TrackSurfaceBody
 	return surface.get_grip_multiplier() if surface != null else 1.0
-
-
-func _update_skid_marks(
-	state: CarRuntimeState,
-	car: CharacterBody3D,
-	skid_mark_emitter: SkidMarkEmitter,
-	delta: float
-) -> void:
-	if skid_mark_emitter != null:
-		skid_mark_emitter.update(delta, state.tire_slip_intensity, car.global_transform)
 
 
 func _smoothstep(value: float) -> float:

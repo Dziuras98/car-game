@@ -23,12 +23,6 @@ func get_available_car_count() -> int:
 	return _available_car_variants.size()
 
 
-func get_valid_car_index(car_index: int) -> int:
-	if _available_car_variants.is_empty():
-		return -1
-	return clampi(car_index, 0, _available_car_variants.size() - 1)
-
-
 func get_car_index_for_variant_id(car_variant_id: StringName) -> int:
 	for variant_index: int in range(_available_car_variants.size()):
 		var variant: CarVariantDefinition = _available_car_variants[variant_index]

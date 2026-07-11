@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: windows-godot-tests-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   GODOT_VERSION: 4.7-stable
@@ -215,6 +215,6 @@ jobs:
           path: |
             build/windows/
             build/windows-test/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
           compression-level: 6

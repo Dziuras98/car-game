@@ -40,6 +40,12 @@ func configure(
 	if not is_instance_valid(minimap):
 		push_error("RaceSessionController requires a Minimap.")
 		return false
+	if race_lap_count <= 0:
+		push_error("RaceSessionController race_lap_count must be positive.")
+		return false
+	if opponent_count < 0:
+		push_error("RaceSessionController opponent_count must be non-negative.")
+		return false
 	if opponent_count > 0 and not car_spawner.has_ai_eligible_cars():
 		push_error("RaceSessionController requires an AI-eligible car variant when opponents are enabled.")
 		return false
@@ -48,8 +54,8 @@ func configure(
 	_race_hud = race_hud
 	_track = track
 	_minimap = minimap
-	_race_lap_count = maxi(race_lap_count, 1)
-	_opponent_count = maxi(opponent_count, 0)
+	_race_lap_count = race_lap_count
+	_opponent_count = opponent_count
 
 	_lap_tracker = LapTracker.new()
 	_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
@@ -76,6 +82,9 @@ func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> bool
 	if not is_instance_valid(current_car) or scene_tree == null:
 		push_error("RaceSessionController requires a player car and SceneTree.")
 		return false
+	if _race_manager == null or _race_manager.get_state() != RaceManager.State.IDLE:
+		push_error("RaceSessionController can start a race only from the IDLE state.")
+		return false
 
 	_current_car = current_car
 	if not _spawn_opponents():
@@ -89,7 +98,11 @@ func start_race(current_car: PlayerCarController, scene_tree: SceneTree) -> bool
 		push_error("RaceSessionController could not prepare race tracking for the complete participant set.")
 		_abort_race_start()
 		return false
-	_race_manager.start_race(_current_car, scene_tree)
+	var start_result: RaceManager.Result = _race_manager.start_race(_current_car, scene_tree)
+	if not RaceManager.is_success(start_result):
+		push_error(RaceManager.get_failure_message(start_result))
+		_abort_race_start()
+		return false
 	return true
 
 
@@ -188,9 +201,10 @@ func _register_participant(participant: RaceParticipant) -> bool:
 	if participant == null or not participant.is_valid():
 		return false
 	for existing: RaceParticipant in _participants:
-		if existing.participant_id == participant.participant_id:
+		if existing.get_participant_id() == participant.get_participant_id():
 			return false
-	var car_instance_id: int = participant.car.get_instance_id()
+	var participant_car: PlayerCarController = participant.get_car()
+	var car_instance_id: int = participant_car.get_instance_id()
 	if _participants_by_car_id.has(car_instance_id):
 		return false
 	_participants.append(participant)
@@ -288,12 +302,15 @@ func _on_lap_tracker_participant_finished(car: PlayerCarController) -> void:
 	if participant.is_player():
 		_finish_race()
 	else:
-		_stop_participant_car(participant.car)
+		_stop_participant_car(participant.get_car())
 
 
 func _finish_race() -> void:
-	if _race_manager != null:
-		_race_manager.finish_race(_current_car, _opponents)
+	if _race_manager == null:
+		return
+	var finish_result: RaceManager.Result = _race_manager.finish_race(_current_car, _opponents)
+	if not RaceManager.is_success(finish_result):
+		push_error(RaceManager.get_failure_message(finish_result))
 
 
 func _on_race_finished() -> void:

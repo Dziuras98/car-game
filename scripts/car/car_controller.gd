@@ -107,13 +107,12 @@ func _physics_process(delta: float) -> void:
 	var safe_delta: float = clampf(delta, 0.0, CarPowertrainController.MAX_FRAME_DELTA)
 
 	_runtime_state.set_drive_input_snapshot(throttle, brake)
+	_chassis_controller.sample_ground_contact(_runtime_state, self)
 	if safe_delta <= 0.0:
-		_chassis_controller.update_tires(
+		_chassis_controller.update_tire_dynamics(
 			_runtime_state,
 			steering,
 			handbrake_active,
-			self,
-			_skid_mark_emitter,
 			0.0
 		)
 		_powertrain_controller.update(
@@ -125,18 +124,22 @@ func _physics_process(delta: float) -> void:
 			gear_down_pressed,
 			0.0
 		)
+		_chassis_controller.update_skid_marks(
+			_runtime_state,
+			self,
+			_skid_mark_emitter,
+			0.0
+		)
 		return
 
 	var remaining_delta: float = safe_delta
 	var apply_shift_input: bool = true
 	while remaining_delta > 0.000001:
 		var step: float = minf(remaining_delta, CarPowertrainController.MAX_SIMULATION_SUBSTEP)
-		_chassis_controller.update_tires(
+		_chassis_controller.update_tire_dynamics(
 			_runtime_state,
 			steering,
 			handbrake_active,
-			self,
-			_skid_mark_emitter,
 			step
 		)
 		_powertrain_controller.update(
@@ -153,6 +156,12 @@ func _physics_process(delta: float) -> void:
 		remaining_delta -= step
 
 	_chassis_controller.apply_velocity(_runtime_state, self, safe_delta)
+	_chassis_controller.update_skid_marks(
+		_runtime_state,
+		self,
+		_skid_mark_emitter,
+		safe_delta
+	)
 
 
 func _reconfigure_drive_runtime(preserve_motion_state: bool = true) -> void:

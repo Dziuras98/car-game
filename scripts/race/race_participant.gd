@@ -8,11 +8,11 @@ enum Kind {
 }
 
 
-var participant_id: StringName = &""
-var kind: Kind = Kind.OPPONENT
-var car: PlayerCarController
-var ordinal: int = 0
-var display_name: String = ""
+var _participant_id: StringName = &""
+var _kind: Kind = Kind.OPPONENT
+var _car: PlayerCarController
+var _ordinal: int = 0
+var _display_name: String = ""
 
 
 func _init(
@@ -22,38 +22,69 @@ func _init(
 	participant_ordinal: int = 0,
 	custom_display_name: String = ""
 ) -> void:
-	participant_id = id
-	kind = participant_kind
-	car = participant_car
-	ordinal = maxi(participant_ordinal, 0)
-	display_name = custom_display_name
+	_participant_id = id
+	_kind = participant_kind
+	_car = participant_car
+	_ordinal = participant_ordinal
+	_display_name = custom_display_name
 
 
 static func create_player(player_car: PlayerCarController) -> RaceParticipant:
+	if not is_instance_valid(player_car):
+		return null
 	return RaceParticipant.new(&"player", Kind.PLAYER, player_car)
 
 
 static func create_opponent(opponent_car: PlayerCarController, opponent_ordinal: int) -> RaceParticipant:
-	var safe_ordinal: int = maxi(opponent_ordinal, 1)
+	if not is_instance_valid(opponent_car) or opponent_ordinal <= 0:
+		return null
 	return RaceParticipant.new(
-		StringName("opponent_%d" % safe_ordinal),
+		StringName("opponent_%d" % opponent_ordinal),
 		Kind.OPPONENT,
 		opponent_car,
-		safe_ordinal
+		opponent_ordinal
 	)
 
 
 func is_valid() -> bool:
-	return participant_id != &"" and is_instance_valid(car)
+	if _participant_id == &"" or not is_instance_valid(_car):
+		return false
+	if _kind == Kind.PLAYER:
+		return _ordinal == 0
+	return _kind == Kind.OPPONENT and _ordinal > 0
 
 
 func is_player() -> bool:
-	return kind == Kind.PLAYER
+	return _kind == Kind.PLAYER
+
+
+func get_participant_id() -> StringName:
+	return _participant_id
+
+
+func get_kind() -> Kind:
+	return _kind
+
+
+func get_car() -> PlayerCarController:
+	return _car
+
+
+func get_ordinal() -> int:
+	return _ordinal
+
+
+func set_display_name(display_name: String) -> void:
+	_display_name = display_name
+
+
+func get_display_name() -> String:
+	return _display_name
 
 
 func get_display_label() -> String:
-	if not display_name.is_empty():
-		return display_name
+	if not _display_name.is_empty():
+		return _display_name
 	if is_player():
 		return tr("Ty")
-	return tr("Kierowca %d") % maxi(ordinal, 1)
+	return tr("Kierowca %d") % _ordinal

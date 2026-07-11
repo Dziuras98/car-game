@@ -31,16 +31,34 @@ func _run() -> void:
 
 	_expect(manager.get_state() == RaceManager.State.IDLE, "race manager starts in IDLE")
 	_expect(not manager.are_player_controls_locked(), "idle state leaves player controls unlocked")
+	_expect(
+		manager.start_race(null, get_tree()) == RaceManager.Result.INVALID_PLAYER,
+		"start rejects a missing player without changing state"
+	)
+	_expect(
+		manager.start_race(player, null) == RaceManager.Result.INVALID_SCENE_TREE,
+		"start rejects a missing SceneTree without changing state"
+	)
+	_expect(manager.get_state() == RaceManager.State.IDLE, "invalid start requests preserve IDLE")
 
-	manager.start_race(player, get_tree())
+	var start_result: RaceManager.Result = manager.start_race(player, get_tree())
+	_expect(start_result == RaceManager.Result.OK, "valid start returns the typed success result")
 	_expect(manager.get_state() == RaceManager.State.COUNTDOWN, "start request enters COUNTDOWN immediately")
 	_expect(manager.are_player_controls_locked(), "countdown locks player controls")
+	_expect(
+		manager.start_race(player, get_tree()) == RaceManager.Result.INVALID_STATE,
+		"duplicate start is rejected during COUNTDOWN"
+	)
 	var running_reached: bool = await _wait_for_state(manager, RaceManager.State.RUNNING)
 	_expect(running_reached, "completed countdown enters RUNNING")
 	_expect(not manager.are_player_controls_locked(), "running state unlocks player controls")
 	_expect(
+		manager.start_race(player, get_tree()) == RaceManager.Result.INVALID_STATE,
+		"start is rejected while a race is RUNNING"
+	)
+	_expect(
 		_countdown_history == ["3", "2", "1", tr("START")],
-		"countdown emits the complete localized ordered sequence"
+		"rejected starts do not create a second countdown sequence"
 	)
 	_expect(
 		_player_input_history.size() >= 2
@@ -56,20 +74,32 @@ func _run() -> void:
 	)
 
 	var opponents: Array[PlayerCarController] = []
-	manager.finish_race(player, opponents)
+	var finish_result: RaceManager.Result = manager.finish_race(player, opponents)
+	_expect(finish_result == RaceManager.Result.OK, "valid finish returns the typed success result")
 	_expect(manager.get_state() == RaceManager.State.FINISHED, "finish request enters FINISHED")
 	_expect(manager.are_player_controls_locked(), "finished state locks player controls")
 	_expect(_race_finished_count == 1, "finish signal is emitted once")
-	manager.finish_race(player, opponents)
-	_expect(_race_finished_count == 1, "duplicate finish requests are ignored")
+	_expect(
+		manager.finish_race(player, opponents) == RaceManager.Result.INVALID_STATE,
+		"duplicate finish requests return an invalid-state result"
+	)
+	_expect(_race_finished_count == 1, "duplicate finish requests do not emit another signal")
+	_expect(
+		manager.start_race(player, get_tree()) == RaceManager.Result.INVALID_STATE,
+		"start is rejected from FINISHED until reset"
+	)
 
-	manager.reset_to_idle()
+	_expect(manager.reset_to_idle() == RaceManager.Result.OK, "reset returns a typed success result")
 	_expect(manager.get_state() == RaceManager.State.IDLE, "reset returns the manager to IDLE")
 	_expect(not manager.are_player_controls_locked(), "reset unlocks controls")
 	_expect(not _ai_history.is_empty() and _ai_history[-1] == false, "reset leaves AI disabled")
+	_expect(
+		manager.finish_race(player, opponents) == RaceManager.Result.INVALID_STATE,
+		"finish is rejected from IDLE"
+	)
 
 	_countdown_history.clear()
-	manager.start_race(player, get_tree())
+	_expect(manager.start_race(player, get_tree()) == RaceManager.Result.OK, "a reset manager can start another race")
 	await get_tree().process_frame
 	manager.reset_to_idle()
 	await _wait_frames(8)
