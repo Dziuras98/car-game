@@ -4,7 +4,9 @@ class_name Speedometer
 @export var target_path: NodePath
 @export_range(1.0, 120.0, 1.0) var display_update_hz: float = 30.0
 
+@onready var _title_label: Label = $Panel/VBoxContainer/Title
 @onready var _speed_value: Label = %SpeedValue
+@onready var _gear_label: Label = $Panel/VBoxContainer/GearRow/GearLabel
 @onready var _gear_value: Label = %GearValue
 @onready var _tachometer_gauge: TachometerGauge = %TachometerGauge
 @onready var _car: PlayerCarController = _resolve_target_node()
@@ -31,6 +33,8 @@ func set_target_node(target: PlayerCarController) -> void:
 
 
 func _ready() -> void:
+	_title_label.text = tr("PRĘDKOŚĆ")
+	_gear_label.text = tr("BIEG")
 	_sync_tachometer_range()
 	_update_display(0.0)
 	set_process(is_instance_valid(_car))
