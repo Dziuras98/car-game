@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_model_definition.gd" id="1_model"]
+[ext_resource type="Resource" path="res://resources/cars/nissan/370z_nismo/variants/370z_nismo_6mt.tres" id="2_6mt"]
+[ext_resource type="Resource" path="res://resources/cars/nissan/370z_nismo/variants/370z_nismo_7at.tres" id="3_7at"]
+
+[resource]
+script = ExtResource("1_model")
+manufacturer = "Nissan"
+model_id = &"nissan_370z_nismo"
+display_name = "370Z NISMO"
+generation = "Z34 NISMO V2"
+production_year_start = 2015
+production_year_end = 2020
+variants = Array[Resource]([ExtResource("2_6mt"), ExtResource("3_7at")])
+default_variant_id = &"nissan_370z_nismo_6mt_eu"
