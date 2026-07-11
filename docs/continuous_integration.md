@@ -53,12 +53,12 @@ Using `run_tests.ps1` directly remains possible for focused test work, but it is
 
 ### Automatic test discovery
 
-The runner imports the project, then discovers:
+The runner imports the project, then recursively discovers:
 
-- every `scripts/tests/*.gd` file whose top-level base is `SceneTree`;
-- every `scenes/tests/*.tscn` file except packaged-only fixtures explicitly excluded by the runner.
+- every `scripts/tests/**/*.gd` file whose top-level base is `SceneTree`;
+- every `scenes/tests/**/*.tscn` file except packaged-only fixtures explicitly excluded by the runner.
 
-This removes the need to maintain a duplicated handwritten test list. Adding a qualifying test automatically adds it to the Windows gate.
+This removes the need to maintain a duplicated handwritten test list. Adding a qualifying test at any directory depth automatically adds it to the Windows gate. Dedicated nested discovery fixtures are required by the runner so removing recursive enumeration cannot silently reduce test coverage.
 
 Each Godot invocation has:
 
@@ -68,7 +68,7 @@ Each Godot invocation has:
 - exit-code validation;
 - scanning for `SCRIPT ERROR:`, `ERROR:` and editor-style `E 0:00:...` lines.
 
-The runtime-error detector has its own self-check so a broken regex cannot silently make the suite permissive. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
+The runtime-error detector has a dedicated regression test so a broken regex cannot silently make the suite permissive. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
 
 ### Canonical full-program smoke test
 
