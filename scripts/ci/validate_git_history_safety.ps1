@@ -111,17 +111,18 @@ try {
     foreach ($emailLine in $emailLines) {
         foreach ($email in ($emailLine -split "`t")) {
             $trimmedEmail = $email.Trim()
-            if (
-                -not [string]::IsNullOrWhiteSpace($trimmedEmail) -and
-                -not $trimmedEmail.EndsWith("@users.noreply.github.com", [System.StringComparison]::OrdinalIgnoreCase) -and
-                -not $trimmedEmail.EndsWith("@noreply.github.com", [System.StringComparison]::OrdinalIgnoreCase)
-            ) {
+            $isNoreplyEmail = (
+                $trimmedEmail.EndsWith("@users.noreply.github.com", [System.StringComparison]::OrdinalIgnoreCase) -or
+                $trimmedEmail.EndsWith("@noreply.github.com", [System.StringComparison]::OrdinalIgnoreCase) -or
+                $trimmedEmail.Equals("noreply@github.com", [System.StringComparison]::OrdinalIgnoreCase)
+            )
+            if (-not [string]::IsNullOrWhiteSpace($trimmedEmail) -and -not $isNoreplyEmail) {
                 [void]$nonNoreplyEmails.Add($trimmedEmail)
             }
         }
     }
     foreach ($email in $nonNoreplyEmails) {
-        Write-Host "[GIT_HISTORY_SAFETY][NOTICE] Commit metadata exposes non-noreply email: $email"
+        $failures.Add("Commit metadata exposes a non-noreply email address: $email")
     }
 
     if ($failures.Count -gt 0) {
