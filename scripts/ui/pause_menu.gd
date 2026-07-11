@@ -5,6 +5,7 @@ signal main_menu_requested()
 signal pause_state_changed(paused: bool)
 
 @onready var _root: Control = $Root
+@onready var _title_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Title
 @onready var _resume_button: Button = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ResumeButton
 @onready var _menu_button: Button = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MenuButton
 
@@ -13,6 +14,9 @@ var _enabled: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_title_label.text = tr("Pauza")
+	_resume_button.text = tr("Wznów")
+	_menu_button.text = tr("Wróć do menu")
 	_resume_button.pressed.connect(resume_game)
 	_menu_button.pressed.connect(_request_main_menu)
 	_root.visible = false
