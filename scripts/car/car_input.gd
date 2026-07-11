@@ -38,7 +38,7 @@ func set_external_drive_inputs(target_throttle: float, target_brake: float, targ
 func should_reset_car() -> bool:
 	if _external_input_enabled or not _player_input_enabled:
 		return false
-	return Input.is_action_just_pressed("reset-car")
+	return Input.is_action_just_pressed(GameInputActions.RESET_CAR)
 
 
 func read_drive_input() -> void:
@@ -54,16 +54,17 @@ func read_drive_input() -> void:
 	if not _player_input_enabled:
 		return
 
-	throttle = Input.get_action_strength("accelerate")
-	brake = Input.get_action_strength("brake")
+	throttle = Input.get_action_strength(GameInputActions.ACCELERATE)
+	brake = Input.get_action_strength(GameInputActions.BRAKE)
 	steering = clampf(
-		Input.get_action_strength("steer-right") - Input.get_action_strength("steer-left"),
+		Input.get_action_strength(GameInputActions.STEER_RIGHT)
+		- Input.get_action_strength(GameInputActions.STEER_LEFT),
 		-1.0,
 		1.0
 	)
-	handbrake_active = Input.is_action_pressed("handbrake")
-	gear_up_pressed = Input.is_action_just_pressed("gear-up")
-	gear_down_pressed = Input.is_action_just_pressed("gear-down")
+	handbrake_active = Input.is_action_pressed(GameInputActions.HANDBRAKE)
+	gear_up_pressed = Input.is_action_just_pressed(GameInputActions.GEAR_UP)
+	gear_down_pressed = Input.is_action_just_pressed(GameInputActions.GEAR_DOWN)
 
 
 func _clear_drive_input() -> void:
