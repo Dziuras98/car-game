@@ -1,6 +1,8 @@
 extends Node
 class_name AiRaceDriver
 
+signal driver_fault(message: String)
+
 enum DriverState {
 	FOLLOW_LINE,
 	RECOVER_REVERSE,
@@ -15,6 +17,7 @@ var _points: Array[Vector3] = []
 var _target_index: int = -1
 var _enabled: bool = false
 var _configured: bool = false
+var _fault_reported: bool = false
 var _index_search: RacingLineIndexSearch = RacingLineIndexSearch.new()
 var _driver_state: DriverState = DriverState.FOLLOW_LINE
 var _stuck_timer: float = 0.0
@@ -57,6 +60,7 @@ func configure(
 		_profile.recovery_search_distance,
 		_profile.full_search_interval_updates
 	)
+	_fault_reported = false
 	_configured = true
 	return true
 
@@ -64,14 +68,12 @@ func configure(
 func _ready() -> void:
 	set_physics_process(false)
 	if not _has_valid_runtime_contract():
-		push_error("AiRaceDriver entered the scene tree without a valid runtime contract.")
-		_neutralize_car_input(true)
+		_fail_driver("AiRaceDriver entered the scene tree without a valid runtime contract.")
 		return
 
 	_connect_track_geometry_signal()
 	if not _refresh_points():
-		push_error("AiRaceDriver could not refresh its validated racing line.")
-		_neutralize_car_input(true)
+		_fail_driver("AiRaceDriver could not refresh its validated racing line.")
 		return
 
 	_car.set_external_input_enabled(true)
@@ -92,9 +94,9 @@ func set_driver_enabled(enabled: bool) -> void:
 		_neutralize_car_input(false)
 		return
 	if not _has_valid_runtime_contract() or _points.size() < MIN_RACING_LINE_POINT_COUNT:
-		set_physics_process(false)
-		_neutralize_car_input(false)
+		_fail_driver("AiRaceDriver cannot be enabled without a valid car, track, profile and racing line.")
 		return
+	_fault_reported = false
 	_car.set_external_input_enabled(true)
 	set_physics_process(true)
 
@@ -124,13 +126,15 @@ func get_driver_state() -> DriverState:
 
 
 func _physics_process(delta: float) -> void:
-	if not _enabled or not _has_valid_runtime_contract():
+	if not _enabled:
 		set_physics_process(false)
-		_neutralize_car_input(false)
+		return
+	if not _has_valid_runtime_contract():
+		_fail_driver("AiRaceDriver lost its runtime contract.")
 		return
 	if _points.size() < MIN_RACING_LINE_POINT_COUNT:
 		if not _refresh_points():
-			_neutralize_car_input(false)
+			_fail_driver("AiRaceDriver lost its racing-line cache.")
 			return
 
 	var safe_delta: float = maxf(delta, 0.0)
@@ -139,7 +143,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if not _update_target_index():
-		_neutralize_car_input(false)
+		_fail_driver("AiRaceDriver could not resolve a valid racing-line target.")
 		return
 	var lookahead_index: int = posmod(_target_index + _profile.lookahead_points, _points.size())
 	var target_point: Vector3 = _get_lane_point(lookahead_index)
@@ -186,6 +190,19 @@ func _neutralize_car_input(disable_external_input: bool) -> void:
 	_car.set_external_drive_inputs(0.0, 0.0, 0.0, false)
 	if disable_external_input:
 		_car.set_external_input_enabled(false)
+
+
+func _fail_driver(message: String) -> void:
+	_enabled = false
+	set_physics_process(false)
+	if is_instance_valid(_car):
+		_car.set_external_input_enabled(true)
+		_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)
+	if _fault_reported:
+		return
+	_fault_reported = true
+	push_error(message)
+	driver_fault.emit(message)
 
 
 func _update_stuck_detection(speed_kmh: float, throttle: float, local_target: Vector3, delta: float) -> void:
@@ -250,9 +267,10 @@ func _disconnect_track_geometry_signal() -> void:
 
 func _on_track_geometry_rebuilt(_revision: int) -> void:
 	var refreshed: bool = _refresh_points()
-	set_physics_process(_enabled and refreshed and _has_valid_runtime_contract())
 	if not refreshed:
-		_neutralize_car_input(false)
+		_fail_driver("AiRaceDriver could not refresh after a track geometry rebuild.")
+		return
+	set_physics_process(_enabled and _has_valid_runtime_contract())
 
 
 func _update_target_index() -> bool:
