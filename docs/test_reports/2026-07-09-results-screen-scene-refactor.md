@@ -19,7 +19,7 @@ Date: 2026-07-09
 
 - Results screen behavior was not intended to change.
 - Dynamic result rows are still created in `show(result_labels)`.
-- Gameplay systems were not changed: `GameManager`, `RaceManager`, countdown overlay, lap HUD, menus, physics, tuning, AI, track generation, inputs, mobile controls, and car scenes were not modified.
+- Gameplay systems were not changed: `GameManager`, `RaceManager`, countdown overlay, lap HUD, menus, physics, tuning, AI, track generation, inputs, and car scenes were not modified.
 
 ## Validation
 
