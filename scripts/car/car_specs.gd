@@ -139,6 +139,13 @@ func validate() -> PackedStringArray:
 		errors.append("gear_ratios must contain at least one forward gear")
 	for gear_index: int in range(gear_ratios.size()):
 		_append_positive(errors, "gear_ratios[%d]" % gear_index, gear_ratios[gear_index])
+		if (
+			gear_index > 0
+			and is_finite(gear_ratios[gear_index - 1])
+			and is_finite(gear_ratios[gear_index])
+			and gear_ratios[gear_index] >= gear_ratios[gear_index - 1]
+		):
+			errors.append("gear_ratios must be strictly descending")
 	_append_positive(errors, "reverse_gear_ratio", reverse_gear_ratio)
 	_append_positive(errors, "final_drive_ratio", final_drive_ratio)
 	_append_positive(errors, "peak_engine_torque", peak_engine_torque)
@@ -146,18 +153,46 @@ func validate() -> PackedStringArray:
 	_append_range(errors, "drivetrain_efficiency", drivetrain_efficiency, 0.0001, 1.0)
 	_append_non_negative(errors, "shift_delay", shift_delay)
 
+	if uses_geared_transmission() and not gear_ratios.is_empty():
+		var highest_gear_ratio: float = gear_ratios[gear_ratios.size() - 1]
+		if (
+			is_finite(highest_gear_ratio) and highest_gear_ratio > 0.0
+			and is_finite(final_drive_ratio) and final_drive_ratio > 0.0
+			and is_finite(wheel_radius) and wheel_radius > 0.0
+			and is_finite(rev_limiter_rpm) and rev_limiter_rpm > 0.0
+		):
+			var theoretical_speed: float = (
+				rev_limiter_rpm
+				/ (highest_gear_ratio * final_drive_ratio)
+				* TAU
+				* wheel_radius
+				/ 60.0
+			)
+			if max_forward_speed > theoretical_speed * 1.05:
+				errors.append("max_forward_speed exceeds the rev-limited highest-gear speed")
+
 	if is_automatic_transmission():
 		_append_positive(errors, "automatic_upshift_rpm", automatic_upshift_rpm)
 		_append_positive(errors, "automatic_downshift_rpm", automatic_downshift_rpm)
 		if automatic_downshift_rpm >= automatic_upshift_rpm:
 			errors.append("automatic_downshift_rpm must be below automatic_upshift_rpm")
+		if automatic_downshift_rpm < idle_rpm:
+			errors.append("automatic_downshift_rpm must be at or above idle_rpm")
+		if automatic_upshift_rpm > redline_rpm:
+			errors.append("automatic_upshift_rpm must not exceed redline_rpm")
 		_append_range(errors, "automatic_kickdown_throttle", automatic_kickdown_throttle, 0.0, 1.0)
 		_append_positive(errors, "automatic_kickdown_rpm", automatic_kickdown_rpm)
+		if automatic_kickdown_rpm < automatic_downshift_rpm or automatic_kickdown_rpm > redline_rpm:
+			errors.append("automatic_kickdown_rpm must be between downshift and redline RPM")
 		_append_non_negative(errors, "automatic_shift_delay", automatic_shift_delay)
 		_append_positive(errors, "torque_converter_stall_rpm", torque_converter_stall_rpm)
 		_append_positive(errors, "torque_converter_coupling_rpm", torque_converter_coupling_rpm)
+		if torque_converter_stall_rpm < idle_rpm:
+			errors.append("torque_converter_stall_rpm must be at or above idle_rpm")
 		if torque_converter_coupling_rpm < torque_converter_stall_rpm:
 			errors.append("torque_converter_coupling_rpm must be at or above stall RPM")
+		if torque_converter_coupling_rpm > redline_rpm:
+			errors.append("torque_converter_coupling_rpm must not exceed redline_rpm")
 		_append_range(errors, "torque_converter_stall_torque_multiplier", torque_converter_stall_torque_multiplier, 1.0, 5.0)
 
 	_append_positive(errors, "vehicle_mass", vehicle_mass)

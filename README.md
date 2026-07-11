@@ -8,12 +8,14 @@ The project is intentionally kept text-heavy and regression-tested so gameplay s
 
 The repository currently provides:
 
-- free-drive and race modes with explicit mode validation and rollback on failed session startup;
+- free-drive and race modes owned by the shared `GameModes` contract, with explicit validation and rollback on failed session startup;
 - catalog-driven track, car model and car variant selection through typed resource arrays;
+- authoritative validation across `CarCatalog`, `CarModelDefinition`, `CarVariantDefinition` and `CarSpecs`;
 - Nissan 370Z-style 6MT and 7AT variants backed by `CarSpecs` resources;
 - explicit AI eligibility on supported car variants and all-or-nothing opponent spawning;
 - a modular `CharacterBody3D` vehicle runtime with powertrain, transmission, tire, four-point ground-contact and reset helpers;
 - `TransmissionType` as the sole transmission-mode state;
+- relational gearbox/automatic-transmission validation in addition to per-field tuning ranges;
 - surface-dependent grip and a friction-circle longitudinal-force budget;
 - generated track surfaces, collision, barriers, markers, checkpoints and stadium decoration;
 - ordered checkpoint validation and continuous race-position progress;
@@ -23,7 +25,9 @@ The repository currently provides:
 - keyboard and gamepad player input plus a separate external AI input channel;
 - bounded procedural audio voices and skid-mark buffers;
 - Windows production and packaged-test export presets;
-- one complete project-verification entrypoint and automatically discovered regression tests with per-command timeouts and runtime-error detection.
+- one complete project-verification entrypoint and automatically discovered regression tests with per-command timeouts and runtime-error detection;
+- current-tree and complete-history public-repository safety checks;
+- SHA-pinned GitHub Actions, verified export-template archives and diagnostics-only pull-request artifacts.
 
 The project remains a prototype. Structural correctness and test coverage take priority over adding more cars or tracks.
 
@@ -45,7 +49,7 @@ The project remains a prototype. Structural correctness and test coverage take p
 3. Run the project with `F6`/`F5` as appropriate.
 4. Select mode, track, model and variant in the menu.
 
-The active track is created before the selected car. A gameplay session is considered started only after the exact mode/track/variant IDs, player car and required race participants validate. A failed step clears partial runtime state and returns to the menu. Free drive enables input immediately; race mode starts the countdown only after the complete opponent set and lap tracking are ready.
+The complete car and track catalogs are validated before menu construction. The active track is created before the selected car. A gameplay session is considered started only after the exact mode/track/variant IDs, player car and required race participants validate. A failed step clears partial runtime state and returns to the menu. Free drive enables input immediately; race mode starts the countdown only after the complete opponent set and lap tracking are ready.
 
 ## Controls
 
@@ -85,7 +89,7 @@ Important paths:
 - `scripts/car/car_controller.gd`
 - `scripts/car/car_drive_config_builder.gd`
 
-`CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The base 370Z scene contains visual, collision and audio structure only and does not serialize tuning values.
+`CarCatalog.validate()` is the authoritative content boundary. It enforces globally unique model/variant IDs and delegates model, variant and specification validation. `CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The base 370Z scene contains visual, collision and audio structure only and does not serialize tuning values.
 
 `CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. The automatic 370Z is eligible; the manual variant remains player-selectable and is never used as an implicit opponent fallback.
 
@@ -115,7 +119,7 @@ Important paths:
 
 `GameManager` coordinates menu state, active track, transactional session startup, spawning, camera/HUD binding and transitions between free drive and race. Detailed responsibilities are delegated to:
 
-- `CarSelectionState`, `MenuOptionsBuilder` and `TrackSpawnController`;
+- `GameModes`, `CarSelectionState`, `MenuOptionsBuilder` and `TrackSpawnController`;
 - `CarSpawner`, `CarInstanceFactory` and participant spawn helpers;
 - `RaceSessionController`, `RaceManager` and `LapTracker`;
 - `PlayerCarController`, powertrain/chassis helpers and `CarInput`;
@@ -135,13 +139,14 @@ scripts/ci/verify_project.ps1
 
 It performs:
 
-1. localization catalog and UI-key validation;
-2. static repository checks;
-3. headless project import;
-4. automatic discovery of standalone tests in `scripts/tests/` that extend `SceneTree`;
-5. automatic discovery of scenes under `scenes/tests/`;
-6. a separate timeout and diagnostic log for every command;
-7. failure on Godot runtime-error output even when the process exits with code `0`.
+1. current-tree and complete-history public-repository safety validation;
+2. localization catalog and UI-key validation;
+3. static repository checks;
+4. headless project import;
+5. automatic discovery of standalone tests in `scripts/tests/` that extend `SceneTree`;
+6. automatic discovery of scenes under `scenes/tests/`;
+7. a separate timeout and diagnostic log for every command;
+8. failure on Godot runtime-error output even when the process exits with code `0`.
 
 The static checks also reject orphaned test scripts, production `_for_test` identifiers, completed-migration regressions, implicit mode/index/AI fallbacks, mutable GitHub Action tags and reintroduced architectural fallback paths. A runtime test must be one of:
 
@@ -165,15 +170,24 @@ Run the complete suite locally:
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
 
-Use `scripts/ci/run_tests.ps1` directly only for focused test work that intentionally skips localization orchestration.
+Use `scripts/ci/run_tests.ps1` directly only for focused test work that intentionally skips repository-safety and localization orchestration.
 
 ## Export validation
 
 `.github/workflows/windows-tests.yml` runs on `windows-2025`, pins GitHub actions to immutable commit SHAs, verifies the SHA-512 checksums of the Godot editor and export-template archives, invokes the complete project verification and then exports/smoke-tests both Windows presets.
 
-`scripts/ci/export_windows.ps1` creates and smoke-tests both the normal packaged startup and the packaged regression route. Successful workflow artifacts contain the executable, PCK and diagnostic logs.
+The export-template cache stores the original archive, which is verified on every use before extraction. Pull-request runs upload diagnostic logs only; executable/PCK artifacts are published only by trusted push or manually dispatched runs.
+
+`scripts/ci/export_windows.ps1` creates and smoke-tests both the normal packaged startup and the packaged regression route.
 
 See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gates and artifact behavior.
+
+## Repository policy
+
+- `LICENSE` preserves all rights unless a later license explicitly grants reuse rights.
+- `SECURITY.md` defines private vulnerability reporting and secret-response rules.
+- `THIRD_PARTY_NOTICES.md` records trademark and asset-provenance policy.
+- `.github/dependabot.yml` proposes updates for pinned GitHub Actions.
 
 ## Documentation
 
@@ -181,8 +195,9 @@ See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gate
 - `docs/car_catalog.md` — car catalog/model/variant/spec and AI-eligibility rules;
 - `docs/vehicle_model.md` — current handling and powertrain model;
 - `docs/roadmap.md` — completed remediation stages and separately deferred feature expansion;
-- `docs/continuous_integration.md` — Windows CI and packaged validation;
-- `docs/windows_export.md` — Windows export details.
+- `docs/continuous_integration.md` — Windows CI, repository-safety and artifact behavior;
+- `docs/windows_export.md` — Windows export details;
+- `docs/test_reports/` — historical migration evidence, explicitly non-authoritative for the current codebase.
 
 ## Change rules
 
@@ -194,3 +209,4 @@ See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gate
 6. Do not introduce an alternate fallback path when an explicit catalog or resource field already owns the decision.
 7. Do not expose test-only suffixes or simulation entry points from production classes.
 8. Preserve prepare-then-commit semantics for tracks, session startup and opponent sets.
+9. Treat any catalog validation error as a startup-blocking configuration error.

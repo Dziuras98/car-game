@@ -66,11 +66,13 @@ scripts/car/car_catalog.gd
 Purpose:
 
 - stores a typed `Array[CarModelDefinition]`;
+- validates the complete content graph before gameplay startup;
+- enforces globally unique model and variant IDs;
 - returns valid models and a flat list of variants;
 - resolves models and variants by stable IDs;
 - exposes derived scene and menu-name lists for spawners and menu construction.
 
-The catalog is the only content-discovery path. There is no parallel `available_cars` fallback.
+The catalog is the only content-discovery path. There is no parallel `available_cars` fallback. `GameManager` rejects a catalog with any validation error rather than silently dropping invalid entries.
 
 ### `CarModelDefinition`
 
@@ -85,7 +87,9 @@ Purpose:
 - stores model-level identity;
 - stores manufacturer, model ID, display name, generation and production years;
 - stores a typed `Array[CarVariantDefinition]`;
-- resolves variants and an explicitly selected `default_variant_id`.
+- validates model identity, production-year ordering, variant IDs and sort orders;
+- resolves variants and an explicitly selected `default_variant_id`;
+- requires `default_variant_id` to reference a variant in the same model.
 
 Example:
 
@@ -105,10 +109,11 @@ Purpose:
 
 - stores one selectable version of a car model;
 - links to a playable car scene;
-- links to exactly one `CarSpecs` tuning resource;
+- links to exactly one valid `CarSpecs` tuning resource;
 - declares `ai_eligible` explicitly for variants supported by the current AI input model;
 - stores presentation metadata that is not derivable from specs, such as the engine and drivetrain labels;
-- derives mass and transmission labels from `CarSpecs` so display data cannot drift from runtime physics.
+- derives mass and transmission labels from `CarSpecs` so display data cannot drift from runtime physics;
+- rejects an AI-eligible variant unless its specs use an automatic transmission.
 
 `ai_eligible` is not inferred from catalog order or from the presence of an automatic gearbox. The current AI requires a valid automatic-transmission variant and `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`. The manual 370Z remains player-selectable but is not an opponent fallback.
 
@@ -135,6 +140,14 @@ Purpose:
 - validates values before `CarDriveConfig` is built;
 - differs between variants when engine, gearbox, mass or other tuning changes.
 
+In addition to per-field ranges, validation enforces relationships between fields:
+
+- forward gear ratios must be strictly descending;
+- the configured maximum speed cannot exceed the rev-limited speed available in the highest gear;
+- automatic downshift RPM must not fall below idle;
+- automatic upshift, kickdown and torque-converter coupling thresholds must remain within the engine operating range;
+- torque-converter stall/coupling and automatic shift thresholds must remain correctly ordered.
+
 Examples:
 
 ```text
@@ -143,6 +156,23 @@ resources/cars/nissan/370z/specs/370z_6mt_specs.tres
 ```
 
 `scenes/cars/370z.tscn` contains visual, collision and audio structure only. It does not serialize vehicle tuning values.
+
+## Validation ownership
+
+Each level validates the state it owns:
+
+```text
+CarCatalog.validate()
+  -> global model/variant uniqueness
+  -> CarModelDefinition.validate()
+       -> model identity, years, default variant, local ordering
+       -> CarVariantDefinition.validate()
+            -> scene, specs, labels and AI eligibility
+            -> CarSpecs.validate()
+                 -> numeric and relational tuning constraints
+```
+
+Callers must treat a non-empty validation result as a configuration error. Menu construction may still be defensive, but it is not the authoritative validation boundary.
 
 ## Rules for adding future cars
 
@@ -156,11 +186,12 @@ resources/cars/nissan/370z/specs/370z_6mt_specs.tres
 8. If two variants need different meshes or nodes, they may reference different scenes.
 9. Set `ai_eligible = true` only when the current AI can operate the variant without additional gearbox or control logic.
 10. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
-11. Extend catalog validation and focused regression coverage with new content.
+11. Use globally unique model and variant IDs and unique sort orders inside each model.
+12. Add focused negative validation fixtures with every new content rule.
 
 ## Selection and spawning flow
 
-`GameManager` loads `resources/cars/catalog.tres` and derives menu options through `MenuOptionsBuilder`.
+`GameManager` loads `resources/cars/catalog.tres`, validates the full catalog and derives menu options through `MenuOptionsBuilder`.
 
 ```text
 tryb -> tor -> model auta -> wariant auta

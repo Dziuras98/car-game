@@ -3,8 +3,6 @@ class_name MainMenu
 
 signal selection_completed(mode_id: String, track_id: String, car_variant_id: StringName)
 
-const MODE_FREE: String = "free_drive"
-const MODE_RACE: String = "race"
 const STEP_MODE: int = 0
 const STEP_TRACK: int = 1
 const STEP_MODEL: int = 2
@@ -84,8 +82,8 @@ func _show_mode_step() -> void:
 	_subtitle_label.text = tr("Wybierz tryb")
 	_back_button.visible = false
 	_clear_options()
-	_add_option_button(tr("Jazda swobodna"), Callable(self, "_on_mode_pressed").bind(MODE_FREE))
-	_add_option_button(tr("Wyścig"), Callable(self, "_on_mode_pressed").bind(MODE_RACE))
+	_add_option_button(tr("Jazda swobodna"), Callable(self, "_on_mode_pressed").bind(GameModes.FREE_DRIVE))
+	_add_option_button(tr("Wyścig"), Callable(self, "_on_mode_pressed").bind(GameModes.RACE))
 	_focus_first_option()
 
 
@@ -237,7 +235,7 @@ func _on_back_pressed() -> void:
 
 
 func _get_mode_label(mode_id: String) -> String:
-	return tr("Wyścig") if mode_id == MODE_RACE else tr("Jazda swobodna")
+	return tr("Wyścig") if mode_id == GameModes.RACE else tr("Jazda swobodna")
 
 
 func _get_track_label(track_id: String) -> String:

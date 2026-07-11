@@ -22,6 +22,7 @@ env:
   GODOT_EXECUTABLE: Godot_v4.7-stable_win64_console.exe
   GODOT_EXPORT_TEMPLATES_ARCHIVE: Godot_v4.7-stable_export_templates.tpz
   GODOT_EXPORT_TEMPLATE_VERSION: 4.7.stable
+  GODOT_CACHE_DIRECTORY: tools/cache/godot
 
 jobs:
   tests:
@@ -111,14 +112,14 @@ jobs:
             -ReportPath (Join-Path $PWD "build/test-logs/junit.xml") `
             -SummaryPath $env:GITHUB_STEP_SUMMARY
 
-      - name: Restore Godot export templates
+      - name: Restore verified export-template archive
         id: export-template-cache
         uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         with:
-          path: ~/AppData/Roaming/Godot/export_templates/${{ env.GODOT_EXPORT_TEMPLATE_VERSION }}
-          key: windows-godot-export-templates-${{ env.GODOT_VERSION }}-x86_64
+          path: ${{ env.GODOT_CACHE_DIRECTORY }}/${{ env.GODOT_EXPORT_TEMPLATES_ARCHIVE }}
+          key: windows-godot-export-template-archive-${{ env.GODOT_VERSION }}-x86_64
 
-      - name: Install Godot export templates
+      - name: Download export-template archive
         if: steps.export-template-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
@@ -126,12 +127,26 @@ jobs:
           $ProgressPreference = "SilentlyContinue"
 
           $baseUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION"
-          $archivePath = Join-Path $env:RUNNER_TEMP $env:GODOT_EXPORT_TEMPLATES_ARCHIVE
+          $cacheDirectory = Join-Path $PWD $env:GODOT_CACHE_DIRECTORY
+          $archivePath = Join-Path $cacheDirectory $env:GODOT_EXPORT_TEMPLATES_ARCHIVE
+          New-Item -ItemType Directory -Path $cacheDirectory -Force | Out-Null
+          Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_EXPORT_TEMPLATES_ARCHIVE" -OutFile $archivePath
+
+      - name: Verify and install export templates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $cacheDirectory = Join-Path $PWD $env:GODOT_CACHE_DIRECTORY
+          $archivePath = Join-Path $cacheDirectory $env:GODOT_EXPORT_TEMPLATES_ARCHIVE
           $extractDirectory = Join-Path $env:RUNNER_TEMP "godot-export-templates"
           $sourceDirectory = Join-Path $extractDirectory "templates"
           $targetDirectory = Join-Path $env:APPDATA "Godot/export_templates/$env:GODOT_EXPORT_TEMPLATE_VERSION"
 
-          Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_EXPORT_TEMPLATES_ARCHIVE" -OutFile $archivePath
+          if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+            throw "Godot export-template archive was not found after cache restore/download: $archivePath"
+          }
+
           $escapedArchiveName = [regex]::Escape($env:GODOT_EXPORT_TEMPLATES_ARCHIVE)
           $checksumLine = Get-Content -LiteralPath $env:GODOT_SHA512_SUMS | Where-Object {
             $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
@@ -149,6 +164,7 @@ jobs:
           }
 
           Remove-Item -LiteralPath $extractDirectory -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $targetDirectory -Recurse -Force -ErrorAction SilentlyContinue
           Expand-Archive -LiteralPath $archivePath -DestinationPath $extractDirectory -Force
           $releaseSource = Join-Path $sourceDirectory "windows_release_x86_64.exe"
           $debugSource = Join-Path $sourceDirectory "windows_debug_x86_64.exe"
@@ -181,12 +197,24 @@ jobs:
         shell: pwsh
         run: ./scripts/ci/export_windows.ps1 -GodotBinary $env:GODOT_BIN
 
-      - name: Upload Windows build and diagnostics
+      - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
+          name: car-game-diagnostics-${{ github.sha }}
+          path: build/test-logs/
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6
+
+      - name: Upload trusted Windows packages
+        if: ${{ success() && github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
           name: car-game-windows-${{ github.sha }}
-          path: build/
+          path: |
+            build/windows/
+            build/windows-test/
           if-no-files-found: warn
           retention-days: 14
           compression-level: 6

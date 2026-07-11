@@ -14,6 +14,54 @@ class_name CarModelDefinition
 @export var default_variant_id: StringName = &""
 
 
+func is_valid() -> bool:
+	return validate().is_empty()
+
+
+func validate() -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	if manufacturer.strip_edges().is_empty():
+		errors.append("manufacturer must not be empty")
+	if model_id == &"":
+		errors.append("model_id must not be empty")
+	if display_name.strip_edges().is_empty():
+		errors.append("display_name must not be empty")
+	if production_year_start < 0:
+		errors.append("production_year_start must be non-negative")
+	if production_year_end < 0:
+		errors.append("production_year_end must be non-negative")
+	if production_year_end > 0 and production_year_start > production_year_end:
+		errors.append("production_year_end must be at or after production_year_start")
+	if variants.is_empty():
+		errors.append("variants must contain at least one entry")
+
+	var variant_ids: Dictionary = {}
+	var sort_orders: Dictionary = {}
+	for variant_index: int in range(variants.size()):
+		var variant: CarVariantDefinition = variants[variant_index]
+		if variant == null:
+			errors.append("variants[%d] must not be null" % variant_index)
+			continue
+		var variant_id_key: String = str(variant.variant_id)
+		if not variant_id_key.is_empty():
+			if variant_ids.has(variant_id_key):
+				errors.append("variant_id must be unique inside model: %s" % variant_id_key)
+			else:
+				variant_ids[variant_id_key] = true
+		if sort_orders.has(variant.sort_order):
+			errors.append("sort_order must be unique inside model: %d" % variant.sort_order)
+		else:
+			sort_orders[variant.sort_order] = true
+		for variant_error: String in variant.validate():
+			errors.append("variants[%d]: %s" % [variant_index, variant_error])
+
+	if default_variant_id == &"":
+		errors.append("default_variant_id must not be empty")
+	elif get_variant_by_id(default_variant_id) == null:
+		errors.append("default_variant_id must reference a variant in this model")
+	return errors
+
+
 func get_model_name() -> String:
 	if manufacturer != "" and display_name != "":
 		return "%s %s" % [manufacturer, display_name]

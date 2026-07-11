@@ -5,6 +5,44 @@ class_name CarCatalog
 @export var models: Array[CarModelDefinition] = []
 
 
+func is_valid() -> bool:
+	return validate().is_empty()
+
+
+func validate() -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	if models.is_empty():
+		errors.append("models must contain at least one entry")
+
+	var model_ids: Dictionary = {}
+	var global_variant_ids: Dictionary = {}
+	for model_index: int in range(models.size()):
+		var model: CarModelDefinition = models[model_index]
+		if model == null:
+			errors.append("models[%d] must not be null" % model_index)
+			continue
+
+		var model_id_key: String = str(model.model_id)
+		if not model_id_key.is_empty():
+			if model_ids.has(model_id_key):
+				errors.append("model_id must be globally unique: %s" % model_id_key)
+			else:
+				model_ids[model_id_key] = true
+
+		for variant: CarVariantDefinition in model.variants:
+			if variant == null or variant.variant_id == &"":
+				continue
+			var variant_id_key: String = str(variant.variant_id)
+			if global_variant_ids.has(variant_id_key):
+				errors.append("variant_id must be globally unique: %s" % variant_id_key)
+			else:
+				global_variant_ids[variant_id_key] = true
+
+		for model_error: String in model.validate():
+			errors.append("models[%d]: %s" % [model_index, model_error])
+	return errors
+
+
 func get_models() -> Array[CarModelDefinition]:
 	var result: Array[CarModelDefinition] = []
 	for model: CarModelDefinition in models:
