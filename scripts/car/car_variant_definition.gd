@@ -26,6 +26,34 @@ var mass_kg: float:
 		return get_mass_kg()
 
 
+func is_valid() -> bool:
+	return validate().is_empty()
+
+
+func validate() -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	if variant_id == &"":
+		errors.append("variant_id must not be empty")
+	if get_menu_name().strip_edges().is_empty():
+		errors.append("variant menu name must not be empty")
+	if sort_order < 0:
+		errors.append("sort_order must be non-negative")
+	if car_scene == null:
+		errors.append("car_scene must not be null")
+	if specs == null:
+		errors.append("specs must not be null")
+	else:
+		for specs_error: String in specs.validate():
+			errors.append("specs: %s" % specs_error)
+	if engine_label.strip_edges().is_empty():
+		errors.append("engine_label must not be empty")
+	if drivetrain_label.strip_edges().is_empty():
+		errors.append("drivetrain_label must not be empty")
+	if ai_eligible and specs != null and not specs.is_automatic_transmission():
+		errors.append("ai_eligible variants must use an automatic transmission")
+	return errors
+
+
 func get_menu_name() -> String:
 	if display_name != "":
 		return display_name
