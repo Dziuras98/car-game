@@ -8,9 +8,10 @@ The project is intentionally kept text-heavy and regression-tested so gameplay s
 
 The repository currently provides:
 
-- free-drive and race modes;
+- free-drive and race modes with explicit mode validation and rollback on failed session startup;
 - catalog-driven track, car model and car variant selection through typed resource arrays;
 - Nissan 370Z-style 6MT and 7AT variants backed by `CarSpecs` resources;
+- explicit AI eligibility on supported car variants and all-or-nothing opponent spawning;
 - a modular `CharacterBody3D` vehicle runtime with powertrain, transmission, tire, four-point ground-contact and reset helpers;
 - `TransmissionType` as the sole transmission-mode state;
 - surface-dependent grip and a friction-circle longitudinal-force budget;
@@ -22,7 +23,7 @@ The repository currently provides:
 - keyboard, gamepad and independent mobile touch input;
 - bounded procedural audio voices and skid-mark buffers;
 - Windows and Android export presets;
-- automatically discovered regression tests with per-command timeouts and runtime-error detection.
+- one complete project-verification entrypoint and automatically discovered regression tests with per-command timeouts and runtime-error detection.
 
 The project remains a prototype. Structural correctness and test coverage take priority over adding more cars or tracks.
 
@@ -44,7 +45,7 @@ The project remains a prototype. Structural correctness and test coverage take p
 3. Run the project with `F6`/`F5` as appropriate.
 4. Select mode, track, model and variant in the menu.
 
-The active track is created before the selected car. Free drive enables input immediately; race mode spawns opponents and runs the countdown first.
+The active track is created before the selected car. A gameplay session is considered started only after the exact mode/track/variant IDs, player car and required race participants validate. A failed step clears partial runtime state and returns to the menu. Free drive enables input immediately; race mode starts the countdown only after the complete opponent set and lap tracking are ready.
 
 ## Controls
 
@@ -86,6 +87,8 @@ Important paths:
 
 `CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The base 370Z scene contains visual, collision and audio structure only and does not serialize tuning values.
 
+`CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. The automatic 370Z is eligible; the manual variant remains player-selectable and is never used as an implicit opponent fallback.
+
 ### Tracks
 
 ```text
@@ -110,7 +113,7 @@ Important paths:
 
 ## Runtime architecture
 
-`GameManager` coordinates menu state, active track, spawning, camera/HUD binding and transitions between free drive and race. Detailed responsibilities are delegated to:
+`GameManager` coordinates menu state, active track, transactional session startup, spawning, camera/HUD binding and transitions between free drive and race. Detailed responsibilities are delegated to:
 
 - `CarSelectionState`, `MenuOptionsBuilder` and `TrackSpawnController`;
 - `CarSpawner`, `CarInstanceFactory` and participant spawn helpers;
@@ -124,18 +127,23 @@ See `docs/architecture.md` for the current boundaries.
 
 ## Automated tests
 
-The Windows runner starts with `scripts/ci/run_tests.ps1`.
+The complete Windows verification entrypoint is:
+
+```text
+scripts/ci/verify_project.ps1
+```
 
 It performs:
 
-1. static repository checks;
-2. headless project import;
-3. automatic discovery of standalone tests in `scripts/tests/` that extend `SceneTree`;
-4. automatic discovery of scenes under `scenes/tests/`;
-5. a separate timeout and diagnostic log for every command;
-6. failure on Godot runtime-error output even when the process exits with code `0`.
+1. localization catalog and UI-key validation;
+2. static repository checks;
+3. headless project import;
+4. automatic discovery of standalone tests in `scripts/tests/` that extend `SceneTree`;
+5. automatic discovery of scenes under `scenes/tests/`;
+6. a separate timeout and diagnostic log for every command;
+7. failure on Godot runtime-error output even when the process exits with code `0`.
 
-The static checks also reject orphaned test scripts, production `_for_test` identifiers, completed-migration regressions and reintroduced fallback paths. A runtime test must be one of:
+The static checks also reject orphaned test scripts, production `_for_test` identifiers, completed-migration regressions, implicit mode/index/AI fallbacks, mutable GitHub Action tags and reintroduced architectural fallback paths. A runtime test must be one of:
 
 - a standalone `SceneTree` test;
 - a script referenced by a scene under `scenes/tests/`;
@@ -150,20 +158,26 @@ scenes/tests/full_program_smoke_test.tscn
 
 It runs `scripts/tests/full_program_smoke_test.gd` and covers menu navigation, automatic and manual free drive, braking/reverse, steering, car switching, race setup, AI movement, results cleanup and post-race re-entry.
 
-Run the full Windows suite locally:
+Run the complete Windows suite locally:
 
 ```powershell
-./scripts/ci/run_tests.ps1 `
+./scripts/ci/verify_project.ps1 `
     -GodotBinary "C:\path\to\Godot_v4.7-stable_win64_console.exe"
 ```
+
+Use `scripts/ci/run_tests.ps1` directly only for focused test work that intentionally skips localization orchestration.
 
 ## Export validation
 
 ### Windows
 
+`.github/workflows/windows-tests.yml` runs on `windows-2025`, pins GitHub actions to immutable commit SHAs, verifies the SHA-512 checksums of the Godot editor and export-template archives, invokes the complete project verification and then exports/smoke-tests both Windows presets.
+
 `scripts/ci/export_windows.ps1` creates and smoke-tests both the normal packaged startup and the packaged regression route. Successful workflow artifacts contain the executable, PCK and diagnostic logs.
 
 ### Android
+
+`.github/workflows/android-export.yml` runs on `ubuntu-24.04`, pins actions to immutable commits and verifies downloaded Godot archives before export.
 
 `scripts/ci/export_android.sh` exports the debug APK, validates the package and manifest, and does not require a connected device. Device deployment remains a separate manual step.
 
@@ -172,7 +186,7 @@ See `docs/continuous_integration.md` for exact gates and artifact behavior.
 ## Documentation
 
 - `docs/architecture.md` — subsystem ownership and dependency boundaries;
-- `docs/car_catalog.md` — car catalog/model/variant/spec rules;
+- `docs/car_catalog.md` — car catalog/model/variant/spec and AI-eligibility rules;
 - `docs/vehicle_model.md` — current handling and powertrain model;
 - `docs/roadmap.md` — completed remediation stages and separately deferred feature expansion;
 - `docs/continuous_integration.md` — Windows and Android CI;
@@ -187,3 +201,4 @@ See `docs/continuous_integration.md` for exact gates and artifact behavior.
 5. Update the relevant documentation when ownership or data flow changes.
 6. Do not introduce an alternate fallback path when an explicit catalog or resource field already owns the decision.
 7. Do not expose test-only suffixes or simulation entry points from production classes.
+8. Preserve prepare-then-commit semantics for tracks, session startup and opponent sets.
