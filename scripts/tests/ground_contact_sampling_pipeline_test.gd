@@ -1,4 +1,4 @@
-extends Node
+extends SceneTree
 
 const TEST_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
 
@@ -49,14 +49,14 @@ class CountingChassis:
 		skid_update_count += 1
 
 
-func _ready() -> void:
+func _initialize() -> void:
 	_run.call_deferred()
 
 
 func _run() -> void:
 	var car: PlayerCarController = PlayerCarController.new()
 	car.car_specs = TEST_SPECS
-	add_child(car)
+	root.add_child(car)
 	car.set_physics_process(false)
 	car.set_external_input_enabled(true)
 	car.set_external_drive_inputs(0.5, 0.0, 0.25)
@@ -78,7 +78,7 @@ func _run() -> void:
 	_expect(counting_chassis.skid_update_count == 1, "a fine frame updates skid marks once")
 
 	car.queue_free()
-	await get_tree().process_frame
+	await process_frame
 	_finish()
 
 
@@ -94,9 +94,9 @@ func _expect(condition: bool, message: String) -> void:
 func _finish() -> void:
 	if _failures.is_empty():
 		print("[GROUND_CONTACT_SAMPLING_PIPELINE_TEST] Passed: %d checks" % _checks)
-		get_tree().quit(0)
+		quit(0)
 		return
 	push_error("[GROUND_CONTACT_SAMPLING_PIPELINE_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[GROUND_CONTACT_SAMPLING_PIPELINE_TEST] - %s" % failure_message)
-	get_tree().quit(1)
+	quit(1)
