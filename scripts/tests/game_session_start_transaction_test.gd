@@ -51,6 +51,15 @@ class TransactionHarness:
 		return fail_step != &"race"
 
 
+class TransactionCase:
+	extends RefCounted
+
+	var state: GameSessionState
+	var selection: CarSelectionState
+	var harness: TransactionHarness
+	var transaction: GameSessionStartTransaction
+
+
 func _initialize() -> void:
 	_test_unconfigured_transaction()
 	_test_validation_failures()
@@ -74,7 +83,7 @@ func _test_unconfigured_transaction() -> void:
 
 
 func _test_validation_failures() -> void:
-	var invalid_mode_case: Dictionary = _build_case()
+	var invalid_mode_case: TransactionCase = _build_case()
 	var invalid_mode_result: GameSessionStartTransaction.Result = invalid_mode_case.transaction.execute(
 		&"unsupported",
 		VALID_TRACK_ID,
@@ -85,7 +94,7 @@ func _test_validation_failures() -> void:
 	_expect(invalid_mode_case.harness.reset_count == 1, "unsupported mode restores the runtime once")
 	_expect(invalid_mode_case.state.is_menu(), "unsupported mode leaves lifecycle in menu")
 
-	var invalid_car_case: Dictionary = _build_case()
+	var invalid_car_case: TransactionCase = _build_case()
 	var invalid_car_result: GameSessionStartTransaction.Result = invalid_car_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
@@ -95,7 +104,7 @@ func _test_validation_failures() -> void:
 	_expect(invalid_car_result == GameSessionStartTransaction.Result.UNAVAILABLE_CAR_VARIANT, "unavailable car variant has a distinct result")
 	_expect(invalid_car_case.harness.call_order == [&"reset"], "invalid car selection does not activate track or runtime")
 
-	var invalid_track_case: Dictionary = _build_case()
+	var invalid_track_case: TransactionCase = _build_case()
 	var invalid_track_result: GameSessionStartTransaction.Result = invalid_track_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		&"missing_track",
@@ -107,7 +116,7 @@ func _test_validation_failures() -> void:
 
 
 func _test_successful_free_drive_transaction() -> void:
-	var test_case: Dictionary = _build_case()
+	var test_case: TransactionCase = _build_case()
 	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
@@ -125,7 +134,7 @@ func _test_successful_free_drive_transaction() -> void:
 
 
 func _test_successful_race_transaction() -> void:
-	var test_case: Dictionary = _build_case()
+	var test_case: TransactionCase = _build_case()
 	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
 		GameModes.RACE,
 		VALID_TRACK_ID,
@@ -149,7 +158,7 @@ func _run_stage_failure(
 	expected_result: GameSessionStartTransaction.Result,
 	mode_id: StringName = GameModes.FREE_DRIVE
 ) -> void:
-	var test_case: Dictionary = _build_case(fail_step)
+	var test_case: TransactionCase = _build_case(fail_step)
 	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
 		mode_id,
 		VALID_TRACK_ID,
@@ -163,7 +172,7 @@ func _run_stage_failure(
 
 
 func _test_session_begin_rejection() -> void:
-	var test_case: Dictionary = _build_case()
+	var test_case: TransactionCase = _build_case()
 	_expect(test_case.state.begin_start() == GameSessionState.Result.OK, "begin-rejection fixture enters starting phase")
 	_expect(
 		test_case.state.commit(GameModes.FREE_DRIVE, VALID_TRACK_ID, VALID_VARIANT_ID) == GameSessionState.Result.OK,
@@ -181,7 +190,7 @@ func _test_session_begin_rejection() -> void:
 
 
 func _test_commit_rejection() -> void:
-	var test_case: Dictionary = _build_case(&"commit")
+	var test_case: TransactionCase = _build_case(&"commit")
 	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
 		GameModes.RACE,
 		VALID_TRACK_ID,
@@ -192,30 +201,26 @@ func _test_commit_rejection() -> void:
 	_expect(test_case.state.is_menu(), "commit rejection rolls back partial race runtime")
 
 
-func _build_case(fail_step: StringName = &"") -> Dictionary:
-	var state: GameSessionState = GameSessionState.new()
-	var selection: CarSelectionState = CarSelectionState.new()
-	selection.configure(CAR_CATALOG)
-	var harness: TransactionHarness = TransactionHarness.new(state)
-	harness.fail_step = fail_step
-	var transaction: GameSessionStartTransaction = GameSessionStartTransaction.new()
-	var configured: bool = transaction.configure(
-		state,
-		selection,
+func _build_case(fail_step: StringName = &"") -> TransactionCase:
+	var test_case: TransactionCase = TransactionCase.new()
+	test_case.state = GameSessionState.new()
+	test_case.selection = CarSelectionState.new()
+	test_case.selection.configure(CAR_CATALOG)
+	test_case.harness = TransactionHarness.new(test_case.state)
+	test_case.harness.fail_step = fail_step
+	test_case.transaction = GameSessionStartTransaction.new()
+	var configured: bool = test_case.transaction.configure(
+		test_case.state,
+		test_case.selection,
 		TRACK_CATALOG,
-		Callable(harness, "reset_runtime"),
-		Callable(harness, "activate_track"),
-		Callable(harness, "configure_runtime"),
-		Callable(harness, "spawn_player"),
-		Callable(harness, "start_race")
+		Callable(test_case.harness, "reset_runtime"),
+		Callable(test_case.harness, "activate_track"),
+		Callable(test_case.harness, "configure_runtime"),
+		Callable(test_case.harness, "spawn_player"),
+		Callable(test_case.harness, "start_race")
 	)
 	_expect(configured, "transaction fixture configures")
-	return {
-		"state": state,
-		"selection": selection,
-		"harness": harness,
-		"transaction": transaction,
-	}
+	return test_case
 
 
 func _expect(condition: bool, message: String) -> void:
