@@ -37,6 +37,61 @@ function New-JUnitTestResult {
     }
 }
 
+function Read-JUnitReportResults {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "JUnit source report was not found: $Path"
+    }
+
+    [xml]$document = Get-Content -LiteralPath $Path -Raw
+    $testCaseNodes = @($document.SelectNodes("/testsuites/testsuite/testcase"))
+    $results = [System.Collections.Generic.List[object]]::new()
+    $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+
+    foreach ($testCaseNode in $testCaseNodes) {
+        $durationSeconds = 0.0
+        $durationText = $testCaseNode.GetAttribute("time")
+        if (
+            -not [string]::IsNullOrWhiteSpace($durationText) -and
+            -not [double]::TryParse(
+                $durationText,
+                [System.Globalization.NumberStyles]::Float,
+                $invariantCulture,
+                [ref]$durationSeconds
+            )
+        ) {
+            throw "JUnit testcase has an invalid duration '$durationText' in ${Path}."
+        }
+
+        $failureNode = $testCaseNode.SelectSingleNode("failure")
+        $outputNode = $testCaseNode.SelectSingleNode("system-out")
+        $status = if ($null -eq $failureNode) { "passed" } else { "failed" }
+        $message = ""
+        if ($null -ne $failureNode) {
+            $message = $failureNode.GetAttribute("message")
+            if ([string]::IsNullOrEmpty($message)) {
+                $message = $failureNode.InnerText
+            }
+        }
+        $output = if ($null -eq $outputNode) { "" } else { $outputNode.InnerText }
+
+        [void]$results.Add((New-JUnitTestResult `
+            -Name $testCaseNode.GetAttribute("name") `
+            -ClassName $testCaseNode.GetAttribute("classname") `
+            -DurationSeconds $durationSeconds `
+            -Status $status `
+            -Message $message `
+            -Output $output
+        ))
+    }
+
+    return @($results)
+}
+
 function Write-JUnitReport {
     param(
         [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$Results,
@@ -125,4 +180,25 @@ function Write-JUnitReport {
     if ((Get-Item -LiteralPath $fullPath).Length -le 0) {
         throw "JUnit report is empty: $fullPath"
     }
+}
+
+function Merge-JUnitReports {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$SourcePaths,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$SuiteName
+    )
+
+    if ($SourcePaths.Count -eq 0) {
+        throw "At least one JUnit source report is required."
+    }
+
+    $mergedResults = [System.Collections.Generic.List[object]]::new()
+    foreach ($sourcePath in $SourcePaths) {
+        foreach ($result in Read-JUnitReportResults -Path $sourcePath) {
+            [void]$mergedResults.Add($result)
+        }
+    }
+
+    Write-JUnitReport -Results @($mergedResults) -Path $Path -SuiteName $SuiteName
 }
