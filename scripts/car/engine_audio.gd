@@ -23,6 +23,12 @@ const BANK_BALANCE := [1.000, 0.972, 1.000, 0.972, 1.000, 0.972]
 @export_range(0.0, 1.0, 0.01) var idle_irregularity: float = 0.018
 @export_range(0.0, 1.0, 0.01) var induction_transient: float = 0.24
 
+@export_category("Start and stop")
+@export var play_startup_on_ready: bool = false
+@export_range(0.2, 2.0, 0.05) var starter_duration: float = 0.80
+@export_range(0.0, 1.0, 0.01) var starter_motor_level: float = 0.20
+@export_range(0.3, 3.0, 0.05) var shutdown_duration: float = 1.10
+
 @export_category("Limiter")
 @export_range(0.02, 0.20, 0.005) var limiter_period: float = 0.060
 @export_range(0.1, 0.9, 0.01) var limiter_cut_ratio: float = 0.46
@@ -68,6 +74,11 @@ var _crackle_timer: float = 0.0
 var _crackle_envelope: float = 0.0
 var _limiter_phase: float = 0.0
 var _limiter_active: bool = false
+var _startup_remaining: float = 0.0
+var _shutdown_remaining: float = 0.0
+var _shutdown_start_rpm: float = 0.0
+var _starter_phase: float = 0.0
+var _engine_running: bool = true
 
 var _dc_previous_input: float = 0.0
 var _dc_previous_output: float = 0.0
@@ -91,6 +102,8 @@ func _ready() -> void:
 	volume_db = idle_volume_db
 	play()
 	_playback = get_stream_playback() as AudioStreamGeneratorPlayback
+	if play_startup_on_ready:
+		trigger_engine_start()
 
 
 func _process(delta: float) -> void:
@@ -102,6 +115,15 @@ func _process(delta: float) -> void:
 	var target_rpm: float = debug_rpm if debug_override_enabled else _car.get_engine_rpm()
 	var target_load: float = debug_load if debug_override_enabled else _car.get_engine_load()
 	var target_throttle: float = debug_throttle if debug_override_enabled else _car.get_throttle_input()
+	if _shutdown_remaining > 0.0:
+		var shutdown_ratio: float = clampf(_shutdown_remaining / maxf(shutdown_duration, 0.01), 0.0, 1.0)
+		target_rpm = _shutdown_start_rpm * shutdown_ratio
+		target_load = 0.0
+		target_throttle = 0.0
+	elif not _engine_running:
+		target_rpm = 0.0
+		target_load = 0.0
+		target_throttle = 0.0
 	var point: Dictionary = sanitize_operating_point(
 		target_rpm,
 		target_load,
@@ -130,6 +152,21 @@ func _exit_tree() -> void:
 
 func get_debug_state() -> Dictionary:
 	return _debug_state.duplicate(true)
+
+
+func trigger_engine_start() -> void:
+	_engine_running = true
+	_shutdown_remaining = 0.0
+	_startup_remaining = maxf(starter_duration, 0.0)
+	_smoothed_rpm = minf(_smoothed_rpm, 230.0)
+	_smoothed_load = 0.0
+	_smoothed_throttle = 0.0
+
+
+func trigger_engine_shutdown() -> void:
+	_startup_remaining = 0.0
+	_shutdown_remaining = maxf(shutdown_duration, 0.0)
+	_shutdown_start_rpm = maxf(_smoothed_rpm, _get_idle_rpm())
 
 
 func generate_test_frames(frame_count: int, rpm: float, load: float, throttle: float) -> PackedFloat32Array:
@@ -245,10 +282,37 @@ func _generate_sample() -> float:
 		limiter_residual_combustion
 	)
 
+	var startup_progress: float = 1.0
+	var startup_combustion_gate: float = 1.0
+	var starter_motor: float = 0.0
+	if _startup_remaining > 0.0:
+		var safe_starter_duration: float = maxf(starter_duration, 0.01)
+		startup_progress = 1.0 - clampf(_startup_remaining / safe_starter_duration, 0.0, 1.0)
+		startup_combustion_gate = _smoothstep((startup_progress - 0.24) / 0.46)
+		var starter_frequency: float = 115.0 + startup_progress * 95.0
+		_starter_phase = fposmod(_starter_phase + TAU * starter_frequency * delta, TAU)
+		var starter_envelope: float = sin(clampf(startup_progress, 0.0, 1.0) * PI)
+		starter_motor = (
+			sin(_starter_phase) * 0.72
+			+ sin(_starter_phase * 2.0) * 0.20
+			+ _noise_medium * 0.08
+		) * starter_envelope * starter_motor_level
+		_startup_remaining = maxf(_startup_remaining - delta, 0.0)
+
+	var shutdown_gate: float = 1.0
+	if _shutdown_remaining > 0.0:
+		var safe_shutdown_duration: float = maxf(shutdown_duration, 0.01)
+		var shutdown_progress: float = 1.0 - clampf(_shutdown_remaining / safe_shutdown_duration, 0.0, 1.0)
+		shutdown_gate = 1.0 - _smoothstep(shutdown_progress)
+		_shutdown_remaining = maxf(_shutdown_remaining - delta, 0.0)
+		if _shutdown_remaining <= 0.0:
+			_engine_running = false
+
+	var combustion_state_gate: float = 1.0 if _engine_running or _shutdown_remaining > 0.0 else 0.0
 	var cylinder_gain: float = float(CYLINDER_GAINS[_firing_index])
 	var bank_mix: float = clampf(bank_asymmetry / 0.035, 0.0, 2.0) if bank_asymmetry > 0.0 else 0.0
 	var bank_gain: float = lerpf(1.0, float(BANK_BALANCE[_firing_index]), bank_mix)
-	var pulse: float = combustion_pulse(_phase_firing) * cylinder_gain * bank_gain * ignition_gate
+	var pulse: float = combustion_pulse(_phase_firing) * cylinder_gain * bank_gain * ignition_gate * startup_combustion_gate * shutdown_gate * combustion_state_gate
 	var pulse_derivative: float = pulse - _previous_combustion
 	_previous_combustion = pulse
 
@@ -264,7 +328,7 @@ func _generate_sample() -> float:
 		+ sin(_phase_firing * 2.0) * 0.11
 		+ sin(_phase_firing * 3.0) * 0.055
 		+ sin(_phase_firing * 4.0) * 0.035 * high_rpm_blend
-	)
+	) * startup_combustion_gate * shutdown_gate * combustion_state_gate
 	var crank_body: float = sin(_phase_crank) * 0.06 + sin(_phase_crank * 2.0) * 0.045
 
 	var exhaust_input: float = pulse * (0.78 + load * 0.40) + firing_harmonics * 0.32
@@ -309,7 +373,7 @@ func _generate_sample() -> float:
 		+ rasp_mix
 		+ mechanical_mix
 		+ overrun_mix
-	) * load_gain * rpm_gain * 0.29
+	) * load_gain * rpm_gain * 0.29 + starter_motor * 0.34
 
 	var dc_blocked: float = sample - _dc_previous_input + 0.996 * _dc_previous_output
 	_dc_previous_input = sample
@@ -398,6 +462,9 @@ func _update_debug_state() -> void:
 		"overrun": _overrun_amount,
 		"induction_transient": _throttle_transient,
 		"rpm_ratio": _smoothed_rpm / maxf(rev_limit_rpm, 1.0),
+		"startup_active": _startup_remaining > 0.0,
+		"shutdown_active": _shutdown_remaining > 0.0,
+		"engine_running": _engine_running,
 	}
 
 
@@ -424,6 +491,11 @@ func _reset_synthesis_state() -> void:
 	_crackle_envelope = 0.0
 	_limiter_phase = 0.0
 	_limiter_active = false
+	_startup_remaining = 0.0
+	_shutdown_remaining = 0.0
+	_shutdown_start_rpm = 0.0
+	_starter_phase = 0.0
+	_engine_running = true
 	_dc_previous_input = 0.0
 	_dc_previous_output = 0.0
 
