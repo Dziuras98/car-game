@@ -2,6 +2,8 @@ extends SceneTree
 
 const FRAME_COUNT: int = 16384
 const ANALYSIS_START: int = 4096
+const PREVIOUS_OUTPUT_BOOST_DB: float = 4.0
+const REQUESTED_GLOBAL_INCREASE_DB: float = 5.0
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -24,9 +26,10 @@ func _run() -> void:
 	car_root.add_child(profile)
 	await process_frame
 
-	_expect(is_equal_approx(engine_audio.idle_volume_db, -10.0), "370Z profile raises the closed-throttle player level")
-	_expect(is_equal_approx(engine_audio.load_volume_db, -5.0), "370Z full-load player level remains unchanged")
-	_expect(engine_audio.load_volume_db - engine_audio.idle_volume_db <= 5.1, "player-volume range cannot mute zero-load operation")
+	_expect(is_equal_approx(engine_audio.output_volume_boost_db, PREVIOUS_OUTPUT_BOOST_DB + REQUESTED_GLOBAL_INCREASE_DB), "370Z profile adds exactly 5 dB of global output gain")
+	_expect(is_equal_approx(engine_audio.idle_volume_db, -10.0), "370Z minimum player level keeps closed-throttle operation audible")
+	_expect(is_equal_approx(engine_audio.load_volume_db, 0.0), "370Z maximum player level is set to 0 dB")
+	_expect(is_equal_approx(engine_audio.load_volume_db - engine_audio.idle_volume_db, 10.0), "370Z player-volume range is exactly 10 dB")
 
 	var no_load_frames: PackedFloat32Array = engine_audio.generate_test_frames(FRAME_COUNT, 3000.0, 0.0, 0.0)
 	var loaded_frames: PackedFloat32Array = engine_audio.generate_test_frames(FRAME_COUNT, 3000.0, 0.50, 0.50)
@@ -47,16 +50,18 @@ func _run() -> void:
 	)
 
 	print(
-		"[370Z_CLOSED_THROTTLE_AUDIO_TEST] idle_rms=%.7f no_load_3000_rms=%.7f loaded_3000_rms=%.7f ratio=%.3f" % [
+		"[370Z_CLOSED_THROTTLE_AUDIO_TEST] idle_rms=%.7f no_load_3000_rms=%.7f loaded_3000_rms=%.7f ratio=%.3f output_boost_db=%.1f volume_span_db=%.1f" % [
 			idle_output_rms,
 			no_load_output_rms,
 			loaded_output_rms,
 			no_load_output_rms / maxf(loaded_output_rms, 0.000000001),
+			engine_audio.output_volume_boost_db,
+			engine_audio.load_volume_db - engine_audio.idle_volume_db,
 		]
 	)
-	_expect(idle_output_rms > 0.003, "zero-input idle remains clearly above the silence floor")
-	_expect(no_load_output_rms > 0.004, "closed-throttle engine braking remains audible at 3000 RPM")
-	_expect(no_load_output_rms > loaded_output_rms * 0.25, "closed-throttle output stays within 12 dB of moderate load")
+	_expect(idle_output_rms > 0.005, "zero-input idle remains clearly above the silence floor after the gain increase")
+	_expect(no_load_output_rms > 0.007, "closed-throttle engine braking remains audible at 3000 RPM")
+	_expect(no_load_output_rms > loaded_output_rms * 0.20, "closed-throttle output remains within 14 dB of moderate load")
 
 	car_root.queue_free()
 	await process_frame
