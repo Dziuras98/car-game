@@ -103,6 +103,12 @@ try {
         -Action { & (Join-Path $PSScriptRoot "test_junit_report.ps1") }
 
     Write-Host ""
+    Write-Host "=== JUnit job summary rendering ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "JUnit job summary rendering" `
+        -Action { & (Join-Path $PSScriptRoot "test_junit_step_summary.ps1") }
+
+    Write-Host ""
     Write-Host "=== Localization contract ==="
     $null = Invoke-RecordedPreflightCheck `
         -Name "Localization contract" `
