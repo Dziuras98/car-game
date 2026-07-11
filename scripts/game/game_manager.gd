@@ -79,7 +79,7 @@ func _ready() -> void:
 	_race_hud = RaceHud.new()
 	_race_hud.build(self, _active_lap_count, Callable(self, "_return_to_main_menu"))
 	_build_pause_menu()
-	if not _configure_runtime_for_active_track() or not _configure_session_start_transaction():
+	if not _configure_runtime_for_session_track() or not _configure_session_start_transaction():
 		set_process(false)
 		set_physics_process(false)
 		return
@@ -204,33 +204,69 @@ func _activate_track(definition: TrackDefinition) -> bool:
 	if definition == null or not definition.is_valid():
 		push_error("Cannot activate an invalid track definition.")
 		return false
-	if (
-		_active_track_definition != null
-		and _active_track_definition.track_id == definition.track_id
-		and is_instance_valid(_track)
-	):
-		_active_lap_count = _resolve_lap_count(definition)
-		return true
-
 	var next_track: GeneratedTrack = _track_spawn_controller.spawn_track(definition)
 	if next_track == null:
 		return false
-	_track = next_track
-	_active_track_definition = definition
-	_active_lap_count = _resolve_lap_count(definition)
+	_sync_active_track_state()
 	return true
+
+
+func _stage_track(definition: TrackDefinition) -> bool:
+	if definition == null or not definition.is_valid():
+		return false
+	return _track_spawn_controller.stage_track(definition) != null
+
+
+func _commit_staged_track() -> bool:
+	if _track_spawn_controller.commit_staged_track() == null:
+		return false
+	_sync_active_track_state()
+	_update_car_targets()
+	return true
+
+
+func _finalize_staged_track_commit() -> void:
+	_track_spawn_controller.finalize_track_commit()
+
+
+func _sync_active_track_state() -> void:
+	_track = _track_spawn_controller.get_current_track()
+	_active_track_definition = _track_spawn_controller.get_current_definition()
+	if _active_track_definition != null:
+		_active_lap_count = _resolve_lap_count(_active_track_definition)
+	if _minimap != null:
+		_minimap.set_track_node(_track)
+
+
+func _get_session_track() -> GeneratedTrack:
+	var staged_track: GeneratedTrack = _track_spawn_controller.get_staged_track()
+	return staged_track if is_instance_valid(staged_track) else _track
+
+
+func _get_session_track_definition() -> TrackDefinition:
+	var staged_definition: TrackDefinition = _track_spawn_controller.get_staged_definition()
+	return staged_definition if staged_definition != null else _active_track_definition
+
+
+func _get_session_lap_count() -> int:
+	var definition: TrackDefinition = _get_session_track_definition()
+	return _resolve_lap_count(definition) if definition != null else _active_lap_count
 
 
 func _resolve_lap_count(definition: TrackDefinition) -> int:
 	return maxi(definition.recommended_laps, 1) if use_track_recommended_laps else maxi(race_lap_count, 1)
 
 
-func _configure_runtime_for_active_track() -> bool:
+func _configure_runtime_for_session_track() -> bool:
+	var session_track: GeneratedTrack = _get_session_track()
+	if not is_instance_valid(session_track):
+		return false
+	var session_lap_count: int = _get_session_lap_count()
 	var next_car_spawner: CarSpawner = CarSpawner.new()
 	if not next_car_spawner.configure(
 		self,
 		_car_spawn,
-		_track,
+		session_track,
 		_car_selection_state.get_available_car_variants(),
 		opponent_lane_spacing,
 		opponent_row_spacing,
@@ -242,16 +278,16 @@ func _configure_runtime_for_active_track() -> bool:
 	if not next_race_session.configure(
 		next_car_spawner,
 		_race_hud,
-		_track,
+		session_track,
 		_minimap,
-		_active_lap_count,
+		session_lap_count,
 		opponent_count
 	):
 		return false
 
 	_car_spawner = next_car_spawner
 	_race_session = next_race_session
-	_minimap.set_track_node(_track)
+	_minimap.set_track_node(session_track)
 	return true
 
 
@@ -261,11 +297,13 @@ func _configure_session_start_transaction() -> bool:
 		_session_state,
 		_car_selection_state,
 		track_catalog,
-		Callable(self, "_clear_active_session").bind(false),
-		Callable(self, "_activate_track"),
-		Callable(self, "_configure_runtime_for_active_track"),
+		Callable(self, "_reset_session_start_runtime"),
+		Callable(self, "_stage_track"),
+		Callable(self, "_configure_runtime_for_session_track"),
 		Callable(self, "_spawn_car"),
-		Callable(self, "_start_race")
+		Callable(self, "_start_race"),
+		Callable(self, "_commit_staged_track"),
+		Callable(self, "_finalize_staged_track_commit")
 	)
 
 
@@ -320,6 +358,8 @@ func _handle_session_start_failure(result: GameSessionStartTransaction.Result) -
 		return
 	if not message.is_empty():
 		push_error(message)
+	if result == GameSessionStartTransaction.Result.SESSION_BEGIN_REJECTED:
+		return
 	_menu.reset_menu()
 
 
@@ -354,7 +394,7 @@ func _update_car_targets() -> void:
 	_camera.set_target_node(_current_car)
 	_speedometer.set_target_node(_current_car)
 	_minimap.set_target_node(_current_car)
-	_minimap.set_track_node(_track)
+	_minimap.set_track_node(_get_session_track())
 	var opponents: Array[PlayerCarController] = []
 	if _race_session != null:
 		opponents = _race_session.get_opponents()
@@ -375,14 +415,27 @@ func _clear_current_car() -> void:
 	_minimap.set_opponents([])
 
 
-func _clear_active_session(resume_game: bool) -> void:
+func _clear_runtime_state(resume_game: bool) -> void:
 	if resume_game and _pause_menu != null:
 		_pause_menu.resume_game()
 	if _race_session != null:
 		_race_session.reset_to_menu_state()
 	_clear_current_car()
-	_session_state.reset()
+	_car_spawner = null
+	_race_session = null
 	_set_driving_ui_visible(false)
+
+
+func _reset_session_start_runtime() -> void:
+	_clear_runtime_state(false)
+	if _track_spawn_controller != null:
+		_track_spawn_controller.rollback_track_transaction()
+		_sync_active_track_state()
+
+
+func _clear_active_session(resume_game: bool) -> void:
+	_clear_runtime_state(resume_game)
+	_session_state.reset()
 
 
 func _reset_to_main_menu(message: String = "", resume_game: bool = false) -> void:
