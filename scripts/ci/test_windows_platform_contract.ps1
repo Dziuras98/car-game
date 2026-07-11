@@ -95,6 +95,10 @@ texture_format/etc2_astc=false
 $validWorkflow = @'
 name: Windows tests
 
+concurrency:
+  group: windows-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   GODOT_ARCHIVE: Godot_v4.7-stable_win64.exe.zip
   GODOT_EXECUTABLE: Godot_v4.7-stable_win64_console.exe
@@ -111,6 +115,9 @@ jobs:
           $debugSource = "windows_debug_x86_64.exe"
       - shell: pwsh
         run: ./scripts/ci/export_windows.ps1 -GodotBinary $env:GODOT_BIN
+      - name: Upload trusted Windows packages
+        with:
+          if-no-files-found: error
 '@
 
 function Write-ValidFixture {
@@ -190,6 +197,26 @@ texture_format/etc2_astc=false
         -Values $contractFailures `
         -Fragment "Windows export entrypoint" `
         -Message "The validator should require the canonical Windows export script."
+
+    Write-ValidFixture
+    Set-Content -LiteralPath $workflowPath -Value ($validWorkflow -replace '(?m)^\s*cancel-in-progress:.*$', '  cancel-in-progress: true') -Encoding utf8
+    $contractFailures = @(Get-FixtureFailures)
+    Expect-Contains `
+        -Values $contractFailures `
+        -Fragment "pull-request-only cancellation" `
+        -Message "The validator should reject unconditional cancellation."
+    Expect-Contains `
+        -Values $contractFailures `
+        -Fragment "must not cancel in-progress master" `
+        -Message "The validator should explain why unconditional cancellation is unsafe."
+
+    Write-ValidFixture
+    Set-Content -LiteralPath $workflowPath -Value ($validWorkflow -replace 'if-no-files-found: error', 'if-no-files-found: warn') -Encoding utf8
+    $contractFailures = @(Get-FixtureFailures)
+    Expect-Contains `
+        -Values $contractFailures `
+        -Fragment "trusted package missing-file failure" `
+        -Message "The validator should require missing trusted packages to fail the workflow."
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -204,7 +231,9 @@ foreach ($legacyFragment in @(
     'platform="Windows Desktop"',
     'texture_format/s3tc_bptc=true',
     '(?m)^\[preset\.2\]$',
-    'runs-on: windows-2025'
+    'runs-on: windows-2025',
+    'cancel-in-progress:',
+    'if-no-files-found: error'
 )) {
     Expect-NotContains `
         -Value $staticChecksContent `
