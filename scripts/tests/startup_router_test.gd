@@ -18,6 +18,14 @@ func _run() -> void:
 		"project main scene points to the startup router"
 	)
 	_expect(
+		not StartupRouter.should_abort_startup(PackedStringArray()),
+		"startup continues when localization initialization succeeds"
+	)
+	_expect(
+		StartupRouter.should_abort_startup(PackedStringArray(["missing catalog"])),
+		"startup aborts when localization initialization reports an error"
+	)
+	_expect(
 		StartupRouter.resolve_startup_scene(PackedStringArray(), false) == StartupRouter.MAIN_SCENE_PATH,
 		"empty user arguments select the normal main scene"
 	)
