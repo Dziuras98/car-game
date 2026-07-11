@@ -55,7 +55,6 @@ This refactor intentionally did not change:
 - lap tracking;
 - track generation;
 - input mappings;
-- mobile controls;
 - car scenes.
 
 `switch-car` remains free-drive only. Race mode still spawns AI opponents.
