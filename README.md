@@ -49,19 +49,19 @@ The active track is created before the selected car. A gameplay session is consi
 
 ## Controls
 
-| Action | Default input |
-|---|---|
-| Accelerate | `W`, Arrow Up, gamepad trigger |
-| Brake / reverse request | `S`, Arrow Down, gamepad trigger |
-| Steer left / right | `A` / `D`, arrows, gamepad axis |
-| Handbrake | Space |
-| Reset car | `R` |
-| Rear-view camera | `C` |
-| Pause | Esc |
-| Switch car | `T`, free-drive only |
-| Gear up / down | `E` / `Q`, gamepad buttons |
+| Action | Keyboard | Gamepad |
+|---|---|---|
+| Accelerate | `W`, Arrow Up | Right trigger |
+| Brake / reverse request | `S`, Arrow Down | Left trigger |
+| Steer left / right | `A` / `D`, arrows | Left stick |
+| Handbrake | Space | A / Cross |
+| Reset car | `R` | X / Square |
+| Rear-view camera | `C` | Right shoulder |
+| Pause | Esc | Start / Options |
+| Switch car | `T`, free-drive only | Back / View |
+| Gear up / down | `E` / `Q` | Y / Triangle and B / Circle |
 
-Input bindings are defined in `project.godot`. `CarInput` reads the standard action map for the player and keeps AI input on a separate typed channel.
+Input bindings are defined in `project.godot`. `CarInput` reads the standard action map for the player and keeps AI input on a separate typed channel. `scripts/tests/input_mapping_test.gd` requires every gameplay action to retain both a keyboard and a gamepad event.
 
 ## Data ownership
 
