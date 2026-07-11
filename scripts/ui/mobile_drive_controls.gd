@@ -33,6 +33,7 @@ var _held_actions: Dictionary = {
 func _ready() -> void:
 	layer = 30
 	_root = get_node_or_null(root_path) as Control
+	_localize_buttons()
 	_bind_buttons()
 	_apply_visibility()
 
@@ -53,6 +54,20 @@ func set_target_node(target: PlayerCarController) -> void:
 		_target.clear_touch_input()
 	_target = target
 	_sync_drive_state()
+
+
+func _localize_buttons() -> void:
+	_set_button_text(accelerate_button_path, tr("GAZ"))
+	_set_button_text(brake_button_path, tr("HAMULEC"))
+	_set_button_text(handbrake_button_path, tr("RĘCZNY"))
+	_set_button_text(reset_button_path, tr("RESET"))
+	_set_button_text(camera_back_button_path, tr("KAMERA"))
+
+
+func _set_button_text(button_path: NodePath, translated_text: String) -> void:
+	var button: Button = get_node_or_null(button_path) as Button
+	if button != null:
+		button.text = translated_text
 
 
 func _bind_buttons() -> void:
