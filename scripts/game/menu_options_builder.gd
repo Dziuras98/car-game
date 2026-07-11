@@ -12,7 +12,7 @@ static func build_track_options(track_catalog: TrackCatalog) -> Array[TrackMenuO
 			continue
 		track_options.append(TrackMenuOption.new(
 			definition.track_id,
-			definition.display_name,
+			TranslationServer.translate(definition.display_name),
 			definition.recommended_laps
 		))
 	return track_options
@@ -35,7 +35,7 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 				continue
 			variants.append(CarVariantMenuOption.new(
 				variant.variant_id,
-				variant.get_menu_name()
+				TranslationServer.translate(variant.get_menu_name())
 			))
 		if not variants.is_empty():
 			menu_models.append(CarModelMenuOption.new(
