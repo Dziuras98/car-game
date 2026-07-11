@@ -20,7 +20,7 @@ The job executes:
 6. export the production and test presets;
 7. smoke-test normal packaged startup;
 8. smoke-test the packaged regression route;
-9. upload the complete `build/` directory even after a failure when diagnostic files exist.
+9. upload the complete `build/` directory, including the JUnit report, even after a failure when diagnostic files exist.
 
 The authoritative local/CI verification entrypoint is:
 
@@ -66,9 +66,10 @@ Each Godot invocation has:
 - a current-command marker;
 - a combined stdout/stderr log under `build/test-logs/`;
 - exit-code validation;
-- scanning for `SCRIPT ERROR:`, `ERROR:` and editor-style `E 0:00:...` lines.
+- scanning for `SCRIPT ERROR:`, `ERROR:` and editor-style `E 0:00:...` lines;
+- an individual JUnit testcase containing its status, duration and captured output.
 
-The runtime-error detector has a dedicated regression test so a broken regex cannot silently make the suite permissive. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
+`run_tests.ps1` writes `build/test-logs/junit.xml` in a `finally` block, so completed checks and the first failure are retained even when verification stops early. The report includes static repository checks, project import, both discovery phases and every executed Godot script or scene test. The runtime-error detector and JUnit writer each have dedicated regression tests so a broken diagnostic mechanism cannot silently make the suite permissive or produce invalid XML. `run_tests.ps1` preserves the localization log created by `verify_project.ps1` instead of deleting diagnostics from an earlier verification phase.
 
 ### Canonical full-program smoke test
 
@@ -110,7 +111,7 @@ Successful artifacts are named:
 car-game-windows-<commit-sha>
 ```
 
-They contain the generated executable/PCK, packaged smoke logs and per-command test diagnostics.
+They contain the generated executable/PCK, packaged smoke logs, per-command test diagnostics and `build/test-logs/junit.xml`.
 
 ## Running locally
 
@@ -142,9 +143,10 @@ Matching Godot 4.7 Windows export templates are required for local export comman
 Inspect in this order:
 
 1. `build/test-logs/localization-validation.log` when localization was reached;
-2. `build/test-logs/current-command.log` when present;
-3. `workflow-runner-failure.log`;
-4. the log named after the failed import/script/scene command;
-5. packaged startup/export logs.
+2. `build/test-logs/junit.xml` for the structured status and duration of completed checks;
+3. `build/test-logs/current-command.log` when present;
+4. `workflow-runner-failure.log`;
+5. the log named after the failed import/script/scene command;
+6. packaged startup/export logs.
 
 A green pull request requires the Windows workflow conclusion to be `success` on the current head commit.

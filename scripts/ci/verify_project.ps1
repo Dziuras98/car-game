@@ -21,6 +21,10 @@ Write-Host "=== Godot runtime log validation ==="
 & (Join-Path $PSScriptRoot "test_godot_runtime_log_validation.ps1")
 
 Write-Host ""
+Write-Host "=== JUnit report serialization ==="
+& (Join-Path $PSScriptRoot "test_junit_report.ps1")
+
+Write-Host ""
 Write-Host "=== Localization contract ==="
 try {
     $localizationOutput = @(& (Join-Path $PSScriptRoot "validate_localization.ps1") 2>&1)

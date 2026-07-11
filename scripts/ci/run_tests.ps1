@@ -9,9 +9,12 @@ $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $testLogDirectory = Join-Path $projectRoot "build/test-logs"
 $currentCommandPath = Join-Path $testLogDirectory "current-command.log"
+$junitReportPath = Join-Path $testLogDirectory "junit.xml"
 $requiredNestedScriptTest = "scripts/tests/discovery/nested_script_discovery_test.gd"
 $requiredNestedSceneTest = "scenes/tests/discovery/nested_scene_discovery_test.tscn"
+$testResults = [System.Collections.Generic.List[object]]::new()
 . (Join-Path $PSScriptRoot "godot_runtime_log_validation.ps1")
+. (Join-Path $PSScriptRoot "junit_report.ps1")
 
 if (-not (Test-Path -LiteralPath $GodotBinary -PathType Leaf)) {
     throw "Godot binary was not found: $GodotBinary"
@@ -22,27 +25,66 @@ Get-ChildItem -LiteralPath $testLogDirectory -File -ErrorAction SilentlyContinue
     Where-Object { $_.Name -ne "localization-validation.log" } |
     Remove-Item -Force -ErrorAction SilentlyContinue
 
-Write-Host ""
-Write-Host "=== Static repository checks ==="
-$staticLogPath = Join-Path $testLogDirectory "static-checks.log"
-try {
-    $staticOutput = @(& (Join-Path $PSScriptRoot "run_static_checks.ps1") 2>&1)
-    foreach ($line in $staticOutput) {
-        Write-Host ([string]$line)
+function Invoke-RecordedCheck {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$ClassName,
+        [Parameter(Mandatory = $true)][scriptblock]$Action
+    )
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        $capturedOutput = @(& $Action)
+        $stopwatch.Stop()
+        [void]$script:testResults.Add((New-JUnitTestResult `
+            -Name $Name `
+            -ClassName $ClassName `
+            -DurationSeconds $stopwatch.Elapsed.TotalSeconds `
+            -Status "passed" `
+            -Output (($capturedOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+        ))
+        return $capturedOutput
     }
-    Set-Content -LiteralPath $staticLogPath -Value @($staticOutput | ForEach-Object { [string]$_ }) -Encoding utf8
+    catch {
+        $stopwatch.Stop()
+        $failureText = ($_ | Out-String).Trim()
+        [void]$script:testResults.Add((New-JUnitTestResult `
+            -Name $Name `
+            -ClassName $ClassName `
+            -DurationSeconds $stopwatch.Elapsed.TotalSeconds `
+            -Status "failed" `
+            -Message $failureText
+        ))
+        throw
+    }
 }
-catch {
-    $failureText = $_ | Out-String
-    $capturedOutput = @()
-    if (Test-Path variable:staticOutput) {
-        $capturedOutput = @($staticOutput | ForEach-Object { [string]$_ })
-        foreach ($line in $capturedOutput) {
-            Write-Host $line
+
+function Invoke-StaticRepositoryChecks {
+    $staticLogPath = Join-Path $testLogDirectory "static-checks.log"
+    try {
+        $staticOutput = @(& (Join-Path $PSScriptRoot "run_static_checks.ps1") 2>&1)
+        foreach ($line in $staticOutput) {
+            Write-Host ([string]$line)
         }
+        Set-Content -LiteralPath $staticLogPath -Value @(
+            $staticOutput | ForEach-Object { [string]$_ }
+        ) -Encoding utf8
+        return $staticOutput
     }
-    Set-Content -LiteralPath $staticLogPath -Value ($capturedOutput + @("", $failureText)) -Encoding utf8
-    throw
+    catch {
+        $failureText = $_ | Out-String
+        $capturedOutput = @()
+        if (Test-Path variable:staticOutput) {
+            $capturedOutput = @($staticOutput | ForEach-Object { [string]$_ })
+            foreach ($line in $capturedOutput) {
+                Write-Host $line
+            }
+        }
+        Set-Content -LiteralPath $staticLogPath -Value (
+            $capturedOutput + @("", $failureText)
+        ) -Encoding utf8
+        throw
+    }
 }
 
 function Invoke-GodotCommand {
@@ -136,6 +178,8 @@ function Invoke-GodotCommand {
         -OutputLines $outputLines `
         -Label $Name `
         -DiagnosticPath $logPath
+
+    return @($outputLines)
 }
 
 function Get-ProjectRelativePath {
@@ -143,72 +187,133 @@ function Get-ProjectRelativePath {
     return [System.IO.Path]::GetRelativePath($projectRoot, $FullPath).Replace('\', '/')
 }
 
-Invoke-GodotCommand -Name "Import project resources" -TimeoutSeconds 300 -CommandArguments @(
-    "--headless",
-    "--path", $projectRoot,
-    "--import"
-)
+$verificationFailed = $false
+try {
+    Write-Host ""
+    Write-Host "=== Static repository checks ==="
+    $null = Invoke-RecordedCheck `
+        -Name "Static repository checks" `
+        -ClassName "repository.static" `
+        -Action { Invoke-StaticRepositoryChecks }
 
-$excludedScriptTests = @(
-    "scripts/tests/exported_build_smoke_test.gd",
-    "scripts/tests/full_program_smoke_test.gd",
-    "scripts/tests/game_test_adapter.gd",
-    "scripts/tests/run_full_program_smoke_test.gd"
-)
-$scriptTests = @(
-    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scripts/tests") -Filter "*.gd" -File -Recurse |
-        ForEach-Object {
-            $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
-            $content = Get-Content -LiteralPath $_.FullName -Raw
-            if ($excludedScriptTests -notcontains $relativePath -and $content -match '(?m)^\s*extends\s+SceneTree\s*$') {
-                $relativePath
-            }
-        } |
-        Sort-Object
-)
+    $null = Invoke-RecordedCheck `
+        -Name "Import project resources" `
+        -ClassName "godot.import" `
+        -Action {
+            Invoke-GodotCommand -Name "Import project resources" -TimeoutSeconds 300 -CommandArguments @(
+                "--headless",
+                "--path", $projectRoot,
+                "--import"
+            )
+        }
 
-if ($scriptTests.Count -eq 0) {
-    throw "No standalone SceneTree tests were discovered in scripts/tests."
-}
-if ($scriptTests -notcontains $requiredNestedScriptTest) {
-    throw "Recursive script-test discovery did not include required fixture: $requiredNestedScriptTest"
-}
-
-foreach ($testScript in $scriptTests) {
-    Invoke-GodotCommand -Name "Script test: $testScript" -TimeoutSeconds 120 -CommandArguments @(
-        "--headless",
-        "--path", $projectRoot,
-        "--script", $testScript
+    $excludedScriptTests = @(
+        "scripts/tests/exported_build_smoke_test.gd",
+        "scripts/tests/full_program_smoke_test.gd",
+        "scripts/tests/game_test_adapter.gd",
+        "scripts/tests/run_full_program_smoke_test.gd"
     )
-}
+    $scriptTests = @(Invoke-RecordedCheck `
+        -Name "Discover standalone script tests" `
+        -ClassName "repository.discovery" `
+        -Action {
+            $discoveredTests = @(
+                Get-ChildItem -LiteralPath (Join-Path $projectRoot "scripts/tests") -Filter "*.gd" -File -Recurse |
+                    ForEach-Object {
+                        $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
+                        $content = Get-Content -LiteralPath $_.FullName -Raw
+                        if (
+                            $excludedScriptTests -notcontains $relativePath -and
+                            $content -match '(?m)^\s*extends\s+SceneTree\s*$'
+                        ) {
+                            $relativePath
+                        }
+                    } |
+                    Sort-Object
+            )
 
-$excludedSceneTests = @(
-    "scenes/tests/exported_build_smoke_test.tscn"
-)
-$sceneTests = @(
-    Get-ChildItem -LiteralPath (Join-Path $projectRoot "scenes/tests") -Filter "*.tscn" -File -Recurse |
-        ForEach-Object {
-            $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
-            if ($excludedSceneTests -notcontains $relativePath) {
-                $relativePath
+            if ($discoveredTests.Count -eq 0) {
+                throw "No standalone SceneTree tests were discovered in scripts/tests."
             }
-        } |
-        Sort-Object
-)
-
-if ($sceneTests.Count -eq 0) {
-    throw "No scene tests were discovered in scenes/tests."
-}
-if ($sceneTests -notcontains $requiredNestedSceneTest) {
-    throw "Recursive scene-test discovery did not include required fixture: $requiredNestedSceneTest"
-}
-
-foreach ($testScene in $sceneTests) {
-    Invoke-GodotCommand -Name "Scene test: $testScene" -TimeoutSeconds 180 -CommandArguments @(
-        "--headless",
-        "--path", $projectRoot,
-        $testScene
+            if ($discoveredTests -notcontains $requiredNestedScriptTest) {
+                throw "Recursive script-test discovery did not include required fixture: $requiredNestedScriptTest"
+            }
+            return $discoveredTests
+        }
     )
+
+    foreach ($testScript in $scriptTests) {
+        $null = Invoke-RecordedCheck `
+            -Name $testScript `
+            -ClassName "godot.script" `
+            -Action {
+                Invoke-GodotCommand -Name "Script test: $testScript" -TimeoutSeconds 120 -CommandArguments @(
+                    "--headless",
+                    "--path", $projectRoot,
+                    "--script", $testScript
+                )
+            }
+    }
+
+    $excludedSceneTests = @(
+        "scenes/tests/exported_build_smoke_test.tscn"
+    )
+    $sceneTests = @(Invoke-RecordedCheck `
+        -Name "Discover scene tests" `
+        -ClassName "repository.discovery" `
+        -Action {
+            $discoveredTests = @(
+                Get-ChildItem -LiteralPath (Join-Path $projectRoot "scenes/tests") -Filter "*.tscn" -File -Recurse |
+                    ForEach-Object {
+                        $relativePath = Get-ProjectRelativePath -FullPath $_.FullName
+                        if ($excludedSceneTests -notcontains $relativePath) {
+                            $relativePath
+                        }
+                    } |
+                    Sort-Object
+            )
+
+            if ($discoveredTests.Count -eq 0) {
+                throw "No scene tests were discovered in scenes/tests."
+            }
+            if ($discoveredTests -notcontains $requiredNestedSceneTest) {
+                throw "Recursive scene-test discovery did not include required fixture: $requiredNestedSceneTest"
+            }
+            return $discoveredTests
+        }
+    )
+
+    foreach ($testScene in $sceneTests) {
+        $null = Invoke-RecordedCheck `
+            -Name $testScene `
+            -ClassName "godot.scene" `
+            -Action {
+                Invoke-GodotCommand -Name "Scene test: $testScene" -TimeoutSeconds 180 -CommandArguments @(
+                    "--headless",
+                    "--path", $projectRoot,
+                    $testScene
+                )
+            }
+    }
+}
+catch {
+    $verificationFailed = $true
+    throw
+}
+finally {
+    try {
+        Write-JUnitReport `
+            -Results @($testResults) `
+            -Path $junitReportPath `
+            -SuiteName "car-game Windows verification"
+        Write-Host "JUnit report: $junitReportPath"
+    }
+    catch {
+        Write-Host "Failed to write JUnit report: $($_.Exception.Message)"
+        if (-not $verificationFailed) {
+            throw
+        }
+    }
 }
 
 Remove-Item -LiteralPath $currentCommandPath -Force -ErrorAction SilentlyContinue
@@ -216,3 +321,4 @@ Write-Host ""
 Write-Host "All discovered Godot tests passed without runtime errors."
 Write-Host "Standalone script tests: $($scriptTests.Count)"
 Write-Host "Scene tests: $($sceneTests.Count)"
+Write-Host "JUnit test cases: $($testResults.Count)"
