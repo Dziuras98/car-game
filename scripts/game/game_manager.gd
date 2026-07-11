@@ -96,7 +96,7 @@ func _exit_tree() -> void:
 
 
 func _process(_delta: float) -> void:
-	if not get_tree().paused and Input.is_action_just_pressed("switch-car"):
+	if not get_tree().paused and Input.is_action_just_pressed(GameInputActions.SWITCH_CAR):
 		_switch_to_next_car()
 
 

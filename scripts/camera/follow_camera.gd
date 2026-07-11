@@ -37,7 +37,9 @@ func _process(delta: float) -> void:
 	var target_transform: Transform3D = _target.global_transform
 	var target_position: Vector3 = target_transform.origin
 	var behind: Vector3 = target_transform.basis.z.normalized()
-	var rear_view_active: bool = _rear_view_override or Input.is_action_pressed("camera-back")
+	var rear_view_active: bool = (
+		_rear_view_override or Input.is_action_pressed(GameInputActions.CAMERA_BACK)
+	)
 	var desired_position: Vector3
 	var look_target: Vector3
 	if rear_view_active:

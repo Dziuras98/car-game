@@ -1,41 +1,72 @@
 extends SceneTree
 
-const REQUIRED_ACTIONS: PackedStringArray = [
-	"accelerate",
-	"brake",
-	"steer-left",
-	"steer-right",
-	"handbrake",
-	"reset-car",
-	"camera-back",
-	"pause",
-	"switch-car",
-	"gear-up",
-	"gear-down",
-]
-
 var _checks: int = 0
 var _failures: Array[String] = []
 
 
 func _initialize() -> void:
-	for action_name: String in REQUIRED_ACTIONS:
-		_expect(InputMap.has_action(action_name), "input map defines action '%s'" % action_name)
-		if not InputMap.has_action(action_name):
-			continue
+	var seen_actions: Dictionary = {}
+	for action_name: StringName in GameInputActions.REQUIRED_ACTIONS:
+		_expect(not seen_actions.has(action_name), "input action '%s' is listed once" % action_name)
+		seen_actions[action_name] = true
+		_validate_action(action_name)
 
-		var has_keyboard_event: bool = false
-		var has_gamepad_event: bool = false
-		for event: InputEvent in InputMap.action_get_events(action_name):
-			if event is InputEventKey:
-				has_keyboard_event = true
-			elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
-				has_gamepad_event = true
+	for analog_action: StringName in GameInputActions.ANALOG_ACTIONS:
+		_expect(
+			GameInputActions.REQUIRED_ACTIONS.has(analog_action),
+			"analog action '%s' belongs to the required action contract" % analog_action
+		)
 
-		_expect(has_keyboard_event, "action '%s' has a keyboard binding" % action_name)
-		_expect(has_gamepad_event, "action '%s' has a gamepad binding" % action_name)
+	if (
+		InputMap.has_action(GameInputActions.STEER_LEFT)
+		and InputMap.has_action(GameInputActions.STEER_RIGHT)
+	):
+		_expect(
+			is_equal_approx(
+				InputMap.action_get_deadzone(GameInputActions.STEER_LEFT),
+				InputMap.action_get_deadzone(GameInputActions.STEER_RIGHT)
+			),
+			"left and right steering actions use the same deadzone"
+		)
 
 	_finish()
+
+
+func _validate_action(action_name: StringName) -> void:
+	var action_exists: bool = InputMap.has_action(action_name)
+	_expect(action_exists, "input map defines action '%s'" % action_name)
+	if not action_exists:
+		return
+
+	var has_keyboard_event: bool = false
+	var has_gamepad_event: bool = false
+	var has_gamepad_motion: bool = false
+	for event: InputEvent in InputMap.action_get_events(action_name):
+		if event is InputEventKey:
+			has_keyboard_event = true
+		elif event is InputEventJoypadMotion:
+			has_gamepad_event = true
+			has_gamepad_motion = true
+		elif event is InputEventJoypadButton:
+			has_gamepad_event = true
+
+	_expect(has_keyboard_event, "action '%s' has a keyboard binding" % action_name)
+	_expect(has_gamepad_event, "action '%s' has a gamepad binding" % action_name)
+
+	var deadzone: float = InputMap.action_get_deadzone(action_name)
+	_expect(
+		deadzone >= 0.0 and deadzone <= 1.0,
+		"action '%s' has a normalized deadzone" % action_name
+	)
+	if GameInputActions.is_analog_action(action_name):
+		_expect(has_gamepad_motion, "analog action '%s' has an axis binding" % action_name)
+		_expect(
+			deadzone <= GameInputActions.MAX_ANALOG_DEADZONE,
+			"analog action '%s' deadzone does not exceed %.2f" % [
+				action_name,
+				GameInputActions.MAX_ANALOG_DEADZONE,
+			]
+		)
 
 
 func _expect(condition: bool, message: String) -> void:
