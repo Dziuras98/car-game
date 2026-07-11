@@ -14,6 +14,7 @@ static func ensure_loaded() -> PackedStringArray:
 		errors.append("project defines no translation catalogs")
 		return errors
 
+	var catalogs: Array[Translation] = []
 	var locale_paths: Dictionary = {}
 	for catalog_path: String in catalog_paths:
 		if catalog_path.strip_edges().is_empty():
@@ -38,10 +39,7 @@ static func ensure_loaded() -> PackedStringArray:
 			)
 			continue
 		locale_paths[locale] = catalog_path
-
-		if not _registered_catalog_paths.has(catalog_path):
-			TranslationServer.add_translation(catalog)
-			_registered_catalog_paths[catalog_path] = true
+		catalogs.append(catalog)
 
 	var fallback_locale: String = get_fallback_locale()
 	if fallback_locale.is_empty():
@@ -50,6 +48,15 @@ static func ensure_loaded() -> PackedStringArray:
 		errors.append(
 			"project localization fallback '%s' has no configured catalog" % fallback_locale
 		)
+	if not errors.is_empty():
+		return errors
+
+	for catalog_index: int in range(catalogs.size()):
+		var catalog_path: String = catalog_paths[catalog_index]
+		if _registered_catalog_paths.has(catalog_path):
+			continue
+		TranslationServer.add_translation(catalogs[catalog_index])
+		_registered_catalog_paths[catalog_path] = true
 	return errors
 
 
