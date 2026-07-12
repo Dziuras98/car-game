@@ -32,7 +32,8 @@ func configure(config: CarDriveConfig) -> void:
 		_config.low_rpm_torque_multiplier,
 		_config.mid_rpm_torque_multiplier,
 		_config.redline_torque_multiplier,
-		_config.rpm_response
+		_config.rpm_response,
+		_config.torque_curve
 	)
 	_resistance_model.configure(
 		_config.vehicle_mass,
@@ -60,11 +61,7 @@ func configure(config: CarDriveConfig) -> void:
 
 	if _runtime_state != null:
 		_runtime_state.engine_rpm = _engine_model.set_rpm(preserved_engine_rpm)
-		_runtime_state.clutch_engagement = (
-			clampf(_runtime_state.clutch_engagement, 0.0, 1.0)
-			if _config.is_manual_transmission()
-			else 1.0
-		)
+		_runtime_state.clutch_engagement = clampf(_runtime_state.clutch_engagement, 0.0, 1.0) if _config.is_manual_transmission() else 1.0
 
 
 func reset(state: CarRuntimeState) -> void:
@@ -73,28 +70,18 @@ func reset(state: CarRuntimeState) -> void:
 	state.clutch_engagement = 0.0 if _config != null and _config.is_manual_transmission() else 1.0
 
 
-func update(
-	state: CarRuntimeState,
-	throttle: float,
-	brake: float,
-	handbrake_active: bool,
-	gear_up_pressed: bool,
-	gear_down_pressed: bool,
-	delta: float
-) -> void:
+func update(state: CarRuntimeState, throttle: float, brake: float, handbrake_active: bool, gear_up_pressed: bool, gear_down_pressed: bool, delta: float) -> void:
 	if _config == null:
 		return
 	_runtime_state = state
 	var safe_delta: float = clampf(delta, 0.0, MAX_FRAME_DELTA)
 	var safe_throttle: float = clampf(throttle, 0.0, 1.0)
 	var safe_brake: float = clampf(brake, 0.0, 1.0)
-
 	_update_shift_timer(state, safe_delta)
 	_update_transmission_input(state, safe_throttle, safe_brake, gear_up_pressed, gear_down_pressed)
 	if safe_delta <= 0.0:
 		_update_engine(state, safe_throttle, 0.0)
 		return
-
 	var remaining_delta: float = safe_delta
 	while remaining_delta > 0.000001:
 		var step: float = minf(remaining_delta, MAX_SIMULATION_SUBSTEP)
@@ -144,20 +131,9 @@ func get_rev_limiter_multiplier() -> float:
 	return _engine_model.get_rev_limiter_multiplier()
 
 
-func _update_transmission_input(
-	state: CarRuntimeState,
-	throttle: float,
-	brake: float,
-	gear_up_pressed: bool,
-	gear_down_pressed: bool
-) -> void:
+func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: float, gear_up_pressed: bool, gear_down_pressed: bool) -> void:
 	if _config.is_manual_transmission():
-		var requested_gear: int = _manual_transmission_model.get_requested_gear(
-			state.current_gear,
-			_config.gear_ratios.size(),
-			gear_up_pressed,
-			gear_down_pressed
-		)
+		var requested_gear: int = _manual_transmission_model.get_requested_gear(state.current_gear, _config.gear_ratios.size(), gear_up_pressed, gear_down_pressed)
 		if requested_gear != state.current_gear:
 			_set_transmission_gear(state, requested_gear)
 		return
@@ -169,7 +145,6 @@ func _update_automatic_transmission(state: CarRuntimeState, throttle: float, bra
 	var lower_gear_rpm: float = _config.idle_rpm
 	if state.current_gear > 1:
 		lower_gear_rpm = _get_coupled_engine_rpm_for_gear(state, state.current_gear - 1)
-
 	var requested_gear: int = _automatic_transmission_model.get_requested_gear(
 		state.current_gear,
 		_config.gear_ratios.size(),
@@ -197,11 +172,7 @@ func _set_transmission_gear(state: CarRuntimeState, next_gear: int) -> void:
 	if next_gear == state.current_gear:
 		return
 	state.current_gear = next_gear
-	state.shift_timer = _shift_timer_model.get_shift_delay(
-		_config.is_automatic_transmission(),
-		_config.automatic_shift_delay,
-		_config.shift_delay
-	)
+	state.shift_timer = _shift_timer_model.get_shift_delay(_config.is_automatic_transmission(), _config.automatic_shift_delay, _config.shift_delay)
 	if _config.is_manual_transmission():
 		state.clutch_engagement = 0.0
 
@@ -210,32 +181,14 @@ func _update_clutch(state: CarRuntimeState, throttle: float, delta: float) -> vo
 	if not _config.is_manual_transmission():
 		state.clutch_engagement = 1.0
 		return
-	state.clutch_engagement = _clutch_model.update_engagement(
-		state.clutch_engagement,
-		state.current_gear,
-		state.forward_speed,
-		throttle,
-		state.shift_timer,
-		delta
-	)
+	state.clutch_engagement = _clutch_model.update_engagement(state.clutch_engagement, state.current_gear, state.forward_speed, throttle, state.shift_timer, delta)
 
 
 func _update_engine(state: CarRuntimeState, throttle: float, delta: float) -> void:
-	state.engine_rpm = _engine_model.update(
-		throttle,
-		_get_wheel_driven_rpm(state),
-		delta,
-		_get_engine_free_rev_blend(state)
-	)
+	state.engine_rpm = _engine_model.update(throttle, _get_wheel_driven_rpm(state), delta, _get_engine_free_rev_blend(state))
 
 
-func _update_speed_step(
-	state: CarRuntimeState,
-	throttle: float,
-	brake: float,
-	handbrake_active: bool,
-	delta: float
-) -> void:
+func _update_speed_step(state: CarRuntimeState, throttle: float, brake: float, handbrake_active: bool, delta: float) -> void:
 	var effective_throttle: float = throttle if brake <= 0.0 else 0.0
 	if effective_throttle > 0.0:
 		_apply_throttle(state, effective_throttle, delta)
@@ -244,54 +197,23 @@ func _update_speed_step(
 	else:
 		var ground_factor: float = _get_ground_contact_factor(state)
 		var passive_deceleration: float = _config.coast_deceleration * ground_factor
-		if (
-			absf(state.forward_speed) > 0.0
-			and (not _config.is_manual_transmission() or state.clutch_engagement > 0.1)
-		):
+		if absf(state.forward_speed) > 0.0 and (not _config.is_manual_transmission() or state.clutch_engagement > 0.1):
 			passive_deceleration += _config.engine_brake_force * state.clutch_engagement * ground_factor
 		state.forward_speed = move_toward(state.forward_speed, 0.0, passive_deceleration * delta)
-
 	if handbrake_active:
-		state.forward_speed = move_toward(
-			state.forward_speed,
-			0.0,
-			_config.handbrake_deceleration * _get_longitudinal_grip_factor(state) * delta
-		)
-
-	state.forward_speed = _resistance_model.apply(
-		state.forward_speed,
-		delta,
-		state.ground_contact_count > 0
-	)
-	state.forward_speed = clampf(
-		state.forward_speed,
-		-_config.max_reverse_speed,
-		_config.max_forward_speed
-	)
+		state.forward_speed = move_toward(state.forward_speed, 0.0, _config.handbrake_deceleration * _get_longitudinal_grip_factor(state) * delta)
+	state.forward_speed = _resistance_model.apply(state.forward_speed, delta, state.ground_contact_count > 0)
+	state.forward_speed = clampf(state.forward_speed, -_config.max_reverse_speed, _config.max_forward_speed)
 
 
 func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> void:
 	if _config.uses_geared_transmission():
-		if _config.is_automatic_transmission() and (
-			state.current_gear < 1 or state.forward_speed < 0.0
-		):
-			state.forward_speed = move_toward(
-				state.forward_speed,
-				0.0,
-				_config.brake_deceleration * throttle * _get_longitudinal_grip_factor(state) * delta
-			)
+		if _config.is_automatic_transmission() and (state.current_gear < 1 or state.forward_speed < 0.0):
+			state.forward_speed = move_toward(state.forward_speed, 0.0, _config.brake_deceleration * throttle * _get_longitudinal_grip_factor(state) * delta)
 		else:
 			state.forward_speed += _get_transmission_drive_acceleration(state, throttle) * delta
 		return
-
-	state.forward_speed += (
-		throttle
-		* _config.engine_force
-		* get_torque_multiplier()
-		* get_rev_limiter_multiplier()
-		* _get_longitudinal_grip_factor(state)
-		* delta
-	)
+	state.forward_speed += throttle * _config.engine_force * get_torque_multiplier() * get_rev_limiter_multiplier() * _get_longitudinal_grip_factor(state) * delta
 
 
 func _apply_brake_or_reverse(state: CarRuntimeState, brake: float, delta: float) -> void:
@@ -308,7 +230,6 @@ func _apply_brake_or_reverse(state: CarRuntimeState, brake: float, delta: float)
 		else:
 			state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 		return
-
 	if state.forward_speed > 0.25:
 		state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 	else:
@@ -321,7 +242,6 @@ func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
 		return lerpf(_config.idle_rpm, _config.redline_rpm, speed_ratio)
 	if state.current_gear == 0:
 		return _config.idle_rpm
-
 	var coupled_rpm: float = _get_coupled_engine_rpm_for_gear(state, state.current_gear)
 	if _config.is_automatic_transmission():
 		return _get_torque_converter_rpm(state, coupled_rpm)
@@ -374,7 +294,4 @@ func _get_ground_contact_factor(state: CarRuntimeState) -> float:
 func _get_longitudinal_grip_factor(state: CarRuntimeState) -> float:
 	if state.ground_contact_count <= 0:
 		return 0.0
-	return _tire_model.get_longitudinal_grip_factor(
-		state.tire_slip_intensity,
-		state.surface_grip_multiplier
-	)
+	return _tire_model.get_longitudinal_grip_factor(state.tire_slip_intensity, state.surface_grip_multiplier)
