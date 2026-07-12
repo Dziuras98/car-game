@@ -4,7 +4,11 @@ const VISUAL_SCENE: PackedScene = preload("res://scenes/cars/370z_z34_visuals.ts
 const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const FLEET_SIZE: int = 16
 const MAX_VISIBLE_FLEET_MESHES: int = 180
-const MAX_TOTAL_AI_FLEET_MESHES: int = FLEET_SIZE * 6
+const MAX_VISIBLE_LOW_DETAIL_AI_MESHES: int = FLEET_SIZE * 6
+const AI_DETAIL_SWITCH_DISTANCE: float = 30.0
+const AI_DETAIL_SWITCH_HYSTERESIS: float = 6.0
+const AI_NEAR_DISTANCE: float = 10.0
+const AI_FAR_DISTANCE: float = 80.0
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -16,7 +20,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await _test_visual_lod_switching()
-	await _test_factory_uses_lightweight_ai_scenes()
+	await _test_factory_uses_distance_lod_ai_scenes()
 	_finish()
 
 
@@ -58,7 +62,11 @@ func _test_visual_lod_switching() -> void:
 	await process_frame
 
 
-func _test_factory_uses_lightweight_ai_scenes() -> void:
+func _test_factory_uses_distance_lod_ai_scenes() -> void:
+	var camera: Camera3D = Camera3D.new()
+	root.add_child(camera)
+	camera.current = true
+
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 20260712
 	var factory: CarInstanceFactory = CarInstanceFactory.new()
@@ -71,28 +79,63 @@ func _test_factory_uses_lightweight_ai_scenes() -> void:
 		_expect(car != null, "factory AI car %d instantiates" % index)
 		if car == null:
 			continue
-		car.position = Vector3(float(index % 4) * 4.0, 0.0, float(index / 4) * 7.0)
-		car.set_force_low_detail_visuals(true)
+		car.position = Vector3(
+			float(index % 4) * 4.0,
+			0.0,
+			AI_FAR_DISTANCE + float(index / 4) * 7.0
+		)
 		root.add_child(car)
 		car.set_physics_process(false)
 		cars.append(car)
 
 	await process_frame
-	var total_mesh_count: int = 0
+	await process_frame
+	var far_visible_mesh_count: int = 0
 	for car: PlayerCarController in cars:
 		var visual: CarVisualController = car.get_node_or_null("VisualRoot") as CarVisualController
-		_expect(visual != null and visual.is_using_low_detail(), "factory AI car uses the low-detail visual controller")
-		_expect(not _contains_node_named(car, &"SketchfabModel"), "factory AI car does not instantiate the detailed Sketchfab model")
-		total_mesh_count += _count_mesh_instances(car)
+		_expect(visual != null, "factory AI car exposes the visual controller")
+		if visual == null:
+			continue
+		_expect(not visual.force_low_detail, "factory AI car leaves distance-based LOD enabled")
+		_expect(
+			absf(visual.detail_switch_distance - AI_DETAIL_SWITCH_DISTANCE) < 0.001,
+			"factory AI car uses the close-range detail distance"
+		)
+		_expect(
+			absf(visual.detail_switch_hysteresis - AI_DETAIL_SWITCH_HYSTERESIS) < 0.001,
+			"factory AI car uses the close-range LOD hysteresis"
+		)
+		_expect(_contains_node_named(car, &"SketchfabModel"), "factory AI car contains the detailed model")
+		_expect(visual.is_using_low_detail(), "far factory AI car uses low-detail rendering")
+		far_visible_mesh_count += _count_effectively_visible_meshes(car, true)
 
 	_expect(cars.size() == FLEET_SIZE, "the complete AI fleet is instantiated")
 	_expect(
-		total_mesh_count <= MAX_TOTAL_AI_FLEET_MESHES,
-		"the complete AI fleet stays inside the total instantiated mesh budget"
+		far_visible_mesh_count <= MAX_VISIBLE_LOW_DETAIL_AI_MESHES,
+		"the far AI fleet stays inside the visible low-detail mesh budget"
 	)
+
+	if not cars.is_empty():
+		var near_car: PlayerCarController = cars[0]
+		near_car.position = Vector3(0.0, 0.0, AI_NEAR_DISTANCE)
+		await process_frame
+		await process_frame
+		var near_visual: CarVisualController = near_car.get_node_or_null("VisualRoot") as CarVisualController
+		_expect(near_visual != null and not near_visual.is_using_low_detail(), "near AI car switches to the detailed model")
+		if near_visual != null:
+			var detailed_root: Node3D = near_visual.get_node_or_null("SketchfabModel") as Node3D
+			var low_detail_root: Node3D = near_visual.get_node_or_null("LowDetail") as Node3D
+			_expect(detailed_root != null and detailed_root.visible, "near AI detailed model is visible")
+			_expect(low_detail_root != null and not low_detail_root.visible, "near AI low-detail model is hidden")
+
+		near_car.position = Vector3(0.0, 0.0, AI_FAR_DISTANCE)
+		await process_frame
+		await process_frame
+		_expect(near_visual != null and near_visual.is_using_low_detail(), "AI car returns to low detail after moving away")
 
 	for car: PlayerCarController in cars:
 		car.queue_free()
+	camera.queue_free()
 	await process_frame
 
 
@@ -103,13 +146,6 @@ func _count_effectively_visible_meshes(node: Node, ancestors_visible: bool) -> i
 	var count: int = 1 if current_visible and node is MeshInstance3D else 0
 	for child: Node in node.get_children():
 		count += _count_effectively_visible_meshes(child, current_visible)
-	return count
-
-
-func _count_mesh_instances(node: Node) -> int:
-	var count: int = 1 if node is MeshInstance3D else 0
-	for child: Node in node.get_children():
-		count += _count_mesh_instances(child)
 	return count
 
 
