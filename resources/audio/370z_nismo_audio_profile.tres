@@ -1,0 +1,25 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/engine_audio_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+idle_volume_db = -9.0
+load_volume_db = -0.5
+output_volume_boost_db = 11.0
+synthesis_gain_db = 0.5
+high_rpm_rasp = 0.11
+intake_presence = 0.24
+intake_plenum_detail = 0.14
+airflow_noise = 0.07
+induction_transient = 0.36
+mechanical_noise = 0.04
+rotating_assembly_detail = 0.035
+exhaust_resonance = 0.66
+exhaust_roughness = 0.15
+exhaust_bank_separation = 0.38
+exhaust_reflection = 0.10
+overrun_crackle = 0.13
+limiter_period = 0.055
+limiter_cut_ratio = 0.36
+limiter_residual_combustion = 0.24
