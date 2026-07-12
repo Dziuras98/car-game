@@ -20,4 +20,13 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Inspect 370Z GLB metadata
-        run: python3 scripts/ci/inspect_370z_glbs.py
+        run: python3 scripts/ci/inspect_370z_glbs.py | tee glb-inspection.txt
+
+      - name: Upload GLB inspection report
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: 370z-glb-inspection-${{ github.sha }}
+          path: glb-inspection.txt
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
