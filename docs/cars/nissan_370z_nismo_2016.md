@@ -124,14 +124,8 @@ Decibel values at different processing stages are not added and presented as a l
 
 ## Visual construction and collision
 
-The standard and NISMO scenes compose a shared `370z_z34_visuals.tscn` cabin, lamp and wheel package. The standard scene adds its factory spoiler separately; the NISMO scene does not instantiate that spoiler beneath the NISMO wing.
+The NISMO scene uses the imported 2015 Sketchfab GLB through `370z_nismo_visuals.tscn`; it does not reuse the standard 370Z body package. The wrapper applies only source scale, forward-axis correction and ground alignment, while gameplay collision remains independently authored.
 
-NISMO-specific geometry includes:
-
-- profiled front fascia and splitter rather than rectangular cover volumes;
-- shaped side skirts;
-- extended rear fascia;
-- a closed low-poly airfoil section for the rear wing;
-- dedicated wing supports, black trim and red accents.
+`Nismo370ZVisualController` binds exactly four logical wheel assemblies to explicit imported node paths. Front calipers follow steering without spinning, rear calipers remain fixed, and each tyre/rim pair rotates around one axle pivot. This avoids name-based matching of unrelated brake-light and interior steering-wheel nodes.
 
 The NISMO collision uses three simple boxes for the cabin, front aero and rear body. This covers the extended body without enclosing the complete wing volume or a large amount of empty space.

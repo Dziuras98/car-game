@@ -35,7 +35,6 @@ func _run() -> void:
 
 	_expect(visual.get_detailed_wheel_binding_count() == 4, "the detailed model exposes exactly four logical wheel bindings")
 	_expect(visual.get_low_detail_wheel_binding_count() == 4, "the low-detail model retains exactly four wheel nodes")
-	_expect(visual.get_legacy_detailed_wheel_node_count() == 0, "the standard model does not use the generic name heuristic")
 	_expect(visual.get_registered_wheel_count() == 4, "the standard controller reports four wheels")
 
 	var front_left_steering: Node3D = visual.get_detailed_wheel_steering_pivot(&"front_left")

@@ -33,9 +33,7 @@ var _low_detail_root: Node3D
 var _visibility_notifier: VisibleOnScreenNotifier3D
 var _detailed_wheel_bindings: Array[RuntimeWheelBinding] = []
 var _detailed_wheel_bindings_by_id: Dictionary = {}
-var _legacy_detailed_wheel_nodes: Array[Node3D] = []
-var _legacy_detailed_base_rotations: Array[Vector3] = []
-var _legacy_detailed_front_flags: Array[bool] = []
+var _wheel_visuals_configured: bool = false
 var _low_detail_wheel_nodes: Array[Node3D] = []
 var _low_detail_base_rotations: Array[Vector3] = []
 var _low_detail_front_flags: Array[bool] = []
@@ -76,9 +74,7 @@ func get_visibility_notifier() -> VisibleOnScreenNotifier3D:
 
 func get_registered_wheel_count() -> int:
 	_configure_wheel_visuals()
-	if not _detailed_wheel_bindings.is_empty():
-		return _detailed_wheel_bindings.size()
-	return maxi(_legacy_detailed_wheel_nodes.size(), _low_detail_wheel_nodes.size())
+	return maxi(_detailed_wheel_bindings.size(), _low_detail_wheel_nodes.size())
 
 
 func get_detailed_wheel_binding_count() -> int:
@@ -89,11 +85,6 @@ func get_detailed_wheel_binding_count() -> int:
 func get_low_detail_wheel_binding_count() -> int:
 	_configure_wheel_visuals()
 	return _low_detail_wheel_nodes.size()
-
-
-func get_legacy_detailed_wheel_node_count() -> int:
-	_configure_wheel_visuals()
-	return _legacy_detailed_wheel_nodes.size()
 
 
 func get_detailed_wheel_steering_pivot(wheel_id: StringName) -> Node3D:
@@ -125,8 +116,6 @@ func update_vehicle_visuals(
 		_apply_low_detail_wheels(steering_angle)
 	elif not _detailed_wheel_bindings.is_empty():
 		_apply_runtime_wheel_bindings(_detailed_wheel_bindings, steering_angle)
-	else:
-		_apply_legacy_detailed_wheels(steering_angle)
 
 
 func _get_explicit_detailed_wheel_specs() -> Array[Dictionary]:
@@ -164,17 +153,14 @@ func _ensure_visibility_notifier() -> void:
 
 
 func _configure_wheel_visuals() -> void:
-	if (
-		not _detailed_wheel_bindings.is_empty()
-		or not _low_detail_wheel_nodes.is_empty()
-		or not _legacy_detailed_wheel_nodes.is_empty()
-	):
+	if _wheel_visuals_configured:
 		return
+	_wheel_visuals_configured = true
 	_resolve_visual_roots()
 	_collect_low_detail_wheel_nodes()
 	var explicit_specs: Array[Dictionary] = _get_explicit_detailed_wheel_specs()
-	if explicit_specs.is_empty():
-		_collect_legacy_detailed_wheel_nodes(_detailed_root)
+	if _detailed_root != null and explicit_specs.is_empty():
+		push_error("CarVisualController detailed models require explicit wheel bindings.")
 		return
 	for spec: Dictionary in explicit_specs:
 		var binding: RuntimeWheelBinding = _create_binding_from_spec(spec)
@@ -325,44 +311,6 @@ func _apply_low_detail_wheels(steering_angle: float) -> void:
 		if _low_detail_front_flags[index]:
 			rotation_value.y -= steering_angle
 		wheel.rotation = rotation_value
-
-
-func _apply_legacy_detailed_wheels(steering_angle: float) -> void:
-	for index: int in range(_legacy_detailed_wheel_nodes.size()):
-		var wheel: Node3D = _legacy_detailed_wheel_nodes[index]
-		if not is_instance_valid(wheel) or not wheel.is_visible_in_tree():
-			continue
-		var rotation_value: Vector3 = _legacy_detailed_base_rotations[index]
-		rotation_value.x += _wheel_spin
-		if _legacy_detailed_front_flags[index]:
-			rotation_value.y -= steering_angle
-		wheel.rotation = rotation_value
-
-
-func _collect_legacy_detailed_wheel_nodes(node: Node) -> void:
-	if node == null:
-		return
-	for child: Node in node.get_children():
-		if child is Node3D:
-			var child_3d: Node3D = child as Node3D
-			var normalized_name: String = child_3d.name.to_lower()
-			if (
-				"wheel" in normalized_name
-				or "tire" in normalized_name
-				or "tyre" in normalized_name
-				or "rim" in normalized_name
-			):
-				_register_legacy_detailed_wheel_node(child_3d, normalized_name)
-		_collect_legacy_detailed_wheel_nodes(child)
-
-
-func _register_legacy_detailed_wheel_node(wheel: Node3D, normalized_name: String) -> void:
-	if _legacy_detailed_wheel_nodes.has(wheel):
-		return
-	_legacy_detailed_wheel_nodes.append(wheel)
-	_legacy_detailed_base_rotations.append(wheel.rotation)
-	var explicitly_front: bool = "front" in normalized_name or "fl" in normalized_name or "fr" in normalized_name
-	_legacy_detailed_front_flags.append(explicitly_front or wheel.position.z > 0.0)
 
 
 func _set_low_detail_active(enabled: bool) -> void:

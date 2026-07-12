@@ -62,7 +62,12 @@ function Get-LogContentIfAvailable {
     if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
         return ""
     }
-    return Get-Content -LiteralPath $LogPath -Raw
+    try {
+        return Get-Content -LiteralPath $LogPath -Raw -ErrorAction Stop
+    }
+    catch {
+        return ""
+    }
 }
 
 function Invoke-WindowedMainSceneReadinessCheck {
@@ -88,12 +93,19 @@ function Invoke-WindowedMainSceneReadinessCheck {
         -WorkingDirectory $WorkingDirectory `
         -PassThru
 
-    $deadline = [DateTime]::UtcNow.AddSeconds(30)
+    $deadline = [DateTime]::UtcNow.AddSeconds(60)
     $windowSeen = $false
+    $readySeen = $false
     while (-not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
         $process.Refresh()
         if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
             $windowSeen = $true
+        }
+        $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+        if (-not [string]::IsNullOrEmpty($logContent) -and $logContent.Contains($readyMarker)) {
+            $readySeen = $true
+        }
+        if ($windowSeen -and $readySeen) {
             break
         }
         Start-Sleep -Milliseconds 200
@@ -104,22 +116,19 @@ function Invoke-WindowedMainSceneReadinessCheck {
         if (-not [string]::IsNullOrEmpty($logContent)) {
             $logContent | Write-Host
         }
-        throw "Windowed packaged startup exited before creating a native window with code $($process.ExitCode)."
+        throw "Windowed packaged startup exited before reaching readiness with code $($process.ExitCode)."
     }
-    if (-not $windowSeen) {
+    if (-not $windowSeen -or -not $readySeen) {
         $process.Kill($true)
         $process.WaitForExit()
-        throw "Windowed packaged startup did not create a native application window within 30 seconds."
-    }
-
-    Start-Sleep -Milliseconds 1500
-    $process.Refresh()
-    if ($process.HasExited) {
         $logContent = Get-LogContentIfAvailable -LogPath $LogPath
         if (-not [string]::IsNullOrEmpty($logContent)) {
             $logContent | Write-Host
         }
-        throw "Windowed packaged startup exited unexpectedly after creating its window with code $($process.ExitCode)."
+        if (-not $windowSeen) {
+            throw "Windowed packaged startup did not create a native application window within 60 seconds."
+        }
+        throw "Windowed packaged startup did not report main-scene readiness within 60 seconds."
     }
 
     if (-not $process.CloseMainWindow()) {
@@ -127,7 +136,7 @@ function Invoke-WindowedMainSceneReadinessCheck {
         $process.WaitForExit()
         throw "Windowed packaged startup created a window but did not accept a normal close request."
     }
-    if (-not $process.WaitForExit(10000)) {
+    if (-not $process.WaitForExit(15000)) {
         $process.Kill($true)
         $process.WaitForExit()
         throw "Windowed packaged startup did not terminate after a normal window-close request."

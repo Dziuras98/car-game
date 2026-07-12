@@ -35,7 +35,7 @@ func configure(
 	rpm_response = maxf(target_rpm_response, 0.01)
 	torque_curve = target_torque_curve
 	if torque_curve != null and not torque_curve.validate().is_empty():
-		push_warning("EngineModel rejected an invalid sampled torque curve and will use the legacy fallback curve.")
+		push_warning("EngineModel rejected an invalid sampled torque curve and will use the analytic fallback curve.")
 		torque_curve = null
 	reset()
 
