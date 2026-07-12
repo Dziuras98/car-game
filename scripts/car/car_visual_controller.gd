@@ -196,16 +196,21 @@ func _collect_low_detail_wheel_nodes() -> void:
 func _is_binding_spec_resolvable(spec: Dictionary) -> bool:
 	var wheel_id: StringName = spec.get("wheel_id", &"")
 	var pivot_parent_path: NodePath = spec.get("pivot_parent_path", NodePath())
-	if wheel_id.is_empty() or get_node_or_null(pivot_parent_path) as Node3D == null:
+	var pivot_parent: Node3D = get_node_or_null(pivot_parent_path) as Node3D
+	if wheel_id.is_empty() or pivot_parent == null:
 		return false
 	var spin_paths: Array = spec.get("spin_node_paths", [])
 	if spin_paths.is_empty():
 		return false
 	for path_value: Variant in spin_paths:
-		if get_node_or_null(NodePath(path_value)) as Node3D == null:
+		var spin_path: NodePath = path_value
+		var spin_node: Node3D = get_node_or_null(spin_path) as Node3D
+		if spin_node == null:
 			return false
 	for path_value: Variant in spec.get("steering_only_node_paths", []):
-		if get_node_or_null(NodePath(path_value)) as Node3D == null:
+		var steering_path: NodePath = path_value
+		var steering_node: Node3D = get_node_or_null(steering_path) as Node3D
+		if steering_node == null:
 			return false
 	return true
 
