@@ -95,6 +95,21 @@ jobs:
             throw "Engine-audio bake completed without producing any bank resources."
           }
 
+      - name: Import generated banks
+        shell: pwsh
+        run: |
+          & $env:GODOT_BIN --headless --path $PWD --import
+          if ($LASTEXITCODE -ne 0) {
+            throw "Generated engine-audio import failed with exit code $LASTEXITCODE."
+          }
+          $missingImports = @(
+            Get-ChildItem -LiteralPath assets/audio/engine -Filter "*.wav" -File -Recurse |
+              Where-Object { -not (Test-Path -LiteralPath ($_.FullName + ".import") -PathType Leaf) }
+          )
+          if ($missingImports.Count -gt 0) {
+            throw "Godot did not create import metadata for $($missingImports.Count) generated WAV file(s)."
+          }
+
       - name: Upload bake diagnostics
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
