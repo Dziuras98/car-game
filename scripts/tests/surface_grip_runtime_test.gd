@@ -12,6 +12,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	_test_longitudinal_grip_budget()
+	_test_contact_capacity_scaling()
 	_test_lateral_grip_budget()
 	await _test_generated_surface_contract()
 	_finish()
@@ -44,6 +45,52 @@ func _test_longitudinal_grip_budget() -> void:
 	dry_brakes.update(dry_brake_state, 0.0, 1.0, false, false, false, 0.1)
 	grass_brakes.update(grass_brake_state, 0.0, 1.0, false, false, false, 0.1)
 	_expect(dry_brake_state.forward_speed < grass_brake_state.forward_speed, "lower surface grip increases braking distance")
+
+
+func _test_contact_capacity_scaling() -> void:
+	var config: CarDriveConfig = _build_direct_drive_config()
+	var acceleration_speeds: Array[float] = []
+	var braking_speeds: Array[float] = []
+	for contact_count: int in range(1, GroundContactModel.PROBE_COUNT + 1):
+		var acceleration_state: CarRuntimeState = _make_state(config)
+		acceleration_state.ground_contact_count = contact_count
+		var acceleration_powertrain: CarPowertrainController = _make_powertrain(config, acceleration_state)
+		acceleration_powertrain.update(acceleration_state, 1.0, 0.0, false, false, false, 0.1)
+		acceleration_speeds.append(acceleration_state.forward_speed)
+
+		var braking_state: CarRuntimeState = _make_state(config)
+		braking_state.ground_contact_count = contact_count
+		braking_state.forward_speed = 12.0
+		var braking_powertrain: CarPowertrainController = _make_powertrain(config, braking_state)
+		braking_powertrain.update(braking_state, 0.0, 1.0, false, false, false, 0.1)
+		braking_speeds.append(braking_state.forward_speed)
+
+	for index: int in range(1, acceleration_speeds.size()):
+		_expect(
+			acceleration_speeds[index] > acceleration_speeds[index - 1],
+			"drive acceleration increases monotonically with active contact count %d -> %d"
+			% [index, index + 1]
+		)
+		_expect(
+			braking_speeds[index] < braking_speeds[index - 1],
+			"service braking increases monotonically with active contact count %d -> %d"
+			% [index, index + 1]
+		)
+
+	var chassis: CarChassisController = CarChassisController.new()
+	chassis.configure(config)
+	var one_contact_lateral: CarRuntimeState = _make_state(config)
+	one_contact_lateral.ground_contact_count = 1
+	one_contact_lateral.lateral_speed = 5.0
+	var full_contact_lateral: CarRuntimeState = _make_state(config)
+	full_contact_lateral.ground_contact_count = GroundContactModel.PROBE_COUNT
+	full_contact_lateral.lateral_speed = 5.0
+	chassis.update_tire_dynamics(one_contact_lateral, 0.0, false, 0.1)
+	chassis.update_tire_dynamics(full_contact_lateral, 0.0, false, 0.1)
+	_expect(
+		absf(full_contact_lateral.lateral_speed) < absf(one_contact_lateral.lateral_speed),
+		"lateral recovery is weaker when only one support point remains"
+	)
 
 
 func _test_lateral_grip_budget() -> void:
@@ -92,6 +139,11 @@ func _build_direct_drive_config() -> CarDriveConfig:
 	config.redline_rpm = 6500.0
 	config.rev_limiter_rpm = 6800.0
 	config.rpm_response = 8.0
+	config.front_lateral_grip = 10.0
+	config.rear_lateral_grip = 10.0
+	config.front_tire_width_m = 0.225
+	config.rear_tire_width_m = 0.245
+	config.slip_speed_threshold = 2.2
 	config.sanitize()
 	return config
 
@@ -99,7 +151,7 @@ func _build_direct_drive_config() -> CarDriveConfig:
 func _make_state(config: CarDriveConfig) -> CarRuntimeState:
 	var state: CarRuntimeState = CarRuntimeState.new()
 	state.reset_drive_state(config.idle_rpm)
-	state.ground_contact_count = 4
+	state.ground_contact_count = GroundContactModel.PROBE_COUNT
 	return state
 
 
