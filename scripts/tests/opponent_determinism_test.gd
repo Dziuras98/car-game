@@ -87,7 +87,7 @@ func _capture_spawn_signature(world: Node3D, spawn_marker: Node3D, track: Genera
 	for opponent_index: int in range(mini(opponents.size(), drivers.size())):
 		var car: PlayerCarController = opponents[opponent_index]
 		var profile: AiDriverProfile = drivers[opponent_index].get_profile()
-		var variant_id: StringName = car.get_meta(CarInstanceFactory.VARIANT_ID_METADATA, &"missing") as StringName
+		var variant_id: StringName = StringName(car.get_meta(CarInstanceFactory.VARIANT_ID_METADATA, &"missing"))
 		signature.append("%s|%.6f|%.6f|%.6f" % [str(variant_id), profile.target_speed_kmh, profile.corner_speed_kmh, profile.lane_offset])
 	spawner.clear_opponents()
 	await get_tree().process_frame
