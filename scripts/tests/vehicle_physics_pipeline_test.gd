@@ -14,6 +14,7 @@ func _run() -> void:
 	var coarse_floor: TrackSurfaceBody = _create_floor("CoarseSurface", Vector3(-12.0, -0.1, 0.0), 1.0)
 	var fine_floor: TrackSurfaceBody = _create_floor("FineSurface", Vector3(12.0, -0.1, 0.0), 1.0)
 	var specs: CarSpecs = _build_specs()
+	_expect(specs.is_valid(), "vehicle physics fixture satisfies production CarSpecs admission")
 	var dry_car: PlayerCarController = _create_car("DryCar", Vector3(-4.0, 0.0, 0.0), specs)
 	var low_grip_car: PlayerCarController = _create_car("LowGripCar", Vector3(4.0, 0.0, 0.0), specs)
 	var airborne_car: PlayerCarController = _create_car("AirborneCar", Vector3(0.0, 3.0, 0.0), specs)
@@ -134,7 +135,7 @@ func _build_specs() -> CarSpecs:
 	specs.max_reverse_speed = 10.0
 	specs.drag_coefficient = 0.0
 	specs.rolling_resistance_coefficient = 0.0
-	specs.suspension_stiffness = 0.0
+	specs.suspension_stiffness = 32.0
 	specs.suspension_damping = 0.0
 	return specs
 
