@@ -2,7 +2,26 @@ extends Node3D
 class_name CarVisualController
 
 
+class RuntimeWheelBinding:
+	var wheel_id: StringName
+	var steering_pivot: Node3D
+	var spin_pivot: Node3D
+	var steers: bool = false
+	var steering_direction: float = 1.0
+	var spin_direction: float = 1.0
+
+
 const VISIBILITY_NOTIFIER_NAME: StringName = &"VisibilityNotifier"
+const LOW_DETAIL_WHEEL_NAMES: Array[StringName] = [
+	&"WheelFrontLeft",
+	&"WheelFrontRight",
+	&"WheelRearLeft",
+	&"WheelRearRight",
+]
+const LOW_DETAIL_FRONT_WHEEL_NAMES: Array[StringName] = [
+	&"WheelFrontLeft",
+	&"WheelFrontRight",
+]
 
 @export var detailed_root_path: NodePath = ^"SketchfabModel"
 @export var low_detail_root_path: NodePath = ^"LowDetail"
@@ -16,9 +35,12 @@ const VISIBILITY_NOTIFIER_NAME: StringName = &"VisibilityNotifier"
 var _detailed_root: Node3D
 var _low_detail_root: Node3D
 var _visibility_notifier: VisibleOnScreenNotifier3D
-var _wheel_nodes: Array[Node3D] = []
-var _wheel_base_rotations: Array[Vector3] = []
-var _front_wheel_flags: Array[bool] = []
+var _detailed_wheel_bindings: Array[RuntimeWheelBinding] = []
+var _low_detail_wheel_bindings: Array[RuntimeWheelBinding] = []
+var _detailed_wheel_bindings_by_id: Dictionary = {}
+var _legacy_detailed_wheel_nodes: Array[Node3D] = []
+var _legacy_detailed_base_rotations: Array[Vector3] = []
+var _legacy_detailed_front_flags: Array[bool] = []
 var _wheel_spin: float = 0.0
 var _using_low_detail: bool = false
 var _is_screen_visible: bool = false
@@ -26,7 +48,7 @@ var _is_screen_visible: bool = false
 
 func _ready() -> void:
 	_resolve_visual_roots()
-	_ensure_wheels_collected()
+	_configure_wheel_visuals()
 	_ensure_visibility_notifier()
 	_set_low_detail_active(true)
 
@@ -55,8 +77,37 @@ func get_visibility_notifier() -> VisibleOnScreenNotifier3D:
 
 
 func get_registered_wheel_count() -> int:
-	_ensure_wheels_collected()
-	return _wheel_nodes.size()
+	_configure_wheel_visuals()
+	if not _detailed_wheel_bindings.is_empty():
+		return _detailed_wheel_bindings.size()
+	return maxi(_legacy_detailed_wheel_nodes.size(), _low_detail_wheel_bindings.size())
+
+
+func get_detailed_wheel_binding_count() -> int:
+	_configure_wheel_visuals()
+	return _detailed_wheel_bindings.size()
+
+
+func get_low_detail_wheel_binding_count() -> int:
+	_configure_wheel_visuals()
+	return _low_detail_wheel_bindings.size()
+
+
+func get_legacy_detailed_wheel_node_count() -> int:
+	_configure_wheel_visuals()
+	return _legacy_detailed_wheel_nodes.size()
+
+
+func get_detailed_wheel_steering_pivot(wheel_id: StringName) -> Node3D:
+	_configure_wheel_visuals()
+	var binding: RuntimeWheelBinding = _detailed_wheel_bindings_by_id.get(wheel_id) as RuntimeWheelBinding
+	return binding.steering_pivot if binding != null else null
+
+
+func get_detailed_wheel_spin_pivot(wheel_id: StringName) -> Node3D:
+	_configure_wheel_visuals()
+	var binding: RuntimeWheelBinding = _detailed_wheel_bindings_by_id.get(wheel_id) as RuntimeWheelBinding
+	return binding.spin_pivot if binding != null else null
 
 
 func update_vehicle_visuals(
@@ -65,22 +116,24 @@ func update_vehicle_visuals(
 	steering_input: float,
 	wheel_radius_override: float = -1.0
 ) -> void:
-	_ensure_wheels_collected()
+	_configure_wheel_visuals()
 	var safe_delta: float = maxf(delta, 0.0)
 	var radius: float = wheel_radius_override if wheel_radius_override > 0.0 else visual_wheel_radius
 	_wheel_spin = fposmod(_wheel_spin + forward_speed / maxf(radius, 0.01) * safe_delta, TAU)
 	if not _is_screen_visible:
 		return
 	var steering_angle: float = deg_to_rad(24.0) * clampf(steering_input, -1.0, 1.0)
-	for index: int in range(_wheel_nodes.size()):
-		var wheel: Node3D = _wheel_nodes[index]
-		if not is_instance_valid(wheel) or not wheel.is_visible_in_tree():
-			continue
-		var rotation_value: Vector3 = _wheel_base_rotations[index]
-		rotation_value.x += _wheel_spin
-		if _front_wheel_flags[index]:
-			rotation_value.y += steering_angle
-		wheel.rotation = rotation_value
+	if _using_low_detail:
+		_apply_runtime_wheel_bindings(_low_detail_wheel_bindings, steering_angle)
+	elif not _detailed_wheel_bindings.is_empty():
+		_apply_runtime_wheel_bindings(_detailed_wheel_bindings, steering_angle)
+	else:
+		_apply_legacy_detailed_wheels(steering_angle)
+
+
+func _get_explicit_detailed_wheel_specs() -> Array[Dictionary]:
+	var specs: Array[Dictionary] = []
+	return specs
 
 
 func _resolve_visual_roots() -> void:
@@ -112,22 +165,145 @@ func _ensure_visibility_notifier() -> void:
 		_visibility_notifier.screen_exited.connect(exited_callback)
 
 
-func _ensure_wheels_collected() -> void:
-	if not _wheel_nodes.is_empty():
+func _configure_wheel_visuals() -> void:
+	if (
+		not _detailed_wheel_bindings.is_empty()
+		or not _low_detail_wheel_bindings.is_empty()
+		or not _legacy_detailed_wheel_nodes.is_empty()
+	):
 		return
-	_collect_wheel_nodes(self)
-
-
-func _set_low_detail_active(enabled: bool) -> void:
 	_resolve_visual_roots()
-	_using_low_detail = enabled and _low_detail_root != null
-	if _detailed_root != null:
-		_detailed_root.visible = not _using_low_detail
-	if _low_detail_root != null:
-		_low_detail_root.visible = _using_low_detail
+	_configure_low_detail_wheel_bindings()
+	var explicit_specs: Array[Dictionary] = _get_explicit_detailed_wheel_specs()
+	if explicit_specs.is_empty():
+		_collect_legacy_detailed_wheel_nodes(_detailed_root)
+		return
+	for spec: Dictionary in explicit_specs:
+		var binding: RuntimeWheelBinding = _create_binding_from_spec(spec)
+		if binding == null:
+			push_error("CarVisualController could not configure an explicit detailed wheel binding.")
+			continue
+		_detailed_wheel_bindings.append(binding)
+		_detailed_wheel_bindings_by_id[binding.wheel_id] = binding
 
 
-func _collect_wheel_nodes(node: Node) -> void:
+func _configure_low_detail_wheel_bindings() -> void:
+	if _low_detail_root == null:
+		return
+	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
+		var wheel: Node3D = _low_detail_root.get_node_or_null(NodePath(str(wheel_name))) as Node3D
+		if wheel == null:
+			continue
+		var wheel_id: StringName = _low_detail_wheel_id(wheel_name)
+		var binding: RuntimeWheelBinding = _create_runtime_binding(
+			wheel_id,
+			_low_detail_root,
+			wheel.position,
+			LOW_DETAIL_FRONT_WHEEL_NAMES.has(wheel_name),
+			-1.0,
+			1.0,
+			[wheel],
+			[]
+		)
+		if binding != null:
+			_low_detail_wheel_bindings.append(binding)
+
+
+func _create_binding_from_spec(spec: Dictionary) -> RuntimeWheelBinding:
+	var wheel_id: StringName = spec.get("wheel_id", &"")
+	var pivot_parent_path: NodePath = spec.get("pivot_parent_path", NodePath())
+	var pivot_parent: Node3D = get_node_or_null(pivot_parent_path) as Node3D
+	if wheel_id.is_empty() or pivot_parent == null:
+		return null
+	var spin_nodes: Array[Node3D] = _resolve_node_paths(spec.get("spin_node_paths", []))
+	var steering_only_nodes: Array[Node3D] = _resolve_node_paths(spec.get("steering_only_node_paths", []))
+	if spin_nodes.is_empty():
+		return null
+	return _create_runtime_binding(
+		wheel_id,
+		pivot_parent,
+		spec.get("pivot_position", Vector3.ZERO),
+		spec.get("steers", false),
+		float(spec.get("steering_direction", 1.0)),
+		float(spec.get("spin_direction", 1.0)),
+		spin_nodes,
+		steering_only_nodes
+	)
+
+
+func _resolve_node_paths(path_values: Array) -> Array[Node3D]:
+	var nodes: Array[Node3D] = []
+	for path_value: Variant in path_values:
+		var node_path: NodePath = path_value
+		var node: Node3D = get_node_or_null(node_path) as Node3D
+		if node == null or nodes.has(node):
+			continue
+		nodes.append(node)
+	return nodes
+
+
+func _create_runtime_binding(
+	wheel_id: StringName,
+	pivot_parent: Node3D,
+	pivot_position: Vector3,
+	steers: bool,
+	steering_direction: float,
+	spin_direction: float,
+	spin_nodes: Array[Node3D],
+	steering_only_nodes: Array[Node3D]
+) -> RuntimeWheelBinding:
+	if pivot_parent == null or spin_nodes.is_empty():
+		return null
+	var steering_pivot: Node3D = Node3D.new()
+	steering_pivot.name = "%sSteeringPivot" % String(wheel_id).to_pascal_case()
+	steering_pivot.position = pivot_position
+	pivot_parent.add_child(steering_pivot)
+
+	var spin_pivot: Node3D = Node3D.new()
+	spin_pivot.name = "%sSpinPivot" % String(wheel_id).to_pascal_case()
+	steering_pivot.add_child(spin_pivot)
+
+	for steering_node: Node3D in steering_only_nodes:
+		if is_instance_valid(steering_node):
+			steering_node.reparent(steering_pivot, true)
+	for spin_node: Node3D in spin_nodes:
+		if is_instance_valid(spin_node):
+			spin_node.reparent(spin_pivot, true)
+
+	var binding: RuntimeWheelBinding = RuntimeWheelBinding.new()
+	binding.wheel_id = wheel_id
+	binding.steering_pivot = steering_pivot
+	binding.spin_pivot = spin_pivot
+	binding.steers = steers
+	binding.steering_direction = steering_direction
+	binding.spin_direction = spin_direction
+	return binding
+
+
+func _apply_runtime_wheel_bindings(bindings: Array[RuntimeWheelBinding], steering_angle: float) -> void:
+	for binding: RuntimeWheelBinding in bindings:
+		if binding == null or not is_instance_valid(binding.spin_pivot):
+			continue
+		var applied_steering: float = steering_angle * binding.steering_direction if binding.steers else 0.0
+		binding.steering_pivot.quaternion = Quaternion(Vector3.UP, applied_steering)
+		binding.spin_pivot.quaternion = Quaternion(Vector3.RIGHT, _wheel_spin * binding.spin_direction)
+
+
+func _apply_legacy_detailed_wheels(steering_angle: float) -> void:
+	for index: int in range(_legacy_detailed_wheel_nodes.size()):
+		var wheel: Node3D = _legacy_detailed_wheel_nodes[index]
+		if not is_instance_valid(wheel) or not wheel.is_visible_in_tree():
+			continue
+		var rotation_value: Vector3 = _legacy_detailed_base_rotations[index]
+		rotation_value.x += _wheel_spin
+		if _legacy_detailed_front_flags[index]:
+			rotation_value.y -= steering_angle
+		wheel.rotation = rotation_value
+
+
+func _collect_legacy_detailed_wheel_nodes(node: Node) -> void:
+	if node == null:
+		return
 	for child: Node in node.get_children():
 		if child is Node3D:
 			var child_3d: Node3D = child as Node3D
@@ -138,17 +314,39 @@ func _collect_wheel_nodes(node: Node) -> void:
 				or "tyre" in normalized_name
 				or "rim" in normalized_name
 			):
-				_register_wheel_node(child_3d, normalized_name)
-		_collect_wheel_nodes(child)
+				_register_legacy_detailed_wheel_node(child_3d, normalized_name)
+		_collect_legacy_detailed_wheel_nodes(child)
 
 
-func _register_wheel_node(wheel: Node3D, normalized_name: String) -> void:
-	if _wheel_nodes.has(wheel):
+func _register_legacy_detailed_wheel_node(wheel: Node3D, normalized_name: String) -> void:
+	if _legacy_detailed_wheel_nodes.has(wheel):
 		return
-	_wheel_nodes.append(wheel)
-	_wheel_base_rotations.append(wheel.rotation)
+	_legacy_detailed_wheel_nodes.append(wheel)
+	_legacy_detailed_base_rotations.append(wheel.rotation)
 	var explicitly_front: bool = "front" in normalized_name or "fl" in normalized_name or "fr" in normalized_name
-	_front_wheel_flags.append(explicitly_front or wheel.position.z < 0.0)
+	_legacy_detailed_front_flags.append(explicitly_front or wheel.position.z > 0.0)
+
+
+func _low_detail_wheel_id(wheel_name: StringName) -> StringName:
+	match wheel_name:
+		&"WheelFrontLeft":
+			return &"front_left"
+		&"WheelFrontRight":
+			return &"front_right"
+		&"WheelRearLeft":
+			return &"rear_left"
+		&"WheelRearRight":
+			return &"rear_right"
+	return wheel_name
+
+
+func _set_low_detail_active(enabled: bool) -> void:
+	_resolve_visual_roots()
+	_using_low_detail = enabled and _low_detail_root != null
+	if _detailed_root != null:
+		_detailed_root.visible = not _using_low_detail
+	if _low_detail_root != null:
+		_low_detail_root.visible = _using_low_detail
 
 
 func _on_visibility_notifier_screen_entered() -> void:
