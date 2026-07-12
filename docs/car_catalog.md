@@ -19,7 +19,7 @@ Nissan 370Z
   370Z manual
 ```
 
-Both variants share the same model identity and may share a player scene, while each references its own authoritative `CarSpecs` resource. An AI-eligible variant additionally owns a dedicated AI scene with opponent-specific distance LOD so the detailed model is rendered only at close range.
+Both variants share the same model identity and may share a player scene, while each references its own authoritative `CarSpecs` resource. An AI-eligible variant additionally owns a dedicated AI scene, while every car visual wrapper uses the same screen-visibility LOD policy.
 
 ## Canonical folder layout
 
@@ -109,7 +109,7 @@ Purpose:
 
 - stores one selectable version of a car model;
 - links to a playable player car scene;
-- links AI-compatible variants to a separate AI car scene with opponent-specific distance LOD;
+- links AI-compatible variants to a separate AI car scene;
 - links to exactly one valid `CarSpecs` tuning resource;
 - declares `ai_eligible` explicitly for variants supported by the current AI input model;
 - stores presentation metadata that is not derivable from specs, such as the engine and drivetrain labels;
@@ -118,7 +118,9 @@ Purpose:
 
 `ai_eligible` is not inferred from catalog order or from the presence of an automatic gearbox. The current AI requires a valid automatic-transmission variant, an explicit dedicated AI scene, and `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`. The manual 370Z remains player-selectable but is not an opponent fallback.
 
-The AI scene must retain the `PlayerCarController` root and compatible collision/audio/runtime structure. Its visual controller must expose both a detailed root and a low-detail root, leave forced low detail disabled, and use a short distance threshold with hysteresis. The current 370Z opponent scenes switch around 30 metres: the detailed model is selected below roughly 27 metres and the low-detail model above roughly 33 metres. Both visual roots are instantiated, so this policy reduces per-frame rendering work rather than detailed-asset memory.
+Every car scene that uses `CarVisualController` must expose a detailed root and a low-detail root. The controller creates a `VisibleOnScreenNotifier3D` covering the vehicle bounds and starts conservatively in low detail. When the notifier enters the active camera view, the detailed root becomes visible; when it leaves the view, the low-detail root replaces it. This policy applies equally to the player car and AI cars and does not require per-frame distance checks in GDScript.
+
+Visibility detection is screen/frustum based. It is an approximate visibility heuristic and does not treat a car hidden behind walls or other geometry as invisible unless occlusion culling is configured. Both visual roots remain instantiated, so the policy reduces render work and hidden-wheel animation work rather than detailed-asset memory.
 
 Examples:
 
@@ -188,10 +190,11 @@ Callers must treat a non-empty validation result as a configuration error. Menu 
 7. If two variants share identical visuals, they may reference the same player scene but different specs.
 8. If two variants need different meshes or nodes, they may reference different player scenes.
 9. Set `ai_eligible = true` only when the current AI can operate the variant without additional gearbox or control logic.
-10. Every AI-eligible variant must reference a dedicated `ai_car_scene` whose visual controller provides detailed and low-detail roots with a bounded close-range LOD threshold.
-11. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
-12. Use globally unique model and variant IDs and unique sort orders inside each model.
-13. Add focused negative validation fixtures with every new content rule.
+10. Every AI-eligible variant must reference a dedicated `ai_car_scene` whose visual controller provides detailed and low-detail roots.
+11. Every car visual wrapper must use `CarVisualController` screen-visibility LOD or provide an equivalent explicitly tested policy.
+12. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
+13. Use globally unique model and variant IDs and unique sort orders inside each model.
+14. Add focused negative validation fixtures with every new content rule.
 
 ## Selection and spawning flow
 
