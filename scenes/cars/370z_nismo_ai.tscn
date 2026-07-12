@@ -1,0 +1,43 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/car/profiled_engine_audio.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
+[ext_resource type="PackedScene" path="res://scenes/cars/370z_nismo_ai_visuals.tscn" id="4_visuals"]
+[ext_resource type="Resource" path="res://resources/audio/370z_nismo_audio_profile.tres" id="5_audio_profile"]
+
+[sub_resource type="BoxShape3D" id="CabinCollision"]
+size = Vector3(1.92, 1.30, 2.30)
+
+[sub_resource type="BoxShape3D" id="FrontCollision"]
+size = Vector3(1.98, 0.76, 1.30)
+
+[sub_resource type="BoxShape3D" id="RearCollision"]
+size = Vector3(1.94, 0.78, 1.28)
+
+[node name="370ZNismoAi" type="CharacterBody3D"]
+floor_snap_length = 0.0
+script = ExtResource("1_controller")
+
+[node name="CollisionCabin" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
+shape = SubResource("CabinCollision")
+
+[node name="CollisionFront" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.40, -1.64)
+shape = SubResource("FrontCollision")
+
+[node name="CollisionRear" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.41, 1.63)
+shape = SubResource("RearCollision")
+
+[node name="VisualRoot" parent="." instance=ExtResource("4_visuals")]
+
+[node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("2_engine_audio")
+profile = ExtResource("5_audio_profile")
+cylinders = 6
+
+[node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("3_tire_squeal")
+loud_volume_db = -6.0

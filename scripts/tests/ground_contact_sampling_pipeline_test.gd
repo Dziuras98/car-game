@@ -11,7 +11,8 @@ class CountingChassis:
 
 	var sample_count: int = 0
 	var tire_update_count: int = 0
-	var apply_velocity_count: int = 0
+	var integration_count: int = 0
+	var resolution_count: int = 0
 	var skid_update_count: int = 0
 
 	func sample_ground_contact(state: CarRuntimeState, _car: CharacterBody3D) -> void:
@@ -38,8 +39,15 @@ class CountingChassis:
 	) -> void:
 		pass
 
-	func apply_velocity(_state: CarRuntimeState, _car: CharacterBody3D, _delta: float) -> void:
-		apply_velocity_count += 1
+	func integrate_velocity(
+		_state: CarRuntimeState,
+		_car: CharacterBody3D,
+		_delta: float
+	) -> void:
+		integration_count += 1
+
+	func resolve_velocity(_state: CarRuntimeState, _car: CharacterBody3D) -> void:
+		resolution_count += 1
 
 	func update_skid_marks(
 		_state: CarRuntimeState,
@@ -66,25 +74,31 @@ func _run() -> void:
 	car._chassis_controller = counting_chassis
 	car._physics_process(0.10)
 
-	_expect(counting_chassis.sample_count > 1, "a hitch-sized physics frame resamples ground contact for bounded substeps")
+	_expect(counting_chassis.sample_count > 1, "a physics tick resamples ground contact for bounded numerical substeps")
 	_expect(
 		counting_chassis.sample_count == counting_chassis.tire_update_count,
-		"every hitch-sized contact sample feeds exactly one tire-dynamics step"
+		"every contact sample feeds exactly one tire-dynamics step"
 	)
 	_expect(
-		counting_chassis.sample_count == counting_chassis.apply_velocity_count,
-		"every hitch-sized contact sample is followed by collision-resolved movement"
+		counting_chassis.sample_count == counting_chassis.integration_count,
+		"every contact sample feeds exactly one velocity-integration step"
+	)
+	_expect(
+		counting_chassis.resolution_count == 1,
+		"all numerical substeps share one collision-resolved CharacterBody3D movement"
 	)
 	_expect(counting_chassis.skid_update_count == 1, "skid marks update once per physics frame")
 
 	counting_chassis.sample_count = 0
 	counting_chassis.tire_update_count = 0
-	counting_chassis.apply_velocity_count = 0
+	counting_chassis.integration_count = 0
+	counting_chassis.resolution_count = 0
 	counting_chassis.skid_update_count = 0
 	car._physics_process(1.0 / 120.0)
 	_expect(counting_chassis.sample_count == 1, "a fine physics frame samples ground contact once")
 	_expect(counting_chassis.tire_update_count == 1, "a fine frame needs one tire-dynamics step")
-	_expect(counting_chassis.apply_velocity_count == 1, "a fine frame resolves movement once")
+	_expect(counting_chassis.integration_count == 1, "a fine frame integrates velocity once")
+	_expect(counting_chassis.resolution_count == 1, "a fine frame resolves movement once")
 	_expect(counting_chassis.skid_update_count == 1, "a fine frame updates skid marks once")
 
 	car.queue_free()

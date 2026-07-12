@@ -8,8 +8,6 @@ enum SpecsApplyResult {
 	INVALID_SPECS,
 }
 
-const MAX_PHYSICS_TIME_DEBT: float = 0.50
-
 var _car_specs: CarSpecs
 
 @export_group("Specs")
@@ -29,7 +27,6 @@ var _chassis_controller: CarChassisController = CarChassisController.new()
 var _reset_controller: CarResetController = CarResetController.new()
 var _car_input: CarInput = CarInput.new()
 var _skid_mark_emitter: SkidMarkEmitter
-var _physics_time_debt: float = 0.0
 var _force_low_detail_visuals: bool = false
 
 @onready var _visual_controller: CarVisualController = get_node_or_null("VisualRoot") as CarVisualController
@@ -98,10 +95,6 @@ func get_lateral_speed() -> float:
 	return _runtime_state.lateral_speed
 
 
-func get_physics_time_debt() -> float:
-	return _physics_time_debt
-
-
 func get_telemetry_snapshot() -> CarTelemetrySnapshot:
 	return CarTelemetrySnapshot.capture(_runtime_state)
 
@@ -158,12 +151,7 @@ func _physics_process(delta: float) -> void:
 	var handbrake_active: bool = _car_input.handbrake_active
 	var gear_up_pressed: bool = _car_input.gear_up_pressed
 	var gear_down_pressed: bool = _car_input.gear_down_pressed
-	var requested_delta: float = maxf(delta, 0.0) + _physics_time_debt
-	var safe_delta: float = minf(requested_delta, CarPowertrainController.MAX_FRAME_DELTA)
-	_physics_time_debt = minf(
-		maxf(requested_delta - safe_delta, 0.0),
-		MAX_PHYSICS_TIME_DEBT
-	)
+	var safe_delta: float = _get_safe_physics_delta(delta)
 
 	_runtime_state.set_drive_input_snapshot(throttle, brake)
 	if safe_delta <= 0.0:
@@ -213,10 +201,11 @@ func _physics_process(delta: float) -> void:
 			step
 		)
 		_chassis_controller.update_steering(_runtime_state, steering, self, step)
-		_chassis_controller.apply_velocity(_runtime_state, self, step)
+		_chassis_controller.integrate_velocity(_runtime_state, self, step)
 		apply_shift_input = false
 		remaining_delta -= step
 
+	_chassis_controller.resolve_velocity(_runtime_state, self)
 	_chassis_controller.update_skid_marks(
 		_runtime_state,
 		self,
@@ -224,6 +213,17 @@ func _physics_process(delta: float) -> void:
 		safe_delta
 	)
 	_update_vehicle_visuals(safe_delta, steering)
+
+
+func _get_safe_physics_delta(delta: float) -> float:
+	var requested_delta: float = maxf(delta, 0.0)
+	var engine_physics_delta: float = maxf(get_physics_process_delta_time(), 0.0)
+	if engine_physics_delta <= 0.0:
+		return minf(requested_delta, CarPowertrainController.MAX_FRAME_DELTA)
+	return minf(
+		requested_delta,
+		minf(engine_physics_delta, CarPowertrainController.MAX_FRAME_DELTA)
+	)
 
 
 func _initialize_drive_runtime() -> SpecsApplyResult:
@@ -248,7 +248,6 @@ func _apply_drive_config(next_config: CarDriveConfig, preserve_motion_state: boo
 		_clamp_runtime_gear_to_config()
 		return
 
-	_physics_time_debt = 0.0
 	_runtime_state.reset_drive_state(_drive_config.idle_rpm)
 	_powertrain_controller.reset(_runtime_state)
 
@@ -268,7 +267,6 @@ func _reset_to_start() -> void:
 	if _drive_config == null:
 		return
 
-	_physics_time_debt = 0.0
 	_reset_controller.reset_to_start(
 		self,
 		_runtime_state,

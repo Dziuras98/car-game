@@ -146,22 +146,33 @@ func update_steering(state: CarRuntimeState, steering: float, car: CharacterBody
 	set_local_speeds_from_horizontal_velocity(state, car.global_transform, horizontal_velocity)
 
 
-func apply_velocity(state: CarRuntimeState, car: CharacterBody3D, delta: float) -> void:
+func integrate_velocity(state: CarRuntimeState, car: CharacterBody3D, delta: float) -> void:
 	var horizontal_velocity: Vector3 = get_horizontal_velocity_vector(state, car.global_transform)
 	car.velocity.x = horizontal_velocity.x
 	car.velocity.z = horizontal_velocity.z
-	var remaining_delta: float = clampf(delta, 0.0, CarPowertrainController.MAX_FRAME_DELTA)
-	while remaining_delta > 0.000001:
-		var step: float = minf(remaining_delta, CarPowertrainController.MAX_SIMULATION_SUBSTEP)
-		car.velocity.y -= _config.gravity * step
-		if state.ground_contact_count > 0:
-			car.velocity += state.ground_normal * state.suspension_acceleration * step
-		elif car.is_on_floor():
-			car.velocity.y = minf(car.velocity.y, -_config.floor_stick_force)
-		remaining_delta -= step
+	var safe_delta: float = clampf(delta, 0.0, CarPowertrainController.MAX_SIMULATION_SUBSTEP)
+	if safe_delta <= 0.0:
+		return
+	car.velocity.y -= _config.gravity * safe_delta
+	if state.ground_contact_count > 0:
+		car.velocity += state.ground_normal * state.suspension_acceleration * safe_delta
+	elif car.is_on_floor():
+		car.velocity.y = minf(car.velocity.y, -_config.floor_stick_force)
+
+
+func resolve_velocity(state: CarRuntimeState, car: CharacterBody3D) -> void:
 	car.move_and_slide()
 	var resolved_horizontal_velocity: Vector3 = Vector3(car.velocity.x, 0.0, car.velocity.z)
 	set_local_speeds_from_horizontal_velocity(state, car.global_transform, resolved_horizontal_velocity)
+
+
+func apply_velocity(state: CarRuntimeState, car: CharacterBody3D, delta: float) -> void:
+	var remaining_delta: float = clampf(delta, 0.0, CarPowertrainController.MAX_FRAME_DELTA)
+	while remaining_delta > 0.000001:
+		var step: float = minf(remaining_delta, CarPowertrainController.MAX_SIMULATION_SUBSTEP)
+		integrate_velocity(state, car, step)
+		remaining_delta -= step
+	resolve_velocity(state, car)
 
 
 func get_horizontal_velocity_vector(state: CarRuntimeState, car_transform: Transform3D) -> Vector3:

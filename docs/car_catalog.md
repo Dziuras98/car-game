@@ -19,7 +19,7 @@ Nissan 370Z
   370Z manual
 ```
 
-Both variants share the same model identity and visual scene, while each references its own authoritative `CarSpecs` resource.
+Both variants share the same model identity and may share a player scene, while each references its own authoritative `CarSpecs` resource. An AI-eligible variant additionally owns a dedicated lightweight AI scene so opponent spawning does not instantiate player-only detailed assets.
 
 ## Canonical folder layout
 
@@ -108,14 +108,17 @@ scripts/car/car_variant_definition.gd
 Purpose:
 
 - stores one selectable version of a car model;
-- links to a playable car scene;
+- links to a playable player car scene;
+- links AI-compatible variants to a separate lightweight AI car scene;
 - links to exactly one valid `CarSpecs` tuning resource;
 - declares `ai_eligible` explicitly for variants supported by the current AI input model;
 - stores presentation metadata that is not derivable from specs, such as the engine and drivetrain labels;
 - derives mass and transmission labels from `CarSpecs` so display data cannot drift from runtime physics;
-- rejects an AI-eligible variant unless its specs use an automatic transmission.
+- rejects an AI-eligible variant unless its specs use an automatic transmission and `ai_car_scene` is present.
 
-`ai_eligible` is not inferred from catalog order or from the presence of an automatic gearbox. The current AI requires a valid automatic-transmission variant and `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`. The manual 370Z remains player-selectable but is not an opponent fallback.
+`ai_eligible` is not inferred from catalog order or from the presence of an automatic gearbox. The current AI requires a valid automatic-transmission variant, an explicit dedicated AI scene, and `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`. The manual 370Z remains player-selectable but is not an opponent fallback.
+
+The AI scene must retain the `PlayerCarController` root and compatible collision/audio/runtime structure, but it must not reference player-only detailed GLB models. This prevents hidden detailed scenes from consuming memory after visual LOD has switched to a fallback.
 
 Examples:
 
@@ -167,7 +170,7 @@ CarCatalog.validate()
   -> CarModelDefinition.validate()
        -> model identity, years, default variant, local ordering
        -> CarVariantDefinition.validate()
-            -> scene, specs, labels and AI eligibility
+            -> player scene, AI scene, specs, labels and AI eligibility
             -> CarSpecs.validate()
                  -> numeric and relational tuning constraints
 ```
@@ -179,15 +182,16 @@ Callers must treat a non-empty validation result as a configuration error. Menu 
 1. Add one folder per model, not per variant.
 2. Put every playable version in `variants/`.
 3. Put every tuning payload in `specs/`.
-4. A variant must reference one playable scene and one valid `CarSpecs` resource.
+4. A variant must reference one playable player scene and one valid `CarSpecs` resource.
 5. Store transmission mode only in `CarSpecs.transmission_type`.
 6. Do not duplicate mass or transmission labels in variant resources.
-7. If two variants share identical visuals, they may reference the same scene but different specs.
-8. If two variants need different meshes or nodes, they may reference different scenes.
+7. If two variants share identical visuals, they may reference the same player scene but different specs.
+8. If two variants need different meshes or nodes, they may reference different player scenes.
 9. Set `ai_eligible = true` only when the current AI can operate the variant without additional gearbox or control logic.
-10. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
-11. Use globally unique model and variant IDs and unique sort orders inside each model.
-12. Add focused negative validation fixtures with every new content rule.
+10. Every AI-eligible variant must reference a dedicated lightweight `ai_car_scene` with no detailed player GLB dependency.
+11. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
+12. Use globally unique model and variant IDs and unique sort orders inside each model.
+13. Add focused negative validation fixtures with every new content rule.
 
 ## Selection and spawning flow
 
@@ -202,8 +206,8 @@ tryb -> tor -> model auta -> wariant auta
 The factory:
 
 1. resolves the exact `CarVariantDefinition` and rejects an index outside the catalog range;
-2. instantiates its `PackedScene`;
-3. verifies the root is `PlayerCarController`;
+2. instantiates `car_scene` for the player or `ai_car_scene` for an opponent;
+3. verifies the selected scene root is `PlayerCarController`;
 4. assigns the variant's `CarSpecs` before adding the car to the scene tree;
 5. selects opponents only from the explicit AI-eligible subset;
 6. rejects missing or invalid catalog data instead of silently selecting fallback content.

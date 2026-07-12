@@ -8,6 +8,7 @@ class_name CarVariantDefinition
 
 @export_group("Runtime")
 @export var car_scene: PackedScene
+@export var ai_car_scene: PackedScene
 @export var specs: CarSpecs
 @export var ai_eligible: bool = false
 
@@ -40,6 +41,8 @@ func validate() -> PackedStringArray:
 		errors.append("sort_order must be non-negative")
 	if car_scene == null:
 		errors.append("car_scene must not be null")
+	if ai_eligible and ai_car_scene == null:
+		errors.append("ai_car_scene must not be null for ai_eligible variants")
 	if specs == null:
 		errors.append("specs must not be null")
 	else:
@@ -70,10 +73,15 @@ func get_car_scene() -> PackedScene:
 	return car_scene
 
 
+func get_ai_car_scene() -> PackedScene:
+	return ai_car_scene
+
+
 func is_ai_eligible_for_race() -> bool:
 	return (
 		ai_eligible
 		and car_scene != null
+		and ai_car_scene != null
 		and specs != null
 		and specs.is_valid()
 		and specs.is_automatic_transmission()

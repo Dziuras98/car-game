@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_visual_controller.gd" id="1_controller"]
+[ext_resource type="PackedScene" path="res://scenes/cars/370z_low_detail_visuals.tscn" id="2_low"]
+
+[node name="Z34AiVisuals" type="Node3D"]
+script = ExtResource("1_controller")
+detailed_root_path = NodePath("DetailedModelNotPresent")
+low_detail_root_path = NodePath("LowDetail")
+visual_wheel_radius = 0.339
+force_low_detail = true
+
+[node name="LowDetail" parent="." instance=ExtResource("2_low")]
