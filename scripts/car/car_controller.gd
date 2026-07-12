@@ -8,6 +8,8 @@ enum SpecsApplyResult {
 	INVALID_SPECS,
 }
 
+const MAX_PHYSICS_TIME_DEBT: float = 0.50
+
 var _car_specs: CarSpecs
 
 @export_group("Specs")
@@ -27,6 +29,10 @@ var _chassis_controller: CarChassisController = CarChassisController.new()
 var _reset_controller: CarResetController = CarResetController.new()
 var _car_input: CarInput = CarInput.new()
 var _skid_mark_emitter: SkidMarkEmitter
+var _physics_time_debt: float = 0.0
+var _force_low_detail_visuals: bool = false
+
+@onready var _visual_controller: CarVisualController = get_node_or_null("VisualRoot") as CarVisualController
 
 
 func _ready() -> void:
@@ -34,6 +40,8 @@ func _ready() -> void:
 	if result != SpecsApplyResult.OK:
 		set_physics_process(false)
 		return
+	if _visual_controller != null:
+		_visual_controller.set_force_low_detail(_force_low_detail_visuals)
 	_reset_controller.capture_start_transform(_runtime_state, global_transform)
 
 
@@ -61,9 +69,6 @@ func get_throttle_input() -> float:
 func get_engine_load() -> float:
 	if _drive_config == null:
 		return 0.0
-	# Audio demand follows the control that requests combustion, not the torque
-	# currently transmitted through the gearbox. Neutral, an open clutch and an
-	# automatic shift must therefore not mute a revving engine.
 	if _drive_config.is_automatic_transmission() and _runtime_state.current_gear < 0:
 		return clampf(_runtime_state.brake_input, 0.0, 1.0)
 	return clampf(_runtime_state.throttle_input, 0.0, 1.0)
@@ -93,6 +98,10 @@ func get_lateral_speed() -> float:
 	return _runtime_state.lateral_speed
 
 
+func get_physics_time_debt() -> float:
+	return _physics_time_debt
+
+
 func get_telemetry_snapshot() -> CarTelemetrySnapshot:
 	return CarTelemetrySnapshot.capture(_runtime_state)
 
@@ -113,6 +122,12 @@ func set_external_input_enabled(enabled: bool) -> void:
 
 func set_external_drive_inputs(throttle: float, brake: float, steering: float, handbrake_active: bool = false) -> void:
 	_car_input.set_external_drive_inputs(throttle, brake, steering, handbrake_active)
+
+
+func set_force_low_detail_visuals(enabled: bool) -> void:
+	_force_low_detail_visuals = enabled
+	if is_instance_valid(_visual_controller):
+		_visual_controller.set_force_low_detail(enabled)
 
 
 func try_apply_car_specs(next_specs: CarSpecs) -> SpecsApplyResult:
@@ -143,7 +158,12 @@ func _physics_process(delta: float) -> void:
 	var handbrake_active: bool = _car_input.handbrake_active
 	var gear_up_pressed: bool = _car_input.gear_up_pressed
 	var gear_down_pressed: bool = _car_input.gear_down_pressed
-	var safe_delta: float = clampf(delta, 0.0, CarPowertrainController.MAX_FRAME_DELTA)
+	var requested_delta: float = maxf(delta, 0.0) + _physics_time_debt
+	var safe_delta: float = minf(requested_delta, CarPowertrainController.MAX_FRAME_DELTA)
+	_physics_time_debt = minf(
+		maxf(requested_delta - safe_delta, 0.0),
+		MAX_PHYSICS_TIME_DEBT
+	)
 
 	_runtime_state.set_drive_input_snapshot(throttle, brake)
 	if safe_delta <= 0.0:
@@ -169,6 +189,7 @@ func _physics_process(delta: float) -> void:
 			_skid_mark_emitter,
 			0.0
 		)
+		_update_vehicle_visuals(0.0, steering)
 		return
 
 	var remaining_delta: float = safe_delta
@@ -202,6 +223,7 @@ func _physics_process(delta: float) -> void:
 		_skid_mark_emitter,
 		safe_delta
 	)
+	_update_vehicle_visuals(safe_delta, steering)
 
 
 func _initialize_drive_runtime() -> SpecsApplyResult:
@@ -226,6 +248,7 @@ func _apply_drive_config(next_config: CarDriveConfig, preserve_motion_state: boo
 		_clamp_runtime_gear_to_config()
 		return
 
+	_physics_time_debt = 0.0
 	_runtime_state.reset_drive_state(_drive_config.idle_rpm)
 	_powertrain_controller.reset(_runtime_state)
 
@@ -245,6 +268,7 @@ func _reset_to_start() -> void:
 	if _drive_config == null:
 		return
 
+	_physics_time_debt = 0.0
 	_reset_controller.reset_to_start(
 		self,
 		_runtime_state,
@@ -266,4 +290,15 @@ func _configure_skid_mark_emitter() -> void:
 		_drive_config.skid_mark_lifetime,
 		_drive_config.skid_mark_width,
 		_drive_config.skid_mark_length,
+	)
+
+
+func _update_vehicle_visuals(delta: float, steering: float) -> void:
+	if _visual_controller == null or _drive_config == null:
+		return
+	_visual_controller.update_vehicle_visuals(
+		delta,
+		_runtime_state.forward_speed,
+		steering,
+		_drive_config.wheel_radius
 	)
