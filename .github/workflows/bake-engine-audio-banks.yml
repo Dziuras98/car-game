@@ -2,9 +2,9 @@ name: Bake engine audio banks
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches:
-      - agent/baked-engine-audio-runtime
+      - master
     paths:
       - .github/workflows/bake-engine-audio-banks.yml
 
@@ -19,15 +19,16 @@ env:
 
 jobs:
   bake:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && (github.event_name != 'pull_request' || github.head_ref == 'agent/baked-engine-audio-runtime')
     runs-on: windows-2025
     timeout-minutes: 20
 
     steps:
-      - name: Check out repository
+      - name: Check out source branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Download and verify Godot
         shell: pwsh
@@ -81,6 +82,8 @@ jobs:
 
       - name: Commit generated banks
         shell: pwsh
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -90,4 +93,9 @@ jobs:
             exit 0
           }
           git commit -m "Bake VQ37VHR engine audio banks"
-          git push origin "HEAD:$env:GITHUB_REF_NAME"
+          if ([string]::IsNullOrWhiteSpace($env:HEAD_BRANCH)) {
+            git push origin "HEAD:$env:GITHUB_REF_NAME"
+          }
+          else {
+            git push origin "HEAD:refs/heads/$env:HEAD_BRANCH"
+          }
