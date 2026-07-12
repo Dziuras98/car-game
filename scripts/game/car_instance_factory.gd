@@ -46,14 +46,16 @@ func instantiate_indexed_car(car_index: int) -> PlayerCarController:
 	if car_index < 0 or car_index >= _available_variants.size():
 		push_error("Car index %d is outside the configured catalog range." % car_index)
 		return null
-	return _instantiate_variant(_available_variants[car_index])
+	var variant: CarVariantDefinition = _available_variants[car_index]
+	return _instantiate_variant_scene(variant, variant.get_car_scene(), "player")
 
 
 func instantiate_opponent_car() -> PlayerCarController:
 	if _ai_eligible_variants.is_empty():
 		push_error("CarInstanceFactory requires at least one explicit AI-eligible variant.")
 		return null
-	return _instantiate_variant(_get_opponent_variant())
+	var variant: CarVariantDefinition = _get_opponent_variant()
+	return _instantiate_variant_scene(variant, variant.get_ai_car_scene(), "AI")
 
 
 func _get_opponent_variant() -> CarVariantDefinition:
@@ -63,20 +65,29 @@ func _get_opponent_variant() -> CarVariantDefinition:
 	return _ai_eligible_variants[selected_index]
 
 
-func _instantiate_variant(variant: CarVariantDefinition) -> PlayerCarController:
+func _instantiate_variant_scene(
+	variant: CarVariantDefinition,
+	car_scene: PackedScene,
+	scene_role: String
+) -> PlayerCarController:
 	if variant == null:
 		return null
 	var specs: CarSpecs = variant.get_specs()
 	if not _validate_specs(specs, "Car variant %s" % str(variant.variant_id)):
 		return null
-	var car_scene: PackedScene = variant.get_car_scene()
 	if car_scene == null:
-		push_error("Car variant %s must provide a car scene." % str(variant.variant_id))
+		push_error(
+			"Car variant %s must provide a %s car scene."
+			% [str(variant.variant_id), scene_role]
+		)
 		return null
 	var car_instance: Node = car_scene.instantiate()
 	var car_controller: PlayerCarController = car_instance as PlayerCarController
 	if car_controller == null:
-		push_error("Car variant %s scene must have PlayerCarController on its root node." % str(variant.variant_id))
+		push_error(
+			"Car variant %s %s scene must have PlayerCarController on its root node."
+			% [str(variant.variant_id), scene_role]
+		)
 		car_instance.queue_free()
 		return null
 	car_controller.car_specs = specs
