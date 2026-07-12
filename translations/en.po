@@ -140,3 +140,45 @@ msgstr "Runtime systems could not be configured for the default track."
 
 msgid "Session-start transaction configuration failed."
 msgstr "Session startup could not be configured."
+
+msgid "Nie można uruchomić gry\n\nGameManager scene contract validation failed."
+msgstr "The game could not be started\n\nMain scene structure validation failed."
+
+msgid "The game could not be started\n\nGameManager scene contract validation failed."
+msgstr "The game could not be started\n\nMain scene structure validation failed."
+
+msgid "Nie można uruchomić gry\n\nGame content configuration validation failed."
+msgstr "The game could not be started\n\nGame content configuration is invalid."
+
+msgid "The game could not be started\n\nGame content configuration validation failed."
+msgstr "The game could not be started\n\nGame content configuration is invalid."
+
+msgid "Nie można uruchomić gry\n\nThe default track could not be activated."
+msgstr "The game could not be started\n\nThe default track could not be activated."
+
+msgid "The game could not be started\n\nThe default track could not be activated."
+msgstr "The game could not be started\n\nThe default track could not be activated."
+
+msgid "Nie można uruchomić gry\n\nGameManager produced no valid menu content options."
+msgstr "The game could not be started\n\nNo valid menu content options were found."
+
+msgid "The game could not be started\n\nGameManager produced no valid menu content options."
+msgstr "The game could not be started\n\nNo valid menu content options were found."
+
+msgid "Nie można uruchomić gry\n\nPause menu construction failed."
+msgstr "The game could not be started\n\nThe pause menu could not be created."
+
+msgid "The game could not be started\n\nPause menu construction failed."
+msgstr "The game could not be started\n\nThe pause menu could not be created."
+
+msgid "Nie można uruchomić gry\n\nRuntime controllers could not be configured for the default track."
+msgstr "The game could not be started\n\nRuntime systems could not be configured for the default track."
+
+msgid "The game could not be started\n\nRuntime controllers could not be configured for the default track."
+msgstr "The game could not be started\n\nRuntime systems could not be configured for the default track."
+
+msgid "Nie można uruchomić gry\n\nSession-start transaction configuration failed."
+msgstr "The game could not be started\n\nSession startup could not be configured."
+
+msgid "The game could not be started\n\nSession-start transaction configuration failed."
+msgstr "The game could not be started\n\nSession startup could not be configured."
