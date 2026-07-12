@@ -10,13 +10,13 @@ const REAR_LEFT_BRAKE: String = IMPORTED_ROOT_PATH + "/z_nismo_LOD_A_BRAKE_CALIP
 const REAR_RIGHT_BRAKE: String = IMPORTED_ROOT_PATH + "/z_nismo_LOD_A_BRAKE_CALIPER_REAR_RIGHT_mm_misc"
 
 const FRONT_LEFT_TYRE: String = IMPORTED_ROOT_PATH + "/z_nismo_LOD_A_TYRE_mm_tyre"
-const FRONT_LEFT_WHEEL: String = IMPORTED_ROOT_PATH + "/z_nismo_LOD_A_WHEEL_mm_wheel"
+const FRONT_LEFT_WHEEL: String = IMPORTED_ROOT_PATH + "/z_nismo_LOD_A_WHEEL_mm"
 const FRONT_RIGHT_TYRE: String = IMPORTED_ROOT_PATH + "/LOD_A_TYRE_mm_tyre"
-const FRONT_RIGHT_WHEEL: String = IMPORTED_ROOT_PATH + "/LOD_A_WHEEL_mm_wheel"
+const FRONT_RIGHT_WHEEL: String = IMPORTED_ROOT_PATH + "/LOD_A_WHEEL_mm"
 const REAR_LEFT_TYRE: String = IMPORTED_ROOT_PATH + "/LOD_A_TYRE_mm_tyre1"
-const REAR_LEFT_WHEEL: String = IMPORTED_ROOT_PATH + "/LOD_A_WHEEL_mm_wheel1"
+const REAR_LEFT_WHEEL: String = IMPORTED_ROOT_PATH + "/LOD_A_WHEEL_mm1"
 const REAR_RIGHT_TYRE: String = IMPORTED_ROOT_PATH + "/LOD_A_TYRE_mm_tyre2"
-const REAR_RIGHT_WHEEL: String = IMPORTED_ROOT_PATH + "/LOD_A_WHEEL_mm_wheel2"
+const REAR_RIGHT_WHEEL: String = IMPORTED_ROOT_PATH + "/LOD_A_WHEEL_mm2"
 
 
 func _get_explicit_detailed_wheel_specs() -> Array[Dictionary]:
