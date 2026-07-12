@@ -72,6 +72,8 @@ func _initialize() -> void:
 		print("[370Z_NISMO_AUDIO_PROFILE_TEST] %s standard_rms=%.7f nismo_rms=%.7f standard_crest=%.3f nismo_crest=%.3f standard_h4=%.8f nismo_h4=%.8f" % [label, standard_rms, nismo_rms, standard_crest, nismo_crest, standard_upper, nismo_upper])
 
 	_expect(materially_different_points >= 3, "the NISMO profile is measurably distinct in multiple operating states")
+	standard_audio.free()
+	nismo_audio.free()
 	_finish()
 
 
