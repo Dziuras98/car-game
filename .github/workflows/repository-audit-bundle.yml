@@ -20,7 +20,8 @@ jobs:
 
       - name: Report checked-out tree
         shell: pwsh
-        run: git rev-parse 'HEAD^{tree}'
+        run: |
+          git rev-parse 'HEAD^{tree}' | Tee-Object -FilePath tree-sha.txt
 
       - name: Create source bundle
         shell: pwsh
