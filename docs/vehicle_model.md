@@ -83,23 +83,26 @@ Persistent tuning does not belong in runtime state.
 7. update transmission, clutch, engine RPM and longitudinal speed;
 8. update steering while tire contact exists;
 9. apply bounded gravity and suspension support;
-10. call `move_and_slide()` once for the frame;
-11. project collision-resolved world velocity back into local speed.
+10. call `move_and_slide()` for the substep;
+11. project collision-resolved world velocity back into local speed before the next substep;
+12. update the skid-mark visual buffer once for the outer physics frame.
 
-One-shot gear inputs are consumed only by the first internal substep. Current-frame contact and slip affect drive, braking and steering without a one-frame delay.
+One-shot gear inputs are consumed only by the first internal substep. Current-substep contact and slip affect drive, braking, steering and collision resolution without a one-frame delay.
 
 ## Bounded integration
 
 The vehicle simulation clamps a frame interval to `CarPowertrainController.MAX_FRAME_DELTA` and uses substeps no larger than `MAX_SIMULATION_SUBSTEP`.
 
-The same bounded interval is used for:
+The same bounded interval and substep schedule are used for:
 
+- ground-contact acquisition;
 - tire recovery and slip;
 - transmission, engine and longitudinal forces;
 - steering rotation;
-- gravity and suspension support.
+- gravity and suspension support;
+- collision-resolved movement and local-speed reconstruction.
 
-This prevents the powertrain and chassis from integrating different effective time intervals after a frame hitch. Regression coverage compares a coarse hitch-sized frame against equivalent fine steps for speed, RPM and steering orientation.
+This prevents the powertrain and chassis from integrating different effective time intervals after a frame hitch. Regression coverage requires a hitch-sized frame to execute matching contact, tire and movement substeps and compares coarse versus fine integration for speed, RPM and steering orientation.
 
 ## Engine and transmission
 
@@ -127,7 +130,7 @@ Throttle requests forward drive and brake requests braking/reverse. Direction ch
 
 `GroundContactModel` creates four local probe origins from wheelbase, axle-track width and probe height. `CarChassisController.configure()` caches these positions; they are rebuilt only when the runtime config changes.
 
-Each physics sample casts rays from the cached positions. For each hit the chassis reads:
+Each simulation substep casts rays from the cached positions. For each hit the chassis reads:
 
 - hit distance;
 - normalized surface normal;
@@ -147,9 +150,10 @@ After sampling:
 
 - the ground normal is the normalized sum of active contact normals;
 - surface grip is the arithmetic mean over active contacts;
-- suspension support is the explicit sum of per-probe spring accelerations.
+- suspension support is the explicit sum of per-probe spring accelerations;
+- tire-generated longitudinal, lateral and steering authority is multiplied by `contact_count / 4`.
 
-The summed-support decision is intentional: each probe represents one support point. Tests cover exactly one, two, three and four active probes and verify linear support contribution on a flat, uniformly compressed surface. Losing a contact reduces support by that probe's contribution without changing the normal or grip averaging rules.
+The summed-support decision is intentional: each probe represents one support point. Losing a contact removes that probe's support and proportionally reduces tire authority. `CarSpecs.validate()` requires positive suspension stiffness and verifies that the maximum four-probe support acceleration exceeds configured gravity with a reserve margin.
 
 This remains a lightweight chassis model. It does not simulate unsprung mass, suspension geometry, tire deformation or dynamic load transfer.
 
@@ -171,7 +175,7 @@ The averaged multiplier affects:
 longitudinal_factor = surface_grip * sqrt(1 - slip_intensity²)
 ```
 
-As lateral slip approaches `1.0`, less longitudinal drive/braking force remains.
+The result is then multiplied by the active-contact fraction. As lateral slip approaches `1.0`, or as contact points are lost, less longitudinal drive/braking force remains.
 
 ## Airborne behavior
 
@@ -187,7 +191,7 @@ When no probe contacts the ground:
 
 ## Movement and collision response
 
-Horizontal velocity is reconstructed from local forward/lateral state and the car transform. After `move_and_slide()`, the resolved velocity is projected back into local coordinates. Walls remove the velocity component into the collision while preserving tangential slide.
+Horizontal velocity is reconstructed from local forward/lateral state and the car transform for every simulation substep. Gravity and suspension support are applied, `move_and_slide()` resolves that substep, and the resulting velocity is immediately projected back into local coordinates. Walls remove the velocity component into the collision while preserving tangential slide. The car scenes set `floor_snap_length` to zero so the explicit probe/spring model remains the only grounding mechanism.
 
 ## Spawn, reset and reconfiguration
 
@@ -225,16 +229,16 @@ When specs change on a live car:
 
 Automatically discovered tests cover:
 
-- complete `CarSpecs` validation and mapping;
+- complete `CarSpecs` validation and mapping, including suspension support reserve;
 - live reconfiguration and cached-controller reuse;
 - transmission, clutch, torque converter and engine coupling;
 - bounded frame-hitch integration;
-- exact 1/2/3/4-probe suspension contact sets;
+- exact 1/2/3/4-probe suspension contact sets and proportional tire authority;
 - typed surface grip and mixed-contact averaging;
 - friction-circle coupling;
 - airborne force isolation;
-- steering and collision synchronization;
-- spawn/reset transforms;
+- per-substep steering and collision synchronization;
+- spawn/reset transforms and opponent-grid admission;
 - keyboard/gamepad and external input routing;
 - bounded skid marks and procedural audio;
 - complete free-drive and race smoke flows.
