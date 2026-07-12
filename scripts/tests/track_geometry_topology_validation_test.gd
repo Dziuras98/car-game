@@ -50,15 +50,19 @@ func _test_non_adjacent_clearance_is_rejected() -> void:
 		PackedVector3Array([
 			Vector3(0.0, 0.0, 0.0),
 			Vector3(30.0, 0.0, 0.0),
-			Vector3(30.0, 0.0, 1.1),
-			Vector3(0.0, 0.0, 1.1),
+			Vector3(30.0, 0.0, 30.0),
+			Vector3(0.0, 0.0, 30.0),
+			Vector3(0.0, 0.0, 20.0),
+			Vector3(28.0, 0.0, 20.0),
+			Vector3(28.0, 0.0, 10.0),
+			Vector3(0.0, 0.0, 10.0),
 		]),
-		0.5
+		0.9
 	)
 	var errors: PackedStringArray = geometry.validate()
 	_expect(
 		_contains_error(errors, "do not preserve road clearance"),
-		"non-adjacent road segments must preserve width-aware clearance"
+		"non-local road segments must preserve width-aware clearance"
 	)
 
 
