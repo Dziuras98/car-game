@@ -40,7 +40,7 @@ The project owner has directed their inclusion in this noncommercial prototype w
 
 ### Accepted project decision
 
-The owner has explicitly accepted this known limitation for the current private/noncommercial prototype because no suitable replacement assets are available and there is no commercialization plan. The decision, audit treatment and mandatory review triggers are recorded in `docs/accepted_risks.md`.
+The owner has explicitly accepted this known limitation for the current private/noncommercial prototype because no suitable replacement assets are available and there is no commercialization plan. The decision, audit treatment and mandatory review triggers are recorded in the repository's accepted-risk register.
 
 This accepted-risk record does not claim full rights clearance. It means ordinary technical audits should not report the unchanged provenance limitation as a new remediation item unless a documented review trigger occurs.
 
