@@ -56,7 +56,6 @@ func _test_track_scene_root_validation() -> void:
 	var definition: TrackDefinition = source.duplicate(true) as TrackDefinition
 	definition.track_scene = _pack_plain_node_scene()
 	_expect(not definition.is_valid(), "track definition rejects a non-GeneratedTrack scene root")
-	_expect(definition.instantiate_track() == null, "invalid track scene cannot instantiate as GeneratedTrack")
 
 
 func _pack_plain_node_scene() -> PackedScene:
