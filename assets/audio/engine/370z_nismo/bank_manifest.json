@@ -1,0 +1,43 @@
+{
+	"bank_id": "370z_nismo",
+	"idle_volume_db": -9.0,
+	"layers": {
+		"coast": [
+			"coast_0700.wav",
+			"coast_1200.wav",
+			"coast_2000.wav",
+			"coast_3000.wav",
+			"coast_4000.wav",
+			"coast_5000.wav",
+			"coast_6000.wav",
+			"coast_7000.wav",
+			"coast_7600.wav"
+		],
+		"load": [
+			"load_0700.wav",
+			"load_1200.wav",
+			"load_2000.wav",
+			"load_3000.wav",
+			"load_4000.wav",
+			"load_5000.wav",
+			"load_6000.wav",
+			"load_7000.wav",
+			"load_7600.wav"
+		]
+	},
+	"load_volume_db": -0.5,
+	"loop_seconds": 1.0,
+	"output_volume_boost_db": 11.0,
+	"sample_rate": 32000,
+	"sample_rpms": [
+		700,
+		1200,
+		2000,
+		3000,
+		4000,
+		5000,
+		6000,
+		7000,
+		7600
+	]
+}
