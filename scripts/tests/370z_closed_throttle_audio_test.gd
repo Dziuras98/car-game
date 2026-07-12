@@ -37,6 +37,7 @@ func _initialize() -> void:
 	_expect(idle_output_rms > 0.005, "zero-input idle remains clearly above the silence floor")
 	_expect(no_load_output_rms > 0.007, "closed-throttle engine braking remains audible at 3000 RPM")
 	_expect(no_load_output_rms > loaded_output_rms * 0.20, "closed-throttle output remains within 14 dB of moderate load")
+	engine_audio.free()
 	_finish()
 
 
