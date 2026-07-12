@@ -288,10 +288,21 @@ func _get_torque_converter_torque_multiplier(drive_input: float) -> float:
 
 
 func _get_ground_contact_factor(state: CarRuntimeState) -> float:
-	return 1.0 if state.ground_contact_count > 0 else 0.0
+	return clampf(
+		float(state.ground_contact_count) / float(GroundContactModel.PROBE_COUNT),
+		0.0,
+		1.0
+	)
 
 
 func _get_longitudinal_grip_factor(state: CarRuntimeState) -> float:
-	if state.ground_contact_count <= 0:
+	var contact_factor: float = _get_ground_contact_factor(state)
+	if contact_factor <= 0.0:
 		return 0.0
-	return _tire_model.get_longitudinal_grip_factor(state.tire_slip_intensity, state.surface_grip_multiplier)
+	return (
+		_tire_model.get_longitudinal_grip_factor(
+			state.tire_slip_intensity,
+			state.surface_grip_multiplier
+		)
+		* contact_factor
+	)
