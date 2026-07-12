@@ -19,6 +19,8 @@ var _max_z: float = 1.0
 var _redraw_timer: float = 0.0
 var _redraw_request_count: int = 0
 var _track_revision: int = 0
+var _cached_track_global_transform: Transform3D = Transform3D.IDENTITY
+var _has_cached_track_transform: bool = false
 
 
 func set_target_node(target: PlayerCarController) -> void:
@@ -34,9 +36,11 @@ func set_target_node(target: PlayerCarController) -> void:
 
 func set_track_node(track: GeneratedTrack) -> void:
 	if _track == track and not _track_points.is_empty():
+		_refresh_track_transform_if_needed()
 		return
 	_disconnect_track_geometry_signal()
 	_track = track
+	_has_cached_track_transform = false
 	if is_inside_tree() and track != null:
 		track_path = get_path_to(track)
 	_connect_track_geometry_signal()
@@ -69,6 +73,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(_player):
 		set_process(false)
 		return
+	_refresh_track_transform_if_needed()
 	if _track_points.is_empty():
 		_refresh_track_points()
 	if not visible:
@@ -111,13 +116,25 @@ func _refresh_track_points() -> void:
 	_track_points.clear()
 	_mapped_track_points.clear()
 	if not is_instance_valid(_track):
+		_has_cached_track_transform = false
 		return
 
+	_cached_track_global_transform = _track.global_transform
+	_has_cached_track_transform = true
 	for local_point: Vector3 in _track.get_racing_line_points():
 		_track_points.append(_track.to_global(local_point))
 	_track_revision += 1
 	_recalculate_bounds()
 	_rebuild_mapped_track_points()
+
+
+func _refresh_track_transform_if_needed() -> void:
+	if not is_instance_valid(_track):
+		return
+	if _has_cached_track_transform and _cached_track_global_transform.is_equal_approx(_track.global_transform):
+		return
+	_refresh_track_points()
+	_request_redraw()
 
 
 func _connect_track_geometry_signal() -> void:

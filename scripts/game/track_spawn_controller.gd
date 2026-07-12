@@ -41,11 +41,7 @@ func stage_track(definition: TrackDefinition) -> GeneratedTrack:
 		return null
 
 	rollback_track_transaction()
-	if (
-		_current_definition != null
-		and _current_definition.track_id == definition.track_id
-		and is_instance_valid(_current_track)
-	):
+	if _can_reuse_current_track(definition):
 		_staged_track = _current_track
 		_staged_definition = definition
 		_staged_reuses_current = true
@@ -160,6 +156,17 @@ func clear_track() -> void:
 		_discard_track_node(_current_track)
 	_current_track = null
 	_current_definition = null
+
+
+func _can_reuse_current_track(definition: TrackDefinition) -> bool:
+	return (
+		_current_definition != null
+		and definition != null
+		and _current_definition.track_id == definition.track_id
+		and _current_definition.track_scene == definition.track_scene
+		and is_instance_valid(_current_track)
+		and _current_track.has_committed_generation()
+	)
 
 
 func _clear_staged_references() -> void:

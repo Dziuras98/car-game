@@ -153,25 +153,35 @@ func _ensure_visibility_notifier() -> void:
 
 
 func _configure_wheel_visuals() -> void:
-	if _wheel_visuals_configured:
+	if _wheel_visuals_configured or not is_inside_tree():
 		return
-	_wheel_visuals_configured = true
 	_resolve_visual_roots()
-	_collect_low_detail_wheel_nodes()
+	if _detailed_root == null and _low_detail_root == null:
+		return
 	var explicit_specs: Array[Dictionary] = _get_explicit_detailed_wheel_specs()
 	if _detailed_root != null and explicit_specs.is_empty():
 		push_error("CarVisualController detailed models require explicit wheel bindings.")
 		return
 	for spec: Dictionary in explicit_specs:
+		if not _is_binding_spec_resolvable(spec):
+			push_error("CarVisualController could not resolve an explicit detailed wheel binding.")
+			return
+
+	_collect_low_detail_wheel_nodes()
+	for spec: Dictionary in explicit_specs:
 		var binding: RuntimeWheelBinding = _create_binding_from_spec(spec)
 		if binding == null:
 			push_error("CarVisualController could not configure an explicit detailed wheel binding.")
-			continue
+			return
 		_detailed_wheel_bindings.append(binding)
 		_detailed_wheel_bindings_by_id[binding.wheel_id] = binding
+	_wheel_visuals_configured = true
 
 
 func _collect_low_detail_wheel_nodes() -> void:
+	_low_detail_wheel_nodes.clear()
+	_low_detail_base_rotations.clear()
+	_low_detail_front_flags.clear()
 	if _low_detail_root == null:
 		return
 	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
@@ -181,6 +191,28 @@ func _collect_low_detail_wheel_nodes() -> void:
 		_low_detail_wheel_nodes.append(wheel)
 		_low_detail_base_rotations.append(wheel.rotation)
 		_low_detail_front_flags.append(wheel_name == &"WheelFrontLeft" or wheel_name == &"WheelFrontRight")
+
+
+func _is_binding_spec_resolvable(spec: Dictionary) -> bool:
+	var wheel_id: StringName = spec.get("wheel_id", &"")
+	var pivot_parent_path: NodePath = spec.get("pivot_parent_path", NodePath())
+	var pivot_parent: Node3D = get_node_or_null(pivot_parent_path) as Node3D
+	if wheel_id.is_empty() or pivot_parent == null:
+		return false
+	var spin_paths: Array = spec.get("spin_node_paths", [])
+	if spin_paths.is_empty():
+		return false
+	for path_value: Variant in spin_paths:
+		var spin_path: NodePath = path_value
+		var spin_node: Node3D = get_node_or_null(spin_path) as Node3D
+		if spin_node == null:
+			return false
+	for path_value: Variant in spec.get("steering_only_node_paths", []):
+		var steering_path: NodePath = path_value
+		var steering_node: Node3D = get_node_or_null(steering_path) as Node3D
+		if steering_node == null:
+			return false
+	return true
 
 
 func _create_binding_from_spec(spec: Dictionary) -> RuntimeWheelBinding:

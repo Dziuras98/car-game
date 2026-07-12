@@ -63,6 +63,18 @@ func _run() -> void:
 	_expect(driver.get_point_revision() == initial_driver_revision + 1, "AI refreshes its racing-line cache after rebuild")
 	_expect(minimap.get_track_revision() == initial_minimap_revision + 1, "minimap refreshes its projection after rebuild")
 
+	var minimap_revision_after_rebuild: int = minimap.get_track_revision()
+	track.global_position += Vector3(18.0, 0.0, -7.0)
+	await get_tree().process_frame
+	_expect(
+		minimap.get_track_revision() == minimap_revision_after_rebuild + 1,
+		"minimap refreshes cached world points when the track transform changes"
+	)
+	_expect(
+		minimap._track_points[0].is_equal_approx(track.to_global(track.get_racing_line_points()[0])),
+		"minimap world-point cache follows the transformed track"
+	)
+
 	minimap.queue_free()
 	driver.queue_free()
 	car.queue_free()

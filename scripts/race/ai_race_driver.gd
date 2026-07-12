@@ -8,6 +8,7 @@ enum DriverState {
 	RECOVERY_BRAKE_TO_STOP,
 	RECOVERY_ENGAGE_REVERSE,
 	RECOVERY_REVERSE_UNTIL_CLEAR,
+	RECOVERY_RETURN_TO_FORWARD,
 }
 
 const MIN_RACING_LINE_POINT_COUNT: int = 3
@@ -201,7 +202,10 @@ func _fail_driver(message: String) -> void:
 	set_physics_process(false)
 	if is_instance_valid(_car):
 		_car.set_external_input_enabled(true)
-		_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)
+		if _car.get_current_gear() < 0 or _car.get_speed_kmh() < 0.0:
+			_car.set_external_drive_inputs(1.0, 0.0, 0.0, false)
+		else:
+			_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)
 	if _fault_reported:
 		return
 	_fault_reported = true
@@ -221,7 +225,7 @@ func _update_stuck_detection(speed_kmh: float, throttle: float, local_target: Ve
 
 func _begin_recovery() -> void:
 	_driver_state = DriverState.RECOVERY_BRAKE_TO_STOP
-	_recovery_timer = 0.0
+	_recovery_timer = maxf(_profile.reverse_engage_timeout_seconds, 0.01)
 	_recovery_start_position = _car.global_position
 	_stuck_timer = 0.0
 
@@ -229,17 +233,25 @@ func _begin_recovery() -> void:
 func _update_recovery(delta: float) -> void:
 	var recovery_steering: float = _get_recovery_steering()
 	var signed_speed_kmh: float = _car.get_speed_kmh()
+	var stop_speed: float = _profile.recovery_stop_speed_kmh
 	match _driver_state:
 		DriverState.RECOVERY_BRAKE_TO_STOP:
-			_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
-			if absf(signed_speed_kmh) <= _profile.recovery_stop_speed_kmh:
+			if signed_speed_kmh < -stop_speed:
+				_car.set_external_drive_inputs(1.0, 0.0, recovery_steering)
+			else:
+				_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
+			if absf(signed_speed_kmh) <= stop_speed:
 				_driver_state = DriverState.RECOVERY_ENGAGE_REVERSE
 				_recovery_timer = _profile.reverse_engage_timeout_seconds
+				return
+			_recovery_timer -= delta
+			if _recovery_timer <= 0.0:
+				_fail_driver("AiRaceDriver could not stop before engaging reverse during recovery.")
 		DriverState.RECOVERY_ENGAGE_REVERSE:
 			_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
 			if (
 				_car.get_current_gear() < 0
-				and signed_speed_kmh < -_profile.recovery_stop_speed_kmh * 0.25
+				and signed_speed_kmh < -stop_speed * 0.25
 			):
 				_driver_state = DriverState.RECOVERY_REVERSE_UNTIL_CLEAR
 				_recovery_start_position = _car.global_position
@@ -254,14 +266,23 @@ func _update_recovery(delta: float) -> void:
 			displacement.y = 0.0
 			var reverse_is_confirmed: bool = (
 				_car.get_current_gear() < 0
-				and signed_speed_kmh < -_profile.recovery_stop_speed_kmh * 0.25
+				and signed_speed_kmh < -stop_speed * 0.25
 			)
 			if reverse_is_confirmed and displacement.length() >= _profile.reverse_recovery_distance:
-				_finish_recovery()
+				_driver_state = DriverState.RECOVERY_RETURN_TO_FORWARD
+				_recovery_timer = _profile.reverse_engage_timeout_seconds
 				return
 			_recovery_timer -= delta
 			if _recovery_timer <= 0.0:
 				_fail_driver("AiRaceDriver did not achieve the required reverse recovery distance.")
+		DriverState.RECOVERY_RETURN_TO_FORWARD:
+			_car.set_external_drive_inputs(1.0, 0.0, recovery_steering)
+			if _car.get_current_gear() > 0 and signed_speed_kmh >= -stop_speed * 0.25:
+				_finish_recovery()
+				return
+			_recovery_timer -= delta
+			if _recovery_timer <= 0.0:
+				_fail_driver("AiRaceDriver could not return to a forward gear after recovery.")
 		_:
 			_finish_recovery()
 

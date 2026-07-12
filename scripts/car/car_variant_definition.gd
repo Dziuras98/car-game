@@ -16,6 +16,7 @@ class_name CarVariantDefinition
 @export var engine_label: String = ""
 @export var drivetrain_label: String = ""
 
+
 func is_valid() -> bool:
 	return validate().is_empty()
 
@@ -30,8 +31,12 @@ func validate() -> PackedStringArray:
 		errors.append("sort_order must be non-negative")
 	if car_scene == null:
 		errors.append("car_scene must not be null")
+	elif not _scene_has_player_car_root(car_scene):
+		errors.append("car_scene must instantiate PlayerCarController on its root node")
 	if ai_eligible and ai_car_scene == null:
 		errors.append("ai_car_scene must not be null for ai_eligible variants")
+	elif ai_car_scene != null and not _scene_has_player_car_root(ai_car_scene):
+		errors.append("ai_car_scene must instantiate PlayerCarController on its root node")
 	if specs == null:
 		errors.append("specs must not be null")
 	else:
@@ -71,6 +76,8 @@ func is_ai_eligible_for_race() -> bool:
 		ai_eligible
 		and car_scene != null
 		and ai_car_scene != null
+		and _scene_has_player_car_root(car_scene)
+		and _scene_has_player_car_root(ai_car_scene)
 		and specs != null
 		and specs.is_valid()
 		and specs.is_automatic_transmission()
@@ -86,3 +93,13 @@ func get_transmission_label() -> String:
 	if specs.is_automatic_transmission():
 		return "%d-speed automatic" % forward_gear_count
 	return "Direct drive"
+
+
+func _scene_has_player_car_root(scene: PackedScene) -> bool:
+	if scene == null or not scene.can_instantiate():
+		return false
+	var instance: Node = scene.instantiate()
+	var is_valid_root: bool = instance is PlayerCarController
+	if instance != null:
+		instance.free()
+	return is_valid_root

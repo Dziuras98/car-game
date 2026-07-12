@@ -9,7 +9,11 @@ var _failures: Array[String] = []
 
 
 func _initialize() -> void:
-	_test_visual_asset_import()
+	_run.call_deferred()
+
+
+func _run() -> void:
+	await _test_visual_asset_import()
 	_test_base_scene_contract()
 	_finish()
 
@@ -28,6 +32,7 @@ func _test_visual_asset_import() -> void:
 	if visuals == null:
 		return
 	root.add_child(visuals)
+	await process_frame
 
 	var model := visuals.get_node_or_null("SketchfabModel") as Node3D
 	_expect(model != null, "the standard visual wrapper contains the imported Sketchfab model")
@@ -50,12 +55,13 @@ func _test_visual_asset_import() -> void:
 
 	var low_detail := visuals.get_node_or_null("LowDetail") as Node3D
 	_expect(low_detail != null, "the standard visual wrapper includes a low-detail fallback")
-	_expect(visuals.get_registered_wheel_count() >= 4, "the visual controller registers wheel pivots")
+	_expect(visuals.get_registered_wheel_count() >= 4, "the visual controller registers wheel pivots after scene-tree entry")
 	visuals.set_force_low_detail(true)
 	_expect(visuals.is_using_low_detail(), "forced low-detail mode activates")
 	_expect(model == null or not model.visible, "forced low-detail mode hides the imported GLB")
 	_expect(low_detail != null and low_detail.visible, "forced low-detail mode shows the bounded fallback")
 	visuals.queue_free()
+	await process_frame
 
 
 func _test_base_scene_contract() -> void:

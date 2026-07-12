@@ -49,8 +49,12 @@ func configure(
 	if opponent_count < 0:
 		push_error("RaceSessionController opponent_count must be non-negative.")
 		return false
-	if opponent_count > 0 and not car_spawner.has_ai_eligible_cars():
-		push_error("RaceSessionController requires an AI-eligible car variant when opponents are enabled.")
+	var spawn_validation_errors: PackedStringArray = car_spawner.validate_opponent_spawn_request(opponent_count)
+	if not spawn_validation_errors.is_empty():
+		push_error(
+			"RaceSessionController rejected the configured opponent grid: %s"
+			% "; ".join(spawn_validation_errors)
+		)
 		return false
 
 	_car_spawner = car_spawner
@@ -243,8 +247,9 @@ func _set_player_input_enabled(enabled: bool) -> void:
 
 
 func _stop_participant_car(car: PlayerCarController) -> void:
-	if is_instance_valid(car):
-		car.set_external_drive_inputs(0.0, 0.85, 0.0)
+	if not is_instance_valid(car):
+		return
+	car.set_external_drive_inputs(0.0, 0.0, 0.0, true)
 
 
 func _show_countdown(text: String) -> void:

@@ -131,6 +131,7 @@ func _prepare_multimesh() -> void:
 		return
 	var required_capacity: int = clampi(ceili(lifetime / interval) * 2 + 4, MIN_CAPACITY, MAX_CAPACITY)
 	if _multimesh != null and _multimesh.instance_count == required_capacity:
+		_update_mark_mesh_geometry()
 		return
 
 	if is_instance_valid(_multimesh_instance):
@@ -141,17 +142,24 @@ func _prepare_multimesh() -> void:
 	_multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	_multimesh.use_colors = true
 	_multimesh.instance_count = required_capacity
-
-	var mark_mesh: BoxMesh = BoxMesh.new()
-	mark_mesh.size = Vector3(mark_width, 0.012, mark_length)
-	mark_mesh.material = _material
-	_multimesh.mesh = mark_mesh
+	_update_mark_mesh_geometry()
 	_multimesh_instance.multimesh = _multimesh
 	_parent.add_child(_multimesh_instance)
 
 	_spawn_times.resize(required_capacity)
 	_active_instances.resize(required_capacity)
 	reset_timer()
+
+
+func _update_mark_mesh_geometry() -> void:
+	if _multimesh == null:
+		return
+	var mark_mesh: BoxMesh = _multimesh.mesh as BoxMesh
+	if mark_mesh == null:
+		mark_mesh = BoxMesh.new()
+	mark_mesh.size = Vector3(mark_width, 0.012, mark_length)
+	mark_mesh.material = _material
+	_multimesh.mesh = mark_mesh
 
 
 func _spawn_mark(source_transform: Transform3D, local_position: Vector3) -> void:
