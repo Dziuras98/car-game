@@ -15,6 +15,7 @@ var _participant_states: Dictionary = {}
 var _participant_order: Array[int] = []
 var _finish_order: Array[PlayerCarController] = []
 var _projector: RacingLineProjector = RacingLineProjector.new()
+var _participant_loss_fault_reported: bool = false
 
 
 func prepare(
@@ -50,6 +51,7 @@ func clear() -> void:
 	_participant_order.clear()
 	_finish_order.clear()
 	_projector.clear()
+	_participant_loss_fault_reported = false
 
 
 func update_positions() -> void:
@@ -59,10 +61,11 @@ func update_positions() -> void:
 			runtime_contract_failed.emit("LapTracker lost a usable racing line.")
 			return
 
-	_remove_invalid_participants()
+	if not _validate_registered_participants():
+		return
 	for participant_id: int in _participant_order:
 		var state: ParticipantRaceState = _participant_states.get(participant_id) as ParticipantRaceState
-		if state == null or state.finished or not is_instance_valid(state.car):
+		if state == null or state.finished:
 			continue
 		_update_participant_projection(state)
 
@@ -260,13 +263,24 @@ func _get_state(car: PlayerCarController) -> ParticipantRaceState:
 	return _participant_states.get(car.get_instance_id()) as ParticipantRaceState
 
 
-func _remove_invalid_participants() -> void:
-	for order_index: int in range(_participant_order.size() - 1, -1, -1):
-		var participant_id: int = _participant_order[order_index]
+func _validate_registered_participants() -> bool:
+	if _participant_loss_fault_reported:
+		return false
+	for participant_id: int in _participant_order:
 		var state: ParticipantRaceState = _participant_states.get(participant_id) as ParticipantRaceState
-		if state == null or not is_instance_valid(state.car):
-			_participant_order.remove_at(order_index)
-			_participant_states.erase(participant_id)
+		if state == null:
+			_participant_loss_fault_reported = true
+			runtime_contract_failed.emit(
+				"LapTracker lost race state for registered participant %d." % participant_id
+			)
+			return false
+		if not is_instance_valid(state.car):
+			_participant_loss_fault_reported = true
+			runtime_contract_failed.emit(
+				"LapTracker lost registered participant %d before race cleanup." % participant_id
+			)
+			return false
+	return true
 
 
 func _update_participant_projection(state: ParticipantRaceState) -> void:
