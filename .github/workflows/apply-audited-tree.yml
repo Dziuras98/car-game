@@ -1,4 +1,4 @@
-name: Apply audited repository tree
+name: Apply audited repository patch
 
 on:
   pull_request:
@@ -20,78 +20,34 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Reconstruct audited archive
-        shell: bash
-        env:
-          SOURCE_COMMIT: 6f6ab658f5e96950f171bb216f8be090da93a1d9
-        run: |
-          set -euo pipefail
-          pieces=(
-            .github/cleanup-overlay/chunk-01.txt
-            .github/cleanup-overlay/chunk-02-part-00.txt
-            .github/cleanup-overlay/chunk-02-part-01.txt
-            .github/cleanup-overlay/chunk-02-part-02.txt
-            .github/cleanup-overlay/chunk-02-part-03.txt
-            .github/cleanup-overlay/chunk-03.txt
-            .github/cleanup-overlay/tail-01.txt
-            .github/cleanup-overlay/tail-02.txt
-            .github/cleanup-overlay/tail-03.txt
-            .github/cleanup-overlay/tail-04.txt
-            .github/cleanup-overlay/tail-05.txt
-            .github/cleanup-overlay/tail-06.txt
-            .github/cleanup-overlay/tail-07.txt
-            .github/cleanup-overlay/tail-08-part-00.txt
-            .github/cleanup-overlay/tail-08-part-01.txt
-            .github/cleanup-overlay/tail-08-part-02.txt
-            .github/cleanup-overlay/tail-08-part-03.txt
-          )
-
-          : > cleanup-overlay.b64
-          : > piece-diagnostics.txt
-          for path in "${pieces[@]}"; do
-            git cat-file -e "${SOURCE_COMMIT}:${path}"
-            blob_sha="$(git rev-parse "${SOURCE_COMMIT}:${path}")"
-            byte_count="$(git cat-file -s "${SOURCE_COMMIT}:${path}")"
-            printf '%s %s %s\n' "${blob_sha}" "${byte_count}" "${path}" | tee -a piece-diagnostics.txt
-            git show "${SOURCE_COMMIT}:${path}" | tr -d '\r\n' >> cleanup-overlay.b64
-          done
-
-          base64 --decode cleanup-overlay.b64 > cleanup-overlay.zip
-          sha256sum cleanup-overlay.zip | tee cleanup-overlay-sha256.txt
-          unzip -t cleanup-overlay.zip | tee cleanup-overlay-unzip-test.txt
-
-      - name: Upload reconstruction diagnostics
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
-        with:
-          name: audited-tree-reconstruction
-          path: |
-            cleanup-overlay.b64
-            cleanup-overlay.zip
-            cleanup-overlay-sha256.txt
-            cleanup-overlay-unzip-test.txt
-            piece-diagnostics.txt
-          if-no-files-found: warn
-          retention-days: 1
-
-      - name: Verify and apply audited files
+      - name: Verify and apply audited patch
         shell: bash
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          EXPECTED_SHA256: daf64a4a5e307181b2bffca4d017bf5182f7a6935c3753ecf66a10c9690cdff1
+          EXPECTED_GZIP_SHA256: 8a128fff6ccaaf9088e99912a9b6005c00205b635a4c707aa06592016d23cef7
+          EXPECTED_PATCH_SHA256: 6b686bae9c0eedcbd7bb3b7156b63146752b126239313a2706ad2cbba422b673
         run: |
           set -euo pipefail
-          echo "${EXPECTED_SHA256}  cleanup-overlay.zip" | sha256sum --check --strict
-          unzip -o cleanup-overlay.zip -d "${GITHUB_WORKSPACE}"
+          cat \
+            .github/audit-patch/part-00.txt \
+            .github/audit-patch/part-01.txt \
+            .github/audit-patch/part-02.txt \
+            .github/audit-patch/part-03.txt \
+            | tr -d '\r\n' \
+            | base64 --decode > "${RUNNER_TEMP}/remaining.patch.gz"
 
+          echo "${EXPECTED_GZIP_SHA256}  ${RUNNER_TEMP}/remaining.patch.gz" | sha256sum --check --strict
+          gzip --decompress --stdout "${RUNNER_TEMP}/remaining.patch.gz" > "${RUNNER_TEMP}/remaining.patch"
+          echo "${EXPECTED_PATCH_SHA256}  ${RUNNER_TEMP}/remaining.patch" | sha256sum --check --strict
+
+          git apply --check "${RUNNER_TEMP}/remaining.patch"
+          git apply "${RUNNER_TEMP}/remaining.patch"
+          rm -rf .github/audit-patch
           rm -f .github/workflows/apply-audited-tree.yml
-          rm -f cleanup-overlay.b64 cleanup-overlay.zip cleanup-overlay-sha256.txt cleanup-overlay-unzip-test.txt piece-diagnostics.txt
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if git diff --cached --quiet; then
-            echo "No audited changes remain to apply."
-            exit 0
-          fi
+          git diff --cached --check
           git commit -m "Apply audited cleanup and bug fixes"
           git push origin "HEAD:${HEAD_BRANCH}"
