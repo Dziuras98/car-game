@@ -2,6 +2,8 @@ extends SceneTree
 
 const CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
+const FATAL_CONFIGURATION_MESSAGE_PL: String = "Nie można uruchomić gry\n\nGame content configuration validation failed."
+const FATAL_CONFIGURATION_MESSAGE_EN: String = "The game could not be started\n\nGame content configuration validation failed."
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -30,6 +32,11 @@ func _initialize() -> void:
 	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Okrążenie 2/3", "Polish formatted HUD label remains valid")
 	_expect(tr("PRĘDKOŚĆ") == "PRĘDKOŚĆ", "Polish speedometer title preserves diacritics")
 	_expect(tr("Kierowca %d") % 2 == "Kierowca 2", "Polish opponent result label preserves its placeholder")
+	_expect(
+		tr(FATAL_CONFIGURATION_MESSAGE_PL)
+		== "Nie można uruchomić gry\n\nKonfiguracja zawartości gry jest nieprawidłowa.",
+		"Polish fatal initialization screen does not retain an English technical message"
+	)
 	var polish_tracks: Array[TrackMenuOption] = MenuOptionsBuilder.build_track_options(TRACK_CATALOG)
 	var polish_models: Array[CarModelMenuOption] = MenuOptionsBuilder.build_car_models(CAR_CATALOG)
 	_expect(not polish_tracks.is_empty() and polish_tracks[0].label == "Prosty owal", "Polish menu uses the localized track name")
@@ -53,6 +60,11 @@ func _initialize() -> void:
 	_expect(tr("START") == "GO!", "English locale translates the race start banner")
 	_expect(tr("PRĘDKOŚĆ") == "SPEED", "English locale translates the speedometer title")
 	_expect(tr("BIEG") == "GEAR", "English locale translates the gear label")
+	_expect(
+		tr(FATAL_CONFIGURATION_MESSAGE_EN)
+		== "The game could not be started\n\nGame content configuration is invalid.",
+		"English fatal initialization screen uses user-facing wording"
+	)
 	var english_tracks: Array[TrackMenuOption] = MenuOptionsBuilder.build_track_options(TRACK_CATALOG)
 	var english_models: Array[CarModelMenuOption] = MenuOptionsBuilder.build_car_models(CAR_CATALOG)
 	_expect(not english_tracks.is_empty() and english_tracks[0].label == "Simple oval", "English menu translates the track name")
