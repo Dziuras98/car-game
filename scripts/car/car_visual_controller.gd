@@ -18,10 +18,6 @@ const LOW_DETAIL_WHEEL_NAMES: Array[StringName] = [
 	&"WheelRearLeft",
 	&"WheelRearRight",
 ]
-const LOW_DETAIL_FRONT_WHEEL_NAMES: Array[StringName] = [
-	&"WheelFrontLeft",
-	&"WheelFrontRight",
-]
 
 @export var detailed_root_path: NodePath = ^"SketchfabModel"
 @export var low_detail_root_path: NodePath = ^"LowDetail"
@@ -36,11 +32,13 @@ var _detailed_root: Node3D
 var _low_detail_root: Node3D
 var _visibility_notifier: VisibleOnScreenNotifier3D
 var _detailed_wheel_bindings: Array[RuntimeWheelBinding] = []
-var _low_detail_wheel_bindings: Array[RuntimeWheelBinding] = []
 var _detailed_wheel_bindings_by_id: Dictionary = {}
 var _legacy_detailed_wheel_nodes: Array[Node3D] = []
 var _legacy_detailed_base_rotations: Array[Vector3] = []
 var _legacy_detailed_front_flags: Array[bool] = []
+var _low_detail_wheel_nodes: Array[Node3D] = []
+var _low_detail_base_rotations: Array[Vector3] = []
+var _low_detail_front_flags: Array[bool] = []
 var _wheel_spin: float = 0.0
 var _using_low_detail: bool = false
 var _is_screen_visible: bool = false
@@ -80,7 +78,7 @@ func get_registered_wheel_count() -> int:
 	_configure_wheel_visuals()
 	if not _detailed_wheel_bindings.is_empty():
 		return _detailed_wheel_bindings.size()
-	return maxi(_legacy_detailed_wheel_nodes.size(), _low_detail_wheel_bindings.size())
+	return maxi(_legacy_detailed_wheel_nodes.size(), _low_detail_wheel_nodes.size())
 
 
 func get_detailed_wheel_binding_count() -> int:
@@ -90,7 +88,7 @@ func get_detailed_wheel_binding_count() -> int:
 
 func get_low_detail_wheel_binding_count() -> int:
 	_configure_wheel_visuals()
-	return _low_detail_wheel_bindings.size()
+	return _low_detail_wheel_nodes.size()
 
 
 func get_legacy_detailed_wheel_node_count() -> int:
@@ -124,7 +122,7 @@ func update_vehicle_visuals(
 		return
 	var steering_angle: float = deg_to_rad(24.0) * clampf(steering_input, -1.0, 1.0)
 	if _using_low_detail:
-		_apply_runtime_wheel_bindings(_low_detail_wheel_bindings, steering_angle)
+		_apply_low_detail_wheels(steering_angle)
 	elif not _detailed_wheel_bindings.is_empty():
 		_apply_runtime_wheel_bindings(_detailed_wheel_bindings, steering_angle)
 	else:
@@ -168,12 +166,12 @@ func _ensure_visibility_notifier() -> void:
 func _configure_wheel_visuals() -> void:
 	if (
 		not _detailed_wheel_bindings.is_empty()
-		or not _low_detail_wheel_bindings.is_empty()
+		or not _low_detail_wheel_nodes.is_empty()
 		or not _legacy_detailed_wheel_nodes.is_empty()
 	):
 		return
 	_resolve_visual_roots()
-	_configure_low_detail_wheel_bindings()
+	_collect_low_detail_wheel_nodes()
 	var explicit_specs: Array[Dictionary] = _get_explicit_detailed_wheel_specs()
 	if explicit_specs.is_empty():
 		_collect_legacy_detailed_wheel_nodes(_detailed_root)
@@ -187,26 +185,16 @@ func _configure_wheel_visuals() -> void:
 		_detailed_wheel_bindings_by_id[binding.wheel_id] = binding
 
 
-func _configure_low_detail_wheel_bindings() -> void:
+func _collect_low_detail_wheel_nodes() -> void:
 	if _low_detail_root == null:
 		return
 	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
 		var wheel: Node3D = _low_detail_root.get_node_or_null(NodePath(str(wheel_name))) as Node3D
 		if wheel == null:
 			continue
-		var wheel_id: StringName = _low_detail_wheel_id(wheel_name)
-		var binding: RuntimeWheelBinding = _create_runtime_binding(
-			wheel_id,
-			_low_detail_root,
-			wheel.position,
-			LOW_DETAIL_FRONT_WHEEL_NAMES.has(wheel_name),
-			-1.0,
-			1.0,
-			[wheel],
-			[]
-		)
-		if binding != null:
-			_low_detail_wheel_bindings.append(binding)
+		_low_detail_wheel_nodes.append(wheel)
+		_low_detail_base_rotations.append(wheel.rotation)
+		_low_detail_front_flags.append(wheel_name == &"WheelFrontLeft" or wheel_name == &"WheelFrontRight")
 
 
 func _create_binding_from_spec(spec: Dictionary) -> RuntimeWheelBinding:
@@ -289,6 +277,18 @@ func _apply_runtime_wheel_bindings(bindings: Array[RuntimeWheelBinding], steerin
 		binding.spin_pivot.quaternion = Quaternion(Vector3.RIGHT, _wheel_spin * binding.spin_direction)
 
 
+func _apply_low_detail_wheels(steering_angle: float) -> void:
+	for index: int in range(_low_detail_wheel_nodes.size()):
+		var wheel: Node3D = _low_detail_wheel_nodes[index]
+		if not is_instance_valid(wheel) or not wheel.is_visible_in_tree():
+			continue
+		var rotation_value: Vector3 = _low_detail_base_rotations[index]
+		rotation_value.x += _wheel_spin
+		if _low_detail_front_flags[index]:
+			rotation_value.y -= steering_angle
+		wheel.rotation = rotation_value
+
+
 func _apply_legacy_detailed_wheels(steering_angle: float) -> void:
 	for index: int in range(_legacy_detailed_wheel_nodes.size()):
 		var wheel: Node3D = _legacy_detailed_wheel_nodes[index]
@@ -325,19 +325,6 @@ func _register_legacy_detailed_wheel_node(wheel: Node3D, normalized_name: String
 	_legacy_detailed_base_rotations.append(wheel.rotation)
 	var explicitly_front: bool = "front" in normalized_name or "fl" in normalized_name or "fr" in normalized_name
 	_legacy_detailed_front_flags.append(explicitly_front or wheel.position.z > 0.0)
-
-
-func _low_detail_wheel_id(wheel_name: StringName) -> StringName:
-	match wheel_name:
-		&"WheelFrontLeft":
-			return &"front_left"
-		&"WheelFrontRight":
-			return &"front_right"
-		&"WheelRearLeft":
-			return &"rear_left"
-		&"WheelRearRight":
-			return &"rear_right"
-	return wheel_name
 
 
 func _set_low_detail_active(enabled: bool) -> void:
