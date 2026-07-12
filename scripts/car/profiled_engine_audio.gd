@@ -8,6 +8,9 @@ class_name ProfiledEngineAudioSynthesizer
 func _ready() -> void:
 	if profile != null:
 		profile.apply_to(self)
+	if DisplayServer.get_name() == "headless":
+		set_process(false)
+		return
 	super._ready()
 
 
