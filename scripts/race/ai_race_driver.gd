@@ -5,7 +5,9 @@ signal driver_fault(message: String)
 
 enum DriverState {
 	FOLLOW_LINE,
-	RECOVER_REVERSE,
+	RECOVERY_BRAKE_TO_STOP,
+	RECOVERY_ENGAGE_REVERSE,
+	RECOVERY_REVERSE_UNTIL_CLEAR,
 }
 
 const MIN_RACING_LINE_POINT_COUNT: int = 3
@@ -22,6 +24,7 @@ var _index_search: RacingLineIndexSearch = RacingLineIndexSearch.new()
 var _driver_state: DriverState = DriverState.FOLLOW_LINE
 var _stuck_timer: float = 0.0
 var _recovery_timer: float = 0.0
+var _recovery_start_position: Vector3 = Vector3.ZERO
 var _last_steering: float = 0.0
 var _point_revision: int = 0
 
@@ -138,8 +141,8 @@ func _physics_process(delta: float) -> void:
 			return
 
 	var safe_delta: float = maxf(delta, 0.0)
-	if _driver_state == DriverState.RECOVER_REVERSE:
-		_update_reverse_recovery(safe_delta)
+	if _driver_state != DriverState.FOLLOW_LINE:
+		_update_recovery(safe_delta)
 		return
 
 	if not _update_target_index():
@@ -180,6 +183,7 @@ func _has_valid_runtime_contract() -> bool:
 func _reset_driver_state() -> void:
 	_stuck_timer = 0.0
 	_recovery_timer = 0.0
+	_recovery_start_position = Vector3.ZERO
 	_driver_state = DriverState.FOLLOW_LINE
 	_last_steering = 0.0
 
@@ -212,21 +216,69 @@ func _update_stuck_detection(speed_kmh: float, throttle: float, local_target: Ve
 	else:
 		_stuck_timer = maxf(_stuck_timer - delta * 2.0, 0.0)
 	if _stuck_timer >= _profile.stuck_detection_seconds:
-		_driver_state = DriverState.RECOVER_REVERSE
-		_recovery_timer = _profile.reverse_recovery_seconds
-		_stuck_timer = 0.0
+		_begin_recovery()
 
 
-func _update_reverse_recovery(delta: float) -> void:
-	_recovery_timer -= delta
+func _begin_recovery() -> void:
+	_driver_state = DriverState.RECOVERY_BRAKE_TO_STOP
+	_recovery_timer = 0.0
+	_recovery_start_position = _car.global_position
+	_stuck_timer = 0.0
+
+
+func _update_recovery(delta: float) -> void:
+	var recovery_steering: float = _get_recovery_steering()
+	var signed_speed_kmh: float = _car.get_speed_kmh()
+	match _driver_state:
+		DriverState.RECOVERY_BRAKE_TO_STOP:
+			_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
+			if absf(signed_speed_kmh) <= _profile.recovery_stop_speed_kmh:
+				_driver_state = DriverState.RECOVERY_ENGAGE_REVERSE
+				_recovery_timer = _profile.reverse_engage_timeout_seconds
+		DriverState.RECOVERY_ENGAGE_REVERSE:
+			_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
+			if (
+				_car.get_current_gear() < 0
+				and signed_speed_kmh < -_profile.recovery_stop_speed_kmh * 0.25
+			):
+				_driver_state = DriverState.RECOVERY_REVERSE_UNTIL_CLEAR
+				_recovery_start_position = _car.global_position
+				_recovery_timer = _profile.reverse_recovery_seconds
+				return
+			_recovery_timer -= delta
+			if _recovery_timer <= 0.0:
+				_fail_driver("AiRaceDriver could not engage reverse during recovery.")
+		DriverState.RECOVERY_REVERSE_UNTIL_CLEAR:
+			_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
+			var displacement: Vector3 = _car.global_position - _recovery_start_position
+			displacement.y = 0.0
+			var reverse_is_confirmed: bool = (
+				_car.get_current_gear() < 0
+				and signed_speed_kmh < -_profile.recovery_stop_speed_kmh * 0.25
+			)
+			if reverse_is_confirmed and displacement.length() >= _profile.reverse_recovery_distance:
+				_finish_recovery()
+				return
+			_recovery_timer -= delta
+			if _recovery_timer <= 0.0:
+				_fail_driver("AiRaceDriver did not achieve the required reverse recovery distance.")
+		_:
+			_finish_recovery()
+
+
+func _get_recovery_steering() -> float:
 	var recovery_steering: float = -signf(_last_steering)
 	if is_zero_approx(recovery_steering):
-		recovery_steering = 0.65
-	_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
-	if _recovery_timer <= 0.0:
-		_driver_state = DriverState.FOLLOW_LINE
-		_target_index = -1
-		_index_search.reset()
+		return 0.65
+	return recovery_steering
+
+
+func _finish_recovery() -> void:
+	_driver_state = DriverState.FOLLOW_LINE
+	_recovery_timer = 0.0
+	_recovery_start_position = Vector3.ZERO
+	_target_index = -1
+	_index_search.reset()
 
 
 func _refresh_points() -> bool:

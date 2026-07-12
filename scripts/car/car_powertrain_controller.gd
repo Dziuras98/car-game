@@ -208,7 +208,14 @@ func _update_speed_step(state: CarRuntimeState, throttle: float, brake: float, h
 
 func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> void:
 	if _config.uses_geared_transmission():
-		if _config.is_automatic_transmission() and (state.current_gear < 1 or state.forward_speed < 0.0):
+		var direction_threshold: float = AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD
+		if (
+			_config.is_automatic_transmission()
+			and (
+				state.current_gear < 1
+				or state.forward_speed < -direction_threshold
+			)
+		):
 			state.forward_speed = move_toward(state.forward_speed, 0.0, _config.brake_deceleration * throttle * _get_longitudinal_grip_factor(state) * delta)
 		else:
 			state.forward_speed += _get_transmission_drive_acceleration(state, throttle) * delta
@@ -223,7 +230,7 @@ func _apply_brake_or_reverse(state: CarRuntimeState, brake: float, delta: float)
 		return
 	if _config.is_automatic_transmission():
 		if state.current_gear < 0:
-			if state.forward_speed > 0.0:
+			if state.forward_speed > AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
 				state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 			else:
 				state.forward_speed += _get_transmission_drive_acceleration(state, brake) * delta

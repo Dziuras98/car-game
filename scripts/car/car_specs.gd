@@ -1,6 +1,8 @@
 extends Resource
 class_name CarSpecs
 
+const MIN_SUSPENSION_SUPPORT_RESERVE: float = 1.10
+
 
 enum TransmissionType {
 	DIRECT_DRIVE,
@@ -223,8 +225,15 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "suspension_probe_height", suspension_probe_height)
 	_append_positive(errors, "suspension_rest_length", suspension_rest_length)
 	_append_positive(errors, "suspension_travel", suspension_travel)
-	_append_non_negative(errors, "suspension_stiffness", suspension_stiffness)
+	_append_positive(errors, "suspension_stiffness", suspension_stiffness)
 	_append_non_negative(errors, "suspension_damping", suspension_damping)
+	if is_finite(gravity) and gravity > 0.0 and is_finite(suspension_stiffness) and suspension_stiffness > 0.0:
+		var maximum_support_acceleration: float = suspension_stiffness * float(GroundContactModel.PROBE_COUNT)
+		if maximum_support_acceleration < gravity * MIN_SUSPENSION_SUPPORT_RESERVE:
+			errors.append(
+				"suspension_stiffness across all probes must exceed gravity with at least %.0f%% reserve"
+				% ((MIN_SUSPENSION_SUPPORT_RESERVE - 1.0) * 100.0)
+			)
 	if ground_probe_collision_mask <= 0:
 		errors.append("ground_probe_collision_mask must include at least one physics layer")
 	_append_range(errors, "minimum_ground_normal_dot", minimum_ground_normal_dot, 0.0, 1.0)

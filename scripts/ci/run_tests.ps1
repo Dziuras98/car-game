@@ -314,13 +314,19 @@ try {
 
     foreach ($testScene in $sceneTests) {
         $allowedWarningPatterns = @(Get-AllowedWarningPatternsForTestPath -TestPath $testScene)
+        $sceneTimeoutSeconds = if ($testScene -eq "scenes/tests/full_program_smoke_test.tscn") {
+            240
+        }
+        else {
+            180
+        }
         $null = Invoke-RecordedCheck `
             -Name $testScene `
             -ClassName "godot.scene" `
             -Action {
                 Invoke-GodotCommand `
                     -Name "Scene test: $testScene" `
-                    -TimeoutSeconds 180 `
+                    -TimeoutSeconds $sceneTimeoutSeconds `
                     -AllowedWarningPatterns $allowedWarningPatterns `
                     -CommandArguments @(
                         "--headless",

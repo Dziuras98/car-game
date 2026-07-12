@@ -17,6 +17,8 @@ func _test_default_profile_validation() -> void:
 	_expect(profile.is_valid(), "default AI driver profile is valid")
 	_expect(profile.corner_speed_kmh <= profile.target_speed_kmh, "default corner speed does not exceed target speed")
 	_expect(profile.search_points_behind + profile.search_points_ahead >= 1, "default profile has a non-empty local search window")
+	_expect(profile.recovery_stop_speed_kmh > 0.0, "default recovery defines a positive stop threshold")
+	_expect(profile.reverse_recovery_distance > 0.0, "default recovery requires measurable reverse displacement")
 
 
 func _test_invalid_profile_validation() -> void:
@@ -29,6 +31,9 @@ func _test_invalid_profile_validation() -> void:
 	profile.recovery_search_distance = 0.0
 	profile.full_search_interval_updates = 0
 	profile.stuck_detection_seconds = -1.0
+	profile.recovery_stop_speed_kmh = 0.0
+	profile.reverse_engage_timeout_seconds = 0.0
+	profile.reverse_recovery_distance = 0.0
 	profile.reverse_recovery_seconds = 0.0
 	var errors: PackedStringArray = profile.validate()
 	_expect(not errors.is_empty(), "invalid AI profile reports validation errors")
@@ -36,16 +41,22 @@ func _test_invalid_profile_validation() -> void:
 	_expect(errors.has("corner_speed_kmh must not exceed target_speed_kmh"), "corner speed above target speed is rejected")
 	_expect(errors.has("the racing-line search window must contain at least two points"), "empty search window is rejected")
 	_expect(errors.has("full_search_interval_updates must be at least one"), "invalid full-search interval is rejected")
+	_expect(errors.has("recovery_stop_speed_kmh must be finite and greater than zero"), "invalid recovery stop threshold is rejected")
+	_expect(errors.has("reverse_engage_timeout_seconds must be finite and greater than zero"), "invalid reverse-engagement timeout is rejected")
+	_expect(errors.has("reverse_recovery_distance must be finite and greater than zero"), "invalid recovery distance is rejected")
 
 
 func _test_profile_copy_is_independent() -> void:
 	var profile: AiDriverProfile = AiDriverProfile.new()
 	profile.lane_offset = 1.75
+	profile.reverse_recovery_distance = 4.25
 	var copy: AiDriverProfile = profile.duplicate_profile()
 	copy.lane_offset = -3.0
 	copy.target_speed_kmh = 101.0
+	copy.reverse_recovery_distance = 8.0
 	_expect(is_equal_approx(profile.lane_offset, 1.75), "profile duplication does not alias lane offset")
 	_expect(not is_equal_approx(profile.target_speed_kmh, copy.target_speed_kmh), "profile duplication does not alias speed tuning")
+	_expect(is_equal_approx(profile.reverse_recovery_distance, 4.25), "profile duplication does not alias recovery distance")
 
 
 func _test_deterministic_profile_generation() -> void:

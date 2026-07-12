@@ -3,6 +3,10 @@ class_name CarSpawner
 
 signal driver_fault(message: String)
 
+const MAX_OPPONENT_COUNT: int = 15
+const MIN_LATERAL_SPAWN_SEPARATION: float = 2.2
+const MIN_LONGITUDINAL_SPAWN_SEPARATION: float = 4.8
+
 var opponent_lane_spacing: float = 4.2
 var opponent_row_spacing: float = 7.0
 
@@ -13,7 +17,33 @@ var _player_spawner: PlayerCarSpawnController
 var _opponent_layout: OpponentSpawnLayout
 var _paint_randomizer: OpponentPaintRandomizer
 var _opponent_spawner: OpponentParticipantSpawner
+var _car_spawn: Node3D
 var _configured: bool = false
+
+
+static func validate_configuration_values(
+	opponent_count: int,
+	lane_spacing: float,
+	row_spacing: float,
+	random_seed: int
+) -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	if opponent_count < 0:
+		errors.append("opponent_count must be non-negative")
+	elif opponent_count > MAX_OPPONENT_COUNT:
+		errors.append("opponent_count must not exceed %d" % MAX_OPPONENT_COUNT)
+	if not is_finite(lane_spacing) or lane_spacing < 0.0:
+		errors.append("lane_spacing must be finite and non-negative")
+	if not is_finite(row_spacing) or row_spacing < 0.0:
+		errors.append("row_spacing must be finite and non-negative")
+	if opponent_count > 1:
+		if not is_finite(lane_spacing) or lane_spacing <= 0.0:
+			errors.append("lane_spacing must be positive for a multi-opponent grid")
+		if not is_finite(row_spacing) or row_spacing <= 0.0:
+			errors.append("row_spacing must be positive for a multi-opponent grid")
+	if random_seed < -1:
+		errors.append("random_seed must be -1 or non-negative")
+	return errors
 
 
 func configure(
@@ -26,6 +56,15 @@ func configure(
 	random_seed: int = -1
 ) -> bool:
 	_configured = false
+	var configuration_errors: PackedStringArray = validate_configuration_values(
+		0,
+		lane_spacing,
+		row_spacing,
+		random_seed
+	)
+	if not configuration_errors.is_empty():
+		push_error("CarSpawner received invalid configuration: %s" % "; ".join(configuration_errors))
+		return false
 	if not is_instance_valid(owner_node):
 		push_error("CarSpawner requires a valid owner node.")
 		return false
@@ -38,15 +77,10 @@ func configure(
 	if available_car_variants.is_empty():
 		push_error("CarSpawner requires at least one configured car variant.")
 		return false
-	if not is_finite(lane_spacing) or lane_spacing < 0.0:
-		push_error("CarSpawner lane spacing must be finite and non-negative.")
-		return false
-	if not is_finite(row_spacing) or row_spacing < 0.0:
-		push_error("CarSpawner row spacing must be finite and non-negative.")
-		return false
 
 	opponent_lane_spacing = lane_spacing
 	opponent_row_spacing = row_spacing
+	_car_spawn = car_spawn
 	if random_seed >= 0:
 		_rng.seed = random_seed
 	else:
@@ -125,6 +159,40 @@ func get_ai_drivers() -> Array[AiRaceDriver]:
 	return _opponent_spawner.get_ai_drivers()
 
 
+func validate_opponent_spawn_request(opponent_count: int) -> PackedStringArray:
+	var errors: PackedStringArray = validate_configuration_values(
+		opponent_count,
+		opponent_lane_spacing,
+		opponent_row_spacing,
+		-1
+	)
+	if not _configured or not is_instance_valid(_car_spawn) or _opponent_layout == null:
+		errors.append("CarSpawner must be configured before validating an opponent grid")
+		return errors
+	if opponent_count > 0 and not has_ai_eligible_cars():
+		errors.append("an AI-eligible car variant is required when opponents are enabled")
+	if not errors.is_empty() or opponent_count <= 0:
+		return errors
+
+	var transforms: Array[Transform3D] = [_car_spawn.global_transform]
+	for opponent_index: int in range(opponent_count):
+		transforms.append(_opponent_layout.get_spawn_transform(_car_spawn, opponent_index))
+	var spawn_inverse: Transform3D = _car_spawn.global_transform.affine_inverse()
+	for first_index: int in range(transforms.size()):
+		var first_local: Vector3 = spawn_inverse * transforms[first_index].origin
+		for second_index: int in range(first_index + 1, transforms.size()):
+			var second_local: Vector3 = spawn_inverse * transforms[second_index].origin
+			if (
+				absf(first_local.x - second_local.x) < MIN_LATERAL_SPAWN_SEPARATION
+				and absf(first_local.z - second_local.z) < MIN_LONGITUDINAL_SPAWN_SEPARATION
+			):
+				errors.append(
+					"spawn transforms %d and %d overlap the minimum vehicle footprint"
+					% [first_index, second_index]
+				)
+	return errors
+
+
 func spawn_player_car(car_index: int, spawn_global_transform: Transform3D, player_input_enabled: bool) -> PlayerCarController:
 	if not _configured or _player_spawner == null:
 		return null
@@ -147,10 +215,11 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 	if not _configured or _opponent_spawner == null:
 		var empty_opponents: Array[PlayerCarController] = []
 		return empty_opponents
-	if opponent_count > 0 and not has_ai_eligible_cars():
-		push_error("CarSpawner cannot create opponents without an explicit AI-eligible variant.")
-		var no_opponents: Array[PlayerCarController] = []
-		return no_opponents
+	var validation_errors: PackedStringArray = validate_opponent_spawn_request(opponent_count)
+	if not validation_errors.is_empty():
+		push_error("CarSpawner rejected the opponent grid: %s" % "; ".join(validation_errors))
+		var rejected_opponents: Array[PlayerCarController] = []
+		return rejected_opponents
 	return _opponent_spawner.spawn_opponents(opponent_count)
 
 

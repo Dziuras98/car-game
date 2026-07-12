@@ -4,6 +4,8 @@ class_name TrackLayoutBuilder
 const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/tracks/simple_oval.tres")
 const MIN_TRACK_WIDTH: float = 0.1
 const MAX_WIDTH_VARIATION: float = 0.45
+const MIN_CURVATURE_SEGMENT_LENGTH: float = 0.01
+const CURVATURE_FOR_FULL_WIDTH_VARIATION: float = 0.04
 
 
 func build(config: TrackGenerationConfig) -> TrackGeometryData:
@@ -36,7 +38,12 @@ func build(config: TrackGenerationConfig) -> TrackGeometryData:
 		var next: Vector3 = points[(index + 1) % point_count]
 		var tangent: Vector3 = (next - previous).normalized()
 		var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
-		var half_width: float = get_half_width(index, point_count, track_width, width_variation)
+		var curvature: float = _calculate_curvature(previous, current, next)
+		var half_width: float = get_half_width_for_curvature(
+			track_width,
+			width_variation,
+			curvature
+		)
 
 		geometry.forward_vectors.append(tangent)
 		geometry.right_vectors.append(side)
@@ -49,20 +56,41 @@ func build(config: TrackGenerationConfig) -> TrackGeometryData:
 	return geometry
 
 
-func get_half_width(index: int, point_count: int, track_width: float, width_variation: float) -> float:
+func get_half_width_for_curvature(
+	track_width: float,
+	width_variation: float,
+	curvature: float
+) -> float:
 	var safe_track_width: float = maxf(track_width, MIN_TRACK_WIDTH)
 	var safe_width_variation: float = clampf(width_variation, 0.0, MAX_WIDTH_VARIATION)
-	if point_count <= 0:
-		return safe_track_width * 0.5
-
-	var safe_index: int = ((index % point_count) + point_count) % point_count
-	var progress: float = float(safe_index) / float(point_count)
-	var turn_blend: float = maxf(
-		clampf(1.0 - absf(progress - 0.29) / 0.16, 0.0, 1.0),
-		clampf(1.0 - absf(progress - 0.79) / 0.16, 0.0, 1.0)
+	var safe_curvature: float = maxf(curvature, 0.0) if is_finite(curvature) else 0.0
+	var curvature_ratio: float = clampf(
+		safe_curvature / CURVATURE_FOR_FULL_WIDTH_VARIATION,
+		0.0,
+		1.0
 	)
+	var turn_blend: float = curvature_ratio * curvature_ratio * (3.0 - 2.0 * curvature_ratio)
 	var width_scale: float = 1.0 + turn_blend * safe_width_variation
 	return safe_track_width * clampf(width_scale, 0.7, 1.45) * 0.5
+
+
+func _calculate_curvature(previous: Vector3, current: Vector3, next: Vector3) -> float:
+	var incoming: Vector3 = current - previous
+	var outgoing: Vector3 = next - current
+	incoming.y = 0.0
+	outgoing.y = 0.0
+	var incoming_length: float = incoming.length()
+	var outgoing_length: float = outgoing.length()
+	if incoming_length < MIN_CURVATURE_SEGMENT_LENGTH or outgoing_length < MIN_CURVATURE_SEGMENT_LENGTH:
+		return 0.0
+	var direction_dot: float = clampf(
+		incoming.normalized().dot(outgoing.normalized()),
+		-1.0,
+		1.0
+	)
+	var turn_angle: float = acos(direction_dot)
+	var average_segment_length: float = (incoming_length + outgoing_length) * 0.5
+	return turn_angle / maxf(average_segment_length, MIN_CURVATURE_SEGMENT_LENGTH)
 
 
 func _sample_track_points(

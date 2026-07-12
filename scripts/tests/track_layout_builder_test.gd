@@ -15,6 +15,7 @@ func _ready() -> void:
 func _run() -> void:
 	_test_default_layout_topology()
 	_test_edge_and_shoulder_geometry()
+	_test_curvature_driven_width_profile()
 	_test_config_sanitization()
 	_test_build_is_deterministic()
 	_test_generated_mesh_bundle()
@@ -34,6 +35,7 @@ func _test_default_layout_topology() -> void:
 	_expect(geometry.half_widths.size() == point_count, "layout has one half-width per point")
 	_expect(_packed_vector3_array_equal_approx(geometry.racing_line_points, geometry.center_points), "current racing line follows the sampled center line")
 	_expect(_vector3_equal_approx(geometry.center, _calculate_center(geometry.center_points)), "layout center is the arithmetic mean of sampled points")
+	_expect(geometry.is_valid(), "default generated geometry satisfies deep topology validation")
 
 	var minimum_segment: float = INF
 	var maximum_segment: float = 0.0
@@ -77,7 +79,22 @@ func _test_edge_and_shoulder_geometry() -> void:
 	_expect(edges_match_width, "road edges use the generated width profile")
 	_expect(shoulders_match_width, "shoulders use the typed configuration width")
 	_expect(minimum_half_width >= 7.0 - EPSILON, "road never becomes narrower than its base width")
-	_expect(maximum_half_width > minimum_half_width, "width variation widens designated sections")
+	_expect(maximum_half_width > minimum_half_width, "width variation widens curved sections")
+
+
+func _test_curvature_driven_width_profile() -> void:
+	var builder: TrackLayoutBuilder = TrackLayoutBuilder.new()
+	var straight_width: float = builder.get_half_width_for_curvature(14.0, 0.28, 0.0)
+	var curved_width: float = builder.get_half_width_for_curvature(
+		14.0,
+		0.28,
+		TrackLayoutBuilder.CURVATURE_FOR_FULL_WIDTH_VARIATION
+	)
+	_expect(is_equal_approx(straight_width, 7.0), "zero curvature preserves the base half-width")
+	_expect(curved_width > straight_width, "higher curvature widens the road independently of loop progress")
+	var builder_source: String = FileAccess.get_file_as_string("res://scripts/track/track_layout_builder.gd")
+	_expect(not builder_source.contains("progress - 0.29"), "width generation no longer targets the first oval-specific progress constant")
+	_expect(not builder_source.contains("progress - 0.79"), "width generation no longer targets the second oval-specific progress constant")
 
 
 func _test_config_sanitization() -> void:

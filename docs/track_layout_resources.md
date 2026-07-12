@@ -1,15 +1,16 @@
 # Track layout resources
 
-Generated-track layout data is Resource-backed.
+Generated-track layout data is Resource-backed and admitted through typed validation before it can replace committed runtime geometry.
 
 ## Authoritative data path
 
 ```text
 resources/tracks/simple_oval.tres
     -> TrackLayoutResource
-    -> GeneratedTrack
+    -> TrackGenerationConfig
     -> TrackLayoutBuilder / TrackCheckpointBuilder
     -> TrackGeometryData / TrackCheckpointGate
+    -> GeneratedTrack committed revision
 ```
 
 `TrackLayoutResource` stores:
@@ -18,7 +19,7 @@ resources/tracks/simple_oval.tres
 - recommended lap count metadata;
 - closed-loop control points;
 - samples per spline segment;
-- road width and width variation;
+- road width and curvature-driven width variation;
 - shoulder, grass and barrier dimensions;
 - ordered checkpoint progress values;
 - checkpoint gate depth, height and width margin;
@@ -32,11 +33,29 @@ resources/tracks/simple_oval.tres
 
 Both `scenes/tracks/simple_oval.tscn` and the helper `test_track.tscn` reference this resource instead of serializing their own generation parameters.
 
-## Builder compatibility
+## Typed generation and width profile
 
-`TrackLayoutBuilder.build(config)` keeps its Dictionary interface because the surface, collision, marker, barrier and decoration builders already share that configuration path. The dictionary contains a `track_layout` Resource. Optional width keys remain supported for focused tests, while control points and sampling density always come from the Resource.
+`TrackLayoutBuilder.build(config)` consumes a `TrackGenerationConfig`. Control points and sampling density come from the referenced `TrackLayoutResource`; runtime-safe copies provide sanitized road, shoulder and decoration values.
 
-The simple oval uses 18 control points and six samples per segment, producing the existing 108-point closed loop.
+The simple oval uses 18 control points and six samples per segment, producing a 108-point closed loop.
+
+Road width is not tied to fixed lap-progress locations. For each sampled point, the builder calculates local horizontal curvature from the incoming and outgoing segments. `width_variation` then widens curved sections through a bounded smoothstep response while straight sections retain the configured base width. The same algorithm therefore applies to additional track layouts without oval-specific constants.
+
+## Geometry admission
+
+`TrackGeometryData.validate()` is the final topology boundary before generated geometry can be committed. It rejects:
+
+- missing or mismatched geometry arrays;
+- non-finite values, degenerate center segments and collapsed or reversed road edges;
+- invalid tangent/right-vector frames;
+- curves whose sampled circumradius is too small for the local road half-width;
+- self-intersections of the sampled center line;
+- intersections between non-adjacent road-edge segments;
+- non-adjacent center segments that do not preserve width-aware road clearance.
+
+The clearance check uses both segments' maximum local half-widths plus a fixed safety margin. This prevents a spline from producing overlapping asphalt even when its center lines do not mathematically cross.
+
+Generation is transactional. A failed validation does not replace the currently committed geometry, does not publish a new geometry revision and does not disturb consumers using the last valid track.
 
 ## Checkpoint sequence
 
@@ -73,7 +92,7 @@ The local window expands with participant displacement but remains capped. Its n
 
 A successful `GeneratedTrack` rebuild publishes a new geometry revision. `LapTracker` then discards projection continuity and globally reprojects each valid participant against the newly committed loop.
 
-Completed laps are preserved. When the number of intermediate checkpoints remains unchanged, the current ordered checkpoint sequence is also preserved. When checkpoint topology changes, unfinished participants restart the partial sequence from checkpoint `1`; obsolete partial progress cannot authorize a finish crossing on the new topology.
+Completed laps are preserved. Every committed geometry revision resets unfinished checkpoint sequences before projection is reacquired, preventing partial progress from an obsolete geometry from authorizing a finish crossing.
 
 Failed generation does not emit a revision and therefore leaves both the committed track and race state unchanged.
 
@@ -88,7 +107,8 @@ scenes/tests/track_layout_builder_test.tscn
 scenes/tests/track_layout_resource_test.tscn
 scenes/tests/lap_tracker_checkpoint_test.tscn
 scenes/tests/lap_tracker_progress_test.tscn
+scripts/tests/track_geometry_topology_validation_test.gd
 scripts/tests/racing_line_projector_test.gd
 ```
 
-Coverage includes Resource sequence rules, generated gate count, crossing direction, rejected cuts and duplicate finishes, sub-segment position ordering, bounded projection cost, continuity across adjacent non-local track sections, teleport reacquisition and active-session geometry rebuild reconciliation. All tests run in the required Windows CI suite.
+Coverage includes Resource sequence rules, curvature-driven width generation, minimum curve radius, center/edge self-intersection rejection, width-aware non-adjacent clearance, generated gate count, crossing direction, rejected cuts and duplicate finishes, sub-segment position ordering, bounded projection cost, continuity across adjacent non-local track sections, teleport reacquisition and active-session geometry rebuild reconciliation. All tests run in the required Windows CI suite.

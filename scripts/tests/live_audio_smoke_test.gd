@@ -2,6 +2,8 @@ extends Node
 
 const TEST_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
 const TEST_PROFILE: EngineAudioProfile = preload("res://resources/audio/370z_stock_audio_profile.tres")
+const BUFFER_DRAIN_POLL_SECONDS: float = 0.025
+const BUFFER_DRAIN_MAX_POLLS: int = 40
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -38,25 +40,34 @@ func _run() -> void:
 		return
 
 	synthesizer.set_process(false)
-	await get_tree().create_timer(0.12).timeout
-	var first_available_before: int = playback.get_frames_available()
+	var first_available_before: int = await _wait_for_buffer_drain(playback)
 	synthesizer.call("_fill_audio_buffer")
 	var first_available_after: int = playback.get_frames_available()
+	_expect(first_available_before > 0, "audio server drains at least one live generator frame")
 	_expect(
 		first_available_before > first_available_after,
 		"live generator fills frames after the audio server drains its buffer"
 	)
 
-	await get_tree().create_timer(0.08).timeout
-	var second_available_before: int = playback.get_frames_available()
+	var second_available_before: int = await _wait_for_buffer_drain(playback)
 	synthesizer.call("_fill_audio_buffer")
 	var second_available_after: int = playback.get_frames_available()
+	_expect(second_available_before > 0, "audio server continues draining the live generator")
 	_expect(
 		second_available_before > second_available_after,
 		"live generator refills the buffer repeatedly without losing playback"
 	)
 	_expect(synthesizer.playing, "procedural audio player remains active throughout the refill cycle")
 	await _cleanup(car)
+
+
+func _wait_for_buffer_drain(playback: AudioStreamGeneratorPlayback) -> int:
+	for _poll_index: int in range(BUFFER_DRAIN_MAX_POLLS):
+		var available_frames: int = playback.get_frames_available()
+		if available_frames > 0:
+			return available_frames
+		await get_tree().create_timer(BUFFER_DRAIN_POLL_SECONDS).timeout
+	return playback.get_frames_available()
 
 
 func _cleanup(car: PlayerCarController) -> void:
