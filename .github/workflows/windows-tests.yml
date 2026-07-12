@@ -198,7 +198,19 @@ jobs:
 
       - name: Export and smoke-test Windows build
         shell: pwsh
-        run: ./scripts/ci/export_windows.ps1 -GodotBinary $env:GODOT_BIN
+        run: |
+          $ErrorActionPreference = "Stop"
+          $diagnosticDirectory = Join-Path $PWD "build/test-logs"
+          New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
+          try {
+            ./scripts/ci/export_windows.ps1 -GodotBinary $env:GODOT_BIN
+          }
+          catch {
+            $failureText = $_ | Out-String
+            $failureText | Set-Content -LiteralPath (Join-Path $diagnosticDirectory "workflow-export-failure.log") -Encoding utf8
+            Write-Host $failureText
+            throw
+          }
 
       - name: Upload diagnostics
         if: always()
