@@ -19,17 +19,17 @@ var _using_low_detail: bool = false
 
 
 func _ready() -> void:
-	_detailed_root = get_node_or_null(detailed_root_path) as Node3D
-	_low_detail_root = get_node_or_null(low_detail_root_path) as Node3D
-	_collect_wheel_nodes(self)
+	_resolve_visual_roots()
+	_ensure_wheels_collected()
 	_set_low_detail_active(force_low_detail)
 	set_process(not force_low_detail)
 
 
 func set_force_low_detail(enabled: bool) -> void:
 	force_low_detail = enabled
+	_resolve_visual_roots()
+	_set_low_detail_active(enabled)
 	if is_inside_tree():
-		_set_low_detail_active(enabled)
 		set_process(not enabled)
 
 
@@ -38,6 +38,7 @@ func is_using_low_detail() -> bool:
 
 
 func get_registered_wheel_count() -> int:
+	_ensure_wheels_collected()
 	return _wheel_nodes.size()
 
 
@@ -47,6 +48,7 @@ func update_vehicle_visuals(
 	steering_input: float,
 	wheel_radius_override: float = -1.0
 ) -> void:
+	_ensure_wheels_collected()
 	var safe_delta: float = maxf(delta, 0.0)
 	var radius: float = wheel_radius_override if wheel_radius_override > 0.0 else visual_wheel_radius
 	_wheel_spin = fposmod(_wheel_spin + forward_speed / maxf(radius, 0.01) * safe_delta, TAU)
@@ -81,7 +83,21 @@ func _process(_delta: float) -> void:
 		_set_low_detail_active(true)
 
 
+func _resolve_visual_roots() -> void:
+	if _detailed_root == null:
+		_detailed_root = get_node_or_null(detailed_root_path) as Node3D
+	if _low_detail_root == null:
+		_low_detail_root = get_node_or_null(low_detail_root_path) as Node3D
+
+
+func _ensure_wheels_collected() -> void:
+	if not _wheel_nodes.is_empty():
+		return
+	_collect_wheel_nodes(self)
+
+
 func _set_low_detail_active(enabled: bool) -> void:
+	_resolve_visual_roots()
 	_using_low_detail = enabled and _low_detail_root != null
 	if _detailed_root != null:
 		_detailed_root.visible = not _using_low_detail
