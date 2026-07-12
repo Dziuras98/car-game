@@ -91,12 +91,13 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 
 
 func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_active: bool, delta: float) -> void:
-	if state.ground_contact_count <= 0:
+	var contact_factor: float = _get_ground_contact_factor(state)
+	if contact_factor <= 0.0:
 		state.tire_slip_intensity = 0.0
 		return
 	state.lateral_speed = _tire_model.recover_lateral_speed(
 		state.lateral_speed,
-		_get_effective_lateral_grip(),
+		_get_effective_lateral_grip() * contact_factor,
 		_config.handbrake_lateral_grip_multiplier,
 		handbrake_active,
 		delta,
@@ -125,7 +126,8 @@ func update_tires(state: CarRuntimeState, steering: float, handbrake_active: boo
 
 
 func update_steering(state: CarRuntimeState, steering: float, car: CharacterBody3D, delta: float) -> void:
-	if state.ground_contact_count <= 0:
+	var contact_factor: float = _get_ground_contact_factor(state)
+	if contact_factor <= 0.0:
 		return
 	var steering_amount: float = _get_slip_limited_steering(state, steering)
 	var absolute_forward_speed: float = absf(state.forward_speed)
@@ -135,7 +137,7 @@ func update_steering(state: CarRuntimeState, steering: float, car: CharacterBody
 	var speed_ratio: float = clampf(absolute_forward_speed / maxf(_config.max_forward_speed, 0.1), 0.0, 1.0)
 	var high_speed_steering_limit: float = lerpf(1.0, 0.42, _smoothstep(speed_ratio))
 	var steer_angle: float = deg_to_rad(_config.max_steering_angle_degrees) * steering_amount * high_speed_steering_limit
-	var grip_factor: float = lerpf(1.0, 0.38, state.tire_slip_intensity)
+	var grip_factor: float = lerpf(1.0, 0.38, state.tire_slip_intensity) * contact_factor
 	var axle_balance: float = _get_front_axle_yaw_factor()
 	var yaw_rate: float = tan(steer_angle) * state.forward_speed / maxf(_config.wheel_base, 0.1) * grip_factor * axle_balance
 	yaw_rate = clampf(yaw_rate, -_config.steering_speed, _config.steering_speed)
@@ -184,6 +186,14 @@ func _get_front_axle_yaw_factor() -> float:
 	var rear_effective: float = _config.rear_lateral_grip * sqrt(_config.rear_tire_width_m / REFERENCE_REAR_TIRE_WIDTH_M)
 	var total: float = maxf(front_effective + rear_effective, 0.01)
 	return clampf(front_effective / total * 2.0, 0.72, 1.18)
+
+
+func _get_ground_contact_factor(state: CarRuntimeState) -> float:
+	return clampf(
+		float(state.ground_contact_count) / float(GroundContactModel.PROBE_COUNT),
+		0.0,
+		1.0
+	)
 
 
 func _smoothstep(value: float) -> float:
