@@ -56,79 +56,151 @@ function Assert-ExportFiles {
     }
 }
 
-function Invoke-MainSceneReadinessCheck {
+function Get-LogContentIfAvailable {
+    param([Parameter(Mandatory = $true)][string]$LogPath)
+
+    if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
+        return ""
+    }
+    return Get-Content -LiteralPath $LogPath -Raw
+}
+
+function Invoke-WindowedMainSceneReadinessCheck {
     param(
         [Parameter(Mandatory = $true)][string]$ExecutablePath,
         [Parameter(Mandatory = $true)][string]$WorkingDirectory,
         [Parameter(Mandatory = $true)][string]$LogPath,
-        [Parameter(Mandatory = $true)][string]$MarkerPath,
         [string[]]$AdditionalArguments = @()
     )
 
-    $normalStartupMarker = "[NORMAL_STARTUP_SMOKE] Main scene ready"
-    $normalStartupMarkerEnvName = "CAR_GAME_NORMAL_STARTUP_MARKER_PATH"
-    Remove-Item -LiteralPath $MarkerPath -Force -ErrorAction SilentlyContinue
-
+    $readyMarker = "[GAME_READY] Main scene initialized"
+    Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
     $arguments = @(
-        "--headless",
+        "--audio-driver",
+        "Dummy",
         "--log-file",
         ('"' + $LogPath + '"')
     ) + $AdditionalArguments
 
-    $previousMarkerPath = [Environment]::GetEnvironmentVariable(
-        $normalStartupMarkerEnvName,
-        [EnvironmentVariableTarget]::Process
-    )
-    [Environment]::SetEnvironmentVariable(
-        $normalStartupMarkerEnvName,
-        $MarkerPath,
-        [EnvironmentVariableTarget]::Process
-    )
+    $process = Start-Process `
+        -FilePath $ExecutablePath `
+        -ArgumentList $arguments `
+        -WorkingDirectory $WorkingDirectory `
+        -PassThru
+
+    $deadline = [DateTime]::UtcNow.AddSeconds(30)
+    $readySeen = $false
+    $windowSeen = $false
     try {
-        $process = Start-Process `
-            -FilePath $ExecutablePath `
-            -ArgumentList $arguments `
-            -WorkingDirectory $WorkingDirectory `
-            -PassThru
-    } finally {
-        [Environment]::SetEnvironmentVariable(
-            $normalStartupMarkerEnvName,
-            $previousMarkerPath,
-            [EnvironmentVariableTarget]::Process
-        )
+        while ([DateTime]::UtcNow -lt $deadline) {
+            if ($process.HasExited) {
+                break
+            }
+            $process.Refresh()
+            if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+                $windowSeen = $true
+            }
+            $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+            if ($logContent.Contains($readyMarker)) {
+                $readySeen = $true
+            }
+            if ($readySeen -and $windowSeen) {
+                break
+            }
+            Start-Sleep -Milliseconds 200
+        }
+
+        if (-not $readySeen -or -not $windowSeen) {
+            $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+            if (-not [string]::IsNullOrEmpty($logContent)) {
+                $logContent | Write-Host
+            }
+            if ($process.HasExited) {
+                throw "Windowed packaged startup exited before readiness with code $($process.ExitCode)."
+            }
+            if (-not $readySeen) {
+                throw "Windowed packaged startup did not report main-scene readiness within 30 seconds."
+            }
+            throw "Windowed packaged startup did not create a native application window within 30 seconds."
+        }
+    }
+    finally {
+        if (-not $process.HasExited) {
+            $process.Kill($true)
+        }
+        $process.WaitForExit()
     }
 
-    $completed = $process.WaitForExit(30000)
-    if (-not $completed) {
+    if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
+        throw "Windowed packaged startup log was not created: $LogPath"
+    }
+    $finalLogContent = Get-Content -LiteralPath $LogPath -Raw
+    Get-Content -LiteralPath $LogPath | Write-Host
+    if (-not $finalLogContent.Contains($readyMarker)) {
+        throw "Windowed packaged startup log did not contain the expected readiness text."
+    }
+    Assert-GodotRuntimeLogFile -Path $LogPath -Label "Windowed packaged startup"
+}
+
+function Invoke-WindowedSelfTerminatingSmokeTest {
+    param(
+        [Parameter(Mandatory = $true)][string]$ExecutablePath,
+        [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+        [Parameter(Mandatory = $true)][string]$LogPath,
+        [Parameter(Mandatory = $true)][string]$ExpectedMarker,
+        [Parameter(Mandatory = $true)][string]$Label,
+        [string[]]$AdditionalArguments = @(),
+        [int]$TimeoutSeconds = 30
+    )
+
+    Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
+    $arguments = @(
+        "--audio-driver",
+        "Dummy",
+        "--log-file",
+        ('"' + $LogPath + '"')
+    ) + $AdditionalArguments
+    $process = Start-Process `
+        -FilePath $ExecutablePath `
+        -ArgumentList $arguments `
+        -WorkingDirectory $WorkingDirectory `
+        -PassThru
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    $windowSeen = $false
+    while (-not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
+        $process.Refresh()
+        if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+            $windowSeen = $true
+        }
+        Start-Sleep -Milliseconds 50
+    }
+
+    if (-not $process.HasExited) {
         $process.Kill($true)
-        throw "Packaged startup did not complete its readiness handshake within 30 seconds."
+        $process.WaitForExit()
+        throw "$Label exceeded the $TimeoutSeconds-second timeout."
     }
     if ($process.ExitCode -ne 0) {
-        if (Test-Path -LiteralPath $LogPath -PathType Leaf) {
-            Get-Content -LiteralPath $LogPath | Write-Host
+        $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+        if (-not [string]::IsNullOrEmpty($logContent)) {
+            $logContent | Write-Host
         }
-        throw "Packaged startup failed with exit code $($process.ExitCode)."
+        throw "$Label failed with exit code $($process.ExitCode)."
     }
-    if (-not (Test-Path -LiteralPath $MarkerPath -PathType Leaf)) {
-        throw "Packaged startup exited successfully but did not create its readiness marker file."
-    }
-
-    $markerContent = Get-Content -LiteralPath $MarkerPath -Raw
-    if (-not $markerContent.Contains($normalStartupMarker)) {
-        throw "Packaged startup marker did not contain the expected readiness text."
+    if (-not $windowSeen) {
+        throw "$Label completed without creating a native application window."
     }
     if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
-        throw "Packaged startup log was not created: $LogPath"
+        throw "$Label log was not created: $LogPath"
     }
 
     $logContent = Get-Content -LiteralPath $LogPath -Raw
     Get-Content -LiteralPath $LogPath | Write-Host
-    if (-not $logContent.Contains($normalStartupMarker)) {
-        throw "Packaged startup log did not contain the expected readiness text."
+    if (-not $logContent.Contains($ExpectedMarker)) {
+        throw "$Label exited successfully but did not write the expected success marker."
     }
-
-    Assert-GodotRuntimeLogFile -Path $LogPath -Label "Packaged startup"
-    Remove-Item -LiteralPath $MarkerPath -Force
+    Assert-GodotRuntimeLogFile -Path $LogPath -Label $Label
 }
 
 $originalPresetContent = Get-Content -LiteralPath $presetPath -Raw
@@ -166,9 +238,7 @@ try {
     $productionExecutable = Join-Path $productionOutputPath "car-game.exe"
     $productionPack = Join-Path $productionOutputPath "car-game.pck"
     $normalStartupLog = Join-Path $productionOutputPath "normal-startup-smoke.log"
-    $normalStartupMarker = Join-Path $productionOutputPath "normal-startup-ready.marker"
     $productionSmokeArgumentLog = Join-Path $productionOutputPath "production-smoke-argument.log"
-    $productionSmokeArgumentMarker = Join-Path $productionOutputPath "production-smoke-argument.marker"
 
     Write-Host ""
     Write-Host "=== Export production Windows release ==="
@@ -180,25 +250,24 @@ try {
     Assert-ProductionPackContent -PackPath $productionPack
 
     Write-Host ""
-    Write-Host "=== Validate production startup ==="
-    Invoke-MainSceneReadinessCheck `
+    Write-Host "=== Validate windowed production startup ==="
+    Invoke-WindowedMainSceneReadinessCheck `
         -ExecutablePath $productionExecutable `
         -WorkingDirectory $productionOutputPath `
-        -LogPath $normalStartupLog `
-        -MarkerPath $normalStartupMarker
+        -LogPath $normalStartupLog
 
     Write-Host ""
     Write-Host "=== Validate production build ignores private smoke argument ==="
-    Invoke-MainSceneReadinessCheck `
+    Invoke-WindowedMainSceneReadinessCheck `
         -ExecutablePath $productionExecutable `
         -WorkingDirectory $productionOutputPath `
         -LogPath $productionSmokeArgumentLog `
-        -MarkerPath $productionSmokeArgumentMarker `
         -AdditionalArguments @("--", "--export-smoke-test")
 
     $testExecutable = Join-Path $testOutputPath "car-game-test.exe"
     $testPack = Join-Path $testOutputPath "car-game-test.pck"
     $smokeLog = Join-Path $testOutputPath "exported-build-smoke.log"
+    $liveAudioSmokeLog = Join-Path $testOutputPath "live-audio-smoke.log"
 
     Write-Host ""
     Write-Host "=== Export packaged regression build ==="
@@ -244,6 +313,16 @@ try {
         throw "Exported build exited successfully but did not write the expected smoke-test success marker."
     }
     Assert-GodotRuntimeLogFile -Path $smokeLog -Label "Exported build smoke test"
+
+    Write-Host ""
+    Write-Host "=== Run windowed live procedural-audio smoke test ==="
+    Invoke-WindowedSelfTerminatingSmokeTest `
+        -ExecutablePath $testExecutable `
+        -WorkingDirectory $testOutputPath `
+        -LogPath $liveAudioSmokeLog `
+        -ExpectedMarker "[LIVE_AUDIO_SMOKE_TEST] Passed:" `
+        -Label "Windowed live audio smoke test" `
+        -AdditionalArguments @("--", "--live-audio-smoke-test")
 
     Write-Host ""
     Write-Host "Production and packaged regression Windows exports passed."
