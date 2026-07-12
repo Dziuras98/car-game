@@ -18,6 +18,10 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Report checked-out tree
+        shell: pwsh
+        run: git rev-parse 'HEAD^{tree}'
+
       - name: Create source bundle
         shell: pwsh
         run: |
