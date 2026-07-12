@@ -12,6 +12,17 @@ $currentCommandPath = Join-Path $testLogDirectory "current-command.log"
 $junitReportPath = Join-Path $testLogDirectory "junit.xml"
 $requiredNestedScriptTest = "scripts/tests/discovery/nested_script_discovery_test.gd"
 $requiredNestedSceneTest = "scenes/tests/discovery/nested_scene_discovery_test.tscn"
+$allowedWarningPatternsByTestPath = @{
+    "scripts/tests/audit_high_priority_contract_test.gd" = @(
+        '^WARNING: PlayerCarController rejected invalid CarSpecs; keeping the active runtime configuration\.$'
+    )
+    "scenes/tests/atomic_track_rebuild_test.tscn" = @(
+        '^WARNING: GeneratedTrack surface generation failed; keeping the previous generated content\.$'
+    )
+    "scenes/tests/track_selection_runtime_test.tscn" = @(
+        '^WARNING: Track definition invalid_generated_track did not produce valid generated content; keeping the current track\.$'
+    )
+}
 $testResults = [System.Collections.Generic.List[object]]::new()
 . (Join-Path $PSScriptRoot "godot_runtime_log_validation.ps1")
 . (Join-Path $PSScriptRoot "junit_report.ps1")
@@ -87,6 +98,15 @@ function Invoke-StaticRepositoryChecks {
     }
 }
 
+function Get-AllowedWarningPatternsForTestPath {
+    param([Parameter(Mandatory = $true)][string]$TestPath)
+
+    if (-not $allowedWarningPatternsByTestPath.ContainsKey($TestPath)) {
+        return @()
+    }
+    return @($allowedWarningPatternsByTestPath[$TestPath])
+}
+
 function Invoke-GodotCommand {
     param(
         [Parameter(Mandatory = $true)]
@@ -95,7 +115,10 @@ function Invoke-GodotCommand {
         [Parameter(Mandatory = $true)]
         [string[]]$CommandArguments,
 
-        [int]$TimeoutSeconds = 180
+        [int]$TimeoutSeconds = 180,
+
+        [AllowEmptyCollection()]
+        [string[]]$AllowedWarningPatterns = @()
     )
 
     Write-Host ""
@@ -177,7 +200,8 @@ function Invoke-GodotCommand {
     Assert-GodotRuntimeLogContent `
         -OutputLines $outputLines `
         -Label $Name `
-        -DiagnosticPath $logPath
+        -DiagnosticPath $logPath `
+        -AllowedWarningPatterns $AllowedWarningPatterns
 
     return @($outputLines)
 }
@@ -243,15 +267,20 @@ try {
     )
 
     foreach ($testScript in $scriptTests) {
+        $allowedWarningPatterns = @(Get-AllowedWarningPatternsForTestPath -TestPath $testScript)
         $null = Invoke-RecordedCheck `
             -Name $testScript `
             -ClassName "godot.script" `
             -Action {
-                Invoke-GodotCommand -Name "Script test: $testScript" -TimeoutSeconds 120 -CommandArguments @(
-                    "--headless",
-                    "--path", $projectRoot,
-                    "--script", $testScript
-                )
+                Invoke-GodotCommand `
+                    -Name "Script test: $testScript" `
+                    -TimeoutSeconds 120 `
+                    -AllowedWarningPatterns $allowedWarningPatterns `
+                    -CommandArguments @(
+                        "--headless",
+                        "--path", $projectRoot,
+                        "--script", $testScript
+                    )
             }
     }
 
@@ -284,15 +313,20 @@ try {
     )
 
     foreach ($testScene in $sceneTests) {
+        $allowedWarningPatterns = @(Get-AllowedWarningPatternsForTestPath -TestPath $testScene)
         $null = Invoke-RecordedCheck `
             -Name $testScene `
             -ClassName "godot.scene" `
             -Action {
-                Invoke-GodotCommand -Name "Scene test: $testScene" -TimeoutSeconds 180 -CommandArguments @(
-                    "--headless",
-                    "--path", $projectRoot,
-                    $testScene
-                )
+                Invoke-GodotCommand `
+                    -Name "Scene test: $testScene" `
+                    -TimeoutSeconds 180 `
+                    -AllowedWarningPatterns $allowedWarningPatterns `
+                    -CommandArguments @(
+                        "--headless",
+                        "--path", $projectRoot,
+                        $testScene
+                    )
             }
     }
 }
@@ -318,7 +352,7 @@ finally {
 
 Remove-Item -LiteralPath $currentCommandPath -Force -ErrorAction SilentlyContinue
 Write-Host ""
-Write-Host "All discovered Godot tests passed without runtime errors."
+Write-Host "All discovered Godot tests passed without runtime errors or unexpected warnings."
 Write-Host "Standalone script tests: $($scriptTests.Count)"
 Write-Host "Scene tests: $($sceneTests.Count)"
 Write-Host "JUnit test cases: $($testResults.Count)"
