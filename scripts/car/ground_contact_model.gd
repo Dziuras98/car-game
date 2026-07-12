@@ -1,6 +1,8 @@
 extends RefCounted
 class_name GroundContactModel
 
+const PROBE_COUNT: int = 4
+
 
 func get_probe_local_positions(
 	wheel_base: float,
