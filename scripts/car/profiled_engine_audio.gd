@@ -1,6 +1,7 @@
 extends EngineAudioSynthesizer
 class_name ProfiledEngineAudioSynthesizer
 
+const SUPPORTED_CYLINDER_COUNT: int = 6
 
 @export var profile: EngineAudioProfile
 
@@ -12,6 +13,7 @@ func _validate_property(property: Dictionary) -> void:
 
 
 func _ready() -> void:
+	cylinders = SUPPORTED_CYLINDER_COUNT
 	if profile != null and not profile.apply_to(self):
 		set_process(false)
 		return
