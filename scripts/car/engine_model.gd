@@ -9,6 +9,7 @@ var low_rpm_torque_multiplier: float = 0.42
 var mid_rpm_torque_multiplier: float = 0.82
 var redline_torque_multiplier: float = 0.72
 var rpm_response: float = 8.0
+var torque_curve: EngineTorqueCurve
 
 var _current_rpm: float = 900.0
 
@@ -21,7 +22,8 @@ func configure(
 	target_low_rpm_torque_multiplier: float,
 	target_mid_rpm_torque_multiplier: float,
 	target_redline_torque_multiplier: float,
-	target_rpm_response: float
+	target_rpm_response: float,
+	target_torque_curve: EngineTorqueCurve = null
 ) -> void:
 	idle_rpm = maxf(target_idle_rpm, 1.0)
 	peak_torque_rpm = maxf(target_peak_torque_rpm, idle_rpm)
@@ -31,6 +33,10 @@ func configure(
 	mid_rpm_torque_multiplier = maxf(target_mid_rpm_torque_multiplier, 0.0)
 	redline_torque_multiplier = maxf(target_redline_torque_multiplier, 0.0)
 	rpm_response = maxf(target_rpm_response, 0.01)
+	torque_curve = target_torque_curve
+	if torque_curve != null and not torque_curve.validate().is_empty():
+		push_warning("EngineModel rejected an invalid sampled torque curve and will use the legacy fallback curve.")
+		torque_curve = null
 	reset()
 
 
@@ -71,6 +77,8 @@ func update(
 
 
 func get_torque_multiplier() -> float:
+	if torque_curve != null:
+		return torque_curve.sample(_current_rpm)
 	var rpm_range: float = maxf(redline_rpm - idle_rpm, 1.0)
 	var normalized_rpm: float = clampf((_current_rpm - idle_rpm) / rpm_range, 0.0, 1.0)
 	var peak_rpm_ratio: float = clampf((peak_torque_rpm - idle_rpm) / rpm_range, 0.01, 0.99)
