@@ -20,32 +20,26 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Apply deterministic readiness-file polling
+      - name: Replace windowed startup check
         shell: python
         run: |
           from pathlib import Path
 
           path = Path("scripts/ci/export_windows.ps1")
           content = path.read_text(encoding="utf-8")
+          start_marker = "function Invoke-WindowedMainSceneReadinessCheck {"
+          end_marker = "function Invoke-WindowedSelfTerminatingSmokeTest {"
+          start = content.index(start_marker)
+          end = content.index(end_marker, start)
+          replacement = r'''function Invoke-WindowedMainSceneReadinessCheck {
+              param(
+                  [Parameter(Mandatory = $true)][string]$ExecutablePath,
+                  [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+                  [Parameter(Mandatory = $true)][string]$LogPath,
+                  [string[]]$AdditionalArguments = @()
+              )
 
-          old_start = '''    $readyMarker = "[GAME_READY] Main scene initialized"
-              Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
-              $arguments = @(
-                  "--audio-driver",
-                  "Dummy",
-                  "--log-file",
-                  ('"' + $LogPath + '"')
-              ) + $AdditionalArguments
-
-              $process = Start-Process `
-                  -FilePath $ExecutablePath `
-                  -ArgumentList $arguments `
-                  -WorkingDirectory $WorkingDirectory `
-                  -PassThru
-
-              $deadline = [DateTime]::UtcNow.AddSeconds(60)
-          '''.replace("              ", "")
-          new_start = '''    $readyMarker = "[GAME_READY] Main scene initialized"
+              $readyMarker = "[GAME_READY] Main scene initialized"
               $readinessPath = "$LogPath.ready"
               $readinessEnvironmentVariable = "CAR_GAME_STARTUP_READY_FILE"
               Remove-Item -LiteralPath $LogPath, $readinessPath -Force -ErrorAction SilentlyContinue
@@ -81,46 +75,79 @@ jobs:
               }
 
               $deadline = [DateTime]::UtcNow.AddSeconds(60)
-          '''.replace("              ", "")
-
-          old_poll = '''        $logContent = Get-LogContentIfAvailable -LogPath $LogPath
-                  if (-not [string]::IsNullOrEmpty($logContent) -and $logContent.Contains($readyMarker)) {
-                      $readySeen = $true
+              $windowSeen = $false
+              $readySeen = $false
+              while (-not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
+                  $process.Refresh()
+                  if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+                      $windowSeen = $true
                   }
-          '''.replace("          ", "")
-          new_poll = '''        $readinessContent = Get-LogContentIfAvailable -LogPath $readinessPath
+                  $readinessContent = Get-LogContentIfAvailable -LogPath $readinessPath
                   if (
                       -not [string]::IsNullOrEmpty($readinessContent) `
                       -and $readinessContent.Contains($readyMarker)
                   ) {
                       $readySeen = $true
                   }
+                  if ($windowSeen -and $readySeen) {
+                      break
+                  }
+                  Start-Sleep -Milliseconds 200
+              }
+
+              if ($process.HasExited) {
+                  $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+                  if (-not [string]::IsNullOrEmpty($logContent)) {
+                      $logContent | Write-Host
+                  }
+                  throw "Windowed packaged startup exited before reaching readiness with code $($process.ExitCode)."
+              }
+              if (-not $windowSeen -or -not $readySeen) {
+                  $process.Kill($true)
+                  $process.WaitForExit()
+                  $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+                  if (-not [string]::IsNullOrEmpty($logContent)) {
+                      $logContent | Write-Host
+                  }
+                  if (-not $windowSeen) {
+                      throw "Windowed packaged startup did not create a native application window within 60 seconds."
+                  }
+                  throw "Windowed packaged startup did not report main-scene readiness within 60 seconds."
+              }
+
+              if (-not $process.CloseMainWindow()) {
+                  $process.Kill($true)
+                  $process.WaitForExit()
+                  throw "Windowed packaged startup created a window but did not accept a normal close request."
+              }
+              if (-not $process.WaitForExit(15000)) {
+                  $process.Kill($true)
+                  $process.WaitForExit()
+                  throw "Windowed packaged startup did not terminate after a normal window-close request."
+              }
+              if ($process.ExitCode -ne 0) {
+                  $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+                  if (-not [string]::IsNullOrEmpty($logContent)) {
+                      $logContent | Write-Host
+                  }
+                  throw "Windowed packaged startup closed with exit code $($process.ExitCode)."
+              }
+
+              if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
+                  throw "Windowed packaged startup log was not created: $LogPath"
+              }
+              $finalLogContent = Get-Content -LiteralPath $LogPath -Raw
+              Get-Content -LiteralPath $LogPath | Write-Host
+              if (-not $finalLogContent.Contains($readyMarker)) {
+                  throw "Windowed packaged startup log did not contain the expected readiness text."
+              }
+              Assert-GodotRuntimeLogFile -Path $LogPath -Label "Windowed packaged startup"
+              Remove-Item -LiteralPath $readinessPath -Force -ErrorAction SilentlyContinue
+          }
+
+
           '''.replace("          ", "")
-
-          old_end = '''    if (-not $finalLogContent.Contains($readyMarker)) {
-              throw "Windowed packaged startup log did not contain the expected readiness text."
-          }
-          Assert-GodotRuntimeLogFile -Path $LogPath -Label "Windowed packaged startup"
-          }
-          '''
-          new_end = '''    if (-not $finalLogContent.Contains($readyMarker)) {
-              throw "Windowed packaged startup log did not contain the expected readiness text."
-          }
-          Assert-GodotRuntimeLogFile -Path $LogPath -Label "Windowed packaged startup"
-          Remove-Item -LiteralPath $readinessPath -Force -ErrorAction SilentlyContinue
-          }
-          '''
-
-          for label, old, new in (
-              ("startup block", old_start, new_start),
-              ("polling block", old_poll, new_poll),
-              ("cleanup block", old_end, new_end),
-          ):
-              count = content.count(old)
-              if count != 1:
-                  raise RuntimeError(f"Expected one {label}, found {count}")
-              content = content.replace(old, new, 1)
-
+          content = content[:start] + replacement + content[end:]
           path.write_text(content, encoding="utf-8", newline="\n")
 
       - name: Commit fix and remove temporary workflow
