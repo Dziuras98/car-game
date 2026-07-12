@@ -37,6 +37,9 @@ func _initialize() -> void:
 
 func _test_recovery_requires_stop_reverse_and_distance() -> void:
 	var car: RecoveryCar = RecoveryCar.new()
+	car.car_specs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
+	root.add_child(car)
+	car.set_physics_process(false)
 	var profile: AiDriverProfile = AiDriverProfile.new()
 	profile.recovery_stop_speed_kmh = 1.0
 	profile.reverse_engage_timeout_seconds = 2.0
@@ -98,6 +101,7 @@ func _test_recovery_requires_stop_reverse_and_distance() -> void:
 	)
 
 	driver.free()
+	root.remove_child(car)
 	car.free()
 
 
