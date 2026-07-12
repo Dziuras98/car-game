@@ -1,9 +1,6 @@
 extends Node
 
-const TEST_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
-const TEST_PROFILE: EngineAudioProfile = preload("res://resources/audio/370z_stock_audio_profile.tres")
-const BUFFER_DRAIN_POLL_SECONDS: float = 0.025
-const BUFFER_DRAIN_MAX_POLLS: int = 40
+const TEST_CAR_SCENE: PackedScene = preload("res://scenes/cars/370zat.tscn")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -14,60 +11,34 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	var car: PlayerCarController = PlayerCarController.new()
-	car.name = "LiveAudioTestCar"
-	car.car_specs = TEST_SPECS
-	var synthesizer: ProfiledEngineAudioSynthesizer = ProfiledEngineAudioSynthesizer.new()
-	synthesizer.name = "EngineAudio"
-	synthesizer.profile = TEST_PROFILE
-	car.add_child(synthesizer)
+	var car: PlayerCarController = TEST_CAR_SCENE.instantiate() as PlayerCarController
+	_expect(car != null, "the packaged 370Z automatic scene instantiates")
+	if car == null:
+		_finish()
+		return
 	add_child(car)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	var audio: BakedEngineAudioPlayer = car.get_node_or_null("EngineAudio") as BakedEngineAudioPlayer
+	_expect(audio != null, "the production car uses the baked engine-audio player")
+	if audio == null:
+		await _cleanup(car)
+		return
+	_expect(audio.is_using_baked_bank(), "the production player prepares its committed WAV bank")
+	_expect(not audio.uses_audio_stream_generator(), "the production player does not allocate an AudioStreamGenerator")
 
 	if DisplayServer.get_name() == "headless":
-		_expect(synthesizer.stream == null, "headless runtime does not initialize live audio playback")
-		_expect(not synthesizer.is_processing(), "headless runtime disables procedural audio processing")
+		_expect(not audio.is_processing(), "headless runtime disables audible playback updates")
+		_expect(audio.get_active_voice_count() == 0, "headless runtime starts no audio voices")
 		await _cleanup(car)
 		return
 
-	_expect(synthesizer.stream is AudioStreamGenerator, "windowed runtime initializes an AudioStreamGenerator")
-	var playback: AudioStreamGeneratorPlayback = synthesizer.get_stream_playback() as AudioStreamGeneratorPlayback
-	_expect(playback != null, "windowed runtime exposes generator playback")
-	_expect(synthesizer.is_processing(), "windowed runtime keeps procedural audio processing enabled")
-	if playback == null:
-		await _cleanup(car)
-		return
-
-	synthesizer.set_process(false)
-	var first_available_before: int = await _wait_for_buffer_drain(playback)
-	synthesizer.call("_fill_audio_buffer")
-	var first_available_after: int = playback.get_frames_available()
-	_expect(first_available_before > 0, "audio server drains at least one live generator frame")
-	_expect(
-		first_available_before > first_available_after,
-		"live generator fills frames after the audio server drains its buffer"
-	)
-
-	var second_available_before: int = await _wait_for_buffer_drain(playback)
-	synthesizer.call("_fill_audio_buffer")
-	var second_available_after: int = playback.get_frames_available()
-	_expect(second_available_before > 0, "audio server continues draining the live generator")
-	_expect(
-		second_available_before > second_available_after,
-		"live generator refills the buffer repeatedly without losing playback"
-	)
-	_expect(synthesizer.playing, "procedural audio player remains active throughout the refill cycle")
+	await get_tree().create_timer(0.10).timeout
+	_expect(audio.is_processing(), "windowed runtime updates the baked playback controller")
+	_expect(audio.get_loaded_voice_stream_count() >= 2, "windowed runtime selects WAV streams for coast and load layers")
+	_expect(audio.get_active_voice_count() >= 1, "windowed runtime plays at least one audible WAV voice")
+	_expect(not audio.uses_audio_stream_generator(), "live playback remains sample-based after startup")
 	await _cleanup(car)
-
-
-func _wait_for_buffer_drain(playback: AudioStreamGeneratorPlayback) -> int:
-	for _poll_index: int in range(BUFFER_DRAIN_MAX_POLLS):
-		var available_frames: int = playback.get_frames_available()
-		if available_frames > 0:
-			return available_frames
-		await get_tree().create_timer(BUFFER_DRAIN_POLL_SECONDS).timeout
-	return playback.get_frames_available()
 
 
 func _cleanup(car: PlayerCarController) -> void:

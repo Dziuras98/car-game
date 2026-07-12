@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/engine_audio_sample_bank.gd" id="1_bank"]
+
+[resource]
+script = ExtResource("1_bank")
+bank_directory = "res://assets/audio/engine/370z_stock"
+sample_rpms = PackedFloat32Array(700, 1200, 2000, 3000, 4000, 5000, 6000, 7000, 7600)
+sample_rate = 32000
+loop_seconds = 1.0
+idle_volume_db = -10.0
+load_volume_db = 0.0
+output_volume_boost_db = 11.5
