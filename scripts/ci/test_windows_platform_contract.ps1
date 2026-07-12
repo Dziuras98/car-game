@@ -116,6 +116,12 @@ jobs:
           $debugSource = "windows_debug_x86_64.exe"
       - shell: pwsh
         run: ./scripts/ci/export_windows.ps1 -GodotBinary $env:GODOT_BIN
+      - name: Upload diagnostics
+        with:
+          path: |
+            build/test-logs/
+            build/windows/*.log
+            build/windows-test/*.log
       - name: Upload trusted Windows packages
         with:
           if-no-files-found: error
@@ -226,6 +232,22 @@ texture_format/etc2_astc=false
         -Values $contractFailures `
         -Fragment "repository-pinned Godot checksums" `
         -Message "The validator should require the repository checksum manifest."
+
+    Write-ValidFixture
+    Set-Content -LiteralPath $workflowPath -Value ($validWorkflow -replace '(?m)^\s*build/windows/\*\.log\s*\r?\n', '') -Encoding utf8
+    $contractFailures = @(Get-FixtureFailures)
+    Expect-Contains `
+        -Values $contractFailures `
+        -Fragment "production startup diagnostics" `
+        -Message "The validator should require production startup logs in diagnostics."
+
+    Write-ValidFixture
+    Set-Content -LiteralPath $workflowPath -Value ($validWorkflow -replace '(?m)^\s*build/windows-test/\*\.log\s*\r?\n', '') -Encoding utf8
+    $contractFailures = @(Get-FixtureFailures)
+    Expect-Contains `
+        -Values $contractFailures `
+        -Fragment "test-build startup diagnostics" `
+        -Message "The validator should require test-build startup logs in diagnostics."
 
     Write-ValidFixture
     Add-Content -LiteralPath $workflowPath -Value @'

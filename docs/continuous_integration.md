@@ -25,14 +25,22 @@ The job executes:
 11. export the production and test presets;
 12. restore the committed export-preset contents in a `finally` block;
 13. smoke-test normal packaged startup and the packaged regression route;
-14. upload diagnostics for every run;
+14. upload test and export-smoke diagnostics for every run;
 15. upload executable Windows packages only for successful trusted non-pull-request events, failing when expected package directories are absent.
 
 The checksum manifest is an explicit trust root reviewed with source changes. CI does not download `SHA512-SUMS.txt` from the same release endpoint as the archives. Updating Godot therefore requires an intentional pull request that changes the engine version, archive names and reviewed checksum manifest together.
 
 The cache stores the original export-template archive, not an already extracted executable directory. A cache hit therefore does not bypass integrity verification.
 
-Pull-request artifacts are intentionally limited to `build/test-logs/`. Executables and PCK files are generated for validation but are not published from PR-triggered runs. Push and manual runs may publish:
+Pull-request artifacts are intentionally limited to diagnostic text/XML output:
+
+```text
+build/test-logs/
+build/windows/*.log
+build/windows-test/*.log
+```
+
+Executables and PCK files are generated for validation but are not published from PR-triggered runs. Push and manual runs may publish:
 
 ```text
 build/windows/
@@ -131,9 +139,11 @@ Each Godot invocation has:
 - a combined stdout/stderr log under `build/test-logs/`;
 - exit-code validation;
 - scanning for `SCRIPT ERROR:`, `ERROR:` and editor-style `E 0:00:...` lines;
+- scanning for `WARNING:` and editor-style `W 0:00:...` lines;
+- exact, anchored warning allowlists assigned only to the negative-path tests that intentionally emit them;
 - an individual JUnit testcase containing its status, duration and captured output.
 
-The runtime-error detector has a dedicated regression test so a broken regex cannot silently make the suite permissive.
+Unexpected warnings are failures even when Godot exits with code `0`. This includes importer warnings, invalid UID fallbacks and `ObjectDB` leak diagnostics. The runtime-log validator has a dedicated regression test covering errors, warnings, ANSI escapes, duplicate lines, allowlist matches, allowlist misses and leaked-object warnings.
 
 ### JUnit diagnostics
 
@@ -188,6 +198,14 @@ Packaged smoke launch:
 - verifies required project settings, catalog resources, car scenes and generated-track/checkpoint runtime;
 - must emit the expected success marker and return code `0`.
 
+The PR diagnostics artifact contains the corresponding startup logs when they are created:
+
+```text
+build/windows/normal-startup-smoke.log
+build/windows/production-smoke-argument.log
+build/windows-test/exported-build-smoke.log
+```
+
 Diagnostic artifacts are named `car-game-diagnostics-<commit-sha>`. Trusted push/manual package artifacts are named `car-game-windows-<commit-sha>`.
 
 ## Running locally
@@ -237,6 +255,6 @@ Inspect in this order:
 4. `build/test-logs/current-command.log` when present;
 5. `workflow-runner-failure.log`;
 6. the log named after the failed import/script/scene command;
-7. packaged startup/export logs.
+7. packaged startup/export logs under `build/windows/` or `build/windows-test/`.
 
 A green pull request requires the Windows workflow conclusion to be `success` on the current head commit.

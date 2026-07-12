@@ -11,7 +11,7 @@ The repository currently provides:
 - free-drive and race modes owned by the shared `GameModes` contract, with explicit validation and rollback on failed session startup;
 - catalog-driven track, car model and car variant selection through typed resource arrays;
 - authoritative validation across `CarCatalog`, `CarModelDefinition`, `CarVariantDefinition` and `CarSpecs`;
-- Nissan 370Z-style 6MT and 7AT variants backed by `CarSpecs` resources;
+- standard 2016 Nissan 370Z and 2016 Nissan 370Z NISMO models, each with 6MT and 7AT variants backed by `CarSpecs` resources;
 - explicit AI eligibility on supported car variants and all-or-nothing opponent spawning;
 - a modular `CharacterBody3D` vehicle runtime with powertrain, transmission, tire, four-point ground-contact and reset helpers;
 - `TransmissionType` as the sole transmission-mode state;
@@ -23,9 +23,9 @@ The repository currently provides:
 - speedometer, tachometer, minimap, countdown, lap/position HUD, results and pause UI;
 - Polish and English localization resources with explicit startup loading;
 - keyboard and gamepad player input plus a separate external AI input channel;
-- bounded procedural audio voices and skid-mark buffers;
+- validated stock/NISMO procedural engine-audio profiles, bounded live audio voices and skid-mark buffers;
 - Windows production and packaged-test export presets;
-- one complete project-verification entrypoint and automatically discovered regression tests with per-command timeouts and runtime-error detection;
+- one complete project-verification entrypoint and automatically discovered regression tests with per-command timeouts plus runtime-error and unexpected-warning detection;
 - current-tree and complete-history public-repository safety checks;
 - SHA-pinned GitHub Actions, verified export-template archives and diagnostics-only pull-request artifacts.
 
@@ -86,12 +86,15 @@ Important paths:
 - `resources/cars/nissan/370z/model.tres`
 - `resources/cars/nissan/370z/variants/`
 - `resources/cars/nissan/370z/specs/`
+- `resources/cars/nissan/370z_nismo/model.tres`
+- `resources/cars/nissan/370z_nismo/variants/`
+- `resources/cars/nissan/370z_nismo/specs/`
 - `scripts/car/car_controller.gd`
 - `scripts/car/car_drive_config_builder.gd`
 
-`CarCatalog.validate()` is the authoritative content boundary. It enforces globally unique model/variant IDs and delegates model, variant and specification validation. `CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The base 370Z scene contains visual, collision and audio structure only and does not serialize tuning values.
+`CarCatalog.validate()` is the authoritative content boundary. It enforces globally unique model/variant IDs and delegates model, variant and specification validation. `CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The standard and NISMO base scenes contain visual, collision and audio structure only and do not serialize variant tuning values.
 
-`CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. The automatic 370Z is eligible; the manual variant remains player-selectable and is never used as an implicit opponent fallback.
+`CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. Manual variants remain player-selectable and are never used as an implicit opponent fallback.
 
 ### Tracks
 
@@ -146,7 +149,9 @@ It performs:
 5. automatic discovery of standalone tests in `scripts/tests/` that extend `SceneTree`;
 6. automatic discovery of scenes under `scenes/tests/`;
 7. a separate timeout and diagnostic log for every command;
-8. failure on Godot runtime-error output even when the process exits with code `0`.
+8. failure on Godot runtime errors and non-allowlisted warnings even when the process exits with code `0`.
+
+Expected warnings from deliberate negative-path tests are allowlisted by exact test path and anchored message pattern. Resource fallbacks, invalid UIDs, importer warnings, `ObjectDB` leaks and other new warnings fail verification.
 
 The static checks also reject orphaned test scripts, production `_for_test` identifiers, completed-migration regressions, implicit mode/index/AI fallbacks, mutable GitHub Action tags and reintroduced architectural fallback paths. A runtime test must be one of:
 
@@ -176,7 +181,7 @@ Use `scripts/ci/run_tests.ps1` directly only for focused test work that intentio
 
 `.github/workflows/windows-tests.yml` runs on `windows-2025`, pins GitHub actions to immutable commit SHAs, verifies the SHA-512 checksums of the Godot editor and export-template archives, invokes the complete project verification and then exports/smoke-tests both Windows presets.
 
-The export-template cache stores the original archive, which is verified on every use before extraction. Pull-request runs upload diagnostic logs only; executable/PCK artifacts are published only by trusted push or manually dispatched runs.
+The export-template cache stores the original archive, which is verified on every use before extraction. Pull-request runs upload test logs plus production/test-build startup logs; executable/PCK artifacts are published only by trusted push or manually dispatched runs.
 
 `scripts/ci/export_windows.ps1` creates and smoke-tests both the normal packaged startup and the packaged regression route.
 
@@ -193,6 +198,8 @@ See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gate
 
 - `docs/architecture.md` — subsystem ownership and dependency boundaries;
 - `docs/car_catalog.md` — car catalog/model/variant/spec and AI-eligibility rules;
+- `docs/cars/nissan_370z_nismo_2016.md` — NISMO content scope, specifications and model sources;
+- `docs/audio/vq37vhr_procedural_model.md` — procedural VQ37VHR audio path and active profile levels;
 - `docs/vehicle_model.md` — current handling and powertrain model;
 - `docs/roadmap.md` — completed remediation stages and separately deferred feature expansion;
 - `docs/continuous_integration.md` — Windows CI, repository-safety and artifact behavior;

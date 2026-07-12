@@ -1,15 +1,22 @@
-# Stock 370Z procedural engine-audio model
+# 370Z procedural engine-audio model
 
-The 370Z uses a self-contained real-time synthesizer. It does not load samples,
-rendered recordings or external simulation output. Every audible component is
-generated inside Godot from current engine RPM, engine load and throttle input.
+The standard 370Z and 370Z NISMO use a self-contained real-time synthesizer. It
+does not load samples, rendered recordings or external simulation output. Every
+audible component is generated inside Godot from current engine RPM, engine load
+and throttle input.
 
-## Character target
+## Character targets
 
-The target is the standard naturally aspirated 3.7-litre 370Z rather than the
-Nismo exhaust calibration. The model keeps the low-frequency exhaust body
-controlled, makes induction noise strongly load-dependent, introduces the
-recognisable upper-rev rasp progressively and keeps lift-off crackle sparse.
+The common signal model represents the naturally aspirated 3.7-litre VQ37VHR.
+Typed `EngineAudioProfile` resources provide the final standard and NISMO
+calibrations:
+
+- the standard profile keeps the low-frequency exhaust body controlled, makes
+  induction noise strongly load-dependent, introduces upper-rev rasp
+  progressively and keeps lift-off crackle sparse;
+- the NISMO profile increases induction presence, exhaust resonance, bank
+  separation and residual limiter combustion without changing the shared firing
+  model.
 
 The six-cylinder firing rate is calculated as three combustion events per crank
 revolution. A repeating six-event gain pattern and a small alternating-bank
@@ -51,10 +58,18 @@ Loudness is controlled at two independent stages:
 - `output_volume_boost_db` raises the `AudioStreamPlayer3D` level after the
   existing idle/load interpolation.
 
-The detailed profile uses 3.5 dB of synthesis gain and a 4 dB player boost. This
-is intentionally much more audible than the original model while retaining
-headroom through smooth saturation. Per-car scene overrides for
-`idle_volume_db` and `load_volume_db` remain valid.
+The active profile levels are authoritative:
+
+| Profile | Idle | Load | Synthesis gain | Player boost |
+|---|---:|---:|---:|---:|
+| Standard 370Z | -10.0 dB | 0.0 dB | 1.0 dB | 11.5 dB |
+| 370Z NISMO | -9.0 dB | -0.5 dB | 0.5 dB | 11.0 dB |
+
+`EngineAudioProfile` validates player boost in the 0–16 dB range and synthesis
+gain in the -6–12 dB range. These limits intentionally include the approved
+current profiles. The profile contract test verifies both resources, their
+application to the synthesizer and the editor range exposed by profiled audio
+players.
 
 ## Runtime behavior
 
@@ -63,13 +78,19 @@ runs at 32 kHz by default, preserving the useful rasp and mechanical band while
 keeping per-voice GDScript cost bounded. New detail layers use fixed state
 variables and do not allocate arrays or dictionaries per generated sample.
 
+Live `AudioStreamGenerator` playback is not initialized when Godot uses the
+headless display server. Profile application and deterministic offline frame
+generation remain available to tests, while CI avoids creating audio-server
+objects that cannot be usefully played and previously survived until process
+shutdown.
+
 Startup is optional through `play_startup_on_ready` or `trigger_engine_start()`.
 Shutdown is available through `trigger_engine_shutdown()` without requiring an
 audio asset or separate event player.
 
 ## Tuning priorities
 
-For a stock exhaust, adjust in this order:
+For either profile, adjust in this order:
 
 1. `output_volume_boost_db` and `synthesis_gain_db` for loudness;
 2. `exhaust_resonance` for low and low-mid body;
@@ -81,7 +102,8 @@ For a stock exhaust, adjust in this order:
 8. `overrun_crackle` only after steady-state sound is correct.
 
 The interactive scene `scenes/tools/engine_audio_lab.tscn` allows continuous RPM
-and load sweeps, startup playback and a direct idle/limiter toggle. The
-standalone model test checks operating-point safety, V6 firing frequency,
-limiter behavior, finite bounded output, load-dependent energy, gain behavior
-and a material waveform contribution from the additional detail layers.
+and load sweeps, startup playback and a direct idle/limiter toggle. Standalone
+model and profile tests check operating-point safety, V6 firing frequency,
+limiter behavior, finite bounded output, load-dependent energy, gain behavior,
+profile validity and a material waveform contribution from the additional detail
+layers.

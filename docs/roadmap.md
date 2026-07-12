@@ -7,6 +7,7 @@ This roadmap prioritizes correctness, maintainability and reproducible Windows e
 The following remediation stages are complete for the present prototype:
 
 - catalog-driven car models, variants and specs with typed exported arrays;
+- standard 2016 Nissan 370Z and 2016 Nissan 370Z NISMO models with 6MT/7AT variants;
 - catalog-driven track selection with an explicit default track ID;
 - modular game, spawning, race and vehicle coordinators;
 - scene-driven menu, race, pause, HUD and minimap UI;
@@ -19,11 +20,11 @@ The following remediation stages are complete for the present prototype:
 - bounded powertrain substeps;
 - four-point ground contact, surface grip and friction-circle coupling;
 - collision-resolved velocity synchronization;
-- bounded skid marks, procedural-audio voices and stadium/render batches;
+- validated stock/NISMO procedural-audio profiles, bounded live voices, headless playback suppression and bounded skid marks;
 - Polish/English localization and global UI theme;
 - keyboard/gamepad player input and a separate external AI channel;
-- automatic test discovery, per-test timeouts and runtime-error detection;
-- Windows production/test export plus packaged startup validation.
+- automatic test discovery, per-test timeouts, runtime-error detection and exact warning allowlists;
+- Windows production/test export plus packaged startup validation and retained export-smoke logs.
 
 The branch should remain regression-first: every behavior or ownership change needs focused coverage and compatibility with the canonical full-program smoke test.
 
@@ -36,6 +37,7 @@ Status: complete; documentation must be maintained incrementally.
 - [x] vehicle-model baseline;
 - [x] catalog documentation;
 - [x] Windows CI documentation;
+- [x] standard/NISMO procedural-audio documentation;
 - [x] roadmap.
 
 ## Phase 1 — High-level coordination split
@@ -58,12 +60,14 @@ Status: complete for current content.
 
 - [x] `CarCatalog`, model, variant and `CarSpecs` resources;
 - [x] typed `CarModelDefinition` and `CarVariantDefinition` catalog arrays;
-- [x] 370Z 6MT and 7AT variants;
+- [x] standard 370Z 6MT and 7AT variants;
+- [x] 370Z NISMO 6MT and 7AT variants;
 - [x] `CarSpecs -> CarDriveConfig` as the only active tuning path;
 - [x] `TransmissionType` enum as the only transmission-mode source;
 - [x] variant specs assigned before scene-tree entry;
 - [x] catalog/scene/spec consistency validation;
-- [x] `scenes/cars/370z.tscn` contains visual and structural data only;
+- [x] standard and NISMO base scenes contain visual and structural data only;
+- [x] typed and validated standard/NISMO engine-audio profiles;
 - [x] removed-property interception deleted from `PlayerCarController`.
 
 ### Tracks
@@ -154,10 +158,13 @@ Status: complete for the current content scale.
 - [x] coalesced generated-track rebuilds;
 - [x] bounded skid-mark storage;
 - [x] bounded procedural-audio voices and listener-distance gating;
+- [x] live procedural playback disabled on the headless display server while offline synthesis remains testable;
+- [x] profile loudness ranges aligned with the approved standard/NISMO resources;
 - [x] batched edge markers and barriers;
 - [x] bounded stadium `MultiMesh` groups;
 - [x] deterministic performance regression budgets;
-- [x] Windows production/test export and packaged smoke tests.
+- [x] Windows production/test export and packaged smoke tests;
+- [x] export startup logs retained in pull-request diagnostic artifacts.
 
 Distribution work remains deferred until required:
 
@@ -174,7 +181,9 @@ Completed:
 
 - [x] automatic standalone and scene-test discovery;
 - [x] timeout and current-command diagnostics;
-- [x] runtime-error detector self-check;
+- [x] runtime-error and unexpected-warning detector self-checks;
+- [x] exact per-test warning allowlists for deliberate negative-path coverage;
+- [x] failure on invalid resource UIDs, importer warnings and `ObjectDB` leak warnings;
 - [x] static architecture assertions;
 - [x] canonical full-program smoke scene;
 - [x] orphaned test-script detection;
@@ -190,6 +199,7 @@ Ongoing rules:
 - a test script must be discoverable, scene-referenced, an editor launcher or an allowed helper;
 - no second implementation of an existing end-to-end scenario;
 - update fixtures when a compatibility field is intentionally removed;
+- add an anchored warning allowlist only when a warning is the behavior under test;
 - keep CI logs useful enough to identify the first failing command.
 
 ## Phase 8 — Feature expansion

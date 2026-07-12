@@ -18,7 +18,6 @@ func _run() -> void:
 	if invalid_track_scene == null:
 		_finish()
 		return
-
 	var simple_definition: TrackDefinition = _make_definition(
 		&"simple_oval",
 		"Prosty owal",
@@ -89,7 +88,15 @@ func _run() -> void:
 	_expect(main.get_node_or_null("TrackContainer/PendingTrack") == null, "failed activation removes the rejected pending track")
 	_expect(main.call("get_current_car") != null, "failed activation leaves the current driving session intact")
 
+	initial_track = null
+	menu = null
+	variants.clear()
+	selected_track = null
+	track_after_failed_activation = null
 	main.queue_free()
+	main = null
+	await get_tree().process_frame
+	await get_tree().process_frame
 	await get_tree().process_frame
 	_finish()
 
@@ -171,9 +178,9 @@ func _expect(condition: bool, message: String) -> void:
 func _finish() -> void:
 	if _failures.is_empty():
 		print("[TRACK_SELECTION_RUNTIME_TEST] Passed: %d checks" % _checks)
-		get_tree().quit(0)
+		get_tree().call_deferred("quit", 0)
 		return
 	push_error("[TRACK_SELECTION_RUNTIME_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[TRACK_SELECTION_RUNTIME_TEST] - %s" % failure_message)
-	get_tree().quit(1)
+	get_tree().call_deferred("quit", 1)

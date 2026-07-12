@@ -1,12 +1,33 @@
 extends Resource
 class_name EngineAudioProfile
 
+const MIN_PLAYER_VOLUME_DB: float = -80.0
+const MAX_PLAYER_VOLUME_DB: float = 12.0
+const MIN_OUTPUT_VOLUME_BOOST_DB: float = 0.0
+const MAX_OUTPUT_VOLUME_BOOST_DB: float = 16.0
+const MIN_SYNTHESIS_GAIN_DB: float = -6.0
+const MAX_SYNTHESIS_GAIN_DB: float = 12.0
+const CHARACTER_PROPERTY_NAMES: Array[StringName] = [
+	&"high_rpm_rasp",
+	&"intake_presence",
+	&"intake_plenum_detail",
+	&"airflow_noise",
+	&"induction_transient",
+	&"mechanical_noise",
+	&"rotating_assembly_detail",
+	&"exhaust_resonance",
+	&"exhaust_roughness",
+	&"exhaust_bank_separation",
+	&"exhaust_reflection",
+	&"overrun_crackle",
+]
+
 
 @export_group("Levels")
-@export var idle_volume_db: float = -10.0
-@export var load_volume_db: float = 0.0
-@export var output_volume_boost_db: float = 11.5
-@export var synthesis_gain_db: float = 1.0
+@export_range(-80.0, 12.0, 0.5) var idle_volume_db: float = -10.0
+@export_range(-80.0, 12.0, 0.5) var load_volume_db: float = 0.0
+@export_range(0.0, 16.0, 0.5) var output_volume_boost_db: float = 11.5
+@export_range(-6.0, 12.0, 0.5) var synthesis_gain_db: float = 1.0
 
 @export_group("Character")
 @export_range(0.0, 1.0, 0.01) var high_rpm_rasp: float = 0.07
@@ -28,9 +49,49 @@ class_name EngineAudioProfile
 @export_range(0.0, 0.5, 0.01) var limiter_residual_combustion: float = 0.20
 
 
-func apply_to(engine_audio: Object) -> void:
+func is_valid() -> bool:
+	return validate().is_empty()
+
+
+func validate() -> PackedStringArray:
+	var errors: PackedStringArray = PackedStringArray()
+	_append_range(errors, "idle_volume_db", idle_volume_db, MIN_PLAYER_VOLUME_DB, MAX_PLAYER_VOLUME_DB)
+	_append_range(errors, "load_volume_db", load_volume_db, MIN_PLAYER_VOLUME_DB, MAX_PLAYER_VOLUME_DB)
+	_append_range(
+		errors,
+		"output_volume_boost_db",
+		output_volume_boost_db,
+		MIN_OUTPUT_VOLUME_BOOST_DB,
+		MAX_OUTPUT_VOLUME_BOOST_DB
+	)
+	_append_range(
+		errors,
+		"synthesis_gain_db",
+		synthesis_gain_db,
+		MIN_SYNTHESIS_GAIN_DB,
+		MAX_SYNTHESIS_GAIN_DB
+	)
+	for property_name: StringName in CHARACTER_PROPERTY_NAMES:
+		_append_range(errors, str(property_name), float(get(property_name)), 0.0, 1.0)
+	_append_range(errors, "limiter_period", limiter_period, 0.02, 0.20)
+	_append_range(errors, "limiter_cut_ratio", limiter_cut_ratio, 0.1, 0.9)
+	_append_range(
+		errors,
+		"limiter_residual_combustion",
+		limiter_residual_combustion,
+		0.0,
+		0.5
+	)
+	return errors
+
+
+func apply_to(engine_audio: Object) -> bool:
 	if engine_audio == null:
-		return
+		return false
+	var validation_errors: PackedStringArray = validate()
+	if not validation_errors.is_empty():
+		push_error("EngineAudioProfile is invalid: %s" % "; ".join(validation_errors))
+		return false
 	engine_audio.set("idle_volume_db", idle_volume_db)
 	engine_audio.set("load_volume_db", load_volume_db)
 	engine_audio.set("output_volume_boost_db", output_volume_boost_db)
@@ -50,3 +111,17 @@ func apply_to(engine_audio: Object) -> void:
 	engine_audio.set("limiter_period", limiter_period)
 	engine_audio.set("limiter_cut_ratio", limiter_cut_ratio)
 	engine_audio.set("limiter_residual_combustion", limiter_residual_combustion)
+	return true
+
+
+func _append_range(
+	errors: PackedStringArray,
+	property_name: String,
+	value: float,
+	minimum: float,
+	maximum: float
+) -> void:
+	if not is_finite(value) or value < minimum or value > maximum:
+		errors.append(
+			"%s must be finite and between %s and %s" % [property_name, minimum, maximum]
+		)
