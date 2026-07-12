@@ -32,7 +32,18 @@ func _run() -> void:
 
 	var missing_scene: CarCatalog = _single_model_catalog()
 	missing_scene.models[0].variants[0].car_scene = null
-	_expect(_contains_error(missing_scene.validate(), "car_scene"), "variants without scenes are rejected")
+	_expect(_contains_error(missing_scene.validate(), "car_scene"), "variants without player scenes are rejected")
+
+	var missing_ai_scene: CarCatalog = _single_model_catalog()
+	var automatic_variant: CarVariantDefinition = null
+	for variant: CarVariantDefinition in missing_ai_scene.models[0].variants:
+		if variant.ai_eligible:
+			automatic_variant = variant
+			break
+	_expect(automatic_variant != null, "fixture contains an AI-eligible variant")
+	if automatic_variant != null:
+		automatic_variant.ai_car_scene = null
+		_expect(_contains_error(missing_ai_scene.validate(), "ai_car_scene"), "AI-eligible variants without dedicated AI scenes are rejected")
 
 	var manual_ai: CarCatalog = _single_model_catalog()
 	var manual_variant: CarVariantDefinition = null
@@ -43,6 +54,7 @@ func _run() -> void:
 	_expect(manual_variant != null, "fixture contains a manual variant")
 	if manual_variant != null:
 		manual_variant.ai_eligible = true
+		manual_variant.ai_car_scene = automatic_variant.ai_car_scene if automatic_variant != null else null
 		_expect(_contains_error(manual_ai.validate(), "ai_eligible"), "manual AI variants are rejected")
 
 	var duplicate_sort_order: CarCatalog = _single_model_catalog()
