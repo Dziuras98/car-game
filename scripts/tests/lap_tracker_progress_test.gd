@@ -5,6 +5,7 @@ const TEST_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370
 
 var _checks: int = 0
 var _failures: Array[String] = []
+var _runtime_fault_message: String = ""
 
 
 func _ready() -> void:
@@ -35,6 +36,7 @@ func _run() -> void:
 
 	var opponents: Array[PlayerCarController] = [opponent]
 	var tracker: LapTracker = LapTracker.new()
+	tracker.runtime_contract_failed.connect(_on_runtime_contract_failed)
 	_expect(tracker.prepare(track, 3, player, opponents), "valid track contract prepares race tracking")
 	tracker.update_positions()
 
@@ -87,8 +89,16 @@ func _run() -> void:
 	opponent.queue_free()
 	await get_tree().process_frame
 	tracker.update_positions()
-	_expect(tracker.get_participant_count() == 1, "freed participants are removed from structured race state")
-	_expect(tracker.get_result_order() == [player], "result ordering excludes freed participants")
+	_expect(
+		not _runtime_fault_message.is_empty(),
+		"losing a registered participant emits a race-contract fault"
+	)
+	_expect(
+		"lost registered participant" in _runtime_fault_message,
+		"participant-loss fault identifies the broken participant contract"
+	)
+	_expect(tracker.get_participant_count() == 1, "participant telemetry exposes only remaining valid cars after the fault")
+	_expect(tracker.get_result_order() == [player], "result ordering excludes invalid car references after the fault")
 
 	tracker.clear()
 	player.queue_free()
@@ -116,6 +126,10 @@ func _make_car(node_name: String) -> PlayerCarController:
 	car.name = node_name
 	car.car_specs = TEST_SPECS
 	return car
+
+
+func _on_runtime_contract_failed(message: String) -> void:
+	_runtime_fault_message = message
 
 
 func _expect(condition: bool, message: String) -> void:

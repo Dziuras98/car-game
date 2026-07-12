@@ -42,6 +42,13 @@ func _run() -> void:
 	)
 	_expect(
 		StartupRouter.resolve_startup_scene(
+			PackedStringArray([StartupRouter.LIVE_AUDIO_SMOKE_ARGUMENT]),
+			false
+		) == StartupRouter.MAIN_SCENE_PATH,
+		"production exports ignore the private live-audio argument"
+	)
+	_expect(
+		StartupRouter.resolve_startup_scene(
 			PackedStringArray([StartupRouter.EXPORT_SMOKE_ARGUMENT]),
 			true
 		) == StartupRouter.EXPORTED_BUILD_SMOKE_SCENE_PATH,
@@ -49,10 +56,27 @@ func _run() -> void:
 	)
 	_expect(
 		StartupRouter.resolve_startup_scene(
+			PackedStringArray([StartupRouter.LIVE_AUDIO_SMOKE_ARGUMENT]),
+			true
+		) == StartupRouter.LIVE_AUDIO_SMOKE_SCENE_PATH,
+		"test exports route the live-audio argument to the windowed audio scene"
+	)
+	_expect(
+		StartupRouter.resolve_startup_scene(
 			PackedStringArray(["--unrelated-option", StartupRouter.EXPORT_SMOKE_ARGUMENT, "value"]),
 			true
 		) == StartupRouter.EXPORTED_BUILD_SMOKE_SCENE_PATH,
 		"test export smoke argument is recognized among other user arguments"
+	)
+	_expect(
+		StartupRouter.resolve_startup_scene(
+			PackedStringArray([
+				StartupRouter.EXPORT_SMOKE_ARGUMENT,
+				StartupRouter.LIVE_AUDIO_SMOKE_ARGUMENT,
+			]),
+			true
+		) == StartupRouter.LIVE_AUDIO_SMOKE_SCENE_PATH,
+		"live-audio validation takes precedence when both private arguments are present"
 	)
 
 

@@ -33,7 +33,7 @@ radial_segments = 24
 rings = 2
 
 [node name="PlayerCar" type="CharacterBody3D"]
-floor_snap_length = 0.4
+floor_snap_length = 0.0
 script = ExtResource("1_controller")
 car_specs = ExtResource("3_specs")
 

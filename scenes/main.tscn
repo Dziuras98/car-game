@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://scripts/game/game_manager.gd" id="5_game_manager"]
 [ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="7_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/minimap.tscn" id="8_minimap"]
-[ext_resource type="Script" path="res://scripts/game/main_scene_startup_marker.gd" id="9_startup_marker"]
+[ext_resource type="Script" path="res://scripts/game/main_scene_readiness_reporter.gd" id="9_readiness_reporter"]
 
 [sub_resource type="Environment" id="Environment_sky"]
 background_mode = 1
@@ -22,8 +22,8 @@ minimap_path = NodePath("Minimap")
 menu_path = NodePath("MainMenu")
 track_container_path = NodePath("TrackContainer")
 
-[node name="StartupReadyMarker" type="Node" parent="."]
-script = ExtResource("9_startup_marker")
+[node name="ReadinessReporter" type="Node" parent="."]
+script = ExtResource("9_readiness_reporter")
 
 [node name="TrackContainer" type="Node3D" parent="."]
 
