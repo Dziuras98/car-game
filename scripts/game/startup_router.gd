@@ -2,7 +2,9 @@ extends Node
 
 const MAIN_SCENE_PATH: String = "res://scenes/main.tscn"
 const EXPORTED_BUILD_SMOKE_SCENE_PATH: String = "res://scenes/tests/exported_build_smoke_test.tscn"
+const LIVE_AUDIO_SMOKE_SCENE_PATH: String = "res://scenes/tests/live_audio_smoke_test.tscn"
 const EXPORT_SMOKE_ARGUMENT: String = "--export-smoke-test"
+const LIVE_AUDIO_SMOKE_ARGUMENT: String = "--live-audio-smoke-test"
 const EXPORT_SMOKE_FEATURE: String = "export_smoke_test"
 
 
@@ -42,6 +44,8 @@ static func resolve_startup_scene(
 	user_args: PackedStringArray,
 	export_smoke_enabled: bool = false
 ) -> String:
+	if export_smoke_enabled and LIVE_AUDIO_SMOKE_ARGUMENT in user_args:
+		return LIVE_AUDIO_SMOKE_SCENE_PATH
 	if export_smoke_enabled and EXPORT_SMOKE_ARGUMENT in user_args:
 		return EXPORTED_BUILD_SMOKE_SCENE_PATH
 
