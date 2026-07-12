@@ -28,6 +28,8 @@ The following third-party GLB files are included under the uploader's stated **C
 
 The GLB geometry and embedded textures are preserved as downloaded. The game applies technical integration changes in Godot wrapper scenes: a uniform `100` scale, a `180`-degree Y-axis rotation, vertical ground alignment and composition with independently authored collision, controller and procedural-audio nodes.
 
+The canonical GLB files exist only at the paths listed above; duplicate source mirrors are not retained in the repository.
+
 Redistributed copies or builds containing these assets must provide attribution to Ddiaz Design, link the relevant Sketchfab source and CC BY-NC-SA 4.0 license, identify the modifications, remain noncommercial and preserve ShareAlike for adapted model material. Detailed scope and attribution wording are recorded in `assets/third_party/sketchfab/README.md`.
 
 ### Rights-chain limitation
