@@ -39,11 +39,11 @@ func _run() -> void:
 	for runtime_car: PlayerCarController in [dry_car, low_grip_car, airborne_car]:
 		runtime_car.set_physics_process(false)
 
-	# The hitch-vs-fine integration comparison intentionally drives the coordinator directly;
-	# all observable assertions consume immutable public telemetry snapshots.
+	# Direct coordinator calls compare an oversized callback value against the active
+	# engine physics tick. Oversized deltas must never replay additional historical input.
+	var active_physics_delta: float = maxf(coarse_car.get_physics_process_delta_time(), 1.0 / 240.0)
 	coarse_car._physics_process(0.10)
-	for step: int in range(12):
-		fine_car._physics_process(1.0 / 120.0)
+	fine_car._physics_process(active_physics_delta)
 
 	var dry_snapshot: CarTelemetrySnapshot = dry_car.get_telemetry_snapshot()
 	var low_grip_snapshot: CarTelemetrySnapshot = low_grip_car.get_telemetry_snapshot()
@@ -64,16 +64,16 @@ func _run() -> void:
 	_expect(_bases_match(airborne_car.global_transform.basis, airborne_basis_before), "airborne steering input does not rotate the chassis")
 
 	_expect(
-		absf(coarse_snapshot.get_forward_speed() - fine_snapshot.get_forward_speed()) < 0.05,
-		"whole-vehicle substeps keep frame-hitch and fine-step speed integration close"
+		absf(coarse_snapshot.get_forward_speed() - fine_snapshot.get_forward_speed()) < 0.005,
+		"oversized callback input is bounded to one active-tick speed integration"
 	)
 	_expect(
-		absf(coarse_snapshot.get_engine_rpm() - fine_snapshot.get_engine_rpm()) < 20.0,
-		"whole-vehicle substeps keep frame-hitch and fine-step RPM integration close"
+		absf(coarse_snapshot.get_engine_rpm() - fine_snapshot.get_engine_rpm()) < 1.0,
+		"oversized callback input is bounded to one active-tick RPM integration"
 	)
 	_expect(
 		_bases_match(coarse_car.global_transform.basis, fine_car.global_transform.basis),
-		"whole-vehicle substeps keep frame-hitch and fine-step steering integration close"
+		"oversized callback input is bounded to one active-tick steering integration"
 	)
 	_expect(is_equal_approx(dry_floor.get_grip_multiplier(), 1.0), "typed surfaces default to neutral grip")
 
