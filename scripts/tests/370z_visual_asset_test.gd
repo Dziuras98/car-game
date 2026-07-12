@@ -36,10 +36,10 @@ func _test_visual_asset_import() -> void:
 		_expect(absf(model.transform.basis.z.z + 100.0) < 0.001, "the standard model flips Z so the vehicle faces project forward")
 		_expect(absf(model.position.y - 0.14) < 0.001, "the standard model is raised onto the gameplay ground plane")
 
-	var meshes: Array[MeshInstance3D] = []
-	_collect_mesh_instances(visuals, meshes)
-	_expect(meshes.size() >= 30, "the detailed standard model retains its multi-mesh structure")
-	var bounds := _calculate_bounds(visuals, meshes)
+	var bounds_state := _calculate_bounds(visuals)
+	var mesh_count: int = bounds_state["mesh_count"]
+	var bounds: AABB = bounds_state["bounds"]
+	_expect(mesh_count >= 30, "the detailed standard model retains its multi-mesh structure")
 	_expect(bounds.size.x > 1.95 and bounds.size.x < 2.08, "the standard model width remains near two metres including mirrors")
 	_expect(bounds.size.y > 1.25 and bounds.size.y < 1.36, "the standard model height remains inside the expected Z34 range")
 	_expect(bounds.size.z > 4.20 and bounds.size.z < 4.30, "the standard model length remains inside the expected Z34 range")
@@ -73,28 +73,33 @@ func _test_base_scene_contract() -> void:
 	car.free()
 
 
-func _collect_mesh_instances(node: Node, output: Array[MeshInstance3D]) -> void:
+func _calculate_bounds(root: Node3D) -> Dictionary:
+	var state: Dictionary = {
+		"initialized": false,
+		"mesh_count": 0,
+		"bounds": AABB(),
+	}
+	_collect_bounds(root, Transform3D.IDENTITY, state)
+	_expect(state["initialized"], "the standard imported scene exposes renderable mesh bounds")
+	return state
+
+
+func _collect_bounds(node: Node, parent_transform: Transform3D, state: Dictionary) -> void:
+	var current_transform := parent_transform
+	if node is Node3D:
+		current_transform = parent_transform * (node as Node3D).transform
 	if node is MeshInstance3D:
-		output.append(node as MeshInstance3D)
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh != null:
+			var transformed_bounds: AABB = current_transform * mesh_instance.get_aabb()
+			if state["initialized"]:
+				state["bounds"] = (state["bounds"] as AABB).merge(transformed_bounds)
+			else:
+				state["bounds"] = transformed_bounds
+				state["initialized"] = true
+			state["mesh_count"] = int(state["mesh_count"]) + 1
 	for child: Node in node.get_children():
-		_collect_mesh_instances(child, output)
-
-
-func _calculate_bounds(root: Node3D, meshes: Array[MeshInstance3D]) -> AABB:
-	var bounds := AABB()
-	var initialized := false
-	for mesh_instance: MeshInstance3D in meshes:
-		if mesh_instance.mesh == null:
-			continue
-		var relative_transform: Transform3D = root.global_transform.affine_inverse() * mesh_instance.global_transform
-		var transformed_bounds: AABB = relative_transform * mesh_instance.get_aabb()
-		if initialized:
-			bounds = bounds.merge(transformed_bounds)
-		else:
-			bounds = transformed_bounds
-			initialized = true
-	_expect(initialized, "the standard imported scene exposes renderable mesh bounds")
-	return bounds
+		_collect_bounds(child, current_transform, state)
 
 
 func _expect(condition: bool, message: String) -> void:
