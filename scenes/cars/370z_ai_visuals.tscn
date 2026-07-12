@@ -1,13 +1,19 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_visual_controller.gd" id="1_controller"]
-[ext_resource type="PackedScene" path="res://scenes/cars/370z_low_detail_visuals.tscn" id="2_low"]
+[ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/nissan_370z_2013/2013_nissan_370z.glb" id="2_model"]
+[ext_resource type="PackedScene" path="res://scenes/cars/370z_low_detail_visuals.tscn" id="3_low"]
 
 [node name="Z34AiVisuals" type="Node3D"]
 script = ExtResource("1_controller")
-detailed_root_path = NodePath("DetailedModelNotPresent")
+detailed_root_path = NodePath("SketchfabModel")
 low_detail_root_path = NodePath("LowDetail")
+detail_switch_distance = 30.0
+detail_switch_hysteresis = 6.0
 visual_wheel_radius = 0.339
-force_low_detail = true
 
-[node name="LowDetail" parent="." instance=ExtResource("2_low")]
+[node name="SketchfabModel" parent="." instance=ExtResource("2_model")]
+transform = Transform3D(-100, 0, 0, 0, 100, 0, 0, 0, -100, 0, 0.14, 0)
+
+[node name="LowDetail" parent="." instance=ExtResource("3_low")]
+visible = false
