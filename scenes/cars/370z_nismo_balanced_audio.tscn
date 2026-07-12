@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/cars/370z_nismo.tscn" id="1_nismo"]
+[ext_resource type="Script" path="res://scripts/car/370z_nismo_audio_profile.gd" id="2_audio_profile"]
+
+[node name="370ZNismoBalancedAudio" instance=ExtResource("1_nismo")]
+
+[node name="AudioProfile" type="Node" parent="."]
+script = ExtResource("2_audio_profile")

@@ -16,10 +16,20 @@ func _init() -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 20260711
 	var factory: CarInstanceFactory = CarInstanceFactory.new()
-	factory.configure(CATALOG.get_all_variants(), rng)
+	var catalog_variants: Array[CarVariantDefinition] = CATALOG.get_all_variants()
+	factory.configure(catalog_variants, rng)
 	_expect(factory.has_available_cars(), "factory retains catalog player variants")
 	_expect(factory.has_ai_eligible_cars(), "factory exposes explicit AI eligibility")
-	_expect(factory.get_ai_eligible_count() == 1, "factory does not infer additional opponent variants")
+
+	var explicitly_eligible_count: int = 0
+	for variant: CarVariantDefinition in catalog_variants:
+		if variant != null and variant.is_ai_eligible_for_race():
+			explicitly_eligible_count += 1
+	_expect(
+		factory.get_ai_eligible_count() == explicitly_eligible_count,
+		"factory derives opponent variants only from explicit catalog AI eligibility"
+	)
+	_expect(explicitly_eligible_count == 2, "the catalog exposes the standard and NISMO automatic variants to AI")
 
 	_finish()
 

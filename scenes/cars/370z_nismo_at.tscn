@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/cars/370z_nismo_balanced_audio.tscn" id="1_nismo"]
+[ext_resource type="Resource" path="res://resources/cars/nissan/370z_nismo/specs/370z_nismo_7at_specs.tres" id="2_specs"]
+
+[node name="370ZNismoAT" instance=ExtResource("1_nismo")]
+car_specs = ExtResource("2_specs")

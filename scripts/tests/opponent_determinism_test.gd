@@ -30,7 +30,7 @@ func _run() -> void:
 
 	_expect(first_signature.size() == OPPONENT_COUNT, "seeded spawner commits the complete requested opponent set")
 	_expect(first_signature == replay_signature, "same session seed reproduces opponent variants and AI profiles")
-	_expect(first_signature != alternate_signature, "different session seed changes at least one opponent profile")
+	_expect(first_signature != alternate_signature, "different session seed changes at least one opponent variant or profile")
 
 	world.queue_free()
 	await get_tree().process_frame
@@ -39,13 +39,21 @@ func _run() -> void:
 
 func _test_catalog_ai_eligibility() -> void:
 	var ai_eligible_variants: Array[CarVariantDefinition] = []
+	var eligible_ids: Dictionary = {}
 	for variant: CarVariantDefinition in CATALOG.get_all_variants():
 		if variant != null and variant.is_ai_eligible_for_race():
 			ai_eligible_variants.append(variant)
-	_expect(ai_eligible_variants.size() == 1, "catalog exposes one explicit AI-eligible variant")
-	if ai_eligible_variants.size() == 1:
-		_expect(ai_eligible_variants[0].ai_eligible, "AI eligibility is declared by variant metadata")
-		_expect(ai_eligible_variants[0].get_specs().is_automatic_transmission(), "AI-eligible variant uses a supported automatic transmission")
+			eligible_ids[str(variant.variant_id)] = true
+
+	_expect(ai_eligible_variants.size() == 2, "catalog exposes the standard and NISMO automatic variants to AI")
+	_expect(eligible_ids.has("nissan_370z_7at"), "standard 370Z automatic remains AI-eligible")
+	_expect(eligible_ids.has("nissan_370z_nismo_7at_global"), "370Z NISMO automatic is explicitly AI-eligible")
+	for variant: CarVariantDefinition in ai_eligible_variants:
+		_expect(variant.ai_eligible, "AI eligibility is declared by variant metadata: %s" % str(variant.variant_id))
+		_expect(
+			variant.get_specs() != null and variant.get_specs().is_automatic_transmission(),
+			"AI-eligible variant uses a supported automatic transmission: %s" % str(variant.variant_id)
+		)
 
 
 func _capture_spawn_signature(
