@@ -33,6 +33,7 @@ func _init() -> void:
 		explicitly_eligible_count += 1
 		eligible_ids[variant.variant_id] = true
 		_expect(variant.get_specs() != null and variant.get_specs().is_automatic_transmission(), "every AI-eligible variant uses a supported automatic transmission: %s" % str(variant.variant_id))
+		_expect(variant.get_ai_car_scene() != null, "every AI-eligible variant owns a dedicated AI scene: %s" % str(variant.variant_id))
 	_expect(factory.get_ai_eligible_count() == explicitly_eligible_count, "factory derives opponent variants only from explicit catalog AI eligibility")
 	for required_id: StringName in REQUIRED_AI_VARIANT_IDS:
 		_expect(eligible_ids.has(required_id), "required AI variant remains available: %s" % str(required_id))
