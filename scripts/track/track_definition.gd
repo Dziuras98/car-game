@@ -15,7 +15,7 @@ func is_valid() -> bool:
 		track_id != &""
 		and not display_name.strip_edges().is_empty()
 		and recommended_laps >= 1
-		and track_scene != null
+		and _scene_has_generated_track_root(track_scene)
 	)
 
 
@@ -26,3 +26,13 @@ func instantiate_track() -> GeneratedTrack:
 	if track == null:
 		push_error("Track definition '%s' must instantiate a GeneratedTrack root." % str(track_id))
 	return track
+
+
+func _scene_has_generated_track_root(scene: PackedScene) -> bool:
+	if scene == null or not scene.can_instantiate():
+		return false
+	var instance: Node = scene.instantiate()
+	var is_valid_root: bool = instance is GeneratedTrack
+	if instance != null:
+		instance.free()
+	return is_valid_root
