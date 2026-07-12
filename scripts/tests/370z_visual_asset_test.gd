@@ -1,69 +1,52 @@
 extends SceneTree
 
 const CAR_SCENE_PATH: String = "res://scenes/cars/370z.tscn"
-const LAMP_MOUNT_PATH: String = "res://assets/cars/nissan/370z/370z_2016_eu_lamp_mounts.obj"
-const SPOILER_BRIDGE_PATH: String = "res://assets/cars/nissan/370z/370z_2016_eu_spoiler_bridge.obj"
-const VISUAL_ASSET_PATHS: Array[String] = [
-	"res://assets/cars/nissan/370z/370z_2016_eu_body_front.obj",
-	"res://assets/cars/nissan/370z/370z_2016_eu_body_center.obj",
-	"res://assets/cars/nissan/370z/370z_2016_eu_rear_and_details.obj",
-	"res://assets/cars/nissan/370z/370z_2016_eu_glass_lighting_trim.obj",
-	"res://assets/cars/nissan/370z/370z_2016_eu_wheel.obj",
-	LAMP_MOUNT_PATH,
-	SPOILER_BRIDGE_PATH,
-]
-const VISUAL_NODE_PATHS: Array[String] = [
-	"VisualRoot/BodyFront",
-	"VisualRoot/BodyCenter",
-	"VisualRoot/RearAndDetails",
-	"VisualRoot/LampMounts",
-	"VisualRoot/RearSpoilerBridge",
-	"VisualRoot/GlassLightingTrim",
-	"VisualRoot/WheelFrontLeft",
-	"VisualRoot/WheelFrontRight",
-	"VisualRoot/WheelRearLeft",
-	"VisualRoot/WheelRearRight",
-]
+const VISUAL_SCENE_PATH: String = "res://scenes/cars/370z_z34_visuals.tscn"
+const VISUAL_ASSET_PATH: String = "res://assets/third_party/sketchfab/nissan_370z_2013/2013_nissan_370z.glb"
 
 var _checks: int = 0
 var _failures: Array[String] = []
 
 
 func _initialize() -> void:
-	_test_visual_assets_import()
-	_test_attachment_mounting_geometry()
+	_test_visual_asset_import()
 	_test_base_scene_contract()
 	_finish()
 
 
-func _test_visual_assets_import() -> void:
-	var surface_count: int = 0
-	for asset_path: String in VISUAL_ASSET_PATHS:
-		var mesh := load(asset_path) as Mesh
-		_expect(mesh != null, "%s imports as a Mesh" % asset_path)
-		if mesh != null:
-			surface_count += mesh.get_surface_count()
-	_expect(surface_count >= 7, "the visual asset exposes at least one imported surface per source mesh")
+func _test_visual_asset_import() -> void:
+	var imported_model := load(VISUAL_ASSET_PATH) as PackedScene
+	_expect(imported_model != null, "the standard Sketchfab GLB imports as a PackedScene")
 
+	var packed_visuals := load(VISUAL_SCENE_PATH) as PackedScene
+	_expect(packed_visuals != null, "the standard 370Z visual wrapper scene loads")
+	if packed_visuals == null:
+		return
 
-func _test_attachment_mounting_geometry() -> void:
-	var lamp_mounts := load(LAMP_MOUNT_PATH) as Mesh
-	_expect(lamp_mounts != null, "lamp mounting pockets import")
-	if lamp_mounts != null:
-		var lamp_bounds: AABB = lamp_mounts.get_aabb()
-		_expect(lamp_bounds.position.y <= 0.5521, "headlight pockets extend into the front body surface")
-		_expect(lamp_bounds.end.y >= 0.9219, "taillight pockets reach the lamp undersides")
-		_expect(lamp_bounds.position.z <= -2.0099, "headlight pockets cover the forward lamp tips")
-		_expect(lamp_bounds.end.z >= 1.9649, "taillight pockets cover the rear lamp tips")
+	var visuals := packed_visuals.instantiate() as Node3D
+	_expect(visuals != null, "the standard visual wrapper instantiates")
+	if visuals == null:
+		return
 
-	var spoiler_bridge := load(SPOILER_BRIDGE_PATH) as Mesh
-	_expect(spoiler_bridge != null, "rear spoiler bridge imports")
-	if spoiler_bridge != null:
-		var spoiler_bounds: AABB = spoiler_bridge.get_aabb()
-		_expect(spoiler_bounds.position.y <= 0.7001, "spoiler bridge intersects the rear deck")
-		_expect(spoiler_bounds.end.y >= 0.9679, "spoiler bridge reaches the spoiler underside")
-		_expect(spoiler_bounds.position.z <= 1.6551, "spoiler bridge starts under the spoiler leading edge")
-		_expect(spoiler_bounds.end.z >= 1.8849, "spoiler bridge reaches the spoiler trailing edge")
+	var model := visuals.get_node_or_null("SketchfabModel") as Node3D
+	_expect(model != null, "the standard visual wrapper contains the imported Sketchfab model")
+	if model != null:
+		_expect(absf(model.transform.basis.x.x + 100.0) < 0.001, "the standard model flips X while applying the 100x source scale")
+		_expect(absf(model.transform.basis.y.y - 100.0) < 0.001, "the standard model preserves the vertical axis at 100x scale")
+		_expect(absf(model.transform.basis.z.z + 100.0) < 0.001, "the standard model flips Z so the vehicle faces project forward")
+		_expect(absf(model.position.y - 0.14) < 0.001, "the standard model is raised onto the gameplay ground plane")
+
+	var bounds_state := _calculate_bounds(visuals)
+	var mesh_count: int = bounds_state["mesh_count"]
+	var bounds: AABB = bounds_state["bounds"]
+	_expect(mesh_count >= 30, "the detailed standard model retains its multi-mesh structure")
+	_expect(bounds.size.x > 1.95 and bounds.size.x < 2.08, "the standard model width remains near two metres including mirrors")
+	_expect(bounds.size.y > 1.25 and bounds.size.y < 1.36, "the standard model height remains inside the expected Z34 range")
+	_expect(bounds.size.z > 4.20 and bounds.size.z < 4.30, "the standard model length remains inside the expected Z34 range")
+	_expect(absf(bounds.get_center().x) < 0.03, "the standard model stays centered laterally")
+	_expect(absf(bounds.get_center().z) < 0.05, "the standard model stays centered longitudinally")
+	_expect(bounds.position.y >= -0.01 and bounds.position.y < 0.03, "the standard tyres meet the gameplay ground plane")
+	visuals.free()
 
 
 func _test_base_scene_contract() -> void:
@@ -74,26 +57,49 @@ func _test_base_scene_contract() -> void:
 
 	var car := packed_scene.instantiate()
 	_expect(car is PlayerCarController, "the base scene keeps PlayerCarController as its root contract")
-	for node_path: String in VISUAL_NODE_PATHS:
-		_expect(car.get_node_or_null(node_path) is MeshInstance3D, "%s is present as a MeshInstance3D" % node_path)
-
-	_expect(car.get_node_or_null("LowerBody") == null, "the legacy box-based LowerBody visual is removed")
-	_expect(car.get_node_or_null("LongHood") == null, "the legacy box-based LongHood visual is removed")
+	_expect(car.get_node_or_null("VisualRoot/SketchfabModel") is Node3D, "the base scene uses the detailed Sketchfab visual model")
+	_expect(car.get_node_or_null("VisualRoot/BodyFront") == null, "the legacy split OBJ body is no longer instantiated")
+	_expect(car.get_node_or_null("VisualRoot/WheelFrontLeft") == null, "the legacy standalone wheel meshes are no longer instantiated")
+	_expect(car.get_node_or_null("RearSpoilerBridge") == null, "the legacy spoiler bridge is removed")
 	_expect(car.get_node_or_null("EngineAudio") is AudioStreamPlayer3D, "the engine-audio node contract is preserved")
 	_expect(car.get_node_or_null("TireSquealAudio") is AudioStreamPlayer3D, "the tire-audio node contract is preserved")
 
-	var front_left := car.get_node_or_null("VisualRoot/WheelFrontLeft") as MeshInstance3D
-	var front_right := car.get_node_or_null("VisualRoot/WheelFrontRight") as MeshInstance3D
-	var rear_left := car.get_node_or_null("VisualRoot/WheelRearLeft") as MeshInstance3D
-	var rear_right := car.get_node_or_null("VisualRoot/WheelRearRight") as MeshInstance3D
-	if front_left != null and front_right != null:
-		_expect(is_equal_approx(absf(front_right.position.x - front_left.position.x), 1.55), "front wheel track matches the 2016 European specification")
-	if rear_left != null and rear_right != null:
-		_expect(is_equal_approx(absf(rear_right.position.x - rear_left.position.x), 1.595), "rear wheel track matches the 2016 European specification")
-	if front_left != null and rear_left != null:
-		_expect(is_equal_approx(absf(rear_left.position.z - front_left.position.z), 2.55), "wheelbase matches the 2016 European specification")
-
+	var collision := car.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	_expect(collision != null and collision.shape is BoxShape3D, "the standard body collision remains available")
+	if collision != null and collision.shape is BoxShape3D:
+		var box := collision.shape as BoxShape3D
+		_expect(box.size.x >= 1.83 and box.size.x <= 1.85, "the standard collision keeps the intended body width")
+		_expect(box.size.z >= 4.19 and box.size.z <= 4.21, "the standard collision keeps the intended body length")
 	car.free()
+
+
+func _calculate_bounds(root: Node3D) -> Dictionary:
+	var state: Dictionary = {
+		"initialized": false,
+		"mesh_count": 0,
+		"bounds": AABB(),
+	}
+	_collect_bounds(root, Transform3D.IDENTITY, state)
+	_expect(state["initialized"], "the standard imported scene exposes renderable mesh bounds")
+	return state
+
+
+func _collect_bounds(node: Node, parent_transform: Transform3D, state: Dictionary) -> void:
+	var current_transform := parent_transform
+	if node is Node3D:
+		current_transform = parent_transform * (node as Node3D).transform
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh != null:
+			var transformed_bounds: AABB = current_transform * mesh_instance.get_aabb()
+			if state["initialized"]:
+				state["bounds"] = (state["bounds"] as AABB).merge(transformed_bounds)
+			else:
+				state["bounds"] = transformed_bounds
+				state["initialized"] = true
+			state["mesh_count"] = int(state["mesh_count"]) + 1
+	for child: Node in node.get_children():
+		_collect_bounds(child, current_transform, state)
 
 
 func _expect(condition: bool, message: String) -> void:

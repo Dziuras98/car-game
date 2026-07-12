@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/nissan_370z_nismo_2015/2015_nissan_370z_nismo_z34.glb" id="1_model"]
+
+[node name="Z34NismoVisuals" type="Node3D"]
+
+[node name="SketchfabModel" parent="." instance=ExtResource("1_model")]
+transform = Transform3D(-100, 0, 0, 0, 100, 0, 0, 0, -100, 0, 0.02, 0)

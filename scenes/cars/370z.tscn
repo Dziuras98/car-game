@@ -1,19 +1,13 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/car/profiled_engine_audio.gd" id="2_engine_audio"]
 [ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
 [ext_resource type="PackedScene" path="res://scenes/cars/370z_z34_visuals.tscn" id="4_visuals"]
-[ext_resource type="ArrayMesh" path="res://assets/cars/nissan/370z/370z_2016_eu_spoiler_bridge.obj" id="5_spoiler"]
-[ext_resource type="Resource" path="res://resources/audio/370z_stock_audio_profile.tres" id="6_audio_profile"]
+[ext_resource type="Resource" path="res://resources/audio/370z_stock_audio_profile.tres" id="5_audio_profile"]
 
 [sub_resource type="BoxShape3D" id="BodyCollision"]
 size = Vector3(1.84, 1.05, 4.2)
-
-[sub_resource type="StandardMaterial3D" id="BodyMaterial"]
-albedo_color = Color(0.72, 0.74, 0.77, 1)
-metallic = 0.30
-roughness = 0.39
 
 [node name="370Z" type="CharacterBody3D"]
 floor_snap_length = 0.0
@@ -25,13 +19,9 @@ shape = SubResource("BodyCollision")
 
 [node name="VisualRoot" parent="." instance=ExtResource("4_visuals")]
 
-[node name="RearSpoilerBridge" type="MeshInstance3D" parent="VisualRoot"]
-material_override = SubResource("BodyMaterial")
-mesh = ExtResource("5_spoiler")
-
 [node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
 script = ExtResource("2_engine_audio")
-profile = ExtResource("6_audio_profile")
+profile = ExtResource("5_audio_profile")
 cylinders = 6
 
 [node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
