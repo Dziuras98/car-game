@@ -34,7 +34,7 @@ metallic = 0.08
 roughness = 0.32
 
 [node name="370ZNismo" type="CharacterBody3D"]
-floor_snap_length = 0.4
+floor_snap_length = 0.0
 script = ExtResource("1_controller")
 
 [node name="CollisionCabin" type="CollisionShape3D" parent="."]
