@@ -24,11 +24,13 @@ func _run() -> void:
 	car.global_transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 1.0, 0.0))
 	root.add_child(car)
 	car.capture_current_transform_as_start()
-	car.set_player_input_enabled(false)
-	car.set_external_input_enabled(true)
-	car.set_external_drive_inputs(1.0, 0.0, 0.0)
+	car.set_external_input_enabled(false)
+	car.set_player_input_enabled(true)
+	Input.action_press("accelerate")
 	for _frame_index: int in range(90):
 		await physics_frame
+	Input.action_release("accelerate")
+	await physics_frame
 
 	var telemetry: CarTelemetrySnapshot = car.get_telemetry_snapshot()
 	print(
@@ -43,9 +45,8 @@ func _run() -> void:
 		]
 	)
 	_expect(telemetry.get_current_gear() >= 1, "automatic car remains in a forward gear after spawn")
-	_expect(telemetry.get_throttle_input() > 0.9, "automatic car receives sustained external throttle")
 	_expect(telemetry.get_ground_contact_count() > 0, "automatic car retains ground contact at the start seam")
-	_expect(telemetry.get_forward_speed() > 0.5, "automatic car accelerates from the default track spawn")
+	_expect(telemetry.get_forward_speed() > 0.5, "automatic car accelerates from the default track spawn through player input")
 
 	car.queue_free()
 	track.queue_free()
@@ -63,6 +64,7 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	Input.action_release("accelerate")
 	if _failures.is_empty():
 		print("[AUTOMATIC_SPAWN_CONTACT_TEST] Passed: %d checks" % _checks)
 		quit(0)
