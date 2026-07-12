@@ -1,0 +1,93 @@
+name: Bake engine audio banks
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/baked-engine-audio-runtime
+    paths:
+      - .github/workflows/bake-engine-audio-banks.yml
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7-stable
+  GODOT_ARCHIVE: Godot_v4.7-stable_win64.exe.zip
+  GODOT_EXECUTABLE: Godot_v4.7-stable_win64_console.exe
+  GODOT_CHECKSUMS_FILE: scripts/ci/godot_4_7_sha512.txt
+
+jobs:
+  bake:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: windows-2025
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Download and verify Godot
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ProgressPreference = "SilentlyContinue"
+          $toolsDirectory = Join-Path $PWD "tools/godot"
+          New-Item -ItemType Directory -Path $toolsDirectory -Force | Out-Null
+          $baseUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION"
+          $archivePath = Join-Path $env:RUNNER_TEMP $env:GODOT_ARCHIVE
+          Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_ARCHIVE" -OutFile $archivePath
+          $escapedArchiveName = [regex]::Escape($env:GODOT_ARCHIVE)
+          $checksumLine = Get-Content -LiteralPath $env:GODOT_CHECKSUMS_FILE | Where-Object {
+            $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
+          } | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($checksumLine)) {
+            throw "Pinned checksum manifest does not contain $env:GODOT_ARCHIVE."
+          }
+          $expectedHash = [regex]::Match($checksumLine, "^(?<hash>[0-9A-Fa-f]{128})").Groups["hash"].Value.ToLowerInvariant()
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA512).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "Godot archive SHA512 mismatch."
+          }
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $toolsDirectory -Force
+          $godotPath = Join-Path $toolsDirectory $env:GODOT_EXECUTABLE
+          "GODOT_BIN=$godotPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Import project resources
+        shell: pwsh
+        run: |
+          & $env:GODOT_BIN --headless --path $PWD --import
+          if ($LASTEXITCODE -ne 0) {
+            throw "Godot resource import failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Bake WAV banks
+        shell: pwsh
+        run: |
+          & $env:GODOT_BIN --headless --path $PWD --script scripts/tools/bake_engine_audio_banks.gd
+          if ($LASTEXITCODE -ne 0) {
+            throw "Engine-audio bank bake failed with exit code $LASTEXITCODE."
+          }
+          $wavFiles = @(Get-ChildItem -LiteralPath assets/audio/engine -Filter "*.wav" -File -Recurse)
+          if ($wavFiles.Count -ne 36) {
+            throw "Expected 36 baked WAV files, found $($wavFiles.Count)."
+          }
+          $bankFiles = @(Get-ChildItem -LiteralPath assets/audio/engine -Filter "bank.tres" -File -Recurse)
+          if ($bankFiles.Count -ne 2) {
+            throw "Expected two generated bank resources, found $($bankFiles.Count)."
+          }
+
+      - name: Commit generated banks
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- assets/audio/engine
+          if (git diff --cached --quiet) {
+            Write-Host "Baked banks already match the committed assets."
+            exit 0
+          }
+          git commit -m "Bake VQ37VHR engine audio banks"
+          git push origin "HEAD:$env:GITHUB_REF_NAME"
