@@ -140,3 +140,45 @@ msgstr "Nie udało się skonfigurować systemów dla domyślnego toru."
 
 msgid "Session-start transaction configuration failed."
 msgstr "Nie udało się skonfigurować rozpoczęcia sesji."
+
+msgid "Nie można uruchomić gry\n\nGameManager scene contract validation failed."
+msgstr "Nie można uruchomić gry\n\nWalidacja struktury głównej sceny nie powiodła się."
+
+msgid "The game could not be started\n\nGameManager scene contract validation failed."
+msgstr "Nie można uruchomić gry\n\nWalidacja struktury głównej sceny nie powiodła się."
+
+msgid "Nie można uruchomić gry\n\nGame content configuration validation failed."
+msgstr "Nie można uruchomić gry\n\nKonfiguracja zawartości gry jest nieprawidłowa."
+
+msgid "The game could not be started\n\nGame content configuration validation failed."
+msgstr "Nie można uruchomić gry\n\nKonfiguracja zawartości gry jest nieprawidłowa."
+
+msgid "Nie można uruchomić gry\n\nThe default track could not be activated."
+msgstr "Nie można uruchomić gry\n\nNie udało się uruchomić domyślnego toru."
+
+msgid "The game could not be started\n\nThe default track could not be activated."
+msgstr "Nie można uruchomić gry\n\nNie udało się uruchomić domyślnego toru."
+
+msgid "Nie można uruchomić gry\n\nGameManager produced no valid menu content options."
+msgstr "Nie można uruchomić gry\n\nNie znaleziono prawidłowych opcji zawartości menu."
+
+msgid "The game could not be started\n\nGameManager produced no valid menu content options."
+msgstr "Nie można uruchomić gry\n\nNie znaleziono prawidłowych opcji zawartości menu."
+
+msgid "Nie można uruchomić gry\n\nPause menu construction failed."
+msgstr "Nie można uruchomić gry\n\nNie udało się utworzyć menu pauzy."
+
+msgid "The game could not be started\n\nPause menu construction failed."
+msgstr "Nie można uruchomić gry\n\nNie udało się utworzyć menu pauzy."
+
+msgid "Nie można uruchomić gry\n\nRuntime controllers could not be configured for the default track."
+msgstr "Nie można uruchomić gry\n\nNie udało się skonfigurować systemów dla domyślnego toru."
+
+msgid "The game could not be started\n\nRuntime controllers could not be configured for the default track."
+msgstr "Nie można uruchomić gry\n\nNie udało się skonfigurować systemów dla domyślnego toru."
+
+msgid "Nie można uruchomić gry\n\nSession-start transaction configuration failed."
+msgstr "Nie można uruchomić gry\n\nNie udało się skonfigurować rozpoczęcia sesji."
+
+msgid "The game could not be started\n\nSession-start transaction configuration failed."
+msgstr "Nie można uruchomić gry\n\nNie udało się skonfigurować rozpoczęcia sesji."
