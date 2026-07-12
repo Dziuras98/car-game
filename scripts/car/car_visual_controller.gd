@@ -246,17 +246,19 @@ func _create_runtime_binding(
 	steering_pivot.name = "%sSteeringPivot" % String(wheel_id).to_pascal_case()
 	steering_pivot.position = pivot_position
 	pivot_parent.add_child(steering_pivot)
+	_assign_runtime_owner(steering_pivot, pivot_parent.owner)
 
 	var spin_pivot: Node3D = Node3D.new()
 	spin_pivot.name = "%sSpinPivot" % String(wheel_id).to_pascal_case()
 	steering_pivot.add_child(spin_pivot)
+	_assign_runtime_owner(spin_pivot, pivot_parent.owner)
 
 	for steering_node: Node3D in steering_only_nodes:
 		if is_instance_valid(steering_node):
-			steering_node.reparent(steering_pivot, true)
+			_reparent_preserving_ancestor_transform(steering_node, steering_pivot, pivot_parent)
 	for spin_node: Node3D in spin_nodes:
 		if is_instance_valid(spin_node):
-			spin_node.reparent(spin_pivot, true)
+			_reparent_preserving_ancestor_transform(spin_node, spin_pivot, pivot_parent)
 
 	var binding: RuntimeWheelBinding = RuntimeWheelBinding.new()
 	binding.wheel_id = wheel_id
@@ -266,6 +268,42 @@ func _create_runtime_binding(
 	binding.steering_direction = steering_direction
 	binding.spin_direction = spin_direction
 	return binding
+
+
+func _assign_runtime_owner(node: Node, runtime_owner: Node) -> void:
+	if runtime_owner != null and runtime_owner.is_ancestor_of(node):
+		node.owner = runtime_owner
+
+
+func _reparent_preserving_ancestor_transform(
+	node: Node3D,
+	target_parent: Node3D,
+	common_ancestor: Node3D
+) -> void:
+	var source_transform: Transform3D = _get_transform_relative_to_ancestor(node, common_ancestor)
+	var target_transform: Transform3D = _get_transform_relative_to_ancestor(target_parent, common_ancestor)
+	var original_owner: Node = node.owner
+	if original_owner != null:
+		node.owner = null
+	node.reparent(target_parent, false)
+	node.transform = target_transform.affine_inverse() * source_transform
+	if original_owner != null and original_owner.is_ancestor_of(node):
+		node.owner = original_owner
+
+
+func _get_transform_relative_to_ancestor(node: Node3D, ancestor: Node3D) -> Transform3D:
+	if node == ancestor:
+		return Transform3D.IDENTITY
+	var relative_transform: Transform3D = node.transform
+	var current_parent: Node = node.get_parent()
+	while current_parent != null and current_parent != ancestor:
+		if current_parent is Node3D:
+			relative_transform = (current_parent as Node3D).transform * relative_transform
+		current_parent = current_parent.get_parent()
+	if current_parent != ancestor:
+		push_error("CarVisualController wheel node is not below its configured pivot parent.")
+		return Transform3D.IDENTITY
+	return relative_transform
 
 
 func _apply_runtime_wheel_bindings(bindings: Array[RuntimeWheelBinding], steering_angle: float) -> void:
