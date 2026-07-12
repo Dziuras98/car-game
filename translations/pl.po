@@ -119,3 +119,24 @@ msgstr "BIEG"
 
 msgid "Nie można uruchomić gry"
 msgstr "Nie można uruchomić gry"
+
+msgid "GameManager scene contract validation failed."
+msgstr "Walidacja struktury głównej sceny nie powiodła się."
+
+msgid "Game content configuration validation failed."
+msgstr "Konfiguracja zawartości gry jest nieprawidłowa."
+
+msgid "The default track could not be activated."
+msgstr "Nie udało się uruchomić domyślnego toru."
+
+msgid "GameManager produced no valid menu content options."
+msgstr "Nie znaleziono prawidłowych opcji zawartości menu."
+
+msgid "Pause menu construction failed."
+msgstr "Nie udało się utworzyć menu pauzy."
+
+msgid "Runtime controllers could not be configured for the default track."
+msgstr "Nie udało się skonfigurować systemów dla domyślnego toru."
+
+msgid "Session-start transaction configuration failed."
+msgstr "Nie udało się skonfigurować rozpoczęcia sesji."
