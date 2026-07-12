@@ -24,6 +24,9 @@ func _ready() -> void:
 	_rng.randomize()
 	procedural_voice_group = &"tire"
 	max_procedural_voices = mini(max_procedural_voices, 4)
+	if DisplayServer.get_name() == "headless":
+		set_process(false)
+		return
 
 	var generator: AudioStreamGenerator = AudioStreamGenerator.new()
 	generator.mix_rate = maxi(mix_rate, 8000)
@@ -56,10 +59,12 @@ func _process(delta: float) -> void:
 
 
 func _exit_tree() -> void:
+	set_process(false)
 	release_procedural_voice()
 	stop()
 	_playback = null
 	stream = null
+	_car = null
 
 
 func _fill_audio_buffer() -> void:
