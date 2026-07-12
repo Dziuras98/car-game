@@ -79,7 +79,9 @@ function Invoke-WindowedMainSceneReadinessCheck {
     )
 
     $readyMarker = "[GAME_READY] Main scene initialized"
-    Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
+    $readinessPath = "$LogPath.ready"
+    $readinessEnvironmentVariable = "CAR_GAME_STARTUP_READY_FILE"
+    Remove-Item -LiteralPath $LogPath, $readinessPath -Force -ErrorAction SilentlyContinue
     $arguments = @(
         "--audio-driver",
         "Dummy",
@@ -87,11 +89,29 @@ function Invoke-WindowedMainSceneReadinessCheck {
         ('"' + $LogPath + '"')
     ) + $AdditionalArguments
 
-    $process = Start-Process `
-        -FilePath $ExecutablePath `
-        -ArgumentList $arguments `
-        -WorkingDirectory $WorkingDirectory `
-        -PassThru
+    $previousReadinessPath = [Environment]::GetEnvironmentVariable(
+        $readinessEnvironmentVariable,
+        [EnvironmentVariableTarget]::Process
+    )
+    [Environment]::SetEnvironmentVariable(
+        $readinessEnvironmentVariable,
+        $readinessPath,
+        [EnvironmentVariableTarget]::Process
+    )
+    try {
+        $process = Start-Process `
+  -FilePath $ExecutablePath `
+  -ArgumentList $arguments `
+  -WorkingDirectory $WorkingDirectory `
+  -PassThru
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable(
+  $readinessEnvironmentVariable,
+  $previousReadinessPath,
+  [EnvironmentVariableTarget]::Process
+        )
+    }
 
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
     $windowSeen = $false
@@ -99,14 +119,17 @@ function Invoke-WindowedMainSceneReadinessCheck {
     while (-not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
         $process.Refresh()
         if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
-            $windowSeen = $true
+  $windowSeen = $true
         }
-        $logContent = Get-LogContentIfAvailable -LogPath $LogPath
-        if (-not [string]::IsNullOrEmpty($logContent) -and $logContent.Contains($readyMarker)) {
-            $readySeen = $true
+        $readinessContent = Get-LogContentIfAvailable -LogPath $readinessPath
+        if (
+  -not [string]::IsNullOrEmpty($readinessContent) `
+  -and $readinessContent.Contains($readyMarker)
+        ) {
+  $readySeen = $true
         }
         if ($windowSeen -and $readySeen) {
-            break
+  break
         }
         Start-Sleep -Milliseconds 200
     }
@@ -114,7 +137,7 @@ function Invoke-WindowedMainSceneReadinessCheck {
     if ($process.HasExited) {
         $logContent = Get-LogContentIfAvailable -LogPath $LogPath
         if (-not [string]::IsNullOrEmpty($logContent)) {
-            $logContent | Write-Host
+  $logContent | Write-Host
         }
         throw "Windowed packaged startup exited before reaching readiness with code $($process.ExitCode)."
     }
@@ -123,10 +146,10 @@ function Invoke-WindowedMainSceneReadinessCheck {
         $process.WaitForExit()
         $logContent = Get-LogContentIfAvailable -LogPath $LogPath
         if (-not [string]::IsNullOrEmpty($logContent)) {
-            $logContent | Write-Host
+  $logContent | Write-Host
         }
         if (-not $windowSeen) {
-            throw "Windowed packaged startup did not create a native application window within 60 seconds."
+  throw "Windowed packaged startup did not create a native application window within 60 seconds."
         }
         throw "Windowed packaged startup did not report main-scene readiness within 60 seconds."
     }
@@ -144,7 +167,7 @@ function Invoke-WindowedMainSceneReadinessCheck {
     if ($process.ExitCode -ne 0) {
         $logContent = Get-LogContentIfAvailable -LogPath $LogPath
         if (-not [string]::IsNullOrEmpty($logContent)) {
-            $logContent | Write-Host
+  $logContent | Write-Host
         }
         throw "Windowed packaged startup closed with exit code $($process.ExitCode)."
     }
@@ -158,7 +181,9 @@ function Invoke-WindowedMainSceneReadinessCheck {
         throw "Windowed packaged startup log did not contain the expected readiness text."
     }
     Assert-GodotRuntimeLogFile -Path $LogPath -Label "Windowed packaged startup"
+    Remove-Item -LiteralPath $readinessPath -Force -ErrorAction SilentlyContinue
 }
+
 
 function Invoke-WindowedSelfTerminatingSmokeTest {
     param(
