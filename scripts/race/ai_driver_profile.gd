@@ -11,7 +11,10 @@ var search_points_ahead: int = 14
 var recovery_search_distance: float = 45.0
 var full_search_interval_updates: int = 120
 var stuck_detection_seconds: float = 1.5
-var reverse_recovery_seconds: float = 1.0
+var recovery_stop_speed_kmh: float = 1.0
+var reverse_engage_timeout_seconds: float = 1.5
+var reverse_recovery_distance: float = 3.0
+var reverse_recovery_seconds: float = 2.5
 
 
 func duplicate_profile() -> AiDriverProfile:
@@ -26,6 +29,9 @@ func duplicate_profile() -> AiDriverProfile:
 	profile.recovery_search_distance = recovery_search_distance
 	profile.full_search_interval_updates = full_search_interval_updates
 	profile.stuck_detection_seconds = stuck_detection_seconds
+	profile.recovery_stop_speed_kmh = recovery_stop_speed_kmh
+	profile.reverse_engage_timeout_seconds = reverse_engage_timeout_seconds
+	profile.reverse_recovery_distance = reverse_recovery_distance
 	profile.reverse_recovery_seconds = reverse_recovery_seconds
 	return profile
 
@@ -60,6 +66,12 @@ func validate() -> PackedStringArray:
 		errors.append("full_search_interval_updates must be at least one")
 	if not is_finite(stuck_detection_seconds) or stuck_detection_seconds <= 0.0:
 		errors.append("stuck_detection_seconds must be finite and greater than zero")
+	if not is_finite(recovery_stop_speed_kmh) or recovery_stop_speed_kmh <= 0.0:
+		errors.append("recovery_stop_speed_kmh must be finite and greater than zero")
+	if not is_finite(reverse_engage_timeout_seconds) or reverse_engage_timeout_seconds <= 0.0:
+		errors.append("reverse_engage_timeout_seconds must be finite and greater than zero")
+	if not is_finite(reverse_recovery_distance) or reverse_recovery_distance <= 0.0:
+		errors.append("reverse_recovery_distance must be finite and greater than zero")
 	if not is_finite(reverse_recovery_seconds) or reverse_recovery_seconds <= 0.0:
 		errors.append("reverse_recovery_seconds must be finite and greater than zero")
 	return errors
