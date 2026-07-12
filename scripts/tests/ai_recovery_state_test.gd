@@ -31,6 +31,10 @@ class RecoveryCar:
 
 
 func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
 	_test_recovery_requires_stop_reverse_and_distance()
 	_finish()
 
