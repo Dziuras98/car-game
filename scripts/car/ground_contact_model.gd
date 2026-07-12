@@ -4,17 +4,19 @@ class_name GroundContactModel
 
 func get_probe_local_positions(
 	wheel_base: float,
-	track_width: float,
+	front_track_width: float,
+	rear_track_width: float,
 	probe_height: float
 ) -> Array[Vector3]:
 	var half_wheel_base: float = maxf(wheel_base, 0.1) * 0.5
-	var half_track: float = maxf(track_width, 0.1) * 0.5
+	var half_front_track: float = maxf(front_track_width, 0.1) * 0.5
+	var half_rear_track: float = maxf(rear_track_width, 0.1) * 0.5
 	var height: float = maxf(probe_height, 0.0)
 	return [
-		Vector3(-half_track, height, -half_wheel_base),
-		Vector3(half_track, height, -half_wheel_base),
-		Vector3(-half_track, height, half_wheel_base),
-		Vector3(half_track, height, half_wheel_base),
+		Vector3(-half_front_track, height, -half_wheel_base),
+		Vector3(half_front_track, height, -half_wheel_base),
+		Vector3(-half_rear_track, height, half_wheel_base),
+		Vector3(half_rear_track, height, half_wheel_base),
 	]
 
 
@@ -31,11 +33,7 @@ func calculate_spring_acceleration(
 	var maximum_length: float = safe_rest_length + safe_travel
 	if hit_distance < 0.0 or hit_distance > maximum_length:
 		return 0.0
-	var compression: float = clampf(
-		(maximum_length - hit_distance) / safe_travel,
-		0.0,
-		1.0
-	)
+	var compression: float = clampf((maximum_length - hit_distance) / safe_travel, 0.0, 1.0)
 	var spring_force: float = compression * maxf(stiffness, 0.0)
 	var damping_force: float = normal_velocity * maxf(damping, 0.0)
 	return maxf(spring_force - damping_force, 0.0)
