@@ -1,9 +1,9 @@
 extends SceneTree
 
-const DEFAULT_PRESET_PATHS: PackedStringArray = PackedStringArray([
+const DEFAULT_PRESET_PATHS: Array[String] = [
 	"res://resources/audio/bake_presets/370z_stock_bake.tres",
 	"res://resources/audio/bake_presets/370z_nismo_bake.tres",
-])
+]
 
 
 func _initialize() -> void:
