@@ -1,4 +1,4 @@
-name: Apply repository cleanup
+name: Finalize repository cleanup
 
 on:
   pull_request:
@@ -9,9 +9,9 @@ permissions:
   contents: write
 
 jobs:
-  apply:
+  finalize:
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Check out cleanup branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -20,85 +20,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Assemble audited changes
-        shell: pwsh
-        env:
-          EXPECTED_SHA256: daf64a4a5e307181b2bffca4d017bf5182f7a6935c3753ecf66a10c9690cdff1
-        run: |
-          $ErrorActionPreference = "Stop"
-          $archivePath = Join-Path $PWD "cleanup-overlay.zip"
-          $piecePaths = @(
-            ".github/cleanup-overlay/chunk-01.txt",
-            ".github/cleanup-overlay/chunk-02-part-00.txt",
-            ".github/cleanup-overlay/chunk-02-part-01.txt",
-            ".github/cleanup-overlay/chunk-02-part-02.txt",
-            ".github/cleanup-overlay/chunk-02-part-03.txt",
-            ".github/cleanup-overlay/chunk-03.txt",
-            ".github/cleanup-overlay/tail-01.txt",
-            ".github/cleanup-overlay/tail-02.txt",
-            ".github/cleanup-overlay/tail-03.txt",
-            ".github/cleanup-overlay/tail-04.txt",
-            ".github/cleanup-overlay/tail-05.txt",
-            ".github/cleanup-overlay/tail-06.txt",
-            ".github/cleanup-overlay/tail-07.txt",
-            ".github/cleanup-overlay/tail-08-part-00.txt",
-            ".github/cleanup-overlay/tail-08-part-01.txt",
-            ".github/cleanup-overlay/tail-08-part-02.txt",
-            ".github/cleanup-overlay/tail-08-part-03.txt"
-          )
-
-          $base64 = ($piecePaths | ForEach-Object {
-            Get-Content -LiteralPath $_ -Raw
-          }) -join ""
-          [System.IO.File]::WriteAllBytes(
-            $archivePath,
-            [System.Convert]::FromBase64String($base64)
-          )
-
-          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-          Set-Content -LiteralPath "cleanup-overlay-sha256.txt" -Value $actualHash -NoNewline
-          Write-Host "Cleanup overlay SHA256: $actualHash"
-
-      - name: Upload assembled overlay diagnostics
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
-        with:
-          name: cleanup-overlay-diagnostics
-          path: |
-            cleanup-overlay.zip
-            cleanup-overlay-sha256.txt
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Apply audited changes
-        shell: pwsh
+      - name: Remove temporary audit transport
+        shell: bash
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          EXPECTED_SHA256: daf64a4a5e307181b2bffca4d017bf5182f7a6935c3753ecf66a10c9690cdff1
         run: |
-          $ErrorActionPreference = "Stop"
-          $archivePath = Join-Path $PWD "cleanup-overlay.zip"
-          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualHash -ne $env:EXPECTED_SHA256) {
-            throw "Cleanup overlay checksum mismatch: $actualHash"
-          }
-
-          Expand-Archive -LiteralPath $archivePath -DestinationPath $PWD -Force
-          Remove-Item -LiteralPath ".github/cleanup-overlay" -Recurse -Force
-          Remove-Item -LiteralPath ".github/workflows/apply-repository-cleanup.yml" -Force
-          Remove-Item -LiteralPath "cleanup-overlay.zip", "cleanup-overlay-sha256.txt" -Force
-
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "No cleanup changes to commit."
-            exit 0
-          }
-          if ($LASTEXITCODE -ne 1) {
-            throw "git diff --cached --quiet failed with exit code $LASTEXITCODE"
-          }
-
-          git commit -m "Clean repository and fix detected issues"
-          git push origin "HEAD:$env:HEAD_BRANCH"
+          git rm -r .github/cleanup-overlay .github/workflows/apply-repository-cleanup.yml
+          git commit -m "Remove temporary audit transport"
+          git push origin "HEAD:${HEAD_BRANCH}"
