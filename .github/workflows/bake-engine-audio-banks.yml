@@ -67,9 +67,15 @@ jobs:
       - name: Bake WAV banks
         shell: pwsh
         run: |
-          & $env:GODOT_BIN --headless --path $PWD --script scripts/tools/bake_engine_audio_banks.gd
-          if ($LASTEXITCODE -ne 0) {
-            throw "Engine-audio bank bake failed with exit code $LASTEXITCODE."
+          $ErrorActionPreference = "Continue"
+          $diagnosticDirectory = Join-Path $PWD "build/engine-audio-bake"
+          New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
+          $logPath = Join-Path $diagnosticDirectory "bake.log"
+          & $env:GODOT_BIN --headless --path $PWD --script scripts/tools/bake_engine_audio_banks.gd 2>&1 |
+            Tee-Object -FilePath $logPath
+          $bakeExitCode = $LASTEXITCODE
+          if ($bakeExitCode -ne 0) {
+            throw "Engine-audio bank bake failed with exit code $bakeExitCode."
           }
           $wavFiles = @(Get-ChildItem -LiteralPath assets/audio/engine -Filter "*.wav" -File -Recurse)
           if ($wavFiles.Count -ne 36) {
@@ -79,6 +85,16 @@ jobs:
           if ($bankFiles.Count -ne 2) {
             throw "Expected two generated bank resources, found $($bankFiles.Count)."
           }
+
+      - name: Upload bake diagnostics
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: engine-audio-bake-${{ github.sha }}
+          path: build/engine-audio-bake/
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6
 
       - name: Commit generated banks
         shell: pwsh
