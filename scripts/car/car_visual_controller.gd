@@ -2,15 +2,20 @@ extends Node3D
 class_name CarVisualController
 
 
+const VISIBILITY_NOTIFIER_NAME: StringName = &"VisibilityNotifier"
+
 @export var detailed_root_path: NodePath = ^"SketchfabModel"
 @export var low_detail_root_path: NodePath = ^"LowDetail"
-@export_range(5.0, 250.0, 1.0) var detail_switch_distance: float = 55.0
-@export_range(0.0, 50.0, 1.0) var detail_switch_hysteresis: float = 8.0
+@export var visibility_aabb: AABB = AABB(
+	Vector3(-1.1, -0.15, -2.3),
+	Vector3(2.2, 1.65, 4.6)
+)
 @export_range(0.1, 1.0, 0.01) var visual_wheel_radius: float = 0.34
 @export var force_low_detail: bool = false
 
 var _detailed_root: Node3D
 var _low_detail_root: Node3D
+var _visibility_notifier: VisibleOnScreenNotifier3D
 var _wheel_nodes: Array[Node3D] = []
 var _wheel_base_rotations: Array[Vector3] = []
 var _front_wheel_flags: Array[bool] = []
@@ -21,20 +26,29 @@ var _using_low_detail: bool = false
 func _ready() -> void:
 	_resolve_visual_roots()
 	_ensure_wheels_collected()
-	_set_low_detail_active(force_low_detail)
-	set_process(not force_low_detail)
+	_ensure_visibility_notifier()
+	_set_low_detail_active(true)
 
 
 func set_force_low_detail(enabled: bool) -> void:
 	force_low_detail = enabled
 	_resolve_visual_roots()
-	_set_low_detail_active(enabled)
-	if is_inside_tree():
-		set_process(not enabled)
+	if enabled:
+		_set_low_detail_active(true)
+		return
+	if is_instance_valid(_visibility_notifier) and _visibility_notifier.is_on_screen():
+		_set_low_detail_active(false)
+	else:
+		_set_low_detail_active(true)
 
 
 func is_using_low_detail() -> bool:
 	return _using_low_detail
+
+
+func get_visibility_notifier() -> VisibleOnScreenNotifier3D:
+	_ensure_visibility_notifier()
+	return _visibility_notifier
 
 
 func get_registered_wheel_count() -> int:
@@ -64,30 +78,33 @@ func update_vehicle_visuals(
 		wheel.rotation = rotation_value
 
 
-func _process(_delta: float) -> void:
-	if force_low_detail:
-		_set_low_detail_active(true)
-		set_process(false)
-		return
-	var viewport: Viewport = get_viewport()
-	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
-	if camera == null:
-		return
-	var distance: float = global_position.distance_to(camera.global_position)
-	var switch_to_low_at: float = detail_switch_distance + detail_switch_hysteresis * 0.5
-	var switch_to_high_at: float = detail_switch_distance - detail_switch_hysteresis * 0.5
-	if _using_low_detail:
-		if distance < switch_to_high_at:
-			_set_low_detail_active(false)
-	elif distance > switch_to_low_at:
-		_set_low_detail_active(true)
-
-
 func _resolve_visual_roots() -> void:
 	if _detailed_root == null:
 		_detailed_root = get_node_or_null(detailed_root_path) as Node3D
 	if _low_detail_root == null:
 		_low_detail_root = get_node_or_null(low_detail_root_path) as Node3D
+
+
+func _ensure_visibility_notifier() -> void:
+	if is_instance_valid(_visibility_notifier):
+		return
+	var existing_node: Node = get_node_or_null(NodePath(str(VISIBILITY_NOTIFIER_NAME)))
+	if existing_node != null:
+		_visibility_notifier = existing_node as VisibleOnScreenNotifier3D
+		if _visibility_notifier == null:
+			push_error("CarVisualController VisibilityNotifier child must be VisibleOnScreenNotifier3D.")
+			return
+	else:
+		_visibility_notifier = VisibleOnScreenNotifier3D.new()
+		_visibility_notifier.name = VISIBILITY_NOTIFIER_NAME
+		add_child(_visibility_notifier)
+	_visibility_notifier.aabb = visibility_aabb
+	var entered_callback: Callable = Callable(self, "_on_visibility_notifier_screen_entered")
+	if not _visibility_notifier.screen_entered.is_connected(entered_callback):
+		_visibility_notifier.screen_entered.connect(entered_callback)
+	var exited_callback: Callable = Callable(self, "_on_visibility_notifier_screen_exited")
+	if not _visibility_notifier.screen_exited.is_connected(exited_callback):
+		_visibility_notifier.screen_exited.connect(exited_callback)
 
 
 func _ensure_wheels_collected() -> void:
@@ -127,3 +144,13 @@ func _register_wheel_node(wheel: Node3D, normalized_name: String) -> void:
 	_wheel_base_rotations.append(wheel.rotation)
 	var explicitly_front: bool = "front" in normalized_name or "fl" in normalized_name or "fr" in normalized_name
 	_front_wheel_flags.append(explicitly_front or wheel.position.z < 0.0)
+
+
+func _on_visibility_notifier_screen_entered() -> void:
+	if force_low_detail:
+		return
+	_set_low_detail_active(false)
+
+
+func _on_visibility_notifier_screen_exited() -> void:
+	_set_low_detail_active(true)
