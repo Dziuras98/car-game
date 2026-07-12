@@ -40,6 +40,25 @@ func _run() -> void:
 	invalid_converter.torque_converter_coupling_rpm = invalid_converter.redline_rpm + 1.0
 	_expect(_contains_error(invalid_converter.validate(), "torque_converter_coupling_rpm"), "converter coupling above redline is rejected")
 
+	var zero_stiffness: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
+	zero_stiffness.suspension_stiffness = 0.0
+	_expect(
+		_contains_error(zero_stiffness.validate(), "suspension_stiffness must be finite and greater than zero"),
+		"zero suspension stiffness is rejected"
+	)
+
+	var insufficient_support: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
+	insufficient_support.suspension_stiffness = (
+		insufficient_support.gravity
+		* CarSpecs.MIN_SUSPENSION_SUPPORT_RESERVE
+		/ float(GroundContactModel.PROBE_COUNT)
+		- 0.01
+	)
+	_expect(
+		_contains_error(insufficient_support.validate(), "across all probes"),
+		"suspension without a gravity-support reserve is rejected"
+	)
+
 
 func _contains_error(errors: PackedStringArray, fragment: String) -> bool:
 	for error_text: String in errors:
