@@ -1,0 +1,138 @@
+name: Apply export readiness fix
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply deterministic readiness-file polling
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("scripts/ci/export_windows.ps1")
+          content = path.read_text(encoding="utf-8")
+
+          old_start = '''    $readyMarker = "[GAME_READY] Main scene initialized"
+              Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
+              $arguments = @(
+                  "--audio-driver",
+                  "Dummy",
+                  "--log-file",
+                  ('"' + $LogPath + '"')
+              ) + $AdditionalArguments
+
+              $process = Start-Process `
+                  -FilePath $ExecutablePath `
+                  -ArgumentList $arguments `
+                  -WorkingDirectory $WorkingDirectory `
+                  -PassThru
+
+              $deadline = [DateTime]::UtcNow.AddSeconds(60)
+          '''.replace("              ", "")
+          new_start = '''    $readyMarker = "[GAME_READY] Main scene initialized"
+              $readinessPath = "$LogPath.ready"
+              $readinessEnvironmentVariable = "CAR_GAME_STARTUP_READY_FILE"
+              Remove-Item -LiteralPath $LogPath, $readinessPath -Force -ErrorAction SilentlyContinue
+              $arguments = @(
+                  "--audio-driver",
+                  "Dummy",
+                  "--log-file",
+                  ('"' + $LogPath + '"')
+              ) + $AdditionalArguments
+
+              $previousReadinessPath = [Environment]::GetEnvironmentVariable(
+                  $readinessEnvironmentVariable,
+                  [EnvironmentVariableTarget]::Process
+              )
+              [Environment]::SetEnvironmentVariable(
+                  $readinessEnvironmentVariable,
+                  $readinessPath,
+                  [EnvironmentVariableTarget]::Process
+              )
+              try {
+                  $process = Start-Process `
+                      -FilePath $ExecutablePath `
+                      -ArgumentList $arguments `
+                      -WorkingDirectory $WorkingDirectory `
+                      -PassThru
+              }
+              finally {
+                  [Environment]::SetEnvironmentVariable(
+                      $readinessEnvironmentVariable,
+                      $previousReadinessPath,
+                      [EnvironmentVariableTarget]::Process
+                  )
+              }
+
+              $deadline = [DateTime]::UtcNow.AddSeconds(60)
+          '''.replace("              ", "")
+
+          old_poll = '''        $logContent = Get-LogContentIfAvailable -LogPath $LogPath
+                  if (-not [string]::IsNullOrEmpty($logContent) -and $logContent.Contains($readyMarker)) {
+                      $readySeen = $true
+                  }
+          '''.replace("          ", "")
+          new_poll = '''        $readinessContent = Get-LogContentIfAvailable -LogPath $readinessPath
+                  if (
+                      -not [string]::IsNullOrEmpty($readinessContent) `
+                      -and $readinessContent.Contains($readyMarker)
+                  ) {
+                      $readySeen = $true
+                  }
+          '''.replace("          ", "")
+
+          old_end = '''    if (-not $finalLogContent.Contains($readyMarker)) {
+              throw "Windowed packaged startup log did not contain the expected readiness text."
+          }
+          Assert-GodotRuntimeLogFile -Path $LogPath -Label "Windowed packaged startup"
+          }
+          '''
+          new_end = '''    if (-not $finalLogContent.Contains($readyMarker)) {
+              throw "Windowed packaged startup log did not contain the expected readiness text."
+          }
+          Assert-GodotRuntimeLogFile -Path $LogPath -Label "Windowed packaged startup"
+          Remove-Item -LiteralPath $readinessPath -Force -ErrorAction SilentlyContinue
+          }
+          '''
+
+          for label, old, new in (
+              ("startup block", old_start, new_start),
+              ("polling block", old_poll, new_poll),
+              ("cleanup block", old_end, new_end),
+          ):
+              count = content.count(old)
+              if count != 1:
+                  raise RuntimeError(f"Expected one {label}, found {count}")
+              content = content.replace(old, new, 1)
+
+          path.write_text(content, encoding="utf-8", newline="\n")
+
+      - name: Commit fix and remove temporary workflow
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-export-readiness-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Use deterministic startup readiness file in export smoke test"
+          git push origin "HEAD:${HEAD_BRANCH}"
