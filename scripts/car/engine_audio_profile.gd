@@ -28,25 +28,25 @@ class_name EngineAudioProfile
 @export_range(0.0, 0.5, 0.01) var limiter_residual_combustion: float = 0.20
 
 
-func apply_to(engine_audio: EngineAudioSynthesizer) -> void:
+func apply_to(engine_audio: Object) -> void:
 	if engine_audio == null:
 		return
-	engine_audio.idle_volume_db = idle_volume_db
-	engine_audio.load_volume_db = load_volume_db
-	engine_audio.output_volume_boost_db = output_volume_boost_db
-	engine_audio.synthesis_gain_db = synthesis_gain_db
-	engine_audio.high_rpm_rasp = high_rpm_rasp
-	engine_audio.intake_presence = intake_presence
-	engine_audio.intake_plenum_detail = intake_plenum_detail
-	engine_audio.airflow_noise = airflow_noise
-	engine_audio.induction_transient = induction_transient
-	engine_audio.mechanical_noise = mechanical_noise
-	engine_audio.rotating_assembly_detail = rotating_assembly_detail
-	engine_audio.exhaust_resonance = exhaust_resonance
-	engine_audio.exhaust_roughness = exhaust_roughness
-	engine_audio.exhaust_bank_separation = exhaust_bank_separation
-	engine_audio.exhaust_reflection = exhaust_reflection
-	engine_audio.overrun_crackle = overrun_crackle
-	engine_audio.limiter_period = limiter_period
-	engine_audio.limiter_cut_ratio = limiter_cut_ratio
-	engine_audio.limiter_residual_combustion = limiter_residual_combustion
+	engine_audio.set("idle_volume_db", idle_volume_db)
+	engine_audio.set("load_volume_db", load_volume_db)
+	engine_audio.set("output_volume_boost_db", output_volume_boost_db)
+	engine_audio.set("synthesis_gain_db", synthesis_gain_db)
+	engine_audio.set("high_rpm_rasp", high_rpm_rasp)
+	engine_audio.set("intake_presence", intake_presence)
+	engine_audio.set("intake_plenum_detail", intake_plenum_detail)
+	engine_audio.set("airflow_noise", airflow_noise)
+	engine_audio.set("induction_transient", induction_transient)
+	engine_audio.set("mechanical_noise", mechanical_noise)
+	engine_audio.set("rotating_assembly_detail", rotating_assembly_detail)
+	engine_audio.set("exhaust_resonance", exhaust_resonance)
+	engine_audio.set("exhaust_roughness", exhaust_roughness)
+	engine_audio.set("exhaust_bank_separation", exhaust_bank_separation)
+	engine_audio.set("exhaust_reflection", exhaust_reflection)
+	engine_audio.set("overrun_crackle", overrun_crackle)
+	engine_audio.set("limiter_period", limiter_period)
+	engine_audio.set("limiter_cut_ratio", limiter_cut_ratio)
+	engine_audio.set("limiter_residual_combustion", limiter_residual_combustion)
