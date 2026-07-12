@@ -32,8 +32,8 @@ func _ready() -> void:
 	stop()
 	stream = null
 	_car = get_parent() as PlayerCarController
-	if bank == null or not bank.is_valid() or _car == null:
-		push_error("BakedEngineAudioPlayer requires a valid bank and PlayerCarController parent.")
+	if bank == null or _car == null or not bank.prepare():
+		push_error("BakedEngineAudioPlayer requires a prepared bank and PlayerCarController parent.")
 		set_process(false)
 		return
 	_create_layer_players(_coast_layer, "Coast")
@@ -46,7 +46,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if _car == null or bank == null:
+	if _car == null or bank == null or not bank.is_prepared():
 		set_process(false)
 		return
 	var safe_delta: float = maxf(delta, 0.0)
@@ -71,7 +71,7 @@ func _process(delta: float) -> void:
 
 	var anchor_index: int = bank.find_nearest_anchor_index(_smoothed_rpm)
 	var coast_gain: float = cos(_smoothed_load_mix * PI * 0.5) * _engine_gain
-	var load_gain: float = sin(_smoothed_load_mix * PI * 0.5) * _engine_gain
+	var loaded_gain: float = sin(_smoothed_load_mix * PI * 0.5) * _engine_gain
 	_update_layer(
 		_coast_layer,
 		false,
@@ -86,7 +86,7 @@ func _process(delta: float) -> void:
 		true,
 		anchor_index,
 		_smoothed_rpm,
-		load_gain,
+		loaded_gain,
 		bank.load_volume_db + bank.output_volume_boost_db,
 		safe_delta
 	)
@@ -102,7 +102,7 @@ func trigger_engine_shutdown() -> void:
 
 
 func is_using_baked_bank() -> bool:
-	return bank != null and bank.is_valid()
+	return bank != null and bank.is_prepared()
 
 
 func get_selected_anchor_rpm() -> float:
@@ -116,6 +116,25 @@ func get_active_voice_count() -> int:
 			if player.playing and player.volume_db > SILENT_VOLUME_DB + 0.1:
 				active_count += 1
 	return active_count
+
+
+func get_loaded_voice_stream_count() -> int:
+	var loaded_count: int = 0
+	for layer: LayerPlaybackState in [_coast_layer, _load_layer]:
+		for player: AudioStreamPlayer3D in layer.players:
+			if player.stream != null:
+				loaded_count += 1
+	return loaded_count
+
+
+func uses_audio_stream_generator() -> bool:
+	if stream is AudioStreamGenerator:
+		return true
+	for layer: LayerPlaybackState in [_coast_layer, _load_layer]:
+		for player: AudioStreamPlayer3D in layer.players:
+			if player.stream is AudioStreamGenerator:
+				return true
+	return false
 
 
 func _exit_tree() -> void:
@@ -167,10 +186,7 @@ func _update_layer(
 			target_anchor_index,
 			0.0
 		)
-	elif (
-		target_anchor_index != state.anchor_index
-		and state.transition_anchor_index < 0
-	):
+	elif target_anchor_index != state.anchor_index and state.transition_anchor_index < 0:
 		var inactive_index: int = 1 - state.active_player_index
 		var phase: float = fposmod(
 			state.players[state.active_player_index].get_playback_position(),
@@ -255,11 +271,7 @@ func _prepare_loop(audio_stream: AudioStream) -> void:
 
 
 func _get_stream(use_load_streams: bool, anchor_index: int) -> AudioStream:
-	return (
-		bank.get_load_stream(anchor_index)
-		if use_load_streams
-		else bank.get_coast_stream(anchor_index)
-	)
+	return bank.get_load_stream(anchor_index) if use_load_streams else bank.get_coast_stream(anchor_index)
 
 
 func _get_pitch_scale(target_rpm: float, anchor_index: int) -> float:
