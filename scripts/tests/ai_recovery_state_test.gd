@@ -35,15 +35,12 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	_test_recovery_requires_stop_reverse_and_distance()
+	_test_recovery_requires_stop_reverse_distance_and_forward_return()
+	_test_reverse_motion_is_stopped_without_requesting_more_reverse()
 	_finish()
 
 
-func _test_recovery_requires_stop_reverse_and_distance() -> void:
-	var car: RecoveryCar = RecoveryCar.new()
-	car.car_specs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
-	root.add_child(car)
-	car.set_physics_process(false)
+func _create_driver(car: RecoveryCar) -> AiRaceDriver:
 	var profile: AiDriverProfile = AiDriverProfile.new()
 	profile.recovery_stop_speed_kmh = 1.0
 	profile.reverse_engage_timeout_seconds = 2.0
@@ -53,6 +50,15 @@ func _test_recovery_requires_stop_reverse_and_distance() -> void:
 	driver._car = car
 	driver._profile = profile
 	driver._last_steering = 0.4
+	return driver
+
+
+func _test_recovery_requires_stop_reverse_distance_and_forward_return() -> void:
+	var car: RecoveryCar = RecoveryCar.new()
+	car.car_specs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
+	root.add_child(car)
+	car.set_physics_process(false)
+	var driver: AiRaceDriver = _create_driver(car)
 
 	car.simulated_speed_kmh = 8.0
 	driver._begin_recovery()
@@ -65,7 +71,7 @@ func _test_recovery_requires_stop_reverse_and_distance() -> void:
 		driver.get_driver_state() == AiRaceDriver.DriverState.RECOVERY_BRAKE_TO_STOP,
 		"recovery does not request reverse while the car is still moving forward"
 	)
-	_expect(is_zero_approx(car.last_throttle) and car.last_brake > 0.0, "brake-to-stop phase requests braking only")
+	_expect(is_zero_approx(car.last_throttle) and car.last_brake > 0.0, "forward motion uses the service-brake input")
 
 	car.simulated_speed_kmh = 0.5
 	driver._update_recovery(0.1)
@@ -94,16 +100,56 @@ func _test_recovery_requires_stop_reverse_and_distance() -> void:
 	driver._update_recovery(0.1)
 	_expect(
 		driver.get_driver_state() == AiRaceDriver.DriverState.RECOVERY_REVERSE_UNTIL_CLEAR,
-		"recovery does not finish before the required reverse displacement"
+		"recovery does not leave reverse before the required displacement"
 	)
 
 	car.global_position = recovery_origin + Vector3(0.0, 0.0, 3.5)
 	driver._update_recovery(0.1)
 	_expect(
-		driver.get_driver_state() == AiRaceDriver.DriverState.FOLLOW_LINE,
-		"recovery finishes only after reverse gear, reverse speed and displacement are confirmed"
+		driver.get_driver_state() == AiRaceDriver.DriverState.RECOVERY_RETURN_TO_FORWARD,
+		"required reverse displacement starts an explicit return-to-forward phase"
 	)
 
+	car.simulated_speed_kmh = -0.8
+	car.simulated_gear = -1
+	driver._update_recovery(0.1)
+	_expect(car.last_throttle > 0.0 and is_zero_approx(car.last_brake), "return-to-forward uses throttle to stop reverse motion")
+	_expect(
+		driver.get_driver_state() == AiRaceDriver.DriverState.RECOVERY_RETURN_TO_FORWARD,
+		"recovery waits until the gearbox confirms a forward gear"
+	)
+
+	car.simulated_speed_kmh = 0.0
+	car.simulated_gear = 1
+	driver._update_recovery(0.1)
+	_expect(
+		driver.get_driver_state() == AiRaceDriver.DriverState.FOLLOW_LINE,
+		"recovery finishes only after forward gear is restored"
+	)
+
+	driver.free()
+	root.remove_child(car)
+	car.free()
+
+
+func _test_reverse_motion_is_stopped_without_requesting_more_reverse() -> void:
+	var car: RecoveryCar = RecoveryCar.new()
+	car.car_specs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
+	root.add_child(car)
+	car.set_physics_process(false)
+	var driver: AiRaceDriver = _create_driver(car)
+	car.simulated_speed_kmh = -6.0
+	car.simulated_gear = -1
+	driver._begin_recovery()
+	driver._update_recovery(0.1)
+	_expect(
+		car.last_throttle > 0.0 and is_zero_approx(car.last_brake),
+		"brake-to-stop phase does not map the brake input to additional reverse acceleration"
+	)
+	_expect(
+		driver.get_driver_state() == AiRaceDriver.DriverState.RECOVERY_BRAKE_TO_STOP,
+		"reverse motion remains in the bounded stop phase until speed is safe"
+	)
 	driver.free()
 	root.remove_child(car)
 	car.free()
