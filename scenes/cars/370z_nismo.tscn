@@ -1,13 +1,10 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/car/profiled_engine_audio.gd" id="2_engine_audio"]
 [ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
-[ext_resource type="PackedScene" path="res://scenes/cars/370z_z34_visuals.tscn" id="4_visuals"]
-[ext_resource type="ArrayMesh" path="res://assets/cars/nissan/370z_nismo/370z_nismo_2016_bodykit.obj" id="5_bodykit"]
-[ext_resource type="ArrayMesh" path="res://assets/cars/nissan/370z_nismo/370z_nismo_2016_trim.obj" id="6_trim"]
-[ext_resource type="ArrayMesh" path="res://assets/cars/nissan/370z_nismo/370z_nismo_2016_red_accents.obj" id="7_red"]
-[ext_resource type="Resource" path="res://resources/audio/370z_nismo_audio_profile.tres" id="8_audio_profile"]
+[ext_resource type="PackedScene" path="res://scenes/cars/370z_nismo_visuals.tscn" id="4_visuals"]
+[ext_resource type="Resource" path="res://resources/audio/370z_nismo_audio_profile.tres" id="5_audio_profile"]
 
 [sub_resource type="BoxShape3D" id="CabinCollision"]
 size = Vector3(1.82, 1.05, 2.30)
@@ -17,21 +14,6 @@ size = Vector3(1.92, 0.66, 1.24)
 
 [sub_resource type="BoxShape3D" id="RearCollision"]
 size = Vector3(1.87, 0.70, 1.20)
-
-[sub_resource type="StandardMaterial3D" id="NismoBodyMaterial"]
-albedo_color = Color(0.84, 0.85, 0.87, 1)
-metallic = 0.25
-roughness = 0.36
-
-[sub_resource type="StandardMaterial3D" id="NismoTrimMaterial"]
-albedo_color = Color(0.018, 0.021, 0.026, 1)
-metallic = 0.12
-roughness = 0.48
-
-[sub_resource type="StandardMaterial3D" id="NismoRedMaterial"]
-albedo_color = Color(0.72, 0.015, 0.025, 1)
-metallic = 0.08
-roughness = 0.32
 
 [node name="370ZNismo" type="CharacterBody3D"]
 floor_snap_length = 0.0
@@ -51,21 +33,9 @@ shape = SubResource("RearCollision")
 
 [node name="VisualRoot" parent="." instance=ExtResource("4_visuals")]
 
-[node name="NismoBodyKit" type="MeshInstance3D" parent="VisualRoot"]
-material_override = SubResource("NismoBodyMaterial")
-mesh = ExtResource("5_bodykit")
-
-[node name="NismoTrim" type="MeshInstance3D" parent="VisualRoot"]
-material_override = SubResource("NismoTrimMaterial")
-mesh = ExtResource("6_trim")
-
-[node name="NismoRedAccents" type="MeshInstance3D" parent="VisualRoot"]
-material_override = SubResource("NismoRedMaterial")
-mesh = ExtResource("7_red")
-
 [node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
 script = ExtResource("2_engine_audio")
-profile = ExtResource("8_audio_profile")
+profile = ExtResource("5_audio_profile")
 cylinders = 6
 
 [node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
