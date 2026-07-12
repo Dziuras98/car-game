@@ -8,8 +8,6 @@
 script = ExtResource("1_controller")
 detailed_root_path = NodePath("SketchfabModel")
 low_detail_root_path = NodePath("LowDetail")
-detail_switch_distance = 30.0
-detail_switch_hysteresis = 6.0
 visual_wheel_radius = 0.339
 
 [node name="SketchfabModel" parent="." instance=ExtResource("2_model")]
