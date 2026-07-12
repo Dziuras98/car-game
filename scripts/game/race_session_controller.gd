@@ -249,10 +249,7 @@ func _set_player_input_enabled(enabled: bool) -> void:
 func _stop_participant_car(car: PlayerCarController) -> void:
 	if not is_instance_valid(car):
 		return
-	if car.get_current_gear() < 0 or car.get_speed_kmh() < 0.0:
-		car.set_external_drive_inputs(1.0, 0.0, 0.0)
-	else:
-		car.set_external_drive_inputs(0.0, 0.85, 0.0)
+	car.set_external_drive_inputs(0.0, 0.0, 0.0, true)
 
 
 func _show_countdown(text: String) -> void:
