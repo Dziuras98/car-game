@@ -5,10 +5,9 @@ const MANUAL_SPECS_PATH: String = "res://resources/cars/nissan/370z_nismo/specs/
 const AUTOMATIC_SPECS_PATH: String = "res://resources/cars/nissan/370z_nismo/specs/370z_nismo_7at_specs.tres"
 const STANDARD_SPECS_PATH: String = "res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres"
 const SCENE_PATH: String = "res://scenes/cars/370z_nismo.tscn"
+const VISUAL_SCENE_PATH: String = "res://scenes/cars/370z_nismo_visuals.tscn"
+const VISUAL_ASSET_PATH: String = "res://assets/third_party/sketchfab/nissan_370z_nismo_2015/2015_nissan_370z_nismo_z34.glb"
 const CATALOG_PATH: String = "res://resources/cars/catalog.tres"
-const BODY_KIT_PATH: String = "res://assets/cars/nissan/370z_nismo/370z_nismo_2016_bodykit.obj"
-const TRIM_PATH: String = "res://assets/cars/nissan/370z_nismo/370z_nismo_2016_trim.obj"
-const RED_ACCENTS_PATH: String = "res://assets/cars/nissan/370z_nismo/370z_nismo_2016_red_accents.obj"
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -85,22 +84,33 @@ func _test_engine_curve() -> void:
 
 
 func _test_visual_scene() -> void:
-	var body_kit := load(BODY_KIT_PATH) as Mesh
-	var trim := load(TRIM_PATH) as Mesh
-	var red_accents := load(RED_ACCENTS_PATH) as Mesh
-	_expect(body_kit != null, "the profiled NISMO body-kit mesh imports")
-	_expect(trim != null, "the NISMO aero-trim mesh imports")
-	_expect(red_accents != null, "the NISMO accent mesh imports")
-	if body_kit != null:
-		var bounds: AABB = body_kit.get_aabb()
-		_expect(bounds.size.x > 1.88 and bounds.size.x < 1.94, "the body-kit width stays inside the intended tolerance")
-		_expect(bounds.size.z > 4.43 and bounds.size.z < 4.50, "the body-kit length stays inside the intended tolerance")
-		_expect(absf(bounds.get_center().x) < 0.01, "the body kit remains centered on the longitudinal axis")
-		_expect(bounds.position.y >= 0.04 and bounds.position.y <= 0.12, "the splitter reaches the intended lower body range")
-		_expect(bounds.end.y > 1.04 and bounds.end.y < 1.09, "the airfoil wing reaches the intended height")
-	var source_text: String = FileAccess.get_file_as_string(BODY_KIT_PATH)
-	_expect(source_text.count("\no ") >= 8, "the source OBJ contains separate profiled fascia, skirt and wing objects")
-	_expect("o NismoRearWingAirfoil" in source_text, "the source OBJ includes a named airfoil-section NISMO wing")
+	var imported_model := load(VISUAL_ASSET_PATH) as PackedScene
+	_expect(imported_model != null, "the NISMO Sketchfab GLB imports as a PackedScene")
+
+	var packed_visuals := load(VISUAL_SCENE_PATH) as PackedScene
+	_expect(packed_visuals != null, "the NISMO visual wrapper scene loads")
+	if packed_visuals != null:
+		var visuals := packed_visuals.instantiate() as Node3D
+		_expect(visuals != null, "the NISMO visual wrapper instantiates")
+		if visuals != null:
+			var model := visuals.get_node_or_null("SketchfabModel") as Node3D
+			_expect(model != null, "the NISMO wrapper contains the imported Sketchfab model")
+			if model != null:
+				_expect(absf(model.transform.basis.x.x + 100.0) < 0.001, "the NISMO model flips X while applying the 100x source scale")
+				_expect(absf(model.transform.basis.y.y - 100.0) < 0.001, "the NISMO model preserves the vertical axis at 100x scale")
+				_expect(absf(model.transform.basis.z.z + 100.0) < 0.001, "the NISMO model flips Z so the vehicle faces project forward")
+				_expect(absf(model.position.y - 0.02) < 0.001, "the NISMO model is aligned to the gameplay ground plane")
+			var meshes: Array[MeshInstance3D] = []
+			_collect_mesh_instances(visuals, meshes)
+			_expect(meshes.size() >= 70, "the detailed NISMO model retains its multi-mesh exterior and interior")
+			var bounds := _calculate_bounds(visuals, meshes)
+			_expect(bounds.size.x > 1.90 and bounds.size.x < 2.05, "the NISMO model width remains near two metres including mirrors")
+			_expect(bounds.size.y > 1.28 and bounds.size.y < 1.38, "the NISMO model height remains inside the expected range")
+			_expect(bounds.size.z > 4.30 and bounds.size.z < 4.38, "the NISMO model length remains inside the expected range")
+			_expect(absf(bounds.get_center().x) < 0.03, "the NISMO model stays centered laterally")
+			_expect(absf(bounds.get_center().z) < 0.05, "the NISMO model stays centered longitudinally")
+			_expect(bounds.position.y >= -0.02 and bounds.position.y < 0.03, "the NISMO tyres meet the gameplay ground plane")
+			visuals.free()
 
 	var packed_scene := load(SCENE_PATH) as PackedScene
 	_expect(packed_scene != null, "the NISMO base scene loads")
@@ -108,12 +118,12 @@ func _test_visual_scene() -> void:
 		return
 	var car := packed_scene.instantiate()
 	_expect(car is PlayerCarController, "the NISMO scene retains the PlayerCarController root contract")
-	_expect(car.get_node_or_null("VisualRoot/BodyFront") is MeshInstance3D, "the scene composes the shared Z34 visual package")
-	_expect(car.get_node_or_null("VisualRoot/NismoBodyKit") is MeshInstance3D, "the NISMO body-kit node is present")
-	_expect(car.get_node_or_null("VisualRoot/NismoTrim") is MeshInstance3D, "the NISMO trim node is present")
-	_expect(car.get_node_or_null("VisualRoot/NismoRedAccents") is MeshInstance3D, "the NISMO red-accent node is present")
-	_expect(car.get_node_or_null("VisualRoot/RearSpoilerBridge") == null, "the factory spoiler is not duplicated beneath the NISMO wing")
+	_expect(car.get_node_or_null("VisualRoot/SketchfabModel") is Node3D, "the NISMO scene uses the detailed imported model")
+	_expect(car.get_node_or_null("VisualRoot/NismoBodyKit") == null, "the legacy additive NISMO body kit is removed")
+	_expect(car.get_node_or_null("VisualRoot/NismoTrim") == null, "the legacy additive NISMO trim is removed")
+	_expect(car.get_node_or_null("VisualRoot/NismoRedAccents") == null, "the legacy additive NISMO accents are removed")
 	_expect(car.get_node_or_null("EngineAudio") is ProfiledEngineAudioSynthesizer, "the NISMO scene uses typed procedural audio data")
+
 	var collision_names: Array[String] = ["CollisionCabin", "CollisionFront", "CollisionRear"]
 	var collision_count: int = 0
 	var minimum_z: float = INF
@@ -129,9 +139,33 @@ func _test_visual_scene() -> void:
 		maximum_z = maxf(maximum_z, collision.position.z + box.size.z * 0.5)
 		maximum_width = maxf(maximum_width, box.size.x)
 	_expect(collision_count == 3, "the NISMO uses a three-volume compound collision")
-	_expect(minimum_z <= -2.20 and maximum_z >= 2.18, "compound collision covers the extended front and rear body")
+	_expect(minimum_z <= -2.20 and maximum_z >= 2.18, "compound collision covers the imported front and rear body")
 	_expect(maximum_width >= 1.90 and maximum_width <= 1.94, "compound collision covers the widest lower aero without excessive empty space")
 	car.free()
+
+
+func _collect_mesh_instances(node: Node, output: Array[MeshInstance3D]) -> void:
+	if node is MeshInstance3D:
+		output.append(node as MeshInstance3D)
+	for child: Node in node.get_children():
+		_collect_mesh_instances(child, output)
+
+
+func _calculate_bounds(root: Node3D, meshes: Array[MeshInstance3D]) -> AABB:
+	var bounds := AABB()
+	var initialized := false
+	for mesh_instance: MeshInstance3D in meshes:
+		if mesh_instance.mesh == null:
+			continue
+		var relative_transform: Transform3D = root.global_transform.affine_inverse() * mesh_instance.global_transform
+		var transformed_bounds: AABB = relative_transform * mesh_instance.get_aabb()
+		if initialized:
+			bounds = bounds.merge(transformed_bounds)
+		else:
+			bounds = transformed_bounds
+			initialized = true
+	_expect(initialized, "the NISMO imported scene exposes renderable mesh bounds")
+	return bounds
 
 
 func _build_engine_model(specs: CarSpecs) -> EngineModel:
