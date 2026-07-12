@@ -1,15 +1,15 @@
 extends SceneTree
 
-const BANK_PATHS: PackedStringArray = PackedStringArray([
+const BANK_PATHS: Array[String] = [
 	"res://assets/audio/engine/370z_stock/bank.tres",
 	"res://assets/audio/engine/370z_nismo/bank.tres",
-])
-const SCENE_PATHS: PackedStringArray = PackedStringArray([
+]
+const SCENE_PATHS: Array[String] = [
 	"res://scenes/cars/370z.tscn",
 	"res://scenes/cars/370z_ai.tscn",
 	"res://scenes/cars/370z_nismo.tscn",
 	"res://scenes/cars/370z_nismo_ai.tscn",
-])
+]
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -60,8 +60,8 @@ func _test_production_scenes() -> void:
 		var car: Node = packed_scene.instantiate()
 		var audio: Node = car.get_node_or_null("EngineAudio")
 		_expect(audio is BakedEngineAudioPlayer, "production scene uses BakedEngineAudioPlayer: %s" % scene_path)
-		_expect(not audio is ProfiledEngineAudioSynthesizer, "production scene excludes the profiled live synthesizer: %s" % scene_path)
-		_expect(not audio is EngineAudioSynthesizer, "production scene excludes the raw live synthesizer: %s" % scene_path)
+		_expect(not (audio is ProfiledEngineAudioSynthesizer), "production scene excludes the profiled live synthesizer: %s" % scene_path)
+		_expect(not (audio is EngineAudioSynthesizer), "production scene excludes the raw live synthesizer: %s" % scene_path)
 		if audio is BakedEngineAudioPlayer:
 			var baked_audio: BakedEngineAudioPlayer = audio as BakedEngineAudioPlayer
 			_expect(baked_audio.bank != null, "production scene assigns a baked bank: %s" % scene_path)
