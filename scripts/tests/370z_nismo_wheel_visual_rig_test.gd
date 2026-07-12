@@ -23,11 +23,6 @@ func _run() -> void:
 	var rear_left_brake := visual.get_node_or_null(Nismo370ZVisualController.REAR_LEFT_BRAKE) as Node3D
 	var rear_left_tyre := visual.get_node_or_null(Nismo370ZVisualController.REAR_LEFT_TYRE) as Node3D
 	var imported_root := visual.get_node_or_null(Nismo370ZVisualController.IMPORTED_ROOT_PATH) as Node3D
-	if imported_root != null:
-		for child: Node in imported_root.get_children():
-			var child_name := String(child.name)
-			if "WHEEL" in child_name or "TYRE" in child_name or "BRAKE_CALIPER" in child_name:
-				print("[370Z_NISMO_WHEEL_VISUAL_RIG_TEST][IMPORTED_NODE] %s" % child_name)
 	_expect(front_left_brake != null, "the front-left NISMO brake caliper exists before rigging")
 	_expect(front_left_tyre != null and front_left_wheel != null, "the front-left NISMO tyre and wheel exist before rigging")
 	_expect(rear_left_brake != null and rear_left_tyre != null, "the rear-left NISMO brake and tyre exist before rigging")
