@@ -1,15 +1,14 @@
 extends RefCounted
 class_name CarInstanceFactory
 
+const VARIANT_ID_METADATA: StringName = &"car_variant_id"
+
 var _available_variants: Array[CarVariantDefinition] = []
 var _ai_eligible_variants: Array[CarVariantDefinition] = []
 var _rng: RandomNumberGenerator
 
 
-func configure(
-	available_car_variants: Array[CarVariantDefinition],
-	rng: RandomNumberGenerator
-) -> void:
+func configure(available_car_variants: Array[CarVariantDefinition], rng: RandomNumberGenerator) -> void:
 	_available_variants = available_car_variants.duplicate()
 	_ai_eligible_variants.clear()
 	for variant: CarVariantDefinition in _available_variants:
@@ -67,25 +66,21 @@ func _get_opponent_variant() -> CarVariantDefinition:
 func _instantiate_variant(variant: CarVariantDefinition) -> PlayerCarController:
 	if variant == null:
 		return null
-
 	var specs: CarSpecs = variant.get_specs()
 	if not _validate_specs(specs, "Car variant %s" % str(variant.variant_id)):
 		return null
-
 	var car_scene: PackedScene = variant.get_car_scene()
 	if car_scene == null:
 		push_error("Car variant %s must provide a car scene." % str(variant.variant_id))
 		return null
-
 	var car_instance: Node = car_scene.instantiate()
 	var car_controller: PlayerCarController = car_instance as PlayerCarController
 	if car_controller == null:
 		push_error("Car variant %s scene must have PlayerCarController on its root node." % str(variant.variant_id))
 		car_instance.queue_free()
 		return null
-
-	# Catalog data is authoritative and is applied before the node enters a tree.
 	car_controller.car_specs = specs
+	car_controller.set_meta(VARIANT_ID_METADATA, variant.variant_id)
 	return car_controller
 
 

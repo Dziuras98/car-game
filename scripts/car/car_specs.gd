@@ -20,14 +20,17 @@ enum TransmissionType {
 @export var max_reverse_speed: float = 10.0
 @export var steering_speed: float = 2.7
 @export var wheel_base: float = 2.65
-@export var axle_track_width: float = 1.55
+@export var front_axle_track_width: float = 1.55
+@export var rear_axle_track_width: float = 1.55
 @export var max_steering_angle_degrees: float = 32.0
 
 @export_group("Engine")
 @export var idle_rpm: float = 900.0
 @export var peak_torque_rpm: float = 4200.0
+@export var power_peak_rpm: float = 6200.0
 @export var redline_rpm: float = 6500.0
 @export var rev_limiter_rpm: float = 6800.0
+@export var torque_curve: EngineTorqueCurve
 @export var low_rpm_torque_multiplier: float = 0.42
 @export var mid_rpm_torque_multiplier: float = 0.82
 @export var redline_torque_multiplier: float = 0.72
@@ -63,7 +66,10 @@ enum TransmissionType {
 @export var rolling_resistance_coefficient: float = 0.015
 
 @export_group("Tires")
-@export var lateral_grip: float = 10.0
+@export var front_lateral_grip: float = 10.0
+@export var rear_lateral_grip: float = 10.0
+@export var front_tire_width_m: float = 0.225
+@export var rear_tire_width_m: float = 0.245
 @export var handbrake_lateral_grip_multiplier: float = 0.28
 @export var steering_slip_gain: float = 0.85
 @export var slip_speed_threshold: float = 2.2
@@ -116,19 +122,28 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "max_reverse_speed", max_reverse_speed)
 	_append_positive(errors, "steering_speed", steering_speed)
 	_append_positive(errors, "wheel_base", wheel_base)
-	_append_positive(errors, "axle_track_width", axle_track_width)
+	_append_positive(errors, "front_axle_track_width", front_axle_track_width)
+	_append_positive(errors, "rear_axle_track_width", rear_axle_track_width)
 	_append_range(errors, "max_steering_angle_degrees", max_steering_angle_degrees, 0.01, 89.0)
 
 	_append_positive(errors, "idle_rpm", idle_rpm)
 	_append_positive(errors, "peak_torque_rpm", peak_torque_rpm)
+	_append_positive(errors, "power_peak_rpm", power_peak_rpm)
 	_append_positive(errors, "redline_rpm", redline_rpm)
 	_append_positive(errors, "rev_limiter_rpm", rev_limiter_rpm)
 	if is_finite(idle_rpm) and is_finite(peak_torque_rpm) and peak_torque_rpm <= idle_rpm:
 		errors.append("peak_torque_rpm must be above idle_rpm")
+	if is_finite(peak_torque_rpm) and is_finite(power_peak_rpm) and power_peak_rpm < peak_torque_rpm:
+		errors.append("power_peak_rpm must be at or above peak_torque_rpm")
+	if is_finite(power_peak_rpm) and is_finite(redline_rpm) and power_peak_rpm > redline_rpm:
+		errors.append("power_peak_rpm must not exceed redline_rpm")
 	if is_finite(peak_torque_rpm) and is_finite(redline_rpm) and redline_rpm < peak_torque_rpm:
 		errors.append("redline_rpm must be at or above peak_torque_rpm")
 	if is_finite(redline_rpm) and is_finite(rev_limiter_rpm) and rev_limiter_rpm < redline_rpm:
 		errors.append("rev_limiter_rpm must be at or above redline_rpm")
+	if torque_curve != null:
+		for curve_error: String in torque_curve.validate():
+			errors.append("torque_curve: %s" % curve_error)
 	_append_non_negative(errors, "low_rpm_torque_multiplier", low_rpm_torque_multiplier)
 	_append_non_negative(errors, "mid_rpm_torque_multiplier", mid_rpm_torque_multiplier)
 	_append_non_negative(errors, "redline_torque_multiplier", redline_torque_multiplier)
@@ -142,12 +157,7 @@ func validate() -> PackedStringArray:
 		errors.append("gear_ratios must contain at least one forward gear")
 	for gear_index: int in range(gear_ratios.size()):
 		_append_positive(errors, "gear_ratios[%d]" % gear_index, gear_ratios[gear_index])
-		if (
-			gear_index > 0
-			and is_finite(gear_ratios[gear_index - 1])
-			and is_finite(gear_ratios[gear_index])
-			and gear_ratios[gear_index] >= gear_ratios[gear_index - 1]
-		):
+		if gear_index > 0 and is_finite(gear_ratios[gear_index - 1]) and is_finite(gear_ratios[gear_index]) and gear_ratios[gear_index] >= gear_ratios[gear_index - 1]:
 			errors.append("gear_ratios must be strictly descending")
 	_append_positive(errors, "reverse_gear_ratio", reverse_gear_ratio)
 	_append_positive(errors, "final_drive_ratio", final_drive_ratio)
@@ -158,19 +168,8 @@ func validate() -> PackedStringArray:
 
 	if uses_geared_transmission() and not gear_ratios.is_empty():
 		var highest_gear_ratio: float = gear_ratios[gear_ratios.size() - 1]
-		if (
-			is_finite(highest_gear_ratio) and highest_gear_ratio > 0.0
-			and is_finite(final_drive_ratio) and final_drive_ratio > 0.0
-			and is_finite(wheel_radius) and wheel_radius > 0.0
-			and is_finite(rev_limiter_rpm) and rev_limiter_rpm > 0.0
-		):
-			var theoretical_speed: float = (
-				rev_limiter_rpm
-				/ (highest_gear_ratio * final_drive_ratio)
-				* TAU
-				* wheel_radius
-				/ 60.0
-			)
+		if is_finite(highest_gear_ratio) and highest_gear_ratio > 0.0 and is_finite(final_drive_ratio) and final_drive_ratio > 0.0 and is_finite(wheel_radius) and wheel_radius > 0.0 and is_finite(rev_limiter_rpm) and rev_limiter_rpm > 0.0:
+			var theoretical_speed: float = rev_limiter_rpm / (highest_gear_ratio * final_drive_ratio) * TAU * wheel_radius / 60.0
 			if max_forward_speed > theoretical_speed * 1.05:
 				errors.append("max_forward_speed exceeds the rev-limited highest-gear speed")
 
@@ -204,7 +203,10 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "air_density", air_density)
 	_append_non_negative(errors, "rolling_resistance_coefficient", rolling_resistance_coefficient)
 
-	_append_positive(errors, "lateral_grip", lateral_grip)
+	_append_positive(errors, "front_lateral_grip", front_lateral_grip)
+	_append_positive(errors, "rear_lateral_grip", rear_lateral_grip)
+	_append_positive(errors, "front_tire_width_m", front_tire_width_m)
+	_append_positive(errors, "rear_tire_width_m", rear_tire_width_m)
 	_append_range(errors, "handbrake_lateral_grip_multiplier", handbrake_lateral_grip_multiplier, 0.0, 1.0)
 	_append_non_negative(errors, "steering_slip_gain", steering_slip_gain)
 	_append_positive(errors, "slip_speed_threshold", slip_speed_threshold)
@@ -239,12 +241,6 @@ func _append_non_negative(errors: PackedStringArray, property_name: String, valu
 		errors.append("%s must be finite and non-negative" % property_name)
 
 
-func _append_range(
-	errors: PackedStringArray,
-	property_name: String,
-	value: float,
-	minimum: float,
-	maximum: float
-) -> void:
+func _append_range(errors: PackedStringArray, property_name: String, value: float, minimum: float, maximum: float) -> void:
 	if not is_finite(value) or value < minimum or value > maximum:
-		errors.append("%s must be finite and within [%.4f, %.4f]" % [property_name, minimum, maximum])
+		errors.append("%s must be finite and between %s and %s" % [property_name, minimum, maximum])

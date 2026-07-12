@@ -9,13 +9,16 @@ var max_forward_speed: float = 30.0
 var max_reverse_speed: float = 10.0
 var steering_speed: float = 2.7
 var wheel_base: float = 2.65
-var axle_track_width: float = 1.55
+var front_axle_track_width: float = 1.55
+var rear_axle_track_width: float = 1.55
 var max_steering_angle_degrees: float = 32.0
 
 var idle_rpm: float = 900.0
 var peak_torque_rpm: float = 4200.0
+var power_peak_rpm: float = 6200.0
 var redline_rpm: float = 6500.0
 var rev_limiter_rpm: float = 6800.0
+var torque_curve: EngineTorqueCurve
 var low_rpm_torque_multiplier: float = 0.42
 var mid_rpm_torque_multiplier: float = 0.82
 var redline_torque_multiplier: float = 0.72
@@ -47,7 +50,10 @@ var frontal_area: float = 2.05
 var air_density: float = 1.225
 var rolling_resistance_coefficient: float = 0.015
 
-var lateral_grip: float = 10.0
+var front_lateral_grip: float = 10.0
+var rear_lateral_grip: float = 10.0
+var front_tire_width_m: float = 0.225
+var rear_tire_width_m: float = 0.245
 var handbrake_lateral_grip_multiplier: float = 0.28
 var steering_slip_gain: float = 0.85
 var slip_speed_threshold: float = 2.2
@@ -103,10 +109,15 @@ func sanitize() -> void:
 	max_forward_speed = maxf(max_forward_speed, 0.1)
 	max_reverse_speed = maxf(max_reverse_speed, 0.0)
 	wheel_base = maxf(wheel_base, 0.1)
-	axle_track_width = maxf(axle_track_width, 0.1)
+	front_axle_track_width = maxf(front_axle_track_width, 0.1)
+	rear_axle_track_width = maxf(rear_axle_track_width, 0.1)
 	vehicle_mass = maxf(vehicle_mass, 1.0)
 	wheel_radius = maxf(wheel_radius, 0.01)
 	drivetrain_efficiency = clampf(drivetrain_efficiency, 0.0001, 1.0)
+	front_lateral_grip = maxf(front_lateral_grip, 0.01)
+	rear_lateral_grip = maxf(rear_lateral_grip, 0.01)
+	front_tire_width_m = maxf(front_tire_width_m, 0.01)
+	rear_tire_width_m = maxf(rear_tire_width_m, 0.01)
 	suspension_probe_height = maxf(suspension_probe_height, 0.0)
 	suspension_rest_length = maxf(suspension_rest_length, 0.01)
 	suspension_travel = maxf(suspension_travel, 0.01)

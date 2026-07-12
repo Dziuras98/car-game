@@ -2,6 +2,10 @@ extends SceneTree
 
 const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const GAME_MANAGER_SCRIPT = preload("res://scripts/game/game_manager.gd")
+const REQUIRED_AI_VARIANT_IDS: Array[StringName] = [
+	&"nissan_370z_7at",
+	&"nissan_370z_nismo_7at_global",
+]
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -21,15 +25,17 @@ func _init() -> void:
 	_expect(factory.has_available_cars(), "factory retains catalog player variants")
 	_expect(factory.has_ai_eligible_cars(), "factory exposes explicit AI eligibility")
 
+	var eligible_ids: Dictionary = {}
 	var explicitly_eligible_count: int = 0
 	for variant: CarVariantDefinition in catalog_variants:
-		if variant != null and variant.is_ai_eligible_for_race():
-			explicitly_eligible_count += 1
-	_expect(
-		factory.get_ai_eligible_count() == explicitly_eligible_count,
-		"factory derives opponent variants only from explicit catalog AI eligibility"
-	)
-	_expect(explicitly_eligible_count == 2, "the catalog exposes the standard and NISMO automatic variants to AI")
+		if variant == null or not variant.is_ai_eligible_for_race():
+			continue
+		explicitly_eligible_count += 1
+		eligible_ids[variant.variant_id] = true
+		_expect(variant.get_specs() != null and variant.get_specs().is_automatic_transmission(), "every AI-eligible variant uses a supported automatic transmission: %s" % str(variant.variant_id))
+	_expect(factory.get_ai_eligible_count() == explicitly_eligible_count, "factory derives opponent variants only from explicit catalog AI eligibility")
+	for required_id: StringName in REQUIRED_AI_VARIANT_IDS:
+		_expect(eligible_ids.has(required_id), "required AI variant remains available: %s" % str(required_id))
 
 	_finish()
 

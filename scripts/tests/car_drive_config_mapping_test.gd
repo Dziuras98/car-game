@@ -2,6 +2,7 @@ extends SceneTree
 
 const MANUAL_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 const AUTOMATIC_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
+const NISMO_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z_nismo/specs/370z_nismo_6mt_specs.tres")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -13,16 +14,16 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	_expect(
-		CarDriveConfigBuilder.get_unmapped_specs_properties(MANUAL_SPECS).is_empty(),
-		"every runtime CarSpecs property has an explicit CarDriveConfig destination"
-	)
+	_expect(CarDriveConfigBuilder.get_unmapped_specs_properties(MANUAL_SPECS).is_empty(), "every runtime CarSpecs property has an explicit CarDriveConfig destination")
+	_expect(CarDriveConfigBuilder.get_unmapped_specs_properties(NISMO_SPECS).is_empty(), "sampled NISMO runtime properties have explicit config destinations")
 
 	var manual_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(MANUAL_SPECS)
 	var automatic_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(AUTOMATIC_SPECS)
+	var nismo_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(NISMO_SPECS)
 	_expect(manual_config != null, "manual specs build a runtime configuration")
 	_expect(automatic_config != null, "automatic specs build a runtime configuration")
-	if manual_config == null or automatic_config == null:
+	_expect(nismo_config != null, "NISMO specs build a runtime configuration")
+	if manual_config == null or automatic_config == null or nismo_config == null:
 		return
 
 	_expect(manual_config.transmission_type == CarSpecs.TransmissionType.MANUAL, "manual transmission enum is preserved")
@@ -32,6 +33,12 @@ func _run() -> void:
 	_expect(is_equal_approx(manual_config.vehicle_mass, MANUAL_SPECS.vehicle_mass), "vehicle mass is reflected into runtime configuration")
 	_expect(is_equal_approx(automatic_config.automatic_upshift_rpm, AUTOMATIC_SPECS.automatic_upshift_rpm), "automatic shift data is reflected into runtime configuration")
 	_expect(manual_config.gear_ratios == MANUAL_SPECS.gear_ratios, "gear ratios retain their configured values")
+	_expect(is_equal_approx(nismo_config.front_axle_track_width, NISMO_SPECS.front_axle_track_width), "front track width is reflected into runtime configuration")
+	_expect(is_equal_approx(nismo_config.rear_axle_track_width, NISMO_SPECS.rear_axle_track_width), "rear track width is reflected into runtime configuration")
+	_expect(is_equal_approx(nismo_config.front_lateral_grip, NISMO_SPECS.front_lateral_grip), "front tire grip is reflected into runtime configuration")
+	_expect(is_equal_approx(nismo_config.rear_lateral_grip, NISMO_SPECS.rear_lateral_grip), "rear tire grip is reflected into runtime configuration")
+	_expect(nismo_config.torque_curve == NISMO_SPECS.torque_curve, "sampled torque curve resource reaches the runtime configuration")
+	_expect(is_equal_approx(nismo_config.power_peak_rpm, 7400.0), "power-peak RPM remains distinct in runtime configuration")
 
 	var original_first_ratio: float = MANUAL_SPECS.gear_ratios[0]
 	manual_config.gear_ratios[0] += 1.0
