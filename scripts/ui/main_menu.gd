@@ -223,8 +223,13 @@ func _on_variant_pressed(car_variant_id: StringName) -> void:
 	if not valid_variant:
 		_show_configuration_error(tr("Wybrany wariant nie jest dostępny"))
 		return
-	hide()
+	var phase_before: int = _resolve_game_session_phase()
 	selection_completed.emit(_selected_mode_id, _selected_track_id, car_variant_id)
+	var phase_after: int = _resolve_game_session_phase()
+	if phase_before == GameSessionState.Phase.MENU and phase_after != GameSessionState.Phase.MENU:
+		hide()
+	else:
+		show()
 
 
 func _on_back_pressed() -> void:
@@ -270,3 +275,12 @@ func _get_selected_model_variants() -> Array[CarVariantMenuOption]:
 		var empty: Array[CarVariantMenuOption] = []
 		return empty
 	return _car_models[_selected_model_index].variants.duplicate()
+
+
+func _resolve_game_session_phase() -> int:
+	var node: Node = get_parent()
+	while node != null:
+		if node.has_method("get_session_phase"):
+			return int(node.call("get_session_phase"))
+		node = node.get_parent()
+	return GameSessionState.Phase.MENU
