@@ -204,7 +204,6 @@ See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gate
 - `docs/roadmap.md` — completed remediation stages and separately deferred feature expansion;
 - `docs/continuous_integration.md` — Windows CI, repository-safety and artifact behavior;
 - `docs/windows_export.md` — Windows export details;
-- `docs/test_reports/` — historical migration evidence, explicitly non-authoritative for the current codebase.
 
 ## Change rules
 

@@ -16,17 +16,6 @@ class_name CarVariantDefinition
 @export var engine_label: String = ""
 @export var drivetrain_label: String = ""
 
-# Compatibility accessors retained for callers that used the former duplicated
-# metadata fields. Values are always derived from CarSpecs so they cannot drift.
-var transmission_label: String:
-	get:
-		return get_transmission_label()
-
-var mass_kg: float:
-	get:
-		return get_mass_kg()
-
-
 func is_valid() -> bool:
 	return validate().is_empty()
 
@@ -97,7 +86,3 @@ func get_transmission_label() -> String:
 	if specs.is_automatic_transmission():
 		return "%d-speed automatic" % forward_gear_count
 	return "Direct drive"
-
-
-func get_mass_kg() -> float:
-	return specs.vehicle_mass if specs != null else 0.0

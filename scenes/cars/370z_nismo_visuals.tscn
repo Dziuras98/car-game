@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://scripts/car/car_visual_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/car/nismo_370z_visual_controller.gd" id="1_controller"]
 [ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/nissan_370z_nismo_2015/2015_nissan_370z_nismo_z34.glb" id="2_model"]
 [ext_resource type="PackedScene" path="res://scenes/cars/370z_low_detail_visuals.tscn" id="3_low"]
 

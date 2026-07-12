@@ -90,8 +90,8 @@ func _test_visual_scene() -> void:
 	var packed_visuals := load(VISUAL_SCENE_PATH) as PackedScene
 	_expect(packed_visuals != null, "the NISMO visual wrapper scene loads")
 	if packed_visuals != null:
-		var visuals := packed_visuals.instantiate() as CarVisualController
-		_expect(visuals != null, "the NISMO visual wrapper instantiates as CarVisualController")
+		var visuals := packed_visuals.instantiate() as Nismo370ZVisualController
+		_expect(visuals != null, "the NISMO visual wrapper instantiates with its model-specific controller")
 		if visuals != null:
 			root.add_child(visuals)
 			var model := visuals.get_node_or_null("SketchfabModel") as Node3D

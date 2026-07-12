@@ -28,7 +28,7 @@ The downloaded GLB payloads are preserved without geometry or texture edits. God
 - a vertical translation to place the tyres on the gameplay ground plane;
 - integration with independently authored collision, controller and procedural-audio nodes.
 
-Untouched upload copies remain under `third_party_sources/`. Runtime copies are stored in this directory so Godot can import them while the source-drop directory remains excluded with `.gdignore`.
+The GLB files in this directory are the untouched downloaded payloads and are used directly by Godot. Keeping one canonical copy avoids repository duplication; all project-specific placement and integration remains in wrapper scenes.
 
 ## Required attribution for redistributed builds
 

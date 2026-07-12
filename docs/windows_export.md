@@ -48,14 +48,15 @@ The script:
 4. exports the `Windows Desktop` release preset;
 5. verifies that both the executable and PCK were created and validates production PCK contents;
 6. starts the production executable without `--headless`, using the normal configured renderer and a deterministic dummy audio driver;
-7. requires both the passive `[GAME_READY] Main scene initialized` log message and a native Windows application window, then terminates the long-running game process externally;
-8. starts the production executable again with `--export-smoke-test` and requires the same normal windowed startup, proving that private packaged-test routing is unavailable in production;
-9. exports and runs the `Windows Test` preset with the private end-to-end smoke argument in headless mode;
-10. starts the test executable again in windowed mode with `--live-audio-smoke-test`, requires a native window and verifies repeated live `AudioStreamGeneratorPlayback` buffer refills;
-11. requires zero exit codes for self-terminating tests, their explicit success markers and runtime logs without `SCRIPT ERROR:`, `ERROR:` or timestamped Godot `E` entries;
-12. restores the exact committed `export_presets.cfg` contents in a `finally` block after success or failure.
+7. requires a native Windows application window and a readiness file written only after `GameManager` completes its required initialization contracts, then closes the game through the normal window-close path;
+8. verifies the flushed runtime log contains `[GAME_READY] Main scene initialized` and no Godot runtime errors;
+9. starts the production executable again with `--export-smoke-test` and requires the same normal windowed startup, proving that private packaged-test routing is unavailable in production;
+10. exports and runs the `Windows Test` preset with the private end-to-end smoke argument in headless mode;
+11. starts the test executable again in windowed mode with `--live-audio-smoke-test`, requires a native window and verifies repeated live `AudioStreamGeneratorPlayback` buffer refills;
+12. requires zero exit codes for self-terminating tests, their explicit success markers and runtime logs without `SCRIPT ERROR:`, `ERROR:` or timestamped Godot `E` entries;
+13. restores the exact committed `export_presets.cfg` contents in a `finally` block after success or failure.
 
-The production scene contains no CI environment-variable hook, marker-file writer or test-owned quit path. `MainSceneReadinessReporter` only publishes a passive diagnostic line after `GameManager` has completed its required initialization contracts.
+The normal game does not create a readiness file unless the parent process supplies `CAR_GAME_STARTUP_READY_FILE`. This environment variable only selects the diagnostic output path; it does not alter scene routing, gameplay state or process lifetime. The exporter restores its previous process-level value immediately after starting the child process.
 
 ## Version metadata
 

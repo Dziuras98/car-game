@@ -63,6 +63,15 @@ function Assert-Contains {
     }
 }
 
+
+function Assert-PathDoesNotExist {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+    $path = Join-Path $projectRoot $RelativePath
+    if (Test-Path -LiteralPath $path) {
+        Add-Failure "Obsolete repository path still exists: $RelativePath"
+    }
+}
+
 function Assert-GDScriptClassName {
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -249,6 +258,20 @@ Assert-GDScriptFunctions "scripts/game/opponent_participant_spawner.gd" @("spawn
 Assert-GDScriptFunctions "scripts/game/car_instance_factory.gd" @("has_ai_eligible_cars")
 Assert-DoesNotContain "scripts/game/car_instance_factory.gd" @("automatic_variants", "source = _available_variants")
 
+# Detailed wheel animation is model-specific; generic name scanning must not return.
+Assert-DoesNotContain "scripts/car/car_visual_controller.gd" @(
+    "legacy_detailed",
+    "_collect_legacy_detailed_wheel_nodes",
+    '"wheel" in normalized_name',
+    '"tire" in normalized_name',
+    '"tyre" in normalized_name',
+    '"rim" in normalized_name'
+)
+Assert-GDScriptClassName "scripts/car/standard_370z_visual_controller.gd" "Standard370ZVisualController"
+Assert-GDScriptClassName "scripts/car/nismo_370z_visual_controller.gd" "Nismo370ZVisualController"
+Assert-Contains "scenes/cars/370z_nismo_visuals.tscn" @("res://scripts/car/nismo_370z_visual_controller.gd")
+Assert-Contains "scenes/cars/370z_nismo_ai_visuals.tscn" @("res://scripts/car/nismo_370z_visual_controller.gd")
+
 # Vehicle configuration remains resource-driven and ground-contact processing remains allocation-aware.
 Assert-GDScriptFunctions "scripts/car/car_specs.gd" @("validate")
 Assert-Contains "scripts/car/car_specs.gd" @("enum TransmissionType", "transmission_type")
@@ -287,6 +310,11 @@ Assert-DoesNotMatch "scenes/cars/370z.tscn" @(
     '(?m)^\s*(acceleration|brake_deceleration|reverse_acceleration|coast_deceleration|handbrake_deceleration|max_forward_speed|max_reverse_speed|steering_speed|wheel_base|max_steering_angle_degrees|idle_rpm|peak_torque_rpm|redline_rpm|rev_limiter_rpm|low_rpm_torque_multiplier|mid_rpm_torque_multiplier|redline_torque_multiplier|engine_force|engine_brake_force|rpm_response|manual_transmission_enabled|automatic_transmission_enabled|gear_ratios|reverse_gear_ratio|final_drive_ratio|peak_engine_torque|wheel_radius|drivetrain_efficiency|shift_delay|automatic_upshift_rpm|automatic_downshift_rpm|automatic_kickdown_throttle|automatic_kickdown_rpm|automatic_shift_delay|torque_converter_stall_rpm|torque_converter_coupling_rpm|torque_converter_stall_torque_multiplier|vehicle_mass|drag_coefficient|frontal_area|air_density|rolling_resistance_coefficient|lateral_grip|handbrake_lateral_grip_multiplier|steering_slip_gain|slip_speed_threshold|slip_steering_lock_threshold|slip_steering_same_direction_multiplier|skid_mark_min_slip|skid_mark_interval|skid_mark_lifetime|skid_mark_width|skid_mark_length|gravity|floor_stick_force)\s*='
 )
 
+Assert-DoesNotContain "scripts/car/car_variant_definition.gd" @(
+    "var transmission_label:",
+    "var mass_kg:",
+    "func get_mass_kg("
+)
 Assert-GDScriptFunctions "scripts/car/car_catalog.gd" @("validate")
 Assert-GDScriptFunctions "scripts/car/car_model_definition.gd" @("validate")
 Assert-GDScriptFunctions "scripts/car/car_variant_definition.gd" @("validate", "is_ai_eligible_for_race")
@@ -344,6 +372,21 @@ foreach ($typedBuilderPath in @(
         "surface_meshes: Dictionary"
     )
 }
+
+# Historical reports, duplicate source drops and superseded prototype assets stay removed.
+foreach ($obsoletePath in @(
+    "third_party_sources",
+    "docs/test_reports",
+    "scenes/cars/player_car.tscn",
+    "scenes/cars/test_car.tscn",
+    "docs/370z_power_torque_curve.svg",
+    "docs/manual_car_power_torque_curve.svg",
+    "scripts/tests/legacy_controller_property_access_test.gd",
+    ".github/workflows/repository-audit-bundle.yml"
+)) {
+    Assert-PathDoesNotExist $obsoletePath
+}
+Assert-DoesNotContain "export_presets.cfg" @("third_party_sources/*")
 
 # CI policy checks focus on immutable dependencies and authoritative entrypoints.
 Assert-Contains "scripts/ci/verify_project.ps1" @("validate_localization.ps1", "run_tests.ps1")

@@ -12,8 +12,7 @@ The following third-party GLB files are included under the uploader's stated **C
 
 - author: Ddiaz Design (`ddiaz-design`);
 - source: https://sketchfab.com/3d-models/2013-nissan-370z-11db2d5c2cd34c8b84e560b8090574e8;
-- untouched source copy: `third_party_sources/2013_nissan_370z.glb`;
-- Godot runtime copy: `assets/third_party/sketchfab/nissan_370z_2013/2013_nissan_370z.glb`;
+- included untouched GLB: `assets/third_party/sketchfab/nissan_370z_2013/2013_nissan_370z.glb`;
 - uploader-stated license: CC BY-NC-SA 4.0 — https://creativecommons.org/licenses/by-nc-sa/4.0/;
 - uploader-stated provenance: "Based on a Need For Speed Mobile 3d model" with an external Vertex Warehouse credit.
 
@@ -21,14 +20,15 @@ The following third-party GLB files are included under the uploader's stated **C
 
 - author: Ddiaz Design (`ddiaz-design`);
 - source: https://sketchfab.com/3d-models/2015-nissan-370z-nismo-z34-b66ac30ac64a4f1aa034fce37745abe3;
-- untouched source copy: `third_party_sources/2015_nissan_370z_nismo_z34.glb`;
-- Godot runtime copy: `assets/third_party/sketchfab/nissan_370z_nismo_2015/2015_nissan_370z_nismo_z34.glb`;
+- included untouched GLB: `assets/third_party/sketchfab/nissan_370z_nismo_2015/2015_nissan_370z_nismo_z34.glb`;
 - uploader-stated license: CC BY-NC-SA 4.0 — https://creativecommons.org/licenses/by-nc-sa/4.0/;
 - uploader-stated provenance: "Based on a Real Racing 3 3d model" with an external archive credit.
 
 ### Project modifications
 
 The GLB geometry and embedded textures are preserved as downloaded. The game applies technical integration changes in Godot wrapper scenes: a uniform `100` scale, a `180`-degree Y-axis rotation, vertical ground alignment and composition with independently authored collision, controller and procedural-audio nodes.
+
+The canonical GLB files exist only at the paths listed above; duplicate source mirrors are not retained in the repository.
 
 Redistributed copies or builds containing these assets must provide attribution to Ddiaz Design, link the relevant Sketchfab source and CC BY-NC-SA 4.0 license, identify the modifications, remain noncommercial and preserve ShareAlike for adapted model material. Detailed scope and attribution wording are recorded in `assets/third_party/sketchfab/README.md`.
 

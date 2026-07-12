@@ -131,7 +131,7 @@ func _validate_variant(
 	_expect(variant.engine_label != "", "variant %s has engine label" % variant_id_key)
 	_expect(variant.get_transmission_label() != "", "variant %s derives a transmission label from specs" % variant_id_key)
 	_expect(variant.drivetrain_label != "", "variant %s has drivetrain label" % variant_id_key)
-	_expect(variant.get_mass_kg() > 0.0, "variant %s derives positive mass metadata from specs" % variant_id_key)
+	_expect(variant.specs != null and variant.specs.vehicle_mass > 0.0, "variant %s exposes positive mass through authoritative specs" % variant_id_key)
 
 	_validate_variant_scene(variant_id_key, variant)
 	_validate_specs(variant_id_key, variant.get_specs())

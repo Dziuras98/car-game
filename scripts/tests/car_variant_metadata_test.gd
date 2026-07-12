@@ -17,9 +17,7 @@ func _test_variant(variant: CarVariantDefinition) -> void:
 	_expect(variant != null and variant.specs != null, "catalog variant exposes authoritative specs")
 	if variant == null or variant.specs == null:
 		return
-	_expect(is_equal_approx(variant.get_mass_kg(), variant.specs.vehicle_mass), "%s mass is derived from physics specs" % str(variant.variant_id))
-	_expect(is_equal_approx(variant.mass_kg, variant.specs.vehicle_mass), "%s compatibility mass accessor cannot drift" % str(variant.variant_id))
-	_expect(variant.get_transmission_label() == variant.transmission_label, "%s compatibility transmission label is derived" % str(variant.variant_id))
+	_expect(variant.specs.vehicle_mass > 0.0, "%s exposes positive mass through authoritative specs" % str(variant.variant_id))
 	var expected_gear_count: String = str(variant.specs.gear_ratios.size())
 	_expect(expected_gear_count in variant.get_transmission_label(), "%s transmission label reflects the configured gear count" % str(variant.variant_id))
 	if variant.specs.is_manual_transmission():
@@ -30,8 +28,7 @@ func _test_variant(variant: CarVariantDefinition) -> void:
 
 func _test_empty_variant() -> void:
 	var variant: CarVariantDefinition = CarVariantDefinition.new()
-	_expect(is_zero_approx(variant.mass_kg), "variant without specs exposes zero compatibility mass")
-	_expect(variant.transmission_label.is_empty(), "variant without specs exposes an empty compatibility transmission label")
+	_expect(variant.get_transmission_label().is_empty(), "variant without specs exposes an empty derived transmission label")
 	_expect(variant.get_menu_name().is_empty(), "empty variant menu name remains safe")
 
 

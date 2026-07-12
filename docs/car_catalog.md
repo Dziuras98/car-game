@@ -113,12 +113,12 @@ Purpose:
 - links to exactly one valid `CarSpecs` tuning resource;
 - declares `ai_eligible` explicitly for variants supported by the current AI input model;
 - stores presentation metadata that is not derivable from specs, such as the engine and drivetrain labels;
-- derives mass and transmission labels from `CarSpecs` so display data cannot drift from runtime physics;
+- reads mass directly from `CarSpecs` and derives the transmission label from it so display data cannot drift from runtime physics;
 - rejects an AI-eligible variant unless its specs use an automatic transmission and `ai_car_scene` is present.
 
 `ai_eligible` is not inferred from catalog order or from the presence of an automatic gearbox. The current AI requires a valid automatic-transmission variant, an explicit dedicated AI scene, and `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`. The manual 370Z remains player-selectable but is not an opponent fallback.
 
-Every car scene that uses `CarVisualController` must expose a detailed root and a low-detail root. The controller creates a `VisibleOnScreenNotifier3D` covering the vehicle bounds and starts conservatively in low detail. When the notifier enters the active camera view, the detailed root becomes visible; when it leaves the view, the low-detail root replaces it. This policy applies equally to the player car and AI cars and does not require per-frame distance checks in GDScript.
+Every car scene that uses `CarVisualController` must expose a detailed root, a low-detail root and four explicit model-specific detailed-wheel bindings. The controller creates a `VisibleOnScreenNotifier3D` covering the vehicle bounds and starts conservatively in low detail. When the notifier enters the active camera view, the detailed root becomes visible; when it leaves the view, the low-detail root replaces it. This policy applies equally to the player car and AI cars and does not require per-frame distance checks in GDScript.
 
 Visibility detection is screen/frustum based. It is an approximate visibility heuristic and does not treat a car hidden behind walls or other geometry as invisible unless occlusion culling is configured. Both visual roots remain instantiated, so the policy reduces render work and hidden-wheel animation work rather than detailed-asset memory.
 
