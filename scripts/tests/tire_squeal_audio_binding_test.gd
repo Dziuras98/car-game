@@ -19,6 +19,8 @@ func _run() -> void:
 	_expect(car != null, "automatic 370Z scene instantiates as PlayerCarController")
 	if car == null:
 		test_root.queue_free()
+		await process_frame
+		await process_frame
 		_finish()
 		return
 
@@ -47,7 +49,12 @@ func _run() -> void:
 				_expect(is_finite(float(sample)), "generated tire squeal sample is finite")
 				_expect(absf(float(sample)) <= 0.8501, "generated tire squeal sample stays in range")
 
+	tire_audio = null
+	car = null
 	test_root.queue_free()
+	test_root = null
+	await process_frame
+	await process_frame
 	await process_frame
 	_finish()
 
@@ -65,7 +72,7 @@ func _expect(condition: bool, message: String) -> void:
 func _finish() -> void:
 	if _failures.is_empty():
 		print("[TIRE_SQUEAL_AUDIO_TEST] Passed: %d checks" % _checks)
-		quit(0)
+		call_deferred("quit", 0)
 		return
 
 	push_error(
@@ -74,4 +81,4 @@ func _finish() -> void:
 	)
 	for failure_message: String in _failures:
 		push_error("[TIRE_SQUEAL_AUDIO_TEST] - %s" % failure_message)
-	quit(1)
+	call_deferred("quit", 1)
