@@ -20,14 +20,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Apply audited changes
+      - name: Assemble audited changes
         shell: pwsh
         env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           EXPECTED_SHA256: daf64a4a5e307181b2bffca4d017bf5182f7a6935c3753ecf66a10c9690cdff1
         run: |
           $ErrorActionPreference = "Stop"
-          $archivePath = Join-Path $env:RUNNER_TEMP "cleanup-overlay.zip"
+          $archivePath = Join-Path $PWD "cleanup-overlay.zip"
           $piecePaths = @(
             ".github/cleanup-overlay/chunk-01.txt",
             ".github/cleanup-overlay/chunk-02.txt",
@@ -51,6 +50,29 @@ jobs:
           )
 
           $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -LiteralPath "cleanup-overlay-sha256.txt" -Value $actualHash -NoNewline
+          Write-Host "Cleanup overlay SHA256: $actualHash"
+
+      - name: Upload assembled overlay diagnostics
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: cleanup-overlay-diagnostics
+          path: |
+            cleanup-overlay.zip
+            cleanup-overlay-sha256.txt
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Apply audited changes
+        shell: pwsh
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          EXPECTED_SHA256: daf64a4a5e307181b2bffca4d017bf5182f7a6935c3753ecf66a10c9690cdff1
+        run: |
+          $ErrorActionPreference = "Stop"
+          $archivePath = Join-Path $PWD "cleanup-overlay.zip"
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actualHash -ne $env:EXPECTED_SHA256) {
             throw "Cleanup overlay checksum mismatch: $actualHash"
           }
@@ -58,6 +80,7 @@ jobs:
           Expand-Archive -LiteralPath $archivePath -DestinationPath $PWD -Force
           Remove-Item -LiteralPath ".github/cleanup-overlay" -Recurse -Force
           Remove-Item -LiteralPath ".github/workflows/apply-repository-cleanup.yml" -Force
+          Remove-Item -LiteralPath "cleanup-overlay.zip", "cleanup-overlay-sha256.txt" -Force
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
