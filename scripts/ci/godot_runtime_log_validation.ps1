@@ -6,15 +6,22 @@ $script:GodotRuntimeErrorPatterns = @(
     '^\s*ERROR:',
     '^\s*E\s+\d+:\d{2}:\d{2}(?::\d+)?\s+'
 )
+$script:GodotRuntimeWarningPatterns = @(
+    '^\s*WARNING:',
+    '^\s*W\s+\d+:\d{2}:\d{2}(?::\d+)?\s+'
+)
 
-function Get-GodotRuntimeErrorLines {
+function Get-GodotRuntimeLinesMatchingPatterns {
     param(
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
-        [object[]]$OutputLines
+        [object[]]$OutputLines,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Patterns
     )
 
-    $detectedRuntimeErrors = [System.Collections.Generic.List[string]]::new()
+    $detectedLines = [System.Collections.Generic.List[string]]::new()
     $escapeSequencePattern = [regex]::Escape([string][char]27) + '\[[0-9;]*[A-Za-z]'
 
     foreach ($lineValue in $OutputLines) {
@@ -24,15 +31,56 @@ function Get-GodotRuntimeErrorLines {
         }
 
         $normalizedLine = [regex]::Replace($line, $escapeSequencePattern, "")
-        foreach ($pattern in $script:GodotRuntimeErrorPatterns) {
+        foreach ($pattern in $Patterns) {
             if ($normalizedLine -match $pattern) {
-                $detectedRuntimeErrors.Add($normalizedLine.Trim())
+                $detectedLines.Add($normalizedLine.Trim())
                 break
             }
         }
     }
 
-    return @($detectedRuntimeErrors | Select-Object -Unique)
+    return @($detectedLines | Select-Object -Unique)
+}
+
+function Get-GodotRuntimeErrorLines {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]]$OutputLines
+    )
+
+    return @(Get-GodotRuntimeLinesMatchingPatterns `
+        -OutputLines $OutputLines `
+        -Patterns $script:GodotRuntimeErrorPatterns)
+}
+
+function Get-GodotRuntimeWarningLines {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]]$OutputLines
+    )
+
+    return @(Get-GodotRuntimeLinesMatchingPatterns `
+        -OutputLines $OutputLines `
+        -Patterns $script:GodotRuntimeWarningPatterns)
+}
+
+function Test-GodotRuntimeWarningAllowed {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WarningLine,
+
+        [AllowEmptyCollection()]
+        [string[]]$AllowedWarningPatterns = @()
+    )
+
+    foreach ($pattern in $AllowedWarningPatterns) {
+        if ($WarningLine -match $pattern) {
+            return $true
+        }
+    }
+    return $false
 }
 
 function Assert-GodotRuntimeLogContent {
@@ -44,18 +92,37 @@ function Assert-GodotRuntimeLogContent {
         [Parameter(Mandatory = $true)]
         [string]$Label,
 
-        [string]$DiagnosticPath = ""
+        [string]$DiagnosticPath = "",
+
+        [AllowEmptyCollection()]
+        [string[]]$AllowedWarningPatterns = @()
     )
 
     $runtimeErrorLines = @(Get-GodotRuntimeErrorLines -OutputLines $OutputLines)
-    if ($runtimeErrorLines.Count -eq 0) {
+    $runtimeWarningLines = @(Get-GodotRuntimeWarningLines -OutputLines $OutputLines)
+    $unexpectedWarningLines = @(
+        $runtimeWarningLines | Where-Object {
+            -not (Test-GodotRuntimeWarningAllowed `
+                -WarningLine $_ `
+                -AllowedWarningPatterns $AllowedWarningPatterns)
+        }
+    )
+    if ($runtimeErrorLines.Count -eq 0 -and $unexpectedWarningLines.Count -eq 0) {
         return
     }
 
     Write-Host ""
-    Write-Host "Godot emitted runtime errors during '$Label':"
-    foreach ($runtimeErrorLine in $runtimeErrorLines) {
-        Write-Host "  $runtimeErrorLine"
+    if ($runtimeErrorLines.Count -gt 0) {
+        Write-Host "Godot emitted runtime errors during '$Label':"
+        foreach ($runtimeErrorLine in $runtimeErrorLines) {
+            Write-Host "  $runtimeErrorLine"
+        }
+    }
+    if ($unexpectedWarningLines.Count -gt 0) {
+        Write-Host "Godot emitted unexpected runtime warnings during '$Label':"
+        foreach ($runtimeWarningLine in $unexpectedWarningLines) {
+            Write-Host "  $runtimeWarningLine"
+        }
     }
 
     $diagnosticSuffix = ""
@@ -64,7 +131,13 @@ function Assert-GodotRuntimeLogContent {
         $diagnosticSuffix = " Diagnostic log: $DiagnosticPath"
     }
 
-    throw "$Label emitted $($runtimeErrorLines.Count) Godot runtime error(s) despite exit code 0.$diagnosticSuffix"
+    if ($runtimeErrorLines.Count -gt 0 -and $unexpectedWarningLines.Count -gt 0) {
+        throw "$Label emitted $($runtimeErrorLines.Count) Godot runtime error(s) and $($unexpectedWarningLines.Count) unexpected warning(s) despite exit code 0.$diagnosticSuffix"
+    }
+    if ($runtimeErrorLines.Count -gt 0) {
+        throw "$Label emitted $($runtimeErrorLines.Count) Godot runtime error(s) despite exit code 0.$diagnosticSuffix"
+    }
+    throw "$Label emitted $($unexpectedWarningLines.Count) unexpected Godot runtime warning(s) despite exit code 0.$diagnosticSuffix"
 }
 
 function Assert-GodotRuntimeLogFile {
@@ -73,7 +146,10 @@ function Assert-GodotRuntimeLogFile {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [string]$Label
+        [string]$Label,
+
+        [AllowEmptyCollection()]
+        [string[]]$AllowedWarningPatterns = @()
     )
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -84,5 +160,6 @@ function Assert-GodotRuntimeLogFile {
     Assert-GodotRuntimeLogContent `
         -OutputLines $outputLines `
         -Label $Label `
-        -DiagnosticPath $Path
+        -DiagnosticPath $Path `
+        -AllowedWarningPatterns $AllowedWarningPatterns
 }
