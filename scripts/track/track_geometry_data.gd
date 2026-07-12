@@ -7,6 +7,7 @@ const MIN_HALF_WIDTH: float = 0.05
 const MIN_CURVE_RADIUS: float = 1.0
 const CURVE_RADIUS_WIDTH_MULTIPLIER: float = 1.10
 const MIN_NON_ADJACENT_CLEARANCE: float = 0.25
+const LOCAL_CLEARANCE_SEGMENT_WINDOW: int = 3
 const GEOMETRY_EPSILON: float = 0.0001
 
 var center_points: PackedVector3Array = PackedVector3Array()
@@ -176,6 +177,13 @@ func _append_non_adjacent_segment_errors(errors: PackedStringArray) -> void:
 				)
 				return
 
+			if _segments_are_within_local_clearance_window(
+				first_index,
+				second_index,
+				point_count
+			):
+				continue
+
 			var first_segment_half_width: float = maxf(
 				half_widths[first_index],
 				half_widths[first_next]
@@ -231,6 +239,16 @@ func _segments_are_adjacent(first_index: int, second_index: int, point_count: in
 		or (first_index + 1) % point_count == second_index
 		or (second_index + 1) % point_count == first_index
 	)
+
+
+func _segments_are_within_local_clearance_window(
+	first_index: int,
+	second_index: int,
+	point_count: int
+) -> bool:
+	var direct_distance: int = absi(first_index - second_index)
+	var wrapped_distance: int = mini(direct_distance, point_count - direct_distance)
+	return wrapped_distance <= LOCAL_CLEARANCE_SEGMENT_WINDOW
 
 
 func _get_curve_radius(previous: Vector2, current: Vector2, next: Vector2) -> float:
