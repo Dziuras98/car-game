@@ -41,7 +41,10 @@ jobs:
             ".github/cleanup-overlay/tail-05.txt",
             ".github/cleanup-overlay/tail-06.txt",
             ".github/cleanup-overlay/tail-07.txt",
-            ".github/cleanup-overlay/tail-08.txt"
+            ".github/cleanup-overlay/tail-08-part-00.txt",
+            ".github/cleanup-overlay/tail-08-part-01.txt",
+            ".github/cleanup-overlay/tail-08-part-02.txt",
+            ".github/cleanup-overlay/tail-08-part-03.txt"
           )
 
           $base64 = ($piecePaths | ForEach-Object {
