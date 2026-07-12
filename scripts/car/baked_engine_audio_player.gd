@@ -1,8 +1,9 @@
-extends AudioStreamPlayer3D
+extends "res://scripts/car/procedural_audio_player_3d.gd"
 class_name BakedEngineAudioPlayer
 
 const SILENT_VOLUME_DB: float = -80.0
 const MIN_LINEAR_GAIN: float = 0.0001
+
 
 class LayerPlaybackState:
 	var players: Array[AudioStreamPlayer3D] = []
@@ -31,6 +32,9 @@ var _engine_running: bool = true
 func _ready() -> void:
 	stop()
 	stream = null
+	procedural_voice_group = &"engine"
+	max_procedural_voices = mini(max_procedural_voices, 6)
+	procedural_generation_distance = maxf(max_distance, 0.0) + 5.0
 	_car = get_parent() as PlayerCarController
 	if bank == null or _car == null or not bank.prepare():
 		push_error("BakedEngineAudioPlayer requires a prepared bank and PlayerCarController parent.")
@@ -48,6 +52,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _car == null or bank == null or not bank.is_prepared():
 		set_process(false)
+		_suspend_playback()
 		return
 	var safe_delta: float = maxf(delta, 0.0)
 	var target_rpm: float = maxf(_car.get_engine_rpm(), bank.sample_rpms[0])
@@ -68,6 +73,9 @@ func _process(delta: float) -> void:
 	)
 	var target_engine_gain: float = 1.0 if _engine_running else 0.0
 	_engine_gain = move_toward(_engine_gain, target_engine_gain, safe_delta * 4.0)
+	if not should_generate_procedural_audio(safe_delta):
+		_suspend_playback()
+		return
 
 	var anchor_index: int = bank.find_nearest_anchor_index(_smoothed_rpm)
 	var coast_gain: float = cos(_smoothed_load_mix * PI * 0.5) * _engine_gain
@@ -139,10 +147,8 @@ func uses_audio_stream_generator() -> bool:
 
 func _exit_tree() -> void:
 	set_process(false)
-	for layer: LayerPlaybackState in [_coast_layer, _load_layer]:
-		for player: AudioStreamPlayer3D in layer.players:
-			if is_instance_valid(player):
-				player.stop()
+	release_procedural_voice()
+	_suspend_playback()
 	_car = null
 
 
@@ -164,6 +170,20 @@ func _copy_spatial_settings(player: AudioStreamPlayer3D) -> void:
 	player.panning_strength = panning_strength
 	player.doppler_tracking = doppler_tracking
 	player.bus = bus
+
+
+func _suspend_playback() -> void:
+	for layer: LayerPlaybackState in [_coast_layer, _load_layer]:
+		for player: AudioStreamPlayer3D in layer.players:
+			if not is_instance_valid(player):
+				continue
+			player.volume_db = SILENT_VOLUME_DB
+			if player.playing:
+				player.stop()
+		layer.active_player_index = 0
+		layer.anchor_index = -1
+		layer.transition_anchor_index = -1
+		layer.transition_elapsed = 0.0
 
 
 func _update_layer(
