@@ -26,16 +26,26 @@ func _run() -> void:
 	car.capture_current_transform_as_start()
 	car.set_external_input_enabled(false)
 	car.set_player_input_enabled(true)
+
+	for _frame_index: int in range(8):
+		await physics_frame
+	var idle_speed: float = car.get_forward_speed()
+	_expect(
+		absf(idle_speed) <= AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD,
+		"idle spawn drift remains inside the automatic direction-change deadzone"
+	)
+
 	Input.action_press("accelerate")
 	for _frame_index: int in range(90):
 		await physics_frame
+	var telemetry: CarTelemetrySnapshot = car.get_telemetry_snapshot()
 	Input.action_release("accelerate")
 	await physics_frame
 
-	var telemetry: CarTelemetrySnapshot = car.get_telemetry_snapshot()
 	print(
-		"[AUTOMATIC_SPAWN_CONTACT_TEST] speed=%.3f gear=%d throttle=%.2f brake=%.2f contacts=%d position=%s"
+		"[AUTOMATIC_SPAWN_CONTACT_TEST] idle_speed=%.6f speed=%.3f gear=%d throttle=%.2f brake=%.2f contacts=%d position=%s"
 		% [
+			idle_speed,
 			telemetry.get_forward_speed(),
 			telemetry.get_current_gear(),
 			telemetry.get_throttle_input(),
@@ -45,8 +55,12 @@ func _run() -> void:
 		]
 	)
 	_expect(telemetry.get_current_gear() >= 1, "automatic car remains in a forward gear after spawn")
+	_expect(telemetry.get_throttle_input() > 0.9, "automatic car receives sustained player throttle")
 	_expect(telemetry.get_ground_contact_count() > 0, "automatic car retains ground contact at the start seam")
-	_expect(telemetry.get_forward_speed() > 0.5, "automatic car accelerates from the default track spawn through player input")
+	_expect(
+		telemetry.get_forward_speed() > 0.5,
+		"automatic car overcomes sub-threshold reverse drift and accelerates through player input"
+	)
 
 	car.queue_free()
 	track.queue_free()
