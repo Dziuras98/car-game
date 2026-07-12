@@ -21,6 +21,7 @@ var _wheel_base_rotations: Array[Vector3] = []
 var _front_wheel_flags: Array[bool] = []
 var _wheel_spin: float = 0.0
 var _using_low_detail: bool = false
+var _is_screen_visible: bool = false
 
 
 func _ready() -> void:
@@ -36,14 +37,16 @@ func set_force_low_detail(enabled: bool) -> void:
 	if enabled:
 		_set_low_detail_active(true)
 		return
-	if is_instance_valid(_visibility_notifier) and _visibility_notifier.is_on_screen():
-		_set_low_detail_active(false)
-	else:
-		_set_low_detail_active(true)
+	_is_screen_visible = is_instance_valid(_visibility_notifier) and _visibility_notifier.is_on_screen()
+	_set_low_detail_active(not _is_screen_visible)
 
 
 func is_using_low_detail() -> bool:
 	return _using_low_detail
+
+
+func is_screen_visible() -> bool:
+	return _is_screen_visible
 
 
 func get_visibility_notifier() -> VisibleOnScreenNotifier3D:
@@ -66,6 +69,8 @@ func update_vehicle_visuals(
 	var safe_delta: float = maxf(delta, 0.0)
 	var radius: float = wheel_radius_override if wheel_radius_override > 0.0 else visual_wheel_radius
 	_wheel_spin = fposmod(_wheel_spin + forward_speed / maxf(radius, 0.01) * safe_delta, TAU)
+	if not _is_screen_visible:
+		return
 	var steering_angle: float = deg_to_rad(24.0) * clampf(steering_input, -1.0, 1.0)
 	for index: int in range(_wheel_nodes.size()):
 		var wheel: Node3D = _wheel_nodes[index]
@@ -88,7 +93,7 @@ func _resolve_visual_roots() -> void:
 func _ensure_visibility_notifier() -> void:
 	if is_instance_valid(_visibility_notifier):
 		return
-	var existing_node: Node = get_node_or_null(NodePath(str(VISIBILITY_NOTIFIER_NAME)))
+	var existing_node: Node = get_node_or_null(^"VisibilityNotifier")
 	if existing_node != null:
 		_visibility_notifier = existing_node as VisibleOnScreenNotifier3D
 		if _visibility_notifier == null:
@@ -147,10 +152,12 @@ func _register_wheel_node(wheel: Node3D, normalized_name: String) -> void:
 
 
 func _on_visibility_notifier_screen_entered() -> void:
+	_is_screen_visible = true
 	if force_low_detail:
 		return
 	_set_low_detail_active(false)
 
 
 func _on_visibility_notifier_screen_exited() -> void:
+	_is_screen_visible = false
 	_set_low_detail_active(true)
