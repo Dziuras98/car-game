@@ -55,7 +55,7 @@ func update_vehicle_visuals(
 	var steering_angle: float = deg_to_rad(24.0) * clampf(steering_input, -1.0, 1.0)
 	for index: int in range(_wheel_nodes.size()):
 		var wheel: Node3D = _wheel_nodes[index]
-		if not is_instance_valid(wheel):
+		if not is_instance_valid(wheel) or not wheel.is_visible_in_tree():
 			continue
 		var rotation_value: Vector3 = _wheel_base_rotations[index]
 		rotation_value.x += _wheel_spin
