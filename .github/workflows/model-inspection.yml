@@ -22,11 +22,40 @@ jobs:
       - name: Inspect 370Z GLB metadata
         run: python3 scripts/ci/inspect_370z_glbs.py | tee glb-inspection.txt
 
+      - name: Read public Sketchfab metadata
+        shell: bash
+        run: |
+          python3 - <<'PY' > sketchfab-metadata.txt
+          import json
+          import urllib.request
+
+          model_ids = (
+              "11db2d5c2cd34c8b84e560b8090574e8",
+              "b66ac30ac64a4f1aa034fce37745abe3",
+          )
+          for model_id in model_ids:
+              with urllib.request.urlopen(f"https://api.sketchfab.com/v3/models/{model_id}") as response:
+                  model = json.load(response)
+              user = model.get("user") or {}
+              license_data = model.get("license") or {}
+              print(f"MODEL_ID={model_id}")
+              print(f"NAME={model.get('name', '')}")
+              print(f"AUTHOR={user.get('displayName') or user.get('username') or ''}")
+              print(f"AUTHOR_USERNAME={user.get('username', '')}")
+              print(f"LICENSE_LABEL={license_data.get('label', '')}")
+              print(f"LICENSE_URL={license_data.get('url', '')}")
+              print(f"VIEWER_URL={model.get('viewerUrl', '')}")
+              print(f"DESCRIPTION={model.get('description', '').replace(chr(10), ' ')}")
+              print("MODEL_END")
+          PY
+
       - name: Upload GLB inspection report
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: 370z-glb-inspection-${{ github.sha }}
-          path: glb-inspection.txt
+          path: |
+            glb-inspection.txt
+            sketchfab-metadata.txt
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
