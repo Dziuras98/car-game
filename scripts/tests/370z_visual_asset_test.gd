@@ -23,10 +23,11 @@ func _test_visual_asset_import() -> void:
 	if packed_visuals == null:
 		return
 
-	var visuals := packed_visuals.instantiate() as Node3D
-	_expect(visuals != null, "the standard visual wrapper instantiates")
+	var visuals := packed_visuals.instantiate() as CarVisualController
+	_expect(visuals != null, "the standard visual wrapper instantiates as CarVisualController")
 	if visuals == null:
 		return
+	root.add_child(visuals)
 
 	var model := visuals.get_node_or_null("SketchfabModel") as Node3D
 	_expect(model != null, "the standard visual wrapper contains the imported Sketchfab model")
@@ -36,7 +37,7 @@ func _test_visual_asset_import() -> void:
 		_expect(absf(model.transform.basis.z.z + 100.0) < 0.001, "the standard model flips Z so the vehicle faces project forward")
 		_expect(absf(model.position.y - 0.14) < 0.001, "the standard model is raised onto the gameplay ground plane")
 
-	var bounds_state := _calculate_bounds(visuals)
+	var bounds_state := _calculate_bounds(model)
 	var mesh_count: int = bounds_state["mesh_count"]
 	var bounds: AABB = bounds_state["bounds"]
 	_expect(mesh_count >= 30, "the detailed standard model retains its multi-mesh structure")
@@ -46,7 +47,15 @@ func _test_visual_asset_import() -> void:
 	_expect(absf(bounds.get_center().x) < 0.03, "the standard model stays centered laterally")
 	_expect(absf(bounds.get_center().z) < 0.05, "the standard model stays centered longitudinally")
 	_expect(bounds.position.y >= -0.01 and bounds.position.y < 0.03, "the standard tyres meet the gameplay ground plane")
-	visuals.free()
+
+	var low_detail := visuals.get_node_or_null("LowDetail") as Node3D
+	_expect(low_detail != null, "the standard visual wrapper includes a low-detail fallback")
+	_expect(visuals.get_registered_wheel_count() >= 4, "the visual controller registers wheel pivots")
+	visuals.set_force_low_detail(true)
+	_expect(visuals.is_using_low_detail(), "forced low-detail mode activates")
+	_expect(model == null or not model.visible, "forced low-detail mode hides the imported GLB")
+	_expect(low_detail != null and low_detail.visible, "forced low-detail mode shows the bounded fallback")
+	visuals.queue_free()
 
 
 func _test_base_scene_contract() -> void:
@@ -57,10 +66,9 @@ func _test_base_scene_contract() -> void:
 
 	var car := packed_scene.instantiate()
 	_expect(car is PlayerCarController, "the base scene keeps PlayerCarController as its root contract")
-	_expect(car.get_node_or_null("VisualRoot/SketchfabModel") is Node3D, "the base scene uses the detailed Sketchfab visual model")
-	_expect(car.get_node_or_null("VisualRoot/BodyFront") == null, "the legacy split OBJ body is no longer instantiated")
-	_expect(car.get_node_or_null("VisualRoot/WheelFrontLeft") == null, "the legacy standalone wheel meshes are no longer instantiated")
-	_expect(car.get_node_or_null("RearSpoilerBridge") == null, "the legacy spoiler bridge is removed")
+	_expect(car.get_node_or_null("VisualRoot") is CarVisualController, "the base scene uses the visual LOD controller")
+	_expect(car.get_node_or_null("VisualRoot/SketchfabModel") is Node3D, "the base scene keeps the detailed imported model")
+	_expect(car.get_node_or_null("VisualRoot/LowDetail") is Node3D, "the base scene includes the low-detail opponent model")
 	_expect(car.get_node_or_null("EngineAudio") is AudioStreamPlayer3D, "the engine-audio node contract is preserved")
 	_expect(car.get_node_or_null("TireSquealAudio") is AudioStreamPlayer3D, "the tire-audio node contract is preserved")
 
@@ -68,18 +76,19 @@ func _test_base_scene_contract() -> void:
 	_expect(collision != null and collision.shape is BoxShape3D, "the standard body collision remains available")
 	if collision != null and collision.shape is BoxShape3D:
 		var box := collision.shape as BoxShape3D
-		_expect(box.size.x >= 1.83 and box.size.x <= 1.85, "the standard collision keeps the intended body width")
-		_expect(box.size.z >= 4.19 and box.size.z <= 4.21, "the standard collision keeps the intended body length")
+		_expect(box.size.x >= 1.95 and box.size.x <= 1.97, "the standard collision covers the imported body width")
+		_expect(box.size.y >= 1.27 and box.size.y <= 1.29, "the standard collision covers the roof height")
+		_expect(box.size.z >= 4.26 and box.size.z <= 4.28, "the standard collision covers the imported body length")
 	car.free()
 
 
-func _calculate_bounds(root: Node3D) -> Dictionary:
+func _calculate_bounds(root_node: Node3D) -> Dictionary:
 	var state: Dictionary = {
 		"initialized": false,
 		"mesh_count": 0,
 		"bounds": AABB(),
 	}
-	_collect_bounds(root, Transform3D.IDENTITY, state)
+	_collect_bounds(root_node, Transform3D.IDENTITY, state)
 	_expect(state["initialized"], "the standard imported scene exposes renderable mesh bounds")
 	return state
 
