@@ -1,6 +1,7 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_specs.gd" id="1_specs"]
+[ext_resource type="Resource" path="res://resources/cars/nissan/370z_nismo/specs/370z_nismo_torque_curve.tres" id="2_curve"]
 
 [resource]
 script = ExtResource("1_specs")
@@ -13,15 +14,18 @@ max_forward_speed = 69.45
 max_reverse_speed = 10.0
 steering_speed = 2.9
 wheel_base = 2.55
-axle_track_width = 1.55
+front_axle_track_width = 1.55
+rear_axle_track_width = 1.595
 max_steering_angle_degrees = 32.0
 idle_rpm = 850.0
 peak_torque_rpm = 5200.0
-redline_rpm = 7400.0
-rev_limiter_rpm = 7500.0
+power_peak_rpm = 7400.0
+redline_rpm = 7500.0
+rev_limiter_rpm = 7600.0
+torque_curve = ExtResource("2_curve")
 low_rpm_torque_multiplier = 0.52
 mid_rpm_torque_multiplier = 0.88
-redline_torque_multiplier = 0.88
+redline_torque_multiplier = 0.864
 engine_force = 30.0
 engine_brake_force = 3.3
 rpm_response = 8.6
@@ -46,7 +50,10 @@ drag_coefficient = 0.30
 frontal_area = 2.08
 air_density = 1.225
 rolling_resistance_coefficient = 0.015
-lateral_grip = 11.3
+front_lateral_grip = 11.0
+rear_lateral_grip = 11.6
+front_tire_width_m = 0.245
+rear_tire_width_m = 0.285
 handbrake_lateral_grip_multiplier = 0.26
 steering_slip_gain = 0.90
 slip_speed_threshold = 2.35
