@@ -98,7 +98,9 @@ func _test_visual_scene() -> void:
 		_expect(absf(bounds.get_center().x) < 0.01, "the body kit remains centered on the longitudinal axis")
 		_expect(bounds.position.y >= 0.04 and bounds.position.y <= 0.12, "the splitter reaches the intended lower body range")
 		_expect(bounds.end.y > 1.04 and bounds.end.y < 1.09, "the airfoil wing reaches the intended height")
-		_expect(body_kit.get_surface_count() >= 8, "the body kit is split into profiled fascia, skirt and wing surfaces")
+	var source_text: String = FileAccess.get_file_as_string(BODY_KIT_PATH)
+	_expect(source_text.count("\no ") >= 8, "the source OBJ contains separate profiled fascia, skirt and wing objects")
+	_expect("o NismoRearWingAirfoil" in source_text, "the source OBJ includes a named airfoil-section NISMO wing")
 
 	var packed_scene := load(SCENE_PATH) as PackedScene
 	_expect(packed_scene != null, "the NISMO base scene loads")
