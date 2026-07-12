@@ -31,6 +31,7 @@ func _run() -> void:
 
 	_test_player_spawn_and_reset(world, factory)
 	_test_opponent_spawn(world, spawn_marker, track, factory, rng)
+	_test_opponent_grid_admission(world, spawn_marker, track)
 
 	world.queue_free()
 	await get_tree().process_frame
@@ -83,6 +84,75 @@ func _test_opponent_spawn(
 			"opponent AI profile receives the layout lane offset"
 		)
 	spawner.clear_opponents()
+
+
+func _test_opponent_grid_admission(
+	world: Node3D,
+	spawn_marker: Node3D,
+	track: GeneratedTrack
+) -> void:
+	var valid_spawner: CarSpawner = CarSpawner.new()
+	_expect(
+		valid_spawner.configure(
+			world,
+			spawn_marker,
+			track,
+			CATALOG.get_all_variants(),
+			4.2,
+			7.0,
+			123
+		),
+		"valid opponent-grid dependencies configure successfully"
+	)
+	_expect(
+		valid_spawner.validate_opponent_spawn_request(3).is_empty(),
+		"default three-opponent grid has non-overlapping transforms"
+	)
+	_expect(
+		_contains_error(
+			valid_spawner.validate_opponent_spawn_request(CarSpawner.MAX_OPPONENT_COUNT + 1),
+			"must not exceed"
+		),
+		"opponent requests above the bounded participant limit are rejected"
+	)
+
+	var zero_spacing_errors: PackedStringArray = CarSpawner.validate_configuration_values(
+		2,
+		0.0,
+		0.0,
+		-1
+	)
+	_expect(_contains_error(zero_spacing_errors, "lane_spacing must be positive"), "multi-opponent grids require positive lane spacing")
+	_expect(_contains_error(zero_spacing_errors, "row_spacing must be positive"), "multi-opponent grids require positive row spacing")
+	_expect(
+		_contains_error(CarSpawner.validate_configuration_values(1, 4.2, 7.0, -2), "random_seed"),
+		"random seeds below the explicit -1 sentinel are rejected"
+	)
+
+	var overlapping_spawner: CarSpawner = CarSpawner.new()
+	_expect(
+		overlapping_spawner.configure(
+			world,
+			spawn_marker,
+			track,
+			CATALOG.get_all_variants(),
+			0.1,
+			0.1,
+			123
+		),
+		"small but positive spacing reaches footprint validation"
+	)
+	_expect(
+		_contains_error(overlapping_spawner.validate_opponent_spawn_request(2), "overlap"),
+		"overlapping start transforms are rejected before opponent instances are created"
+	)
+
+
+func _contains_error(errors: PackedStringArray, fragment: String) -> bool:
+	for error_text: String in errors:
+		if fragment in error_text:
+			return true
+	return false
 
 
 func _transforms_match(left: Transform3D, right: Transform3D) -> bool:
