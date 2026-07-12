@@ -46,10 +46,10 @@ func _run() -> void:
 	_expect(not car_input._external_input_enabled, "free-drive car does not retain external AI input ownership")
 
 	Input.action_press("accelerate")
-	await get_tree().create_timer(1.0).timeout
+	await create_timer(1.0).timeout
+	var telemetry: CarTelemetrySnapshot = car.get_telemetry_snapshot()
 	Input.action_release("accelerate")
 	await _frames(2)
-	var telemetry: CarTelemetrySnapshot = car.get_telemetry_snapshot()
 	print(
 		"[GAME_FREE_DRIVE_INPUT_TEST] speed=%.3f gear=%d throttle=%.2f contacts=%d position=%s"
 		% [
