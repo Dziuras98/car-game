@@ -36,9 +36,9 @@ func _run() -> void:
 		return
 
 	_expect(_count_skid_mark_containers(tree_root) == 1, "initial configure creates one SkidMarks container")
-
+	var initial_capacity: int = initial_emitter.get_capacity()
 	var initial_parent: Node3D = initial_emitter._parent
-	var target_specs: CarSpecs = _build_target_specs()
+	var target_specs: CarSpecs = _build_target_specs(initial_capacity)
 	_expect(target_specs.validate().is_empty(), "target reconfiguration specs pass the authoritative validation contract")
 
 	car._runtime_state.forward_speed = 8.5
@@ -63,6 +63,12 @@ func _run() -> void:
 		_expect(is_equal_approx(car._skid_mark_emitter.lifetime, target_specs.skid_mark_lifetime), "skid mark emitter applies new lifetime")
 		_expect(is_equal_approx(car._skid_mark_emitter.mark_width, target_specs.skid_mark_width), "skid mark emitter applies new mark width")
 		_expect(is_equal_approx(car._skid_mark_emitter.mark_length, target_specs.skid_mark_length), "skid mark emitter applies new mark length")
+		_expect(car._skid_mark_emitter.get_capacity() == initial_capacity, "test keeps the existing MultiMesh capacity during geometry-only reconfiguration")
+		var mark_mesh: BoxMesh = car._skid_mark_emitter._multimesh.mesh as BoxMesh
+		_expect(mark_mesh != null, "skid mark emitter retains a BoxMesh after reconfiguration")
+		if mark_mesh != null:
+			_expect(is_equal_approx(mark_mesh.size.x, target_specs.skid_mark_width), "rendered skid-mark width is refreshed")
+			_expect(is_equal_approx(mark_mesh.size.z, target_specs.skid_mark_length), "rendered skid-mark length is refreshed")
 	_expect(_count_skid_mark_containers(tree_root) == 1, "runtime reconfiguration does not create duplicate SkidMarks containers")
 
 	_expect(car._runtime_state.current_gear == target_specs.gear_ratios.size(), "runtime reconfiguration clamps gear to new forward gear count")
@@ -81,16 +87,22 @@ func _run() -> void:
 	_finish()
 
 
-func _build_target_specs() -> CarSpecs:
+func _build_target_specs(initial_capacity: int) -> CarSpecs:
 	var specs: CarSpecs = DEFAULT_CAR_SPECS.duplicate(true) as CarSpecs
 	specs.display_name = "Runtime Reconfiguration Test Specs"
 	specs.gear_ratios = [3.10, 2.05]
 	specs.max_forward_speed = 25.0
 	specs.skid_mark_min_slip = 0.72
-	specs.skid_mark_interval = 0.12
-	specs.skid_mark_lifetime = 3.5
+	specs.skid_mark_interval = DEFAULT_CAR_SPECS.skid_mark_interval
+	specs.skid_mark_lifetime = DEFAULT_CAR_SPECS.skid_mark_lifetime
 	specs.skid_mark_width = 0.31
 	specs.skid_mark_length = 1.4
+	var expected_capacity: int = clampi(
+		ceili(specs.skid_mark_lifetime / specs.skid_mark_interval) * 2 + 4,
+		SkidMarkEmitter.MIN_CAPACITY,
+		SkidMarkEmitter.MAX_CAPACITY
+	)
+	assert(expected_capacity == initial_capacity)
 	return specs
 
 
@@ -108,7 +120,6 @@ func _expect(condition: bool, message: String) -> void:
 	if condition:
 		print("[CAR_SPECS_RECONFIG_TEST][PASS] %s" % message)
 		return
-
 	_failures.append(message)
 	push_error("[CAR_SPECS_RECONFIG_TEST][FAIL] %s" % message)
 
@@ -118,7 +129,6 @@ func _finish() -> void:
 		print("[CAR_SPECS_RECONFIG_TEST] Passed: %d checks" % _checks)
 		get_tree().quit(0)
 		return
-
 	push_error("[CAR_SPECS_RECONFIG_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
 	for failure_message: String in _failures:
 		push_error("[CAR_SPECS_RECONFIG_TEST] - %s" % failure_message)
