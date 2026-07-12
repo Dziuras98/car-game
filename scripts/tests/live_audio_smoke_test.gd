@@ -26,7 +26,7 @@ func _run() -> void:
 	if DisplayServer.get_name() == "headless":
 		_expect(synthesizer.stream == null, "headless runtime does not initialize live audio playback")
 		_expect(not synthesizer.is_processing(), "headless runtime disables procedural audio processing")
-		_cleanup(car)
+		await _cleanup(car)
 		return
 
 	_expect(synthesizer.stream is AudioStreamGenerator, "windowed runtime initializes an AudioStreamGenerator")
@@ -34,7 +34,7 @@ func _run() -> void:
 	_expect(playback != null, "windowed runtime exposes generator playback")
 	_expect(synthesizer.is_processing(), "windowed runtime keeps procedural audio processing enabled")
 	if playback == null:
-		_cleanup(car)
+		await _cleanup(car)
 		return
 
 	synthesizer.set_process(false)
@@ -56,7 +56,7 @@ func _run() -> void:
 		"live generator refills the buffer repeatedly without losing playback"
 	)
 	_expect(synthesizer.playing, "procedural audio player remains active throughout the refill cycle")
-	_cleanup(car)
+	await _cleanup(car)
 
 
 func _cleanup(car: PlayerCarController) -> void:
