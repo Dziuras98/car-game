@@ -47,12 +47,15 @@ The script:
 3. validates both output paths and clears `build/windows` and `build/windows-test`;
 4. exports the `Windows Desktop` release preset;
 5. verifies that both the executable and PCK were created and validates production PCK contents;
-6. starts the exported executable without user arguments;
-7. supplies `CAR_GAME_NORMAL_STARTUP_MARKER_PATH`, waits for `scenes/main.tscn` to write the readiness marker and requires the process to exit with code `0` without Godot runtime-error lines;
-8. starts the production executable again with `--export-smoke-test` to prove that private packaged-test routing is unavailable in production;
-9. exports and runs the `Windows Test` preset with the private smoke argument;
-10. requires a zero exit code, the packaged regression success marker and a runtime log without `SCRIPT ERROR:`, `ERROR:` or timestamped Godot `E` entries;
-11. restores the exact committed `export_presets.cfg` contents in a `finally` block after success or failure.
+6. starts the production executable without `--headless`, using the normal configured renderer and a deterministic dummy audio driver;
+7. requires both the passive `[GAME_READY] Main scene initialized` log message and a native Windows application window, then terminates the long-running game process externally;
+8. starts the production executable again with `--export-smoke-test` and requires the same normal windowed startup, proving that private packaged-test routing is unavailable in production;
+9. exports and runs the `Windows Test` preset with the private end-to-end smoke argument in headless mode;
+10. starts the test executable again in windowed mode with `--live-audio-smoke-test`, requires a native window and verifies repeated live `AudioStreamGeneratorPlayback` buffer refills;
+11. requires zero exit codes for self-terminating tests, their explicit success markers and runtime logs without `SCRIPT ERROR:`, `ERROR:` or timestamped Godot `E` entries;
+12. restores the exact committed `export_presets.cfg` contents in a `finally` block after success or failure.
+
+The production scene contains no CI environment-variable hook, marker-file writer or test-owned quit path. `MainSceneReadinessReporter` only publishes a passive diagnostic line after `GameManager` has completed its required initialization contracts.
 
 ## Version metadata
 
@@ -67,11 +70,14 @@ The static values committed in `export_presets.cfg` are development defaults onl
 
 ## Startup routes
 
-The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches and `scenes/tests/exported_build_smoke_test.tscn` only in a `Windows Test` export when the private smoke argument is present. The argument-based route is required because official Windows export templates do not support the `--scene` path override.
+The exported project starts with `scenes/startup.tscn`. Its router opens `scenes/main.tscn` during ordinary launches. A `Windows Test` export may additionally route:
 
-The readiness environment variable affects only the CI handshake after the normal main scene is ready; it is not a user argument and does not alter router selection. Without it, the exported game continues running normally.
+- `--export-smoke-test` to `scenes/tests/exported_build_smoke_test.tscn`;
+- `--live-audio-smoke-test` to `scenes/tests/live_audio_smoke_test.tscn`.
 
-The normal launch writes `build/windows/normal-startup-smoke.log`. The production argument-isolation check writes `build/windows/production-smoke-argument.log`. The packaged regression launch writes `build/windows-test/exported-build-smoke.log`. All logs are checked by the shared runtime-error detector used by the editor-side test runner.
+Production exports ignore both private arguments. Argument-based routing is required because official Windows export templates do not support the `--scene` path override.
+
+The normal windowed launch writes `build/windows/normal-startup-smoke.log`. The production argument-isolation check writes `build/windows/production-smoke-argument.log`. The packaged regression launch writes `build/windows-test/exported-build-smoke.log`. The windowed audio validation writes `build/windows-test/live-audio-smoke.log`. All logs are checked by the shared runtime-error detector used by the editor-side test runner.
 
 ## Continuous integration
 
