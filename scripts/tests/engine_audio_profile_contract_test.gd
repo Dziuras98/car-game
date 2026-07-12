@@ -63,8 +63,11 @@ func _run() -> void:
 	_finish()
 
 
-func _find_property(properties: Array[Dictionary], property_name: StringName) -> Dictionary:
-	for property: Dictionary in properties:
+func _find_property(properties: Array, property_name: StringName) -> Dictionary:
+	for property_value: Variant in properties:
+		if not property_value is Dictionary:
+			continue
+		var property: Dictionary = property_value
 		if StringName(property.get("name", &"")) == property_name:
 			return property
 	return {}
