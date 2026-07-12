@@ -49,7 +49,8 @@ try {
     Set-Content -LiteralPath $cleanLog -Value @(
         "Godot Engine v4.7.stable",
         "[NORMAL_STARTUP_SMOKE] Main scene ready",
-        "The word ERROR appears in ordinary prose and is not an engine error prefix."
+        "The word ERROR appears in ordinary prose and is not an engine error prefix.",
+        "The word WARNING also appears in ordinary prose."
     ) -Encoding utf8
     Expect-NoThrow `
         -Action { Assert-GodotRuntimeLogFile -Path $cleanLog -Label "Clean packaged startup" } `
@@ -97,6 +98,50 @@ try {
         -Action { Assert-GodotRuntimeLogFile -Path $duplicateErrorLog -Label "Duplicate-error startup" } `
         -ExpectedFragment "1 Godot runtime error" `
         -Message "Duplicate engine errors should be reported once."
+
+    $warningLog = Join-Path $tempRoot "warning.log"
+    Set-Content -LiteralPath $warningLog -Value "WARNING: Unexpected resource fallback" -Encoding utf8
+    Expect-Throws `
+        -Action { Assert-GodotRuntimeLogFile -Path $warningLog -Label "Warning startup" } `
+        -ExpectedFragment "1 unexpected Godot runtime warning" `
+        -Message "An unexpected WARNING line must fail validation."
+
+    $timestampWarningLog = Join-Path $tempRoot "timestamp-warning.log"
+    Set-Content -LiteralPath $timestampWarningLog -Value "W 0:00:04:021 load: Resource fallback" -Encoding utf8
+    Expect-Throws `
+        -Action { Assert-GodotRuntimeLogFile -Path $timestampWarningLog -Label "Timestamp-warning startup" } `
+        -ExpectedFragment "1 unexpected Godot runtime warning" `
+        -Message "A timestamped Godot W line must fail validation."
+
+    $leakWarningLog = Join-Path $tempRoot "leak-warning.log"
+    Set-Content -LiteralPath $leakWarningLog -Value "WARNING: 2 ObjectDB instances were leaked at exit (run with ``--verbose`` for details)." -Encoding utf8
+    Expect-Throws `
+        -Action { Assert-GodotRuntimeLogFile -Path $leakWarningLog -Label "Leak-warning startup" } `
+        -ExpectedFragment "1 unexpected Godot runtime warning" `
+        -Message "An ObjectDB leak warning must fail validation."
+
+    $allowedWarningLog = Join-Path $tempRoot "allowed-warning.log"
+    Set-Content -LiteralPath $allowedWarningLog -Value "WARNING: Expected negative-test warning." -Encoding utf8
+    Expect-NoThrow `
+        -Action {
+            Assert-GodotRuntimeLogFile `
+                -Path $allowedWarningLog `
+                -Label "Allowed-warning startup" `
+                -AllowedWarningPatterns @('^WARNING: Expected negative-test warning\.$')
+        } `
+        -Message "An explicitly allowlisted warning should be accepted."
+
+    $nonMatchingAllowedWarningLog = Join-Path $tempRoot "non-matching-allowed-warning.log"
+    Set-Content -LiteralPath $nonMatchingAllowedWarningLog -Value "WARNING: A different warning." -Encoding utf8
+    Expect-Throws `
+        -Action {
+            Assert-GodotRuntimeLogFile `
+                -Path $nonMatchingAllowedWarningLog `
+                -Label "Non-matching allowed-warning startup" `
+                -AllowedWarningPatterns @('^WARNING: Expected negative-test warning\.$')
+        } `
+        -ExpectedFragment "1 unexpected Godot runtime warning" `
+        -Message "A warning that does not match the allowlist must still fail validation."
 
     $missingLog = Join-Path $tempRoot "missing.log"
     Expect-Throws `
