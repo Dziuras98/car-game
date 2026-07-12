@@ -41,16 +41,19 @@ func _test_visual_scene_visibility_lod(scene: PackedScene, scene_label: String) 
 		notifier != null and notifier.aabb == visual.visibility_aabb,
 		"%s notifier covers the configured vehicle bounds" % scene_label
 	)
+	_expect(not visual.is_screen_visible(), "%s visual starts outside the screen state" % scene_label)
 	_expect(visual.is_using_low_detail(), "%s visual starts in low detail while off screen" % scene_label)
 	_expect(_contains_node_named(visual, &"SketchfabModel"), "%s visual contains the detailed model" % scene_label)
 
 	if notifier != null:
 		notifier.emit_signal(&"screen_entered")
+		_expect(visual.is_screen_visible(), "%s visual records entry into the screen" % scene_label)
 		_expect(not visual.is_using_low_detail(), "%s visual becomes detailed when entering the screen" % scene_label)
 		_expect_visual_root_visibility(visual, true, scene_label)
 
 		visual.set_force_low_detail(true)
 		notifier.emit_signal(&"screen_entered")
+		_expect(visual.is_screen_visible(), "%s forced visual still tracks screen presence" % scene_label)
 		_expect(visual.is_using_low_detail(), "%s forced low detail overrides screen visibility" % scene_label)
 
 		visual.set_force_low_detail(false)
@@ -58,6 +61,7 @@ func _test_visual_scene_visibility_lod(scene: PackedScene, scene_label: String) 
 		_expect(not visual.is_using_low_detail(), "%s visibility LOD resumes after force is disabled" % scene_label)
 
 		notifier.emit_signal(&"screen_exited")
+		_expect(not visual.is_screen_visible(), "%s visual records exit from the screen" % scene_label)
 		_expect(visual.is_using_low_detail(), "%s visual returns to low detail after leaving the screen" % scene_label)
 		_expect_visual_root_visibility(visual, false, scene_label)
 
@@ -109,12 +113,26 @@ func _test_visibility_lod_fleet_budget() -> void:
 
 	if visuals.size() > 1:
 		var low_detail_visual: CarVisualController = visuals[1]
+		var low_detail_notifier: VisibleOnScreenNotifier3D = low_detail_visual.get_visibility_notifier()
 		var front_wheel := low_detail_visual.get_node_or_null("LowDetail/WheelFrontLeft") as Node3D
 		_expect(front_wheel != null, "low-detail visual exposes an animatable front wheel pivot")
 		if front_wheel != null:
 			var initial_rotation: Vector3 = front_wheel.rotation
 			low_detail_visual.update_vehicle_visuals(0.1, 20.0, 0.5, 0.34)
-			_expect(front_wheel.rotation.distance_to(initial_rotation) > 0.01, "visible low-detail wheel pivot remains animated")
+			_expect(
+				front_wheel.rotation.distance_to(initial_rotation) < 0.001,
+				"off-screen low-detail car skips wheel transform updates"
+			)
+			low_detail_visual.set_force_low_detail(true)
+			if low_detail_notifier != null:
+				low_detail_notifier.emit_signal(&"screen_entered")
+			low_detail_visual.update_vehicle_visuals(0.1, 20.0, 0.5, 0.34)
+			_expect(
+				front_wheel.rotation.distance_to(initial_rotation) > 0.01,
+				"on-screen forced low-detail car keeps wheel animation"
+			)
+			if low_detail_notifier != null:
+				low_detail_notifier.emit_signal(&"screen_exited")
 
 	for visual: CarVisualController in visuals:
 		visual.queue_free()
@@ -152,6 +170,7 @@ func _test_factory_uses_visibility_lod_ai_scenes() -> void:
 		_expect(_contains_node_named(car, &"SketchfabModel"), "factory AI car contains the detailed model")
 		if notifier != null:
 			notifier.emit_signal(&"screen_exited")
+		_expect(not visual.is_screen_visible(), "off-screen factory AI car records no screen presence")
 		_expect(visual.is_using_low_detail(), "off-screen factory AI car uses low-detail rendering")
 		off_screen_visible_mesh_count += _count_effectively_visible_meshes(car, true)
 
@@ -169,11 +188,13 @@ func _test_factory_uses_visibility_lod_ai_scenes() -> void:
 		)
 		if visible_notifier != null:
 			visible_notifier.emit_signal(&"screen_entered")
+		_expect(visible_visual != null and visible_visual.is_screen_visible(), "visible AI car records screen presence")
 		_expect(visible_visual != null and not visible_visual.is_using_low_detail(), "visible AI car switches to the detailed model")
 		if visible_visual != null:
 			_expect_visual_root_visibility(visible_visual, true, "visible AI car")
 		if visible_notifier != null:
 			visible_notifier.emit_signal(&"screen_exited")
+		_expect(visible_visual != null and not visible_visual.is_screen_visible(), "AI car clears screen presence after leaving")
 		_expect(visible_visual != null and visible_visual.is_using_low_detail(), "AI car returns to low detail after leaving the screen")
 
 	for car: PlayerCarController in cars:
