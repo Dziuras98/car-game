@@ -4,6 +4,7 @@ class_name CarChassisController
 const PROBE_END_MARGIN: float = 0.05
 const REFERENCE_FRONT_TIRE_WIDTH_M: float = 0.225
 const REFERENCE_REAR_TIRE_WIDTH_M: float = 0.245
+const DEFAULT_SURFACE_GRIP_MULTIPLIER: float = 1.0
 
 var _tire_model: TireModel = TireModel.new()
 var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
@@ -59,8 +60,8 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 		var hit: Dictionary = direct_space_state.intersect_ray(_ray_query)
 		if hit.is_empty():
 			continue
-		var surface: TrackSurfaceBody = hit.get("collider") as TrackSurfaceBody
-		if surface == null:
+		var collider: CollisionObject3D = hit.get("collider") as CollisionObject3D
+		if collider == null:
 			continue
 		var hit_position: Vector3 = hit.get("position", ray_end)
 		var hit_normal: Vector3 = hit.get("normal", Vector3.UP)
@@ -80,7 +81,7 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 		)
 		contact_count += 1
 		normal_sum += hit_normal
-		grip_sum += surface.get_grip_multiplier()
+		grip_sum += _get_surface_grip_multiplier(collider)
 
 	state.ground_contact_count = contact_count
 	if contact_count <= 0:
@@ -171,6 +172,16 @@ func set_local_speeds_from_horizontal_velocity(state: CarRuntimeState, car_trans
 	var local_speeds: Vector2 = _vehicle_motion_model.get_local_speeds_from_horizontal_velocity(car_transform, horizontal_velocity)
 	state.forward_speed = local_speeds.x
 	state.lateral_speed = local_speeds.y
+
+
+func _get_surface_grip_multiplier(collider: CollisionObject3D) -> float:
+	if collider is TrackSurfaceBody:
+		return (collider as TrackSurfaceBody).get_grip_multiplier()
+	if collider.has_meta("surface_grip_multiplier"):
+		var metadata_value: Variant = collider.get_meta("surface_grip_multiplier")
+		if metadata_value is float or metadata_value is int:
+			return clampf(float(metadata_value), 0.05, 2.0)
+	return DEFAULT_SURFACE_GRIP_MULTIPLIER
 
 
 func _get_effective_lateral_grip() -> float:

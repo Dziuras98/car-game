@@ -7,28 +7,28 @@
 [ext_resource type="Resource" path="res://resources/audio/370z_nismo_audio_profile.tres" id="5_audio_profile"]
 
 [sub_resource type="BoxShape3D" id="CabinCollision"]
-size = Vector3(1.82, 1.05, 2.30)
+size = Vector3(1.92, 1.30, 2.30)
 
 [sub_resource type="BoxShape3D" id="FrontCollision"]
-size = Vector3(1.92, 0.66, 1.24)
+size = Vector3(1.98, 0.76, 1.30)
 
 [sub_resource type="BoxShape3D" id="RearCollision"]
-size = Vector3(1.87, 0.70, 1.20)
+size = Vector3(1.94, 0.78, 1.28)
 
 [node name="370ZNismo" type="CharacterBody3D"]
 floor_snap_length = 0.0
 script = ExtResource("1_controller")
 
 [node name="CollisionCabin" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
 shape = SubResource("CabinCollision")
 
 [node name="CollisionFront" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.37, -1.63)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.40, -1.64)
 shape = SubResource("FrontCollision")
 
 [node name="CollisionRear" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.39, 1.62)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.41, 1.63)
 shape = SubResource("RearCollision")
 
 [node name="VisualRoot" parent="." instance=ExtResource("4_visuals")]

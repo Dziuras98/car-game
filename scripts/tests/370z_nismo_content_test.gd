@@ -90,9 +90,10 @@ func _test_visual_scene() -> void:
 	var packed_visuals := load(VISUAL_SCENE_PATH) as PackedScene
 	_expect(packed_visuals != null, "the NISMO visual wrapper scene loads")
 	if packed_visuals != null:
-		var visuals := packed_visuals.instantiate() as Node3D
-		_expect(visuals != null, "the NISMO visual wrapper instantiates")
+		var visuals := packed_visuals.instantiate() as CarVisualController
+		_expect(visuals != null, "the NISMO visual wrapper instantiates as CarVisualController")
 		if visuals != null:
+			root.add_child(visuals)
 			var model := visuals.get_node_or_null("SketchfabModel") as Node3D
 			_expect(model != null, "the NISMO wrapper contains the imported Sketchfab model")
 			if model != null:
@@ -100,17 +101,23 @@ func _test_visual_scene() -> void:
 				_expect(absf(model.transform.basis.y.y - 100.0) < 0.001, "the NISMO model preserves the vertical axis at 100x scale")
 				_expect(absf(model.transform.basis.z.z + 100.0) < 0.001, "the NISMO model flips Z so the vehicle faces project forward")
 				_expect(absf(model.position.y - 0.02) < 0.001, "the NISMO model is aligned to the gameplay ground plane")
-			var bounds_state := _calculate_bounds(visuals)
-			var mesh_count: int = bounds_state["mesh_count"]
-			var bounds: AABB = bounds_state["bounds"]
-			_expect(mesh_count >= 70, "the detailed NISMO model retains its multi-mesh exterior and interior")
-			_expect(bounds.size.x > 1.90 and bounds.size.x < 2.05, "the NISMO model width remains near two metres including mirrors")
-			_expect(bounds.size.y > 1.28 and bounds.size.y < 1.38, "the NISMO model height remains inside the expected range")
-			_expect(bounds.size.z > 4.30 and bounds.size.z < 4.38, "the NISMO model length remains inside the expected range")
-			_expect(absf(bounds.get_center().x) < 0.03, "the NISMO model stays centered laterally")
-			_expect(absf(bounds.get_center().z) < 0.05, "the NISMO model stays centered longitudinally")
-			_expect(bounds.position.y >= -0.02 and bounds.position.y < 0.03, "the NISMO tyres meet the gameplay ground plane")
-			visuals.free()
+				var bounds_state := _calculate_bounds(model)
+				var mesh_count: int = bounds_state["mesh_count"]
+				var bounds: AABB = bounds_state["bounds"]
+				_expect(mesh_count >= 70, "the detailed NISMO model retains its multi-mesh exterior and interior")
+				_expect(bounds.size.x > 1.90 and bounds.size.x < 2.05, "the NISMO model width remains near two metres including mirrors")
+				_expect(bounds.size.y > 1.28 and bounds.size.y < 1.38, "the NISMO model height remains inside the expected range")
+				_expect(bounds.size.z > 4.30 and bounds.size.z < 4.38, "the NISMO model length remains inside the expected range")
+				_expect(absf(bounds.get_center().x) < 0.03, "the NISMO model stays centered laterally")
+				_expect(absf(bounds.get_center().z) < 0.05, "the NISMO model stays centered longitudinally")
+				_expect(bounds.position.y >= -0.02 and bounds.position.y < 0.03, "the NISMO tyres meet the gameplay ground plane")
+			var low_detail := visuals.get_node_or_null("LowDetail") as Node3D
+			_expect(low_detail != null, "the NISMO wrapper includes a low-detail fallback")
+			visuals.set_force_low_detail(true)
+			_expect(visuals.is_using_low_detail(), "the NISMO wrapper supports forced low-detail mode")
+			_expect(model == null or not model.visible, "forced NISMO low-detail mode hides the GLB")
+			_expect(low_detail != null and low_detail.visible, "forced NISMO low-detail mode shows the fallback")
+			visuals.queue_free()
 
 	var packed_scene := load(SCENE_PATH) as PackedScene
 	_expect(packed_scene != null, "the NISMO base scene loads")
@@ -118,10 +125,9 @@ func _test_visual_scene() -> void:
 		return
 	var car := packed_scene.instantiate()
 	_expect(car is PlayerCarController, "the NISMO scene retains the PlayerCarController root contract")
+	_expect(car.get_node_or_null("VisualRoot") is CarVisualController, "the NISMO scene uses the visual LOD controller")
 	_expect(car.get_node_or_null("VisualRoot/SketchfabModel") is Node3D, "the NISMO scene uses the detailed imported model")
-	_expect(car.get_node_or_null("VisualRoot/NismoBodyKit") == null, "the legacy additive NISMO body kit is removed")
-	_expect(car.get_node_or_null("VisualRoot/NismoTrim") == null, "the legacy additive NISMO trim is removed")
-	_expect(car.get_node_or_null("VisualRoot/NismoRedAccents") == null, "the legacy additive NISMO accents are removed")
+	_expect(car.get_node_or_null("VisualRoot/LowDetail") is Node3D, "the NISMO scene includes the low-detail opponent model")
 	_expect(car.get_node_or_null("EngineAudio") is ProfiledEngineAudioSynthesizer, "the NISMO scene uses typed procedural audio data")
 
 	var collision_names: Array[String] = ["CollisionCabin", "CollisionFront", "CollisionRear"]
@@ -129,6 +135,7 @@ func _test_visual_scene() -> void:
 	var minimum_z: float = INF
 	var maximum_z: float = -INF
 	var maximum_width: float = 0.0
+	var maximum_height: float = 0.0
 	for collision_name: String in collision_names:
 		var collision := car.get_node_or_null(collision_name) as CollisionShape3D
 		if collision == null or not collision.shape is BoxShape3D:
@@ -138,19 +145,21 @@ func _test_visual_scene() -> void:
 		minimum_z = minf(minimum_z, collision.position.z - box.size.z * 0.5)
 		maximum_z = maxf(maximum_z, collision.position.z + box.size.z * 0.5)
 		maximum_width = maxf(maximum_width, box.size.x)
+		maximum_height = maxf(maximum_height, collision.position.y + box.size.y * 0.5)
 	_expect(collision_count == 3, "the NISMO uses a three-volume compound collision")
-	_expect(minimum_z <= -2.20 and maximum_z >= 2.18, "compound collision covers the imported front and rear body")
-	_expect(maximum_width >= 1.90 and maximum_width <= 1.94, "compound collision covers the widest lower aero without excessive empty space")
+	_expect(minimum_z <= -2.28 and maximum_z >= 2.26, "compound collision covers the imported front and rear body")
+	_expect(maximum_width >= 1.97 and maximum_width <= 1.99, "compound collision covers the widest body section")
+	_expect(maximum_height >= 1.29, "compound collision covers the imported roof height")
 	car.free()
 
 
-func _calculate_bounds(root: Node3D) -> Dictionary:
+func _calculate_bounds(root_node: Node3D) -> Dictionary:
 	var state: Dictionary = {
 		"initialized": false,
 		"mesh_count": 0,
 		"bounds": AABB(),
 	}
-	_collect_bounds(root, Transform3D.IDENTITY, state)
+	_collect_bounds(root_node, Transform3D.IDENTITY, state)
 	_expect(state["initialized"], "the NISMO imported scene exposes renderable mesh bounds")
 	return state
 

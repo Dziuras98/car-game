@@ -124,6 +124,7 @@ func spawn_opponents(opponent_count: int) -> Array[PlayerCarController]:
 		car_controller.name = "Opponent%d" % (opponent_index + 1)
 		car_controller.set_player_input_enabled(false)
 		car_controller.set_external_input_enabled(true)
+		car_controller.set_force_low_detail_visuals(true)
 		if _paint_randomizer != null:
 			_paint_randomizer.randomize_car_paint(car_controller)
 		staged_cars.append(car_controller)

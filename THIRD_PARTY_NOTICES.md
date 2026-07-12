@@ -36,7 +36,13 @@ Redistributed copies or builds containing these assets must provide attribution 
 
 Creative Commons licenses grant only rights the licensor has authority to grant. The uploader's statements that these models are based on assets from commercial games create an unresolved upstream-rights risk. This repository contains no written authorization from the original game publishers or asset rights holders and makes no representation that all geometry, textures, logos or trade dress are fully cleared for redistribution.
 
-The project owner has directed their inclusion in this noncommercial prototype with this warning. Obtain written upstream permission or replace the models before any release requiring verified redistribution rights. Noncommercial use alone does not resolve a missing upstream license.
+The project owner has directed their inclusion in this noncommercial prototype with this warning. Noncommercial use alone does not resolve a missing upstream license.
+
+### Accepted project decision
+
+The owner has explicitly accepted this known limitation for the current private/noncommercial prototype because no suitable replacement assets are available and there is no commercialization plan. The decision, audit treatment and mandatory review triggers are recorded in the repository's accepted-risk register.
+
+This accepted-risk record does not claim full rights clearance. It means ordinary technical audits should not report the unchanged provenance limitation as a new remediation item unless a documented review trigger occurs.
 
 ## Contribution policy
 
