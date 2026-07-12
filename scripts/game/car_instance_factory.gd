@@ -47,6 +47,9 @@ func instantiate_indexed_car(car_index: int) -> PlayerCarController:
 		push_error("Car index %d is outside the configured catalog range." % car_index)
 		return null
 	var variant: CarVariantDefinition = _available_variants[car_index]
+	if variant == null:
+		push_error("Car index %d resolves to a null variant." % car_index)
+		return null
 	return _instantiate_variant_scene(variant, variant.get_car_scene(), "player")
 
 
@@ -55,6 +58,9 @@ func instantiate_opponent_car() -> PlayerCarController:
 		push_error("CarInstanceFactory requires at least one explicit AI-eligible variant.")
 		return null
 	var variant: CarVariantDefinition = _get_opponent_variant()
+	if variant == null:
+		push_error("CarInstanceFactory resolved a null AI variant.")
+		return null
 	return _instantiate_variant_scene(variant, variant.get_ai_car_scene(), "AI")
 
 
