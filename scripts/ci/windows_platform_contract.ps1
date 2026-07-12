@@ -208,6 +208,9 @@ function Get-WindowsPlatformContractFailures {
             "Windows export entrypoint" = '\./scripts/ci/export_windows\.ps1'
             "pull-request-only cancellation" = '(?m)^\s*cancel-in-progress:\s*\$\{\{\s*github\.event_name\s*==\s*''pull_request''\s*\}\}\s*$'
             "trusted package missing-file failure" = '(?ms)- name:\s*Upload trusted Windows packages.*?if-no-files-found:\s*error\s*$'
+            "test diagnostics directory" = '(?m)^\s*build/test-logs/\s*$'
+            "production startup diagnostics" = '(?m)^\s*build/windows/\*\.log\s*$'
+            "test-build startup diagnostics" = '(?m)^\s*build/windows-test/\*\.log\s*$'
         }
         foreach ($description in $requiredWorkflowPatterns.Keys) {
             if ($workflowContent -notmatch $requiredWorkflowPatterns[$description]) {
