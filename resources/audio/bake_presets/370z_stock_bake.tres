@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/tools/engine_audio_bake_preset.gd" id="1_preset"]
+[ext_resource type="Resource" path="res://resources/audio/370z_stock_audio_profile.tres" id="2_profile"]
+[ext_resource type="Script" path="res://scripts/car/engine_audio.gd" id="3_synth"]
+
+[resource]
+script = ExtResource("1_preset")
+bank_id = "370z_stock"
+profile = ExtResource("2_profile")
+synthesizer_script = ExtResource("3_synth")
+output_directory = "res://assets/audio/engine/370z_stock"
+sample_rpms = PackedInt32Array(700, 1200, 2000, 3000, 4000, 5000, 6000, 7000, 7600)
+sample_rate = 32000
+warmup_seconds = 0.5
+loop_seconds = 1.0
+boundary_correction_seconds = 0.025
+coast_load = 0.08
+coast_throttle = 0.02
+loaded_load = 0.95
+loaded_throttle = 0.92
