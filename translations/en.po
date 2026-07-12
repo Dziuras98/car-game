@@ -119,3 +119,24 @@ msgstr "GEAR"
 
 msgid "Nie można uruchomić gry"
 msgstr "The game could not be started"
+
+msgid "GameManager scene contract validation failed."
+msgstr "Main scene structure validation failed."
+
+msgid "Game content configuration validation failed."
+msgstr "Game content configuration is invalid."
+
+msgid "The default track could not be activated."
+msgstr "The default track could not be activated."
+
+msgid "GameManager produced no valid menu content options."
+msgstr "No valid menu content options were found."
+
+msgid "Pause menu construction failed."
+msgstr "The pause menu could not be created."
+
+msgid "Runtime controllers could not be configured for the default track."
+msgstr "Runtime systems could not be configured for the default track."
+
+msgid "Session-start transaction configuration failed."
+msgstr "Session startup could not be configured."
