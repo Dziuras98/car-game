@@ -29,7 +29,10 @@ jobs:
           $archivePath = Join-Path $PWD "cleanup-overlay.zip"
           $piecePaths = @(
             ".github/cleanup-overlay/chunk-01.txt",
-            ".github/cleanup-overlay/chunk-02.txt",
+            ".github/cleanup-overlay/chunk-02-part-00.txt",
+            ".github/cleanup-overlay/chunk-02-part-01.txt",
+            ".github/cleanup-overlay/chunk-02-part-02.txt",
+            ".github/cleanup-overlay/chunk-02-part-03.txt",
             ".github/cleanup-overlay/chunk-03.txt",
             ".github/cleanup-overlay/tail-01.txt",
             ".github/cleanup-overlay/tail-02.txt",
