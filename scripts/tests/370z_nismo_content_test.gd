@@ -100,10 +100,10 @@ func _test_visual_scene() -> void:
 				_expect(absf(model.transform.basis.y.y - 100.0) < 0.001, "the NISMO model preserves the vertical axis at 100x scale")
 				_expect(absf(model.transform.basis.z.z + 100.0) < 0.001, "the NISMO model flips Z so the vehicle faces project forward")
 				_expect(absf(model.position.y - 0.02) < 0.001, "the NISMO model is aligned to the gameplay ground plane")
-			var meshes: Array[MeshInstance3D] = []
-			_collect_mesh_instances(visuals, meshes)
-			_expect(meshes.size() >= 70, "the detailed NISMO model retains its multi-mesh exterior and interior")
-			var bounds := _calculate_bounds(visuals, meshes)
+			var bounds_state := _calculate_bounds(visuals)
+			var mesh_count: int = bounds_state["mesh_count"]
+			var bounds: AABB = bounds_state["bounds"]
+			_expect(mesh_count >= 70, "the detailed NISMO model retains its multi-mesh exterior and interior")
 			_expect(bounds.size.x > 1.90 and bounds.size.x < 2.05, "the NISMO model width remains near two metres including mirrors")
 			_expect(bounds.size.y > 1.28 and bounds.size.y < 1.38, "the NISMO model height remains inside the expected range")
 			_expect(bounds.size.z > 4.30 and bounds.size.z < 4.38, "the NISMO model length remains inside the expected range")
@@ -144,28 +144,33 @@ func _test_visual_scene() -> void:
 	car.free()
 
 
-func _collect_mesh_instances(node: Node, output: Array[MeshInstance3D]) -> void:
+func _calculate_bounds(root: Node3D) -> Dictionary:
+	var state: Dictionary = {
+		"initialized": false,
+		"mesh_count": 0,
+		"bounds": AABB(),
+	}
+	_collect_bounds(root, Transform3D.IDENTITY, state)
+	_expect(state["initialized"], "the NISMO imported scene exposes renderable mesh bounds")
+	return state
+
+
+func _collect_bounds(node: Node, parent_transform: Transform3D, state: Dictionary) -> void:
+	var current_transform := parent_transform
+	if node is Node3D:
+		current_transform = parent_transform * (node as Node3D).transform
 	if node is MeshInstance3D:
-		output.append(node as MeshInstance3D)
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh != null:
+			var transformed_bounds: AABB = current_transform * mesh_instance.get_aabb()
+			if state["initialized"]:
+				state["bounds"] = (state["bounds"] as AABB).merge(transformed_bounds)
+			else:
+				state["bounds"] = transformed_bounds
+				state["initialized"] = true
+			state["mesh_count"] = int(state["mesh_count"]) + 1
 	for child: Node in node.get_children():
-		_collect_mesh_instances(child, output)
-
-
-func _calculate_bounds(root: Node3D, meshes: Array[MeshInstance3D]) -> AABB:
-	var bounds := AABB()
-	var initialized := false
-	for mesh_instance: MeshInstance3D in meshes:
-		if mesh_instance.mesh == null:
-			continue
-		var relative_transform: Transform3D = root.global_transform.affine_inverse() * mesh_instance.global_transform
-		var transformed_bounds: AABB = relative_transform * mesh_instance.get_aabb()
-		if initialized:
-			bounds = bounds.merge(transformed_bounds)
-		else:
-			bounds = transformed_bounds
-			initialized = true
-	_expect(initialized, "the NISMO imported scene exposes renderable mesh bounds")
-	return bounds
+		_collect_bounds(child, current_transform, state)
 
 
 func _build_engine_model(specs: CarSpecs) -> EngineModel:
