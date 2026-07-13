@@ -75,15 +75,27 @@ func _run() -> void:
 	_expect(not _get_selection_panel(menu).visible, "selection controls are hidden while loading")
 	_expect(_get_loading_details(menu).text.contains("Tor testowy"), "loading screen identifies the selected track")
 	_expect(_get_loading_details(menu).text.contains("Wariant testowy"), "loading screen identifies the selected car variant")
+	_expect(menu.get_loading_progress() == MainMenu.LOADING_PROGRESS_INITIAL, "loading screen begins at the explicit initial progress")
 	await get_tree().process_frame
 	_expect(menu.is_loading_screen_visible(), "loading screen remains visible for a rendered frame before session startup")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_expect(_selection_count == 1, "valid typed selection emits exactly once")
 	_expect(_selected_mode == GameModes.FREE_DRIVE, "selection preserves the chosen StringName mode id")
-	_expect(_selected_track == &"test_track", "selection preserves the chosen StringName track id")
+	_expect(_selected_track == &"test_track", "selection preserves the chosen track id")
 	_expect(_selected_variant == &"test_variant", "selection preserves the chosen variant id")
-	_expect(not menu.is_loading_screen_visible(), "failed standalone session admission restores the selection menu")
+	_expect(menu.is_loading_screen_visible(), "loading remains active until the session owner completes it")
+
+	menu.set_loading_progress(0.35, "Przygotowywanie toru")
+	_expect(is_equal_approx(menu.get_loading_progress(), 35.0), "loading progress accepts a real stage value")
+	_expect(_get_loading_subtitle(menu).text == "Przygotowywanie toru", "loading status follows the current startup stage")
+	menu.set_loading_progress(0.20, "Nieaktualny etap")
+	_expect(is_equal_approx(menu.get_loading_progress(), 35.0), "loading progress never moves backwards")
+	menu.set_loading_progress(1.0, "Gotowe")
+	_expect(is_equal_approx(menu.get_loading_progress(), 100.0), "loading progress reaches completion")
+	menu.complete_loading(false)
+	_expect(not menu.is_loading_screen_visible(), "failed session admission restores the selection menu explicitly")
+	_expect(menu.visible, "failed session admission keeps the menu visible")
 
 	var invalid_menu: MainMenu = MAIN_MENU_SCENE.instantiate() as MainMenu
 	add_child(invalid_menu)
@@ -117,6 +129,12 @@ func _get_selection_panel(menu: MainMenu) -> PanelContainer:
 func _get_loading_details(menu: MainMenu) -> Label:
 	return menu.get_node(
 		"Root/CenterContainer/LoadingPanelContainer/MarginContainer/VBoxContainer/DetailsLabel"
+	) as Label
+
+
+func _get_loading_subtitle(menu: MainMenu) -> Label:
+	return menu.get_node(
+		"Root/CenterContainer/LoadingPanelContainer/MarginContainer/VBoxContainer/SubtitleLabel"
 	) as Label
 
 

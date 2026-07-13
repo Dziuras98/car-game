@@ -8,9 +8,7 @@ const STEP_TRACK: int = 1
 const STEP_MODEL: int = 2
 const STEP_VARIANT: int = 3
 const STEP_LOADING: int = 4
-const LOADING_PROGRESS_MINIMUM: float = 12.0
-const LOADING_PROGRESS_RANGE: float = 76.0
-const LOADING_PROGRESS_SPEED: float = 4.0
+const LOADING_PROGRESS_INITIAL: float = 4.0
 
 var _selected_mode_id: StringName = &""
 var _selected_track_id: StringName = &""
@@ -18,7 +16,6 @@ var _selected_model_index: int = -1
 var _current_step: int = STEP_MODE
 var _car_models: Array[CarModelMenuOption] = []
 var _track_options: Array[TrackMenuOption] = []
-var _loading_elapsed: float = 0.0
 
 @onready var _selection_panel: PanelContainer = $Root/CenterContainer/PanelContainer
 @onready var _title_label: Label = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleLabel
@@ -26,6 +23,7 @@ var _loading_elapsed: float = 0.0
 @onready var _options: VBoxContainer = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Options
 @onready var _back_button: Button = $Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var _loading_panel: PanelContainer = $Root/CenterContainer/LoadingPanelContainer
+@onready var _loading_subtitle_label: Label = $Root/CenterContainer/LoadingPanelContainer/MarginContainer/VBoxContainer/SubtitleLabel
 @onready var _loading_details_label: Label = $Root/CenterContainer/LoadingPanelContainer/MarginContainer/VBoxContainer/DetailsLabel
 @onready var _loading_progress: ProgressBar = $Root/CenterContainer/LoadingPanelContainer/MarginContainer/VBoxContainer/ProgressBar
 
@@ -33,15 +31,6 @@ var _loading_elapsed: float = 0.0
 func _ready() -> void:
 	_back_button.pressed.connect(_on_back_pressed)
 	_show_mode_step()
-
-
-func _process(delta: float) -> void:
-	if _current_step != STEP_LOADING or not visible:
-		return
-	_loading_elapsed += delta
-	_loading_progress.value = LOADING_PROGRESS_MINIMUM + LOADING_PROGRESS_RANGE * (
-		0.5 + 0.5 * sin(_loading_elapsed * LOADING_PROGRESS_SPEED)
-	)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -62,6 +51,26 @@ func reset_menu() -> void:
 
 func is_loading_screen_visible() -> bool:
 	return visible and _current_step == STEP_LOADING and _loading_panel.visible
+
+
+func get_loading_progress() -> float:
+	return _loading_progress.value if is_loading_screen_visible() else 0.0
+
+
+func set_loading_progress(progress: float, status_text: String = "") -> void:
+	if not is_loading_screen_visible():
+		return
+	var next_value: float = clampf(progress, 0.0, 1.0) * 100.0
+	_loading_progress.value = maxf(_loading_progress.value, next_value)
+	if not status_text.is_empty():
+		_loading_subtitle_label.text = status_text
+
+
+func complete_loading(success: bool) -> void:
+	if success:
+		hide()
+		return
+	reset_menu()
 
 
 func set_car_models(next_car_models: Array[CarModelMenuOption]) -> void:
@@ -182,8 +191,8 @@ func _show_variant_step() -> void:
 
 func _show_loading_step(car_variant_id: StringName) -> void:
 	_current_step = STEP_LOADING
-	_loading_elapsed = 0.0
-	_loading_progress.value = LOADING_PROGRESS_MINIMUM
+	_loading_progress.value = LOADING_PROGRESS_INITIAL
+	_loading_subtitle_label.text = tr("Sprawdzanie konfiguracji")
 	_selection_panel.hide()
 	_loading_panel.show()
 	_loading_details_label.text = "%s — %s\n%s — %s" % [
@@ -267,7 +276,7 @@ func _on_variant_pressed(car_variant_id: StringName) -> void:
 		return
 	var valid_variant: bool = false
 	for variant: CarVariantMenuOption in _get_selected_model_variants():
-		if variant.variant_id == car_variant_id:
+		if variant != null and variant.variant_id == car_variant_id:
 			valid_variant = true
 			break
 	if not valid_variant:
@@ -277,16 +286,7 @@ func _on_variant_pressed(car_variant_id: StringName) -> void:
 	_show_loading_step(car_variant_id)
 	await get_tree().process_frame
 	await get_tree().process_frame
-
-	var phase_before: int = _resolve_game_session_phase()
 	selection_completed.emit(_selected_mode_id, _selected_track_id, car_variant_id)
-	var phase_after: int = _resolve_game_session_phase()
-	if phase_before == GameSessionState.Phase.MENU and phase_after != GameSessionState.Phase.MENU:
-		hide()
-	elif _current_step == STEP_LOADING:
-		reset_menu()
-	else:
-		show()
 
 
 func _on_back_pressed() -> void:
@@ -339,12 +339,3 @@ func _get_selected_model_variants() -> Array[CarVariantMenuOption]:
 		var empty: Array[CarVariantMenuOption] = []
 		return empty
 	return _car_models[_selected_model_index].variants.duplicate()
-
-
-func _resolve_game_session_phase() -> int:
-	var node: Node = get_parent()
-	while node != null:
-		if node.has_method("get_session_phase"):
-			return int(node.call("get_session_phase"))
-		node = node.get_parent()
-	return GameSessionState.Phase.MENU

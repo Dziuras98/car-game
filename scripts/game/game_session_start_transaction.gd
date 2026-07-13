@@ -1,6 +1,8 @@
 extends RefCounted
 class_name GameSessionStartTransaction
 
+signal progress_changed(progress: float, stage: ProgressStage)
+
 
 enum Result {
 	OK,
@@ -15,6 +17,18 @@ enum Result {
 	RACE_START_FAILED,
 	TRACK_COMMIT_FAILED,
 	SESSION_COMMIT_REJECTED,
+}
+
+
+enum ProgressStage {
+	VALIDATING,
+	CLEARING_RUNTIME,
+	PREPARING_TRACK,
+	CONFIGURING_RUNTIME,
+	SPAWNING_PLAYER,
+	STARTING_RACE,
+	FINALIZING,
+	COMPLETE,
 }
 
 
@@ -95,18 +109,40 @@ func execute(
 	if selected_track == null:
 		return Result.UNAVAILABLE_TRACK
 
+	_report_progress(0.08, ProgressStage.VALIDATING)
+	await _yield_process_frame()
 	if not GameSessionState.is_success(_session_state.begin_start()):
 		return Result.SESSION_BEGIN_REJECTED
+
+	_report_progress(0.16, ProgressStage.CLEARING_RUNTIME)
 	_reset_runtime.call()
+	await _yield_process_frame()
+
 	# Track replacement remains staged until runtime preparation succeeds.
-	if not bool(_stage_track.call(selected_track)):
+	_report_progress(0.30, ProgressStage.PREPARING_TRACK)
+	await _yield_process_frame()
+	var stage_result: Variant = await _stage_track.call(selected_track)
+	if not bool(stage_result):
 		return _fail(Result.TRACK_STAGE_FAILED)
+
+	_report_progress(0.56, ProgressStage.CONFIGURING_RUNTIME)
+	await _yield_process_frame()
 	if not bool(_configure_runtime.call()):
 		return _fail(Result.RUNTIME_CONFIGURATION_FAILED)
+
+	_report_progress(0.72, ProgressStage.SPAWNING_PLAYER)
+	await _yield_process_frame()
 	if not bool(_spawn_player.call(selected_car_index, spawn_global_transform)):
 		return _fail(Result.PLAYER_SPAWN_FAILED)
-	if mode_id == GameModes.RACE and not bool(_start_race.call()):
-		return _fail(Result.RACE_START_FAILED)
+
+	if mode_id == GameModes.RACE:
+		_report_progress(0.84, ProgressStage.STARTING_RACE)
+		await _yield_process_frame()
+		if not bool(_start_race.call()):
+			return _fail(Result.RACE_START_FAILED)
+
+	_report_progress(0.94, ProgressStage.FINALIZING)
+	await _yield_process_frame()
 	if not bool(_commit_track.call()):
 		return _fail(Result.TRACK_COMMIT_FAILED)
 
@@ -119,6 +155,7 @@ func execute(
 	if not GameSessionState.is_success(commit_result):
 		return _fail(Result.SESSION_COMMIT_REJECTED)
 	_finalize_track_commit.call()
+	_report_progress(1.0, ProgressStage.COMPLETE)
 	return Result.OK
 
 
@@ -148,6 +185,16 @@ static func get_failure_message(result: Result) -> String:
 			return "Session lifecycle rejected the validated session selection."
 		_:
 			return ""
+
+
+func _report_progress(progress: float, stage: ProgressStage) -> void:
+	progress_changed.emit(clampf(progress, 0.0, 1.0), stage)
+
+
+func _yield_process_frame() -> void:
+	var scene_tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if scene_tree != null:
+		await scene_tree.process_frame
 
 
 func _fail(result: Result) -> Result:
