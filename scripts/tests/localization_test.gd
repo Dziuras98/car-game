@@ -4,6 +4,16 @@ const CAR_CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const TRACK_CATALOG: TrackCatalog = preload("res://resources/tracks/catalog.tres")
 const FATAL_CONFIGURATION_MESSAGE_PL: String = "Nie można uruchomić gry\n\nGame content configuration validation failed."
 const FATAL_CONFIGURATION_MESSAGE_EN: String = "The game could not be started\n\nGame content configuration validation failed."
+const LOADING_STAGE_KEYS: Array[String] = [
+	"Sprawdzanie konfiguracji",
+	"Przygotowywanie sesji",
+	"Przygotowywanie toru",
+	"Konfigurowanie symulacji",
+	"Tworzenie samochodu",
+	"Przygotowywanie przeciwników",
+	"Finalizowanie sesji",
+	"Gotowe",
+]
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -34,6 +44,8 @@ func _initialize() -> void:
 		tr("Przygotowywanie toru i samochodów") == "Przygotowywanie toru i samochodów",
 		"Polish locale preserves the loading description"
 	)
+	for stage_key: String in LOADING_STAGE_KEYS:
+		_expect(tr(stage_key) == stage_key, "Polish locale preserves loading stage: %s" % stage_key)
 	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Okrążenie 2/3", "Polish formatted HUD label remains valid")
 	_expect(tr("PRĘDKOŚĆ") == "PRĘDKOŚĆ", "Polish speedometer title preserves diacritics")
 	_expect(tr("Kierowca %d") % 2 == "Kierowca 2", "Polish opponent result label preserves its placeholder")
@@ -61,6 +73,21 @@ func _initialize() -> void:
 		tr("Przygotowywanie toru i samochodów") == "Preparing the track and cars",
 		"English locale translates the loading description"
 	)
+	var english_loading_stages: Array[String] = [
+		"Checking configuration",
+		"Preparing session",
+		"Preparing track",
+		"Configuring simulation",
+		"Creating car",
+		"Preparing opponents",
+		"Finalizing session",
+		"Ready",
+	]
+	for stage_index: int in range(LOADING_STAGE_KEYS.size()):
+		_expect(
+			tr(LOADING_STAGE_KEYS[stage_index]) == english_loading_stages[stage_index],
+			"English locale translates loading stage: %s" % LOADING_STAGE_KEYS[stage_index]
+		)
 	_expect(tr("Brak dostępnych torów") == "No tracks available", "English locale translates menu validation feedback")
 	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Lap 2/3", "English locale preserves lap placeholders")
 	_expect(tr("Pozycja %d/%d") % [1, 4] == "Position 1/4", "English locale preserves position placeholders")
