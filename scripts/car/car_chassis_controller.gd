@@ -94,6 +94,9 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_active: bool, delta: float) -> void:
 	var contact_factor: float = _get_ground_contact_factor(state)
 	if contact_factor <= 0.0:
+		state.lateral_slip_intensity = 0.0
+		state.longitudinal_slip_ratio = 0.0
+		state.longitudinal_slip_intensity = 0.0
 		state.tire_slip_intensity = 0.0
 		return
 	state.lateral_speed = _tire_model.recover_lateral_speed(
@@ -104,7 +107,7 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 		delta,
 		state.surface_grip_multiplier
 	)
-	state.tire_slip_intensity = _tire_model.calculate_slip_intensity(
+	state.lateral_slip_intensity = _tire_model.calculate_slip_intensity(
 		state.lateral_speed,
 		state.forward_speed,
 		steering,
@@ -112,6 +115,10 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 		_config.slip_speed_threshold,
 		_config.max_forward_speed,
 		handbrake_active
+	)
+	state.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
+		state.lateral_slip_intensity,
+		state.longitudinal_slip_intensity
 	)
 
 

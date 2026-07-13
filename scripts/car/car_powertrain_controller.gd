@@ -4,6 +4,7 @@ class_name CarPowertrainController
 const MAX_FRAME_DELTA: float = 0.10
 const MAX_SIMULATION_SUBSTEP: float = 1.0 / 120.0
 
+
 enum ManualShiftAssistMode {
 	NONE,
 	UPSHIFT_CUT,
@@ -311,6 +312,7 @@ func _update_engine(state: CarRuntimeState, throttle: float, delta: float) -> vo
 
 
 func _update_speed_step(state: CarRuntimeState, throttle: float, brake: float, handbrake_active: bool, delta: float) -> void:
+	_reset_longitudinal_slip(state)
 	var effective_throttle: float = throttle if brake <= 0.0 else 0.0
 	if effective_throttle > 0.0:
 		_apply_throttle(state, effective_throttle, delta)
@@ -323,9 +325,10 @@ func _update_speed_step(state: CarRuntimeState, throttle: float, brake: float, h
 			passive_deceleration += _config.engine_brake_force * state.clutch_engagement * ground_factor
 		state.forward_speed = move_toward(state.forward_speed, 0.0, passive_deceleration * delta)
 	if handbrake_active:
-		state.forward_speed = move_toward(state.forward_speed, 0.0, _config.handbrake_deceleration * _get_longitudinal_grip_factor(state) * delta)
+		_apply_braking_acceleration(state, _config.handbrake_deceleration, delta)
 	state.forward_speed = _resistance_model.apply(state.forward_speed, delta, state.ground_contact_count > 0)
 	state.forward_speed = clampf(state.forward_speed, -_config.max_reverse_speed, _config.max_forward_speed)
+	_update_combined_slip(state)
 
 
 func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> void:
@@ -338,31 +341,95 @@ func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> v
 				or state.forward_speed < -direction_threshold
 			)
 		):
-			state.forward_speed = move_toward(state.forward_speed, 0.0, _config.brake_deceleration * throttle * _get_longitudinal_grip_factor(state) * delta)
+			_apply_braking_acceleration(state, _config.brake_deceleration * throttle, delta)
 		else:
-			state.forward_speed += _get_transmission_drive_acceleration(state, throttle) * delta
+			_apply_longitudinal_acceleration(
+				state,
+				_get_transmission_drive_acceleration(state, throttle),
+				delta
+			)
 		return
-	state.forward_speed += throttle * _config.engine_force * get_torque_multiplier() * get_rev_limiter_multiplier() * _get_longitudinal_grip_factor(state) * delta
+	var requested_acceleration: float = (
+		throttle
+		* _config.engine_force
+		* get_torque_multiplier()
+		* get_rev_limiter_multiplier()
+	)
+	_apply_longitudinal_acceleration(state, requested_acceleration, delta)
 
 
 func _apply_brake_or_reverse(state: CarRuntimeState, brake: float, delta: float) -> void:
-	var brake_delta: float = _config.brake_deceleration * brake * _get_longitudinal_grip_factor(state) * delta
 	if _config.is_manual_transmission():
-		state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
+		_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
 		return
 	if _config.is_self_shifting_transmission():
 		if state.current_gear < 0:
 			if state.forward_speed > AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
-				state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
+				_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
 			else:
-				state.forward_speed += _get_transmission_drive_acceleration(state, brake) * delta
+				_apply_longitudinal_acceleration(
+					state,
+					_get_transmission_drive_acceleration(state, brake),
+					delta
+				)
 		else:
-			state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
+			_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
 		return
 	if state.forward_speed > 0.25:
-		state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
+		_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
 	else:
-		state.forward_speed -= _config.reverse_acceleration * brake * _get_longitudinal_grip_factor(state) * delta
+		_apply_longitudinal_acceleration(state, -_config.reverse_acceleration * brake, delta)
+
+
+func _apply_braking_acceleration(state: CarRuntimeState, deceleration: float, delta: float) -> void:
+	if is_zero_approx(state.forward_speed):
+		return
+	var requested_acceleration: float = -signf(state.forward_speed) * maxf(deceleration, 0.0)
+	var applied_acceleration: float = _resolve_longitudinal_acceleration(state, requested_acceleration)
+	state.forward_speed = move_toward(state.forward_speed, 0.0, absf(applied_acceleration) * delta)
+
+
+func _apply_longitudinal_acceleration(state: CarRuntimeState, requested_acceleration: float, delta: float) -> void:
+	var applied_acceleration: float = _resolve_longitudinal_acceleration(state, requested_acceleration)
+	state.forward_speed += applied_acceleration * delta
+
+
+func _resolve_longitudinal_acceleration(state: CarRuntimeState, requested_acceleration: float) -> float:
+	var response: Vector2 = _tire_model.resolve_longitudinal_acceleration(
+		requested_acceleration,
+		state.lateral_slip_intensity,
+		state.surface_grip_multiplier,
+		_get_ground_contact_factor(state),
+		_config.longitudinal_grip_coefficient,
+		_config.longitudinal_peak_slip_ratio,
+		_config.longitudinal_slide_grip_multiplier
+	)
+	_record_longitudinal_slip(state, response.y)
+	return response.x
+
+
+func _record_longitudinal_slip(state: CarRuntimeState, slip_ratio: float) -> void:
+	if absf(slip_ratio) > absf(state.longitudinal_slip_ratio):
+		state.longitudinal_slip_ratio = slip_ratio
+	state.longitudinal_slip_intensity = maxf(
+		state.longitudinal_slip_intensity,
+		_tire_model.calculate_longitudinal_slip_intensity(
+			slip_ratio,
+			_config.longitudinal_peak_slip_ratio
+		)
+	)
+
+
+func _reset_longitudinal_slip(state: CarRuntimeState) -> void:
+	state.longitudinal_slip_ratio = 0.0
+	state.longitudinal_slip_intensity = 0.0
+
+
+func _update_combined_slip(state: CarRuntimeState) -> void:
+	state.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
+		state.lateral_slip_intensity,
+		state.longitudinal_slip_intensity
+	)
 
 
 func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
@@ -425,7 +492,7 @@ func _get_transmission_drive_acceleration(state: CarRuntimeState, throttle: floa
 	)
 	if _config.is_manual_transmission():
 		acceleration *= _clutch_model.get_transmitted_torque_factor(state.clutch_engagement)
-	return acceleration * _get_longitudinal_grip_factor(state)
+	return acceleration
 
 
 func _get_torque_converter_torque_multiplier(drive_input: float) -> float:
@@ -439,17 +506,4 @@ func _get_ground_contact_factor(state: CarRuntimeState) -> float:
 		float(state.ground_contact_count) / float(GroundContactModel.PROBE_COUNT),
 		0.0,
 		1.0
-	)
-
-
-func _get_longitudinal_grip_factor(state: CarRuntimeState) -> float:
-	var contact_factor: float = _get_ground_contact_factor(state)
-	if contact_factor <= 0.0:
-		return 0.0
-	return (
-		_tire_model.get_longitudinal_grip_factor(
-			state.tire_slip_intensity,
-			state.surface_grip_multiplier
-		)
-		* contact_factor
 	)

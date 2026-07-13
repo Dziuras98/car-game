@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_specs")
 display_name = "370Z NISMO 7AT (global)"
-brake_deceleration = 36.0
+brake_deceleration = 10.5
 reverse_acceleration = 12.0
 coast_deceleration = 5.2
 handbrake_deceleration = 18.5
@@ -54,6 +54,9 @@ front_lateral_grip = 11.0
 rear_lateral_grip = 11.6
 front_tire_width_m = 0.245
 rear_tire_width_m = 0.285
+longitudinal_grip_coefficient = 1.08
+longitudinal_peak_slip_ratio = 0.10
+longitudinal_slide_grip_multiplier = 0.84
 handbrake_lateral_grip_multiplier = 0.26
 steering_slip_gain = 0.90
 slip_speed_threshold = 2.35
