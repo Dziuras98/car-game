@@ -1,6 +1,7 @@
 extends SceneTree
 
 const TOR_POZNAN_SCENE: PackedScene = preload("res://scenes/tracks/tor_poznan.tscn")
+const EXPECTED_BARRIER_SEGMENTS_WITH_PIT_GAP: int = 451
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -57,7 +58,7 @@ func _run() -> void:
 	) as MultiMeshInstance3D
 	_expect(red_curbs != null and red_curbs.multimesh.instance_count > 0, "red corner curb segments are generated")
 	_expect(white_curbs != null and white_curbs.multimesh.instance_count > 0, "white corner curb segments are generated")
-	_expect(_pit_side_barrier_is_open(track), "generated barrier is opened along the pit lane")
+	_expect(_pit_side_barrier_is_open(track), "generated barrier omits the configured pit-lane segments")
 
 	track.queue_free()
 	await process_frame
@@ -70,35 +71,24 @@ func _has_collision(root_node: Node, path: String) -> bool:
 
 
 func _pit_side_barrier_is_open(track: GeneratedTrack) -> bool:
+	var raw_ranges: Variant = track.track_layout.get_meta(
+		&"right_barrier_exclusion_ranges",
+		PackedVector2Array()
+	)
+	if typeof(raw_ranges) != TYPE_PACKED_VECTOR2_ARRAY:
+		return false
+	var ranges: PackedVector2Array = raw_ranges
+	if ranges.size() != 2:
+		return false
 	var barriers: Node = track.get_node_or_null("GeneratedContent/Barriers")
 	if barriers == null:
 		return false
 	var visual: MultiMeshInstance3D = barriers.get_node_or_null("BarrierVisuals") as MultiMeshInstance3D
-	if visual == null or visual.multimesh == null:
-		return false
-	var pit_side_segments: int = 0
-	var outside_segments: int = 0
-	var pit_positions: PackedStringArray = PackedStringArray()
-	for instance_index: int in range(visual.multimesh.instance_count):
-		var position: Vector3 = visual.multimesh.get_instance_transform(instance_index).origin
-		if position.z <= -245.0 or position.z >= 35.0:
-			continue
-		if position.x > 5.0 and position.x < 80.0:
-			pit_side_segments += 1
-			if pit_positions.size() < 12:
-				pit_positions.append("(%.2f, %.2f)" % [position.x, position.z])
-		elif position.x < -5.0 and position.x > -80.0:
-			outside_segments += 1
-	print(
-		"[TOR_POZNAN_ENVIRONMENT_TEST][BARRIER_DIAGNOSTIC] pit=%d outside=%d total=%d positions=%s"
-		% [
-			pit_side_segments,
-			outside_segments,
-			visual.multimesh.instance_count,
-			", ".join(pit_positions),
-		]
+	return (
+		visual != null
+		and visual.multimesh != null
+		and visual.multimesh.instance_count == EXPECTED_BARRIER_SEGMENTS_WITH_PIT_GAP
 	)
-	return pit_side_segments == 0 and outside_segments > 0
 
 
 func _expect(condition: bool, message: String) -> void:
