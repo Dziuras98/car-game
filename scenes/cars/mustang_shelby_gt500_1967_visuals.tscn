@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://1967_ford_mustang_shelby_cobra_gt500.glb" id="1_model"]
+[ext_resource type="PackedScene" path="res://scenes/cars/mustang_shelby_gt500_1967_low_detail_visuals.tscn" id="2_low_detail"]
+
+[node name="MustangShelbyGT5001967Visuals" type="Node3D"]
+metadata/_source_url = "https://sketchfab.com/3d-models/1967-ford-mustang-shelby-cobra-gt500-e310cc7537bf4d1aa644a2c233a5fec6"
+metadata/_integration_phase = "visual_foundation"
+
+[node name="ModelAlignment" type="Node3D" parent="."]
+
+[node name="DetailedModel" parent="ModelAlignment" instance=ExtResource("1_model")]
+
+[node name="LowDetail" parent="." instance=ExtResource("2_low_detail")]
+visible = false
