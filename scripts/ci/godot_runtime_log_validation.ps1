@@ -10,6 +10,9 @@ $script:GodotRuntimeWarningPatterns = @(
     '^\s*WARNING:',
     '^\s*W\s+\d+:\d{2}:\d{2}(?::\d+)?\s+'
 )
+$script:GodotGloballyAllowedWarningPatterns = @(
+    '^WARNING: Material uses a specular and glossiness workflow\. Textures will be converted to roughness and metallic workflow, which may not be 100% accurate\.$'
+)
 
 function Get-GodotRuntimeLinesMatchingPatterns {
     param(
@@ -75,7 +78,7 @@ function Test-GodotRuntimeWarningAllowed {
         [string[]]$AllowedWarningPatterns = @()
     )
 
-    foreach ($pattern in $AllowedWarningPatterns) {
+    foreach ($pattern in ($script:GodotGloballyAllowedWarningPatterns + $AllowedWarningPatterns)) {
         if ($WarningLine -match $pattern) {
             return $true
         }
