@@ -19,7 +19,7 @@ The repository currently provides:
 - surface-dependent grip and a friction-circle longitudinal-force budget;
 - generated track surfaces, collision, barriers, markers, checkpoints and stadium decoration;
 - ordered checkpoint validation and continuous race-position progress;
-- AI opponents that consume the typed generated-track contract;
+- AI opponents that consume the typed generated-track contract and operate both manual and automatic geared transmissions;
 - speedometer, tachometer, minimap, countdown, lap/position HUD, results and pause UI;
 - Polish and English localization resources with explicit startup loading;
 - keyboard and gamepad player input plus a separate external AI input channel;
@@ -94,7 +94,7 @@ Important paths:
 
 `CarCatalog.validate()` is the authoritative content boundary. It enforces globally unique model/variant IDs and delegates model, variant and specification validation. `CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The standard and NISMO base scenes contain visual, collision and audio structure only and do not serialize variant tuning values.
 
-`CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. Manual variants remain player-selectable and are never used as an implicit opponent fallback.
+`CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. Eligible manual and automatic variants must provide a dedicated AI scene. Manual opponents use one-shot external shift requests, RPM hysteresis and explicit neutral/reverse transitions during recovery.
 
 ### Tracks
 
