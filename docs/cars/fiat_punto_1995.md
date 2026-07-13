@@ -14,25 +14,21 @@ The imported mesh represents a GT. It can provide the common Type 176 body shell
 
 This integration is deliberately limited to standard-geared hatchback variants. Body-code-dependent long-ratio five-speed versions, including the Punto 55 ED calibration, are outside the runtime scope. The dedicated Punto 55 six-speed and Punto 60 Selecta ECVT remain in scope because they are separate factory transmission types rather than long-ratio derivatives.
 
-## 1995 engine calibrations
+## Selected 1995 engine calibrations
 
 | Commercial version | Engine code | Displacement | Aspiration / fuel | Output | Peak torque | 1995 status |
 |---|---|---:|---|---:|---:|---|
 | Punto 55 | `176A6.000` | 1,108 cc | naturally aspirated petrol | 40 kW / 54 PS at 5,500 RPM | 85 Nm at 3,500 RPM | full year |
-| Punto 60, early | `176A7.000` | 1,242 cc | naturally aspirated petrol | 43 kW / 58 PS at 5,500 RPM | 96 Nm at 3,000 RPM | through approximately June 1995 |
-| Punto 60, late | `176B4.000` | 1,242 cc | naturally aspirated petrol | 44 kW / 60 PS at 5,500 RPM | 96 Nm at 3,000 RPM | from approximately June 1995 |
+| Punto 60 | `176A7.000` | 1,242 cc | naturally aspirated petrol | 43 kW / 58 PS at 5,500 RPM | 96 Nm at 3,000 RPM | selected 1995 calibration |
 | Punto 75 | `176A8.000` | 1,242 cc | naturally aspirated petrol | 54 kW / 73 PS at 6,000 RPM | 106 Nm at 4,000 RPM | full year |
 | Punto 90 | `176A9.000` | 1,581 cc | naturally aspirated petrol | 65 kW / 88 PS at 5,750 RPM | 127 Nm at 2,750 RPM | full year |
 | Punto GT | `176A4.000` | 1,372 cc | turbocharged petrol | 98 kW / 133 PS at 5,750 RPM | 204 Nm at 3,000 RPM | full year; GT1 and GT2 share this calibration |
 | Punto D | `176B3.000` | 1,698 cc | naturally aspirated diesel | 42 kW / 57 PS at 4,500 RPM | 98 Nm at 2,500 RPM | full year |
-| Punto TD 70, no oxidation catalyst | `176A5.000` | 1,698 cc | turbo-diesel | 52 kW / 71 PS at 4,500 RPM | 134 Nm at 2,500 RPM | market-dependent, full year |
-| Punto TD 70, oxidation catalyst | `176A3.000` | 1,698 cc | turbo-diesel | 51 kW / 69 PS at 4,500 RPM | 134 Nm at 2,500 RPM | market-dependent, available in 1995 |
-
-The commercial name `Punto 60` hides a mid-1995 engine-code and output transition. The early and late calibrations remain separate because their published maximum power differs.
+| Punto TD 70 | `176A5.000` | 1,698 cc | turbo-diesel | 52 kW / 71 PS at 4,500 RPM | 134 Nm at 2,500 RPM | selected 1995 calibration |
 
 ## Engine torque and power curves
 
-Nine sampled `EngineTorqueCurve` resources are stored in:
+Seven sampled `EngineTorqueCurve` resources are stored in:
 
 ```text
 resources/cars/fiat/punto_176_1995/specs/
@@ -42,13 +38,11 @@ resources/cars/fiat/punto_176_1995/specs/
 |---|---|
 | `176A6.000` | `176a6_1108_fire_torque_curve.tres` |
 | `176A7.000` | `176a7_1242_fire_spi_torque_curve.tres` |
-| `176B4.000` | `176b4_1242_fire_spi_torque_curve.tres` |
 | `176A8.000` | `176a8_1242_fire_mpi_torque_curve.tres` |
 | `176A9.000` | `176a9_1581_sohc_mpi_torque_curve.tres` |
 | `176A4.000` | `176a4_1372_turbo_torque_curve.tres` |
 | `176B3.000` | `176b3_1698_d_torque_curve.tres` |
 | `176A5.000` | `176a5_1698_td_torque_curve.tres` |
-| `176A3.000` | `176a3_1698_td_cat_torque_curve.tres` |
 
 No complete, unambiguously identified Fiat factory dynamometer trace was located for any of these exact engine codes. The resources are therefore constrained reconstructions, not digitized factory graphs.
 
@@ -61,9 +55,9 @@ Each curve follows these rules:
 5. torque and power fall after the published power peak;
 6. all values represent crankshaft output before driveline losses.
 
-The early and late Punto 60 curves share their low- and mid-range character, while `176B4.000` retains enough upper-range torque to produce 44 rather than 43 kW. The two TD curves share 134 Nm at 2,500 RPM, while the oxidation-catalyst version loses upper-range torque to produce 51 rather than 52 kW at 4,500 RPM. The GT curve represents progressive boost build-up toward the published 204 Nm point but does not model transient boost pressure or overboost duration as separate state.
+The GT curve represents progressive boost build-up toward the published 204 Nm point but does not model transient boost pressure or overboost duration as separate state.
 
-Detailed methodology is documented in `resources/cars/fiat/punto_176_1995/specs/README.md`. `scripts/tests/fiat_punto_engine_curves_test.gd` validates all nine resources and scans every integer RPM in each stored range for hidden interpolation overshoot.
+Detailed methodology is documented in `resources/cars/fiat/punto_176_1995/specs/README.md`. `scripts/tests/fiat_punto_engine_curves_test.gd` validates all seven resources and scans every integer RPM in each stored range for hidden interpolation overshoot.
 
 ## Standard hardtop gearboxes
 
@@ -111,17 +105,14 @@ The conflict affects third and fifth gear. Neither pair is authoritative until t
 | `fiat_punto_176_1995_55_5mt` | 1.1 `176A6.000` | standard 5MT, FD `3.866` | curve and provisional ratio set available |
 | `fiat_punto_176_1995_55_6mt` | 1.1 `176A6.000` | 6MT, FD `4.923` | curve and provisional ratio set available |
 | `fiat_punto_176_1995_60_a7_5mt` | 1.2 `176A7.000` | standard 5MT, FD `3.563` | curve and provisional ratio set available |
-| `fiat_punto_176_1995_60_b4_5mt` | 1.2 `176B4.000` | standard 5MT, FD `3.563` | curve and provisional ratio set available |
 | `fiat_punto_176_1995_60_a7_ecvt` | 1.2 `176A7.000` | Selecta ECVT | engine curve available; CVT model and pairing evidence required |
-| `fiat_punto_176_1995_60_b4_ecvt` | 1.2 `176B4.000` | Selecta ECVT | engine curve available; CVT model and pairing evidence required |
 | `fiat_punto_176_1995_75_5mt` | 1.2 `176A8.000` | standard 5MT, FD `3.733` | curve and provisional ratio set available |
 | `fiat_punto_176_1995_90_5mt` | 1.6 `176A9.000` | standard 5MT, FD `3.563` | curve and provisional ratio set available |
 | `fiat_punto_176_1995_gt_5mt` | 1.4 turbo `176A4.000` | GT 5MT, provisional FD `3.353` | engine curve available; gearbox conflict unresolved |
 | `fiat_punto_176_1995_d_5mt` | 1.7 diesel `176B3.000` | standard 5MT | engine curve available; gearbox unresolved |
 | `fiat_punto_176_1995_td70_5mt` | 1.7 TD `176A5.000` | TD 5MT, FD `3.733` | curve and provisional ratio set available |
-| `fiat_punto_176_1995_td70_cat_5mt` | 1.7 TD `176A3.000` | TD 5MT, FD `3.733` | curve and provisional ratio set available; market applicability unresolved |
 
-The table contains 12 reserved standard-scope candidates. The two Selecta IDs remain provisional because available summaries do not conclusively establish which 1.2 engine code was paired with the ECVT around the June 1995 transition.
+The table contains nine reserved standard-scope candidates.
 
 ## Punto 60 Selecta ECVT
 
@@ -136,7 +127,7 @@ Faithful integration requires a dedicated CVT model covering at least:
 - ratio-change response and efficiency;
 - reverse implementation.
 
-Until that model exists, Selecta variants must remain catalog-ineligible.
+Until that model exists, Selecta must remain catalog-ineligible.
 
 ## 1995 GT visual split
 
@@ -160,11 +151,11 @@ Before final playable `CarSpecs` resources are accepted, resolve or corroborate:
 2. the correct GT third and fifth ratios;
 3. Punto D gearbox ratios and final drive;
 4. Selecta ECVT ratio range, final drive and control behavior;
-5. which Punto 60 engine calibration was paired with Selecta during each 1995 production phase;
+5. confirmation that the selected Punto 60 calibration was paired with Selecta in the relevant 1995 production period;
 6. idle, redline and limiter behavior for every engine;
 7. curb mass, tyres, wheel radius, drag coefficient and frontal area by version;
 8. period performance targets for deterministic regression;
-9. market applicability of both TD 70 calibrations;
+9. market applicability of the selected TD 70 calibration;
 10. any identified factory or period dynamometer traces that can replace reconstructed intermediate curve samples.
 
 No reconstructed value may be relabelled as measured factory data.
