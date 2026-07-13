@@ -63,6 +63,7 @@ function Assert-Contains {
     }
 }
 
+
 function Assert-PathDoesNotExist {
     param([Parameter(Mandatory = $true)][string]$RelativePath)
     $path = Join-Path $projectRoot $RelativePath
@@ -150,7 +151,7 @@ Assert-Contains "scripts/game/game_manager.gd" @(
     'Callable(self, "_reset_session_start_runtime")',
     'Callable(self, "_stage_track")',
     'Callable(self, "_commit_staged_track")',
-    'Callable(self, "_finalize_track_commit")'
+    'Callable(self, "_finalize_staged_track_commit")'
 )
 Assert-DoesNotContain "scripts/ui/main_menu.gd" @('"free_drive"', '"race"', "str(track_option.track_id)")
 Assert-Contains "scripts/ui/main_menu.gd" @(
