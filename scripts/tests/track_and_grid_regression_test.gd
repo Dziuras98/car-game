@@ -37,6 +37,7 @@ func _test_symmetric_opponent_layout() -> void:
 	)
 
 	var marker: Node3D = Node3D.new()
+	root.add_child(marker)
 	marker.global_transform = Transform3D(Basis(Vector3.UP, 0.37), Vector3(15.0, 2.0, -8.0))
 	var inverse: Transform3D = marker.global_transform.affine_inverse()
 	var left_local: Vector3 = inverse * layout.get_spawn_transform(marker, 0).origin
