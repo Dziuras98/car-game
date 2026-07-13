@@ -78,14 +78,26 @@ func _pit_side_barrier_is_open(track: GeneratedTrack) -> bool:
 		return false
 	var pit_side_segments: int = 0
 	var outside_segments: int = 0
+	var pit_positions: PackedStringArray = PackedStringArray()
 	for instance_index: int in range(visual.multimesh.instance_count):
 		var position: Vector3 = visual.multimesh.get_instance_transform(instance_index).origin
 		if position.z <= -245.0 or position.z >= 35.0:
 			continue
 		if position.x > 5.0 and position.x < 80.0:
 			pit_side_segments += 1
+			if pit_positions.size() < 12:
+				pit_positions.append("(%.2f, %.2f)" % [position.x, position.z])
 		elif position.x < -5.0 and position.x > -80.0:
 			outside_segments += 1
+	print(
+		"[TOR_POZNAN_ENVIRONMENT_TEST][BARRIER_DIAGNOSTIC] pit=%d outside=%d total=%d positions=%s"
+		% [
+			pit_side_segments,
+			outside_segments,
+			visual.multimesh.instance_count,
+			", ".join(pit_positions),
+		]
+	)
 	return pit_side_segments == 0 and outside_segments > 0
 
 
