@@ -63,7 +63,6 @@ function Assert-Contains {
     }
 }
 
-
 function Assert-PathDoesNotExist {
     param([Parameter(Mandatory = $true)][string]$RelativePath)
     $path = Join-Path $projectRoot $RelativePath
@@ -151,7 +150,7 @@ Assert-Contains "scripts/game/game_manager.gd" @(
     'Callable(self, "_reset_session_start_runtime")',
     'Callable(self, "_stage_track")',
     'Callable(self, "_commit_staged_track")',
-    'Callable(self, "_finalize_staged_track_commit")'
+    'Callable(self, "_finalize_track_commit")'
 )
 Assert-DoesNotContain "scripts/ui/main_menu.gd" @('"free_drive"', '"race"', "str(track_option.track_id)")
 Assert-Contains "scripts/ui/main_menu.gd" @(
@@ -395,7 +394,7 @@ Assert-DoesNotMatch ".github/workflows/windows-tests.yml" @('uses:\s+actions/(ch
 Assert-Contains ".github/workflows/windows-tests.yml" @(
     "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
     "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
-    "actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8",
+    "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
     "fetch-depth: 0",
     "persist-credentials: false",
     "Get-FileHash -LiteralPath `$archivePath -Algorithm SHA512",
