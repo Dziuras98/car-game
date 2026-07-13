@@ -1,10 +1,10 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
-[ext_resource type="Script" path="res://scripts/car/baked_engine_audio_player.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/profiled_engine_audio.gd" id="2_engine_audio"]
 [ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
 [ext_resource type="PackedScene" path="res://scenes/cars/370z_nismo_visuals.tscn" id="4_visuals"]
-[ext_resource type="Resource" path="res://assets/audio/engine/370z_nismo/bank.tres" id="5_audio_bank"]
+[ext_resource type="Resource" path="res://resources/audio/370z_nismo_audio_profile.tres" id="5_audio_profile"]
 
 [sub_resource type="BoxShape3D" id="CabinCollision"]
 size = Vector3(1.92, 1.30, 2.30)
@@ -35,9 +35,9 @@ shape = SubResource("RearCollision")
 
 [node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
 script = ExtResource("2_engine_audio")
-bank = ExtResource("5_audio_bank")
-unit_size = 6.0
-max_distance = 70.0
+profile = ExtResource("5_audio_profile")
+cylinders = 6
+force_full_runtime_generation = true
 
 [node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
 script = ExtResource("3_tire_squeal")

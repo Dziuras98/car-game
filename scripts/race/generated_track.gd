@@ -31,6 +31,7 @@ var _rebuild_pending: bool = false
 var _runtime_rebuild_locked: bool = false
 var _queued_rebuild_while_locked: bool = false
 var _has_generation_signature: bool = false
+var _has_committed_generation: bool = false
 var _last_generation_signature: int = 0
 var _rebuild_count: int = 0
 
@@ -119,6 +120,7 @@ func _rebuild_track(force: bool = false) -> bool:
 	_checkpoint_gates = next_checkpoint_gates
 	_last_generation_signature = generation_signature
 	_has_generation_signature = true
+	_has_committed_generation = true
 	_rebuild_count += 1
 	geometry_rebuilt.emit(_rebuild_count)
 	return true
@@ -153,12 +155,7 @@ func get_rebuild_count() -> int:
 
 
 func has_committed_generation() -> bool:
-	return (
-		_is_geometry_valid(_geometry)
-		and _rebuild_count > 0
-		and get_node_or_null(TrackGeneratedContentRoot.GENERATED_CONTENT_NAME) is Node3D
-		and get_checkpoint_gate_count() == get_checkpoint_count() + 1
-	)
+	return _has_committed_generation
 
 
 func set_runtime_rebuild_locked(locked: bool) -> void:
