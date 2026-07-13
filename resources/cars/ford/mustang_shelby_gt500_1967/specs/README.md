@@ -1,8 +1,8 @@
-# 1967 Shelby G.T. 500 specs plan
+# 1967 Shelby G.T. 500 runtime specifications
 
-This directory will contain the authoritative runtime tuning for the two production powertrain variants.
+This directory contains the runtime tuning for both normal-production transmission variants.
 
-## Planned resources
+## Resources
 
 ```text
 gt500_428_pi_torque_curve.tres
@@ -12,29 +12,21 @@ gt500_428_3at_specs.tres
 
 ## Shared engine boundary
 
-Both production variants use the same naturally aspirated 428 FE Police Interceptor-based V8 with an aluminum mid-rise intake and two 600 CFM Holley four-barrel carburetors.
+Both variants use the same naturally aspirated 428 FE Police Interceptor-based V8 with an aluminum mid-rise intake and two 600 CFM Holley four-barrel carburetors.
 
-Published reference points retained for future curve reconstruction:
+The sampled curve is constrained to:
 
-- advertised maximum power: 355 bhp at 5,400 RPM;
-- advertised maximum torque: 420 lb-ft / approximately 569 Nm at 3,200 RPM;
-- advertised compression ratio: 10.5:1.
+- 420 lb-ft / 569.44 Nm at 3,200 RPM;
+- 355 bhp / approximately 264.7 kW at 5,400 RPM;
+- declining torque after the power peak;
+- one shared resource for both transmissions.
 
-These peak values do not define a complete torque curve. The `.tres` curve must not be created by holding peak torque across the operating range or by substituting a 1968 Cobra Jet curve.
+Only the two published peak anchors are exact historical points. Intermediate samples are a documented reconstruction and must be revised if an identified factory or period dynamometer trace becomes available.
 
-## Transmission separation
+## Variant separation
 
-`gt500_428_4mt_specs.tres` is reserved for the four-speed Ford manual configuration.
+`gt500_428_4mt_specs.tres` contains the close-ratio Toploader, 3.89 rear axle, manual shift interruption, manual driveline efficiency and period-tyre launch ceiling.
 
-`gt500_428_3at_specs.tres` is reserved for the three-speed Ford C6 SelectShift Cruise-O-Matic configuration.
+`gt500_428_3at_specs.tres` contains the C6 ratios, 3.50 rear axle, converter model, automatic shift schedule, automatic driveline efficiency and slower launch ceiling.
 
-The specs must remain separate for:
-
-- forward and reverse ratios;
-- final-drive ratio;
-- shift interruption and automatic shift logic;
-- torque-converter behavior;
-- transmission and driveline losses;
-- any verified transmission-dependent mass.
-
-Do not create the runtime resources until exact application-specific gearbox and axle data are supported by an authoritative source.
+Engine output must not be reduced to tune acceleration. Straight-line performance is calibrated through mass, verified gearing, driveline losses, converter behavior, resistance and `max_drive_acceleration`.
