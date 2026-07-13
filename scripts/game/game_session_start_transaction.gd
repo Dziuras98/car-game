@@ -7,6 +7,7 @@ signal progress_changed(progress: float, stage: ProgressStage)
 enum Result {
 	OK,
 	NOT_CONFIGURED,
+	ALREADY_RUNNING,
 	UNSUPPORTED_MODE,
 	UNAVAILABLE_CAR_VARIANT,
 	UNAVAILABLE_TRACK,
@@ -43,6 +44,7 @@ var _start_race: Callable
 var _commit_track: Callable
 var _finalize_track_commit: Callable
 var _configured: bool = false
+var _execution_in_progress: bool = false
 
 
 func configure(
@@ -58,6 +60,9 @@ func configure(
 	finalize_track_commit: Callable
 ) -> bool:
 	_configured = false
+	if _execution_in_progress:
+		push_error("GameSessionStartTransaction cannot be reconfigured while executing.")
+		return false
 	if session_state == null or car_selection_state == null or track_catalog == null:
 		push_error("GameSessionStartTransaction requires session, car-selection and track-catalog state.")
 		return false
@@ -91,6 +96,10 @@ func is_configured() -> bool:
 	return _configured
 
 
+func is_execution_in_progress() -> bool:
+	return _execution_in_progress
+
+
 func execute(
 	mode_id: StringName,
 	track_id: StringName,
@@ -99,6 +108,8 @@ func execute(
 ) -> Result:
 	if not _configured:
 		return Result.NOT_CONFIGURED
+	if _execution_in_progress:
+		return Result.ALREADY_RUNNING
 	if not GameModes.is_supported(mode_id):
 		return Result.UNSUPPORTED_MODE
 
@@ -109,9 +120,11 @@ func execute(
 	if selected_track == null:
 		return Result.UNAVAILABLE_TRACK
 
+	_execution_in_progress = true
 	_report_progress(0.08, ProgressStage.VALIDATING)
 	await _yield_process_frame()
 	if not GameSessionState.is_success(_session_state.begin_start()):
+		_execution_in_progress = false
 		return Result.SESSION_BEGIN_REJECTED
 
 	_report_progress(0.16, ProgressStage.CLEARING_RUNTIME)
@@ -156,6 +169,7 @@ func execute(
 		return _fail(Result.SESSION_COMMIT_REJECTED)
 	_finalize_track_commit.call()
 	_report_progress(1.0, ProgressStage.COMPLETE)
+	_execution_in_progress = false
 	return Result.OK
 
 
@@ -163,6 +177,8 @@ static func get_failure_message(result: Result) -> String:
 	match result:
 		Result.NOT_CONFIGURED:
 			return "Session-start transaction is not configured."
+		Result.ALREADY_RUNNING:
+			return "A session-start transaction is already running."
 		Result.UNSUPPORTED_MODE:
 			return "Menu emitted an unsupported gameplay mode."
 		Result.UNAVAILABLE_CAR_VARIANT:
@@ -202,4 +218,5 @@ func _fail(result: Result) -> Result:
 		_reset_runtime.call()
 	if _session_state != null:
 		_session_state.reset()
+	_execution_in_progress = false
 	return result
