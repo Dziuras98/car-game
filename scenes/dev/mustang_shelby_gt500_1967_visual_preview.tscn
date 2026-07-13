@@ -1,0 +1,49 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/dev/car_model_visual_preview.gd" id="1_preview"]
+[ext_resource type="PackedScene" path="res://scenes/cars/mustang_shelby_gt500_1967_visuals.tscn" id="2_visuals"]
+
+[sub_resource type="Environment" id="PreviewEnvironment"]
+background_mode = 1
+background_color = Color(0.055, 0.065, 0.08, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.72, 0.76, 0.84, 1)
+ambient_light_energy = 0.65
+reflected_light_source = 2
+
+[sub_resource type="StandardMaterial3D" id="GroundMaterial"]
+albedo_color = Color(0.13, 0.14, 0.16, 1)
+metallic = 0.05
+roughness = 0.88
+
+[sub_resource type="PlaneMesh" id="GroundMesh"]
+material = SubResource("GroundMaterial")
+size = Vector2(20, 20)
+subdivide_width = 1
+subdivide_depth = 1
+
+[node name="MustangShelbyGT5001967VisualPreview" type="Node3D"]
+script = ExtResource("1_preview")
+
+[node name="VehicleVisual" parent="." instance=ExtResource("2_visuals")]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("PreviewEnvironment")
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -32, 0)
+light_energy = 2.4
+shadow_enabled = true
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-24, 148, 0)
+light_color = Color(0.62, 0.7, 0.88, 1)
+light_energy = 0.85
+shadow_enabled = false
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("GroundMesh")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+fov = 52.0

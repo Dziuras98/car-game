@@ -1,0 +1,76 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_specs.gd" id="1_specs"]
+[ext_resource type="Resource" path="res://resources/cars/ford/mustang_shelby_gt500_1967/specs/gt500_428_pi_torque_curve.tres" id="2_curve"]
+
+[resource]
+script = ExtResource("1_specs")
+display_name = "Shelby G.T. 500 428 C6 automatic"
+brake_deceleration = 9.2
+reverse_acceleration = 6.0
+coast_deceleration = 0.42
+handbrake_deceleration = 7.5
+max_forward_speed = 57.2
+max_reverse_speed = 12.0
+steering_speed = 1.8
+wheel_base = 2.7432
+front_axle_track_width = 1.4732
+rear_axle_track_width = 1.4732
+max_steering_angle_degrees = 30.0
+idle_rpm = 700.0
+peak_torque_rpm = 3200.0
+power_peak_rpm = 5400.0
+redline_rpm = 5800.0
+rev_limiter_rpm = 6000.0
+torque_curve = ExtResource("2_curve")
+low_rpm_torque_multiplier = 0.595238
+mid_rpm_torque_multiplier = 0.97619
+redline_torque_multiplier = 0.714286
+engine_force = 30.0
+engine_brake_force = 2.3
+rpm_response = 4.0
+transmission_type = 2
+gear_ratios = Array[float]([2.46, 1.46, 1.0])
+reverse_gear_ratio = 2.18
+final_drive_ratio = 3.5
+peak_engine_torque = 569.4435
+wheel_radius = 0.345
+drivetrain_efficiency = 0.74
+shift_delay = 0.40
+max_drive_acceleration = 4.4
+automatic_upshift_rpm = 5200.0
+automatic_downshift_rpm = 1200.0
+automatic_kickdown_throttle = 0.65
+automatic_kickdown_rpm = 3600.0
+automatic_shift_delay = 0.42
+torque_converter_stall_rpm = 1800.0
+torque_converter_coupling_rpm = 3200.0
+torque_converter_stall_torque_multiplier = 1.45
+vehicle_mass = 1600.0
+drag_coefficient = 0.46
+frontal_area = 2.05
+air_density = 1.225
+rolling_resistance_coefficient = 0.018
+front_lateral_grip = 7.3
+rear_lateral_grip = 6.9
+front_tire_width_m = 0.195
+rear_tire_width_m = 0.195
+handbrake_lateral_grip_multiplier = 0.24
+steering_slip_gain = 1.05
+slip_speed_threshold = 1.75
+slip_steering_lock_threshold = 0.48
+slip_steering_same_direction_multiplier = 0.10
+skid_mark_min_slip = 0.34
+skid_mark_interval = 0.05
+skid_mark_lifetime = 10.0
+skid_mark_width = 0.20
+skid_mark_length = 0.82
+gravity = 30.0
+floor_stick_force = 0.45
+suspension_probe_height = 0.44
+suspension_rest_length = 0.30
+suspension_travel = 0.21
+suspension_stiffness = 28.0
+suspension_damping = 4.3
+ground_probe_collision_mask = 1
+minimum_ground_normal_dot = 0.35

@@ -1,8 +1,6 @@
 extends EngineAudioSynthesizer
 class_name ProfiledEngineAudioSynthesizer
 
-const SUPPORTED_CYLINDER_COUNT: int = 6
-
 @export var profile: EngineAudioProfile
 @export var force_full_runtime_generation: bool = false
 
@@ -20,7 +18,7 @@ func should_generate_procedural_audio(delta: float) -> bool:
 
 
 func _ready() -> void:
-	cylinders = SUPPORTED_CYLINDER_COUNT
+	cylinders = clampi(cylinders, 4, 12)
 	if profile != null and not profile.apply_to(self):
 		set_process(false)
 		return

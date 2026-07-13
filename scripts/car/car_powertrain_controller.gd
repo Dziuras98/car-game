@@ -342,6 +342,11 @@ func _get_transmission_drive_acceleration(state: CarRuntimeState, throttle: floa
 		get_rev_limiter_multiplier(),
 		_get_torque_converter_torque_multiplier(throttle)
 	)
+	acceleration = clampf(
+		acceleration,
+		-_config.max_drive_acceleration,
+		_config.max_drive_acceleration
+	)
 	if _config.is_manual_transmission():
 		acceleration *= _clutch_model.get_transmitted_torque_factor(state.clutch_engagement)
 	return acceleration * _get_longitudinal_grip_factor(state)

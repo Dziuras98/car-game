@@ -114,6 +114,12 @@ msgstr "370Z NISMO manual (EU)"
 msgid "370Z NISMO automat (global)"
 msgstr "370Z NISMO automatic (global)"
 
+msgid "428 V8 4-speed manual"
+msgstr "428 V8 4-speed manual"
+
+msgid "428 V8 C6 automatic"
+msgstr "428 V8 C6 automatic"
+
 msgid "Pauza"
 msgstr "Paused"
 

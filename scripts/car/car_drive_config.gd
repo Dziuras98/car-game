@@ -1,6 +1,7 @@
 extends RefCounted
 class_name CarDriveConfig
 
+
 var brake_deceleration: float = 34.0
 var reverse_acceleration: float = 12.0
 var coast_deceleration: float = 5.0
@@ -34,6 +35,7 @@ var peak_engine_torque: float = 420.0
 var wheel_radius: float = 0.34
 var drivetrain_efficiency: float = 0.85
 var shift_delay: float = 0.28
+var max_drive_acceleration: float = 100.0
 
 var automatic_upshift_rpm: float = 6200.0
 var automatic_downshift_rpm: float = 2100.0
@@ -114,6 +116,7 @@ func sanitize() -> void:
 	vehicle_mass = maxf(vehicle_mass, 1.0)
 	wheel_radius = maxf(wheel_radius, 0.01)
 	drivetrain_efficiency = clampf(drivetrain_efficiency, 0.0001, 1.0)
+	max_drive_acceleration = maxf(max_drive_acceleration, 0.01)
 	front_lateral_grip = maxf(front_lateral_grip, 0.01)
 	rear_lateral_grip = maxf(rear_lateral_grip, 0.01)
 	front_tire_width_m = maxf(front_tire_width_m, 0.01)

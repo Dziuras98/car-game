@@ -49,6 +49,7 @@ enum TransmissionType {
 @export var wheel_radius: float = 0.34
 @export var drivetrain_efficiency: float = 0.85
 @export var shift_delay: float = 0.28
+@export var max_drive_acceleration: float = 100.0
 
 @export_group("Automatic Transmission")
 @export var automatic_upshift_rpm: float = 6200.0
@@ -167,6 +168,7 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "wheel_radius", wheel_radius)
 	_append_range(errors, "drivetrain_efficiency", drivetrain_efficiency, 0.0001, 1.0)
 	_append_non_negative(errors, "shift_delay", shift_delay)
+	_append_positive(errors, "max_drive_acceleration", max_drive_acceleration)
 
 	if uses_geared_transmission() and not gear_ratios.is_empty():
 		var highest_gear_ratio: float = gear_ratios[gear_ratios.size() - 1]
@@ -196,7 +198,7 @@ func validate() -> PackedStringArray:
 		if torque_converter_coupling_rpm < torque_converter_stall_rpm:
 			errors.append("torque_converter_coupling_rpm must be at or above stall RPM")
 		if torque_converter_coupling_rpm > redline_rpm:
-			errors.append("torque_converter_coupling_rpm must not exceed redline_rpm")
+			errors.append("torque_converter_coupling_rpm must not exceed redline RPM")
 		_append_range(errors, "torque_converter_stall_torque_multiplier", torque_converter_stall_torque_multiplier, 1.0, 5.0)
 
 	_append_positive(errors, "vehicle_mass", vehicle_mass)

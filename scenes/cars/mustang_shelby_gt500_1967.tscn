@@ -1,0 +1,46 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/car/profiled_engine_audio.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
+[ext_resource type="PackedScene" path="res://scenes/cars/mustang_shelby_gt500_1967_visuals.tscn" id="4_visuals"]
+[ext_resource type="Resource" path="res://resources/audio/ford_428_fe_audio_profile.tres" id="5_audio_profile"]
+
+[sub_resource type="BoxShape3D" id="CabinCollision"]
+size = Vector3(1.72, 1.30, 2.15)
+
+[sub_resource type="BoxShape3D" id="FrontCollision"]
+size = Vector3(1.80, 0.72, 1.60)
+
+[sub_resource type="BoxShape3D" id="RearCollision"]
+size = Vector3(1.78, 0.78, 1.42)
+
+[node name="MustangShelbyGT5001967" type="CharacterBody3D"]
+floor_snap_length = 0.0
+script = ExtResource("1_controller")
+
+[node name="CollisionCabin" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.67, 0.25)
+shape = SubResource("CabinCollision")
+
+[node name="CollisionFront" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.38, -1.58)
+shape = SubResource("FrontCollision")
+
+[node name="CollisionRear" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.42, 1.73)
+shape = SubResource("RearCollision")
+
+[node name="VisualRoot" parent="." instance=ExtResource("4_visuals")]
+
+[node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("2_engine_audio")
+profile = ExtResource("5_audio_profile")
+cylinders = 8
+force_full_runtime_generation = true
+unit_size = 7.0
+max_distance = 85.0
+
+[node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("3_tire_squeal")
+loud_volume_db = -7.0
