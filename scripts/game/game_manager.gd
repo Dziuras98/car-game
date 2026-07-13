@@ -321,7 +321,7 @@ func _configure_runtime_for_session_track() -> bool:
 
 func _configure_session_start_transaction() -> bool:
 	_session_start_transaction = GameSessionStartTransaction.new()
-	return _session_start_transaction.configure(
+	var configured: bool = _session_start_transaction.configure(
 		_session_state,
 		_car_selection_state,
 		track_catalog,
@@ -333,6 +333,9 @@ func _configure_session_start_transaction() -> bool:
 		Callable(self, "_commit_staged_track"),
 		Callable(self, "_finalize_staged_track_commit")
 	)
+	if configured:
+		_session_start_transaction.progress_changed.connect(_on_session_start_progress)
+	return configured
 
 
 func _switch_to_next_car() -> void:
@@ -366,7 +369,7 @@ func _on_menu_selection_completed(
 	if _session_start_transaction == null:
 		_reset_to_main_menu("Session-start transaction is unavailable.")
 		return
-	var result: GameSessionStartTransaction.Result = _session_start_transaction.execute(
+	var result: GameSessionStartTransaction.Result = await _session_start_transaction.execute(
 		mode_id,
 		track_id,
 		car_variant_id,
@@ -377,6 +380,7 @@ func _on_menu_selection_completed(
 		return
 	if _session_state.is_free_drive():
 		_race_session.hide_lap_ui()
+	_menu.complete_loading(true)
 
 
 func _handle_session_start_failure(result: GameSessionStartTransaction.Result) -> void:
@@ -386,9 +390,34 @@ func _handle_session_start_failure(result: GameSessionStartTransaction.Result) -
 		return
 	if not message.is_empty():
 		push_error(message)
-	if result == GameSessionStartTransaction.Result.SESSION_BEGIN_REJECTED:
+	_menu.complete_loading(false)
+
+
+func _on_session_start_progress(
+	progress: float,
+	stage: GameSessionStartTransaction.ProgressStage
+) -> void:
+	if _menu == null:
 		return
-	_menu.reset_menu()
+	var status_text: String = ""
+	match stage:
+		GameSessionStartTransaction.ProgressStage.VALIDATING:
+			status_text = tr("Sprawdzanie konfiguracji")
+		GameSessionStartTransaction.ProgressStage.CLEARING_RUNTIME:
+			status_text = tr("Przygotowywanie sesji")
+		GameSessionStartTransaction.ProgressStage.PREPARING_TRACK:
+			status_text = tr("Przygotowywanie toru")
+		GameSessionStartTransaction.ProgressStage.CONFIGURING_RUNTIME:
+			status_text = tr("Konfigurowanie symulacji")
+		GameSessionStartTransaction.ProgressStage.SPAWNING_PLAYER:
+			status_text = tr("Tworzenie samochodu")
+		GameSessionStartTransaction.ProgressStage.STARTING_RACE:
+			status_text = tr("Przygotowywanie przeciwników")
+		GameSessionStartTransaction.ProgressStage.FINALIZING:
+			status_text = tr("Finalizowanie sesji")
+		GameSessionStartTransaction.ProgressStage.COMPLETE:
+			status_text = tr("Gotowe")
+	_menu.set_loading_progress(progress, status_text)
 
 
 func _spawn_car(car_index: int, spawn_global_transform: Transform3D) -> bool:
