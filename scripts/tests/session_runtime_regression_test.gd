@@ -14,23 +14,31 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var game: Node3D = MAIN_SCENE.instantiate() as Node3D
+	var game: Node = MAIN_SCENE.instantiate()
 	root.add_child(game)
 	await process_frame
 	await process_frame
 
-	_expect(game.get_session_phase() == GameSessionState.Phase.MENU, "main scene initializes in the menu phase")
-	game._session_start_transaction.progress_changed.connect(
-		Callable(self, "_on_session_start_progress").bind(game)
+	_expect(
+		int(game.call("get_session_phase")) == GameSessionState.Phase.MENU,
+		"main scene initializes in the menu phase"
 	)
+	var transaction: GameSessionStartTransaction = game.get("_session_start_transaction") as GameSessionStartTransaction
+	_expect(transaction != null, "main scene configures the session transaction")
+	if transaction != null:
+		transaction.progress_changed.connect(
+			Callable(self, "_on_session_start_progress").bind(game)
+		)
 
-	game._on_menu_selection_completed(
+	game.call(
+		"_on_menu_selection_completed",
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID
 	)
 	await process_frame
-	game._on_menu_selection_completed(
+	game.call(
+		"_on_menu_selection_completed",
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID
@@ -41,31 +49,38 @@ func _run() -> void:
 		_saw_spawned_car_locked_during_start,
 		"spawned player car remains input-locked while the session is STARTING"
 	)
-	var free_drive_car: PlayerCarController = game.get_current_car() as PlayerCarController
+	var free_drive_car: PlayerCarController = game.call("get_current_car") as PlayerCarController
 	_expect(is_instance_valid(free_drive_car), "free-drive startup creates the player car")
 	if is_instance_valid(free_drive_car):
+		var free_drive_input: CarInput = free_drive_car.get("_car_input") as CarInput
 		_expect(
-			free_drive_car._car_input._player_input_enabled,
+			free_drive_input != null and bool(free_drive_input.get("_player_input_enabled")),
 			"free-drive input is enabled only after startup commits"
 		)
-	_expect(not game._menu.visible, "duplicate startup does not reset the menu after the first transaction succeeds")
+	var menu: MainMenu = game.get_node_or_null("MainMenu") as MainMenu
+	_expect(menu != null and not menu.visible, "duplicate startup does not reset the menu after the first transaction succeeds")
 	_expect(
-		not game._session_start_transaction.is_execution_in_progress(),
+		transaction != null and not transaction.is_execution_in_progress(),
 		"session transaction releases its execution guard after completion"
 	)
 
-	game._reset_to_main_menu()
+	game.call("_reset_to_main_menu")
 	await process_frame
-	_expect(game.get_session_phase() == GameSessionState.Phase.MENU, "free-drive cleanup returns to menu")
+	_expect(
+		int(game.call("get_session_phase")) == GameSessionState.Phase.MENU,
+		"free-drive cleanup returns to menu"
+	)
 
-	game._on_menu_selection_completed(
+	game.call(
+		"_on_menu_selection_completed",
 		GameModes.RACE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID
 	)
 	await _wait_for_phase(game, GameSessionState.Phase.RACE, 90)
-	var opponents: Array[PlayerCarController] = game.get_opponents()
-	var ai_drivers: Array[AiRaceDriver] = game._car_spawner.get_ai_drivers()
+	var opponents: Array[PlayerCarController] = game.call("get_opponents")
+	var car_spawner: CarSpawner = game.get("_car_spawner") as CarSpawner
+	var ai_drivers: Array[AiRaceDriver] = car_spawner.get_ai_drivers() if car_spawner != null else []
 	_expect(not opponents.is_empty(), "race startup creates opponents")
 	_expect(ai_drivers.size() == opponents.size(), "race startup creates one AI driver per opponent")
 	if not opponents.is_empty() and not ai_drivers.is_empty():
@@ -73,14 +88,17 @@ func _run() -> void:
 		var driver: AiRaceDriver = ai_drivers[0]
 		driver.set_driver_enabled(true)
 		_expect(driver.is_physics_processing(), "opponent AI can be enabled before finish handling")
-		game._race_session._stop_participant_car(opponent)
+		var race_session: RaceSessionController = game.get("_race_session") as RaceSessionController
+		if race_session != null:
+			race_session._stop_participant_car(opponent)
 		_expect(not driver.is_physics_processing(), "finished opponent AI is disabled")
+		var opponent_input: CarInput = opponent.get("_car_input") as CarInput
 		_expect(
-			opponent._car_input._external_handbrake,
+			opponent_input != null and bool(opponent_input.get("_external_handbrake")),
 			"finished opponent remains stopped with the external handbrake"
 		)
 		_expect(
-			is_zero_approx(opponent._car_input._external_throttle),
+			opponent_input != null and is_zero_approx(float(opponent_input.get("_external_throttle"))),
 			"finished opponent receives no replacement throttle input"
 		)
 
@@ -92,18 +110,22 @@ func _run() -> void:
 func _on_session_start_progress(
 	_progress: float,
 	stage: GameSessionStartTransaction.ProgressStage,
-	game: Node3D
+	game: Node
 ) -> void:
 	if stage != GameSessionStartTransaction.ProgressStage.FINALIZING:
 		return
-	var car: PlayerCarController = game.get_current_car() as PlayerCarController
-	if is_instance_valid(car):
-		_saw_spawned_car_locked_during_start = not car._car_input._player_input_enabled
+	var car: PlayerCarController = game.call("get_current_car") as PlayerCarController
+	if not is_instance_valid(car):
+		return
+	var car_input: CarInput = car.get("_car_input") as CarInput
+	_saw_spawned_car_locked_during_start = (
+		car_input != null and not bool(car_input.get("_player_input_enabled"))
+	)
 
 
-func _wait_for_phase(game: Node3D, expected_phase: GameSessionState.Phase, frame_limit: int) -> void:
+func _wait_for_phase(game: Node, expected_phase: GameSessionState.Phase, frame_limit: int) -> void:
 	for _frame_index: int in range(frame_limit):
-		if game.get_session_phase() == expected_phase:
+		if int(game.call("get_session_phase")) == expected_phase:
 			return
 		await process_frame
 	_expect(false, "session reaches phase %d within %d frames" % [expected_phase, frame_limit])
