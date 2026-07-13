@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/engine_torque_curve.gd" id="1_curve"]
+
+[resource]
+script = ExtResource("1_curve")
+rpm_points = PackedFloat32Array(850, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3500, 4000, 4250, 4500, 4750, 5000)
+torque_multipliers = PackedFloat32Array(0.59183673, 0.66326531, 0.75510204, 0.84693878, 0.91836735, 0.96938776, 0.98979592, 1, 0.99489796, 0.98979592, 0.96938776, 0.93877551, 0.92346939, 0.90945682, 0.84693878, 0.75510204)

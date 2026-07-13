@@ -66,7 +66,7 @@ func get_throttle_input() -> float:
 func get_engine_load() -> float:
 	if _drive_config == null:
 		return 0.0
-	if _drive_config.is_automatic_transmission() and _runtime_state.current_gear < 0:
+	if _drive_config.is_self_shifting_transmission() and _runtime_state.current_gear < 0:
 		return clampf(_runtime_state.brake_input, 0.0, 1.0)
 	return clampf(_runtime_state.throttle_input, 0.0, 1.0)
 
@@ -95,9 +95,19 @@ func is_manual_transmission() -> bool:
 	return _drive_config != null and _drive_config.is_manual_transmission()
 
 
+func is_cvt_transmission() -> bool:
+	return _drive_config != null and _drive_config.is_cvt_transmission()
+
+
+func get_cvt_ratio() -> float:
+	return _powertrain_controller.get_cvt_ratio() if _drive_config != null else 0.0
+
+
 func get_forward_gear_count() -> int:
 	if _drive_config == null or not _drive_config.uses_geared_transmission():
 		return 0
+	if _drive_config.is_cvt_transmission():
+		return 1
 	return _drive_config.gear_ratios.size()
 
 
@@ -294,7 +304,7 @@ func _clamp_runtime_gear_to_config() -> void:
 	if _drive_config == null or not _drive_config.uses_geared_transmission():
 		return
 
-	var max_forward_gear: int = maxi(_drive_config.gear_ratios.size(), 1)
+	var max_forward_gear: int = 1 if _drive_config.is_cvt_transmission() else maxi(_drive_config.gear_ratios.size(), 1)
 	if _runtime_state.current_gear > max_forward_gear:
 		_runtime_state.current_gear = max_forward_gear
 	if _runtime_state.current_gear < -1:

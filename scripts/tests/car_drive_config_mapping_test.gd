@@ -3,6 +3,7 @@ extends SceneTree
 const MANUAL_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 const AUTOMATIC_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
 const NISMO_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z_nismo/specs/370z_nismo_6mt_specs.tres")
+const CVT_SPECS: CarSpecs = preload("res://resources/cars/fiat/punto_176_1995/specs/punto_60_cvt_specs.tres")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -16,20 +17,29 @@ func _initialize() -> void:
 func _run() -> void:
 	_expect(CarDriveConfigBuilder.get_unmapped_specs_properties(MANUAL_SPECS).is_empty(), "every runtime CarSpecs property has an explicit CarDriveConfig destination")
 	_expect(CarDriveConfigBuilder.get_unmapped_specs_properties(NISMO_SPECS).is_empty(), "sampled NISMO runtime properties have explicit config destinations")
+	_expect(CarDriveConfigBuilder.get_unmapped_specs_properties(CVT_SPECS).is_empty(), "CVT runtime properties have explicit config destinations")
 
 	var manual_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(MANUAL_SPECS)
 	var automatic_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(AUTOMATIC_SPECS)
 	var nismo_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(NISMO_SPECS)
+	var cvt_config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(CVT_SPECS)
 	_expect(manual_config != null, "manual specs build a runtime configuration")
 	_expect(automatic_config != null, "automatic specs build a runtime configuration")
 	_expect(nismo_config != null, "NISMO specs build a runtime configuration")
-	if manual_config == null or automatic_config == null or nismo_config == null:
+	_expect(cvt_config != null, "CVT specs build a runtime configuration")
+	if manual_config == null or automatic_config == null or nismo_config == null or cvt_config == null:
 		return
 
 	_expect(manual_config.transmission_type == CarSpecs.TransmissionType.MANUAL, "manual transmission enum is preserved")
 	_expect(automatic_config.transmission_type == CarSpecs.TransmissionType.AUTOMATIC, "automatic transmission enum is preserved")
-	_expect(manual_config.is_manual_transmission() and not manual_config.is_automatic_transmission(), "manual runtime configuration exposes one exclusive mode")
-	_expect(automatic_config.is_automatic_transmission() and not automatic_config.is_manual_transmission(), "automatic runtime configuration exposes one exclusive mode")
+	_expect(cvt_config.transmission_type == CarSpecs.TransmissionType.CVT, "CVT transmission enum is preserved")
+	_expect(manual_config.is_manual_transmission() and not manual_config.is_automatic_transmission() and not manual_config.is_cvt_transmission(), "manual runtime configuration exposes one exclusive mode")
+	_expect(automatic_config.is_automatic_transmission() and not automatic_config.is_manual_transmission() and not automatic_config.is_cvt_transmission(), "automatic runtime configuration exposes one exclusive mode")
+	_expect(cvt_config.is_cvt_transmission() and not cvt_config.is_manual_transmission() and not cvt_config.is_automatic_transmission(), "CVT runtime configuration exposes one exclusive mode")
+	_expect(cvt_config.is_self_shifting_transmission(), "CVT is self-shifting for player and AI input")
+	_expect(not cvt_config.uses_discrete_gears(), "CVT runtime configuration has no discrete gear contract")
+	_expect(is_equal_approx(cvt_config.cvt_max_ratio, CVT_SPECS.cvt_max_ratio), "CVT shortest ratio is reflected into runtime configuration")
+	_expect(is_equal_approx(cvt_config.cvt_target_rpm_max, CVT_SPECS.cvt_target_rpm_max), "CVT commanded RPM ceiling is reflected into runtime configuration")
 	_expect(is_equal_approx(manual_config.vehicle_mass, MANUAL_SPECS.vehicle_mass), "vehicle mass is reflected into runtime configuration")
 	_expect(is_equal_approx(automatic_config.automatic_upshift_rpm, AUTOMATIC_SPECS.automatic_upshift_rpm), "automatic shift data is reflected into runtime configuration")
 	_expect(manual_config.gear_ratios == MANUAL_SPECS.gear_ratios, "gear ratios retain their configured values")
@@ -51,10 +61,14 @@ func _run() -> void:
 	duplicate.gear_ratios[0] += 2.0
 	_expect(is_equal_approx(automatic_config.gear_ratios[0], automatic_first_ratio), "duplicate_config deep-copies mutable arrays")
 
+	var cvt_duplicate: CarDriveConfig = cvt_config.duplicate_config()
+	_expect(cvt_duplicate.is_cvt_transmission(), "duplicate_config preserves CVT mode")
+	_expect(is_equal_approx(cvt_duplicate.cvt_ratio_response, cvt_config.cvt_ratio_response), "duplicate_config preserves CVT dynamics")
+
 	var exclusive_config: CarDriveConfig = CarDriveConfig.new()
-	exclusive_config.transmission_type = CarSpecs.TransmissionType.AUTOMATIC
-	_expect(exclusive_config.is_automatic_transmission(), "enum assignment selects exactly one transmission mode")
-	_expect(not exclusive_config.is_manual_transmission(), "runtime configuration cannot expose two transmission modes")
+	exclusive_config.transmission_type = CarSpecs.TransmissionType.CVT
+	_expect(exclusive_config.is_cvt_transmission(), "enum assignment selects exactly the CVT mode")
+	_expect(not exclusive_config.is_manual_transmission() and not exclusive_config.is_automatic_transmission(), "runtime configuration cannot expose conflicting transmission modes")
 
 
 func _expect(condition: bool, message: String) -> void:

@@ -20,8 +20,16 @@ const CHARACTER_PROPERTY_NAMES: Array[StringName] = [
 	&"exhaust_bank_separation",
 	&"exhaust_reflection",
 	&"overrun_crackle",
+	&"bank_asymmetry",
+	&"idle_irregularity",
+	&"combustion_sharpness",
+	&"diesel_combustion",
+	&"diesel_injection_rattle",
+	&"diesel_mechanical_clatter",
+	&"turbo_whistle",
+	&"turbo_flutter",
+	&"turbo_blowoff",
 ]
-
 
 @export_group("Levels")
 @export_range(-80.0, 12.0, 0.5) var idle_volume_db: float = -10.0
@@ -42,6 +50,29 @@ const CHARACTER_PROPERTY_NAMES: Array[StringName] = [
 @export_range(0.0, 1.0, 0.01) var exhaust_bank_separation: float = 0.30
 @export_range(0.0, 1.0, 0.01) var exhaust_reflection: float = 0.08
 @export_range(0.0, 1.0, 0.01) var overrun_crackle: float = 0.10
+@export_range(0.0, 1.0, 0.01) var bank_asymmetry: float = 0.02
+@export_range(0.0, 1.0, 0.01) var idle_irregularity: float = 0.025
+@export_range(0.0, 1.0, 0.01) var combustion_sharpness: float = 0.25
+@export_range(0.55, 1.45, 0.01) var exhaust_pitch_scale: float = 1.0
+@export_range(0.55, 1.45, 0.01) var intake_pitch_scale: float = 1.0
+
+@export_group("Diesel")
+@export_range(0.0, 1.0, 0.01) var diesel_combustion: float = 0.0
+@export_range(0.0, 1.0, 0.01) var diesel_injection_rattle: float = 0.0
+@export_range(0.0, 1.0, 0.01) var diesel_mechanical_clatter: float = 0.0
+
+@export_group("Turbocharger")
+@export_range(0.0, 1.0, 0.01) var turbo_whistle: float = 0.0
+@export_range(0.0, 1.0, 0.01) var turbo_flutter: float = 0.0
+@export_range(0.0, 1.0, 0.01) var turbo_blowoff: float = 0.0
+@export_range(500.0, 6000.0, 50.0) var turbo_spool_start_rpm: float = 1800.0
+@export_range(750.0, 7500.0, 50.0) var turbo_full_spool_rpm: float = 3500.0
+@export_range(0.5, 2.0, 0.01) var turbo_pitch_scale: float = 1.0
+
+@export_group("Start and stop")
+@export_range(0.2, 2.0, 0.05) var starter_duration: float = 0.80
+@export_range(0.0, 1.0, 0.01) var starter_motor_level: float = 0.24
+@export_range(0.3, 3.0, 0.05) var shutdown_duration: float = 1.10
 
 @export_group("Limiter")
 @export_range(0.02, 0.20, 0.005) var limiter_period: float = 0.060
@@ -57,31 +88,23 @@ func validate() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
 	_append_range(errors, "idle_volume_db", idle_volume_db, MIN_PLAYER_VOLUME_DB, MAX_PLAYER_VOLUME_DB)
 	_append_range(errors, "load_volume_db", load_volume_db, MIN_PLAYER_VOLUME_DB, MAX_PLAYER_VOLUME_DB)
-	_append_range(
-		errors,
-		"output_volume_boost_db",
-		output_volume_boost_db,
-		MIN_OUTPUT_VOLUME_BOOST_DB,
-		MAX_OUTPUT_VOLUME_BOOST_DB
-	)
-	_append_range(
-		errors,
-		"synthesis_gain_db",
-		synthesis_gain_db,
-		MIN_SYNTHESIS_GAIN_DB,
-		MAX_SYNTHESIS_GAIN_DB
-	)
+	_append_range(errors, "output_volume_boost_db", output_volume_boost_db, MIN_OUTPUT_VOLUME_BOOST_DB, MAX_OUTPUT_VOLUME_BOOST_DB)
+	_append_range(errors, "synthesis_gain_db", synthesis_gain_db, MIN_SYNTHESIS_GAIN_DB, MAX_SYNTHESIS_GAIN_DB)
 	for property_name: StringName in CHARACTER_PROPERTY_NAMES:
 		_append_range(errors, str(property_name), float(get(property_name)), 0.0, 1.0)
+	_append_range(errors, "exhaust_pitch_scale", exhaust_pitch_scale, 0.55, 1.45)
+	_append_range(errors, "intake_pitch_scale", intake_pitch_scale, 0.55, 1.45)
+	_append_range(errors, "turbo_spool_start_rpm", turbo_spool_start_rpm, 500.0, 6000.0)
+	_append_range(errors, "turbo_full_spool_rpm", turbo_full_spool_rpm, 750.0, 7500.0)
+	if turbo_full_spool_rpm <= turbo_spool_start_rpm:
+		errors.append("turbo_full_spool_rpm must be above turbo_spool_start_rpm")
+	_append_range(errors, "turbo_pitch_scale", turbo_pitch_scale, 0.5, 2.0)
+	_append_range(errors, "starter_duration", starter_duration, 0.2, 2.0)
+	_append_range(errors, "starter_motor_level", starter_motor_level, 0.0, 1.0)
+	_append_range(errors, "shutdown_duration", shutdown_duration, 0.3, 3.0)
 	_append_range(errors, "limiter_period", limiter_period, 0.02, 0.20)
 	_append_range(errors, "limiter_cut_ratio", limiter_cut_ratio, 0.1, 0.9)
-	_append_range(
-		errors,
-		"limiter_residual_combustion",
-		limiter_residual_combustion,
-		0.0,
-		0.5
-	)
+	_append_range(errors, "limiter_residual_combustion", limiter_residual_combustion, 0.0, 0.5)
 	return errors
 
 
@@ -92,36 +115,22 @@ func apply_to(engine_audio: Object) -> bool:
 	if not validation_errors.is_empty():
 		push_error("EngineAudioProfile is invalid: %s" % "; ".join(validation_errors))
 		return false
-	engine_audio.set("idle_volume_db", idle_volume_db)
-	engine_audio.set("load_volume_db", load_volume_db)
-	engine_audio.set("output_volume_boost_db", output_volume_boost_db)
-	engine_audio.set("synthesis_gain_db", synthesis_gain_db)
-	engine_audio.set("high_rpm_rasp", high_rpm_rasp)
-	engine_audio.set("intake_presence", intake_presence)
-	engine_audio.set("intake_plenum_detail", intake_plenum_detail)
-	engine_audio.set("airflow_noise", airflow_noise)
-	engine_audio.set("induction_transient", induction_transient)
-	engine_audio.set("mechanical_noise", mechanical_noise)
-	engine_audio.set("rotating_assembly_detail", rotating_assembly_detail)
-	engine_audio.set("exhaust_resonance", exhaust_resonance)
-	engine_audio.set("exhaust_roughness", exhaust_roughness)
-	engine_audio.set("exhaust_bank_separation", exhaust_bank_separation)
-	engine_audio.set("exhaust_reflection", exhaust_reflection)
-	engine_audio.set("overrun_crackle", overrun_crackle)
-	engine_audio.set("limiter_period", limiter_period)
-	engine_audio.set("limiter_cut_ratio", limiter_cut_ratio)
-	engine_audio.set("limiter_residual_combustion", limiter_residual_combustion)
+	var supported_properties: Dictionary = {}
+	for target_property: Dictionary in engine_audio.get_property_list():
+		supported_properties[StringName(target_property.get("name", &""))] = true
+	for property: Dictionary in get_property_list():
+		var property_name: StringName = property.get("name", &"")
+		var usage: int = int(property.get("usage", 0))
+		if property_name == &"" or usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
+			continue
+		if property_name in [&"script", &"resource_local_to_scene", &"resource_name", &"resource_path"]:
+			continue
+		if not supported_properties.has(property_name):
+			continue
+		engine_audio.set(property_name, get(property_name))
 	return true
 
 
-func _append_range(
-	errors: PackedStringArray,
-	property_name: String,
-	value: float,
-	minimum: float,
-	maximum: float
-) -> void:
+func _append_range(errors: PackedStringArray, property_name: String, value: float, minimum: float, maximum: float) -> void:
 	if not is_finite(value) or value < minimum or value > maximum:
-		errors.append(
-			"%s must be finite and between %s and %s" % [property_name, minimum, maximum]
-		)
+		errors.append("%s must be finite and between %s and %s" % [property_name, minimum, maximum])

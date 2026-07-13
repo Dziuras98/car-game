@@ -120,6 +120,33 @@ msgstr "428 V8 4-speed manual"
 msgid "428 V8 C6 automatic"
 msgstr "428 V8 C6 automatic"
 
+msgid "Punto 55 5MT"
+msgstr "Punto 55 5-speed manual"
+
+msgid "Punto 55 6-Speed"
+msgstr "Punto 55 6-speed manual"
+
+msgid "Punto 60 5MT"
+msgstr "Punto 60 5-speed manual"
+
+msgid "Punto 60 Selecta CVT"
+msgstr "Punto 60 Selecta CVT"
+
+msgid "Punto 75 5MT"
+msgstr "Punto 75 5-speed manual"
+
+msgid "Punto 90 5MT"
+msgstr "Punto 90 5-speed manual"
+
+msgid "Punto GT 5MT"
+msgstr "Punto GT 5-speed manual"
+
+msgid "Punto D 5MT"
+msgstr "Punto D 5-speed manual"
+
+msgid "Punto TD 70 5MT"
+msgstr "Punto TD 70 5-speed manual"
+
 msgid "Pauza"
 msgstr "Paused"
 

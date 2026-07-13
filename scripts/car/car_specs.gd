@@ -8,6 +8,7 @@ enum TransmissionType {
 	DIRECT_DRIVE,
 	MANUAL,
 	AUTOMATIC,
+	CVT,
 }
 
 @export_group("Identity")
@@ -41,7 +42,7 @@ enum TransmissionType {
 @export var rpm_response: float = 8.0
 
 @export_group("Transmission")
-@export_enum("Direct Drive", "Manual", "Automatic") var transmission_type: int = TransmissionType.DIRECT_DRIVE
+@export_enum("Direct Drive", "Manual", "Automatic", "CVT") var transmission_type: int = TransmissionType.DIRECT_DRIVE
 @export var gear_ratios: Array[float] = [3.20, 2.10, 1.50, 1.15, 0.92, 0.75]
 @export var reverse_gear_ratio: float = 3.00
 @export var final_drive_ratio: float = 3.70
@@ -60,6 +61,14 @@ enum TransmissionType {
 @export var torque_converter_stall_rpm: float = 2600.0
 @export var torque_converter_coupling_rpm: float = 4200.0
 @export var torque_converter_stall_torque_multiplier: float = 1.65
+
+@export_group("Continuously Variable Transmission")
+@export var cvt_max_ratio: float = 2.50
+@export var cvt_target_rpm_min: float = 1800.0
+@export var cvt_target_rpm_max: float = 5500.0
+@export var cvt_ratio_response: float = 8.0
+@export var cvt_clutch_engagement_rpm: float = 1250.0
+@export var cvt_clutch_full_rpm: float = 2200.0
 
 @export_group("Resistance")
 @export var vehicle_mass: float = 1200.0
@@ -104,8 +113,20 @@ func is_automatic_transmission() -> bool:
 	return transmission_type == TransmissionType.AUTOMATIC
 
 
-func uses_geared_transmission() -> bool:
+func is_cvt_transmission() -> bool:
+	return transmission_type == TransmissionType.CVT
+
+
+func is_self_shifting_transmission() -> bool:
+	return is_automatic_transmission() or is_cvt_transmission()
+
+
+func uses_discrete_gears() -> bool:
 	return is_manual_transmission() or is_automatic_transmission()
+
+
+func uses_geared_transmission() -> bool:
+	return uses_discrete_gears() or is_cvt_transmission()
 
 
 func is_valid() -> bool:
@@ -154,13 +175,13 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "engine_brake_force", engine_brake_force)
 	_append_positive(errors, "rpm_response", rpm_response)
 
-	if transmission_type < TransmissionType.DIRECT_DRIVE or transmission_type > TransmissionType.AUTOMATIC:
+	if transmission_type < TransmissionType.DIRECT_DRIVE or transmission_type > TransmissionType.CVT:
 		errors.append("transmission_type is invalid")
-	if uses_geared_transmission() and gear_ratios.is_empty():
+	if uses_discrete_gears() and gear_ratios.is_empty():
 		errors.append("gear_ratios must contain at least one forward gear")
 	for gear_index: int in range(gear_ratios.size()):
 		_append_positive(errors, "gear_ratios[%d]" % gear_index, gear_ratios[gear_index])
-		if gear_index > 0 and is_finite(gear_ratios[gear_index - 1]) and is_finite(gear_ratios[gear_index]) and gear_ratios[gear_index] >= gear_ratios[gear_index - 1]:
+		if uses_discrete_gears() and gear_index > 0 and is_finite(gear_ratios[gear_index - 1]) and is_finite(gear_ratios[gear_index]) and gear_ratios[gear_index] >= gear_ratios[gear_index - 1]:
 			errors.append("gear_ratios must be strictly descending")
 	_append_positive(errors, "reverse_gear_ratio", reverse_gear_ratio)
 	_append_positive(errors, "final_drive_ratio", final_drive_ratio)
@@ -170,7 +191,7 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "shift_delay", shift_delay)
 	_append_positive(errors, "max_drive_acceleration", max_drive_acceleration)
 
-	if uses_geared_transmission() and not gear_ratios.is_empty():
+	if uses_discrete_gears() and not gear_ratios.is_empty():
 		var highest_gear_ratio: float = gear_ratios[gear_ratios.size() - 1]
 		if is_finite(highest_gear_ratio) and highest_gear_ratio > 0.0 and is_finite(final_drive_ratio) and final_drive_ratio > 0.0 and is_finite(wheel_radius) and wheel_radius > 0.0 and is_finite(rev_limiter_rpm) and rev_limiter_rpm > 0.0:
 			var theoretical_speed: float = rev_limiter_rpm / (highest_gear_ratio * final_drive_ratio) * TAU * wheel_radius / 60.0
@@ -200,6 +221,26 @@ func validate() -> PackedStringArray:
 		if torque_converter_coupling_rpm > redline_rpm:
 			errors.append("torque_converter_coupling_rpm must not exceed redline RPM")
 		_append_range(errors, "torque_converter_stall_torque_multiplier", torque_converter_stall_torque_multiplier, 1.0, 5.0)
+
+	if is_cvt_transmission():
+		_append_positive(errors, "cvt_max_ratio", cvt_max_ratio)
+		_append_positive(errors, "cvt_target_rpm_min", cvt_target_rpm_min)
+		_append_positive(errors, "cvt_target_rpm_max", cvt_target_rpm_max)
+		if cvt_target_rpm_min < idle_rpm:
+			errors.append("cvt_target_rpm_min must be at or above idle_rpm")
+		if cvt_target_rpm_max < cvt_target_rpm_min:
+			errors.append("cvt_target_rpm_max must be at or above cvt_target_rpm_min")
+		if cvt_target_rpm_max > redline_rpm:
+			errors.append("cvt_target_rpm_max must not exceed redline_rpm")
+		_append_positive(errors, "cvt_ratio_response", cvt_ratio_response)
+		_append_positive(errors, "cvt_clutch_engagement_rpm", cvt_clutch_engagement_rpm)
+		_append_positive(errors, "cvt_clutch_full_rpm", cvt_clutch_full_rpm)
+		if cvt_clutch_engagement_rpm < idle_rpm:
+			errors.append("cvt_clutch_engagement_rpm must be at or above idle_rpm")
+		if cvt_clutch_full_rpm <= cvt_clutch_engagement_rpm:
+			errors.append("cvt_clutch_full_rpm must be above cvt_clutch_engagement_rpm")
+		if cvt_clutch_full_rpm > redline_rpm:
+			errors.append("cvt_clutch_full_rpm must not exceed redline_rpm")
 
 	_append_positive(errors, "vehicle_mass", vehicle_mass)
 	_append_non_negative(errors, "drag_coefficient", drag_coefficient)

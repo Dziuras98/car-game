@@ -92,6 +92,8 @@ func get_transmission_label() -> String:
 		return "%d-speed manual" % forward_gear_count
 	if specs.is_automatic_transmission():
 		return "%d-speed automatic" % forward_gear_count
+	if specs.is_cvt_transmission():
+		return "CVT"
 	return "Direct drive"
 
 

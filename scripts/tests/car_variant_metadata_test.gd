@@ -18,12 +18,16 @@ func _test_variant(variant: CarVariantDefinition) -> void:
 	if variant == null or variant.specs == null:
 		return
 	_expect(variant.specs.vehicle_mass > 0.0, "%s exposes positive mass through authoritative specs" % str(variant.variant_id))
-	var expected_gear_count: String = str(variant.specs.gear_ratios.size())
-	_expect(expected_gear_count in variant.get_transmission_label(), "%s transmission label reflects the configured gear count" % str(variant.variant_id))
+	var transmission_label: String = variant.get_transmission_label()
+	if variant.specs.is_cvt_transmission():
+		_expect(transmission_label == "CVT", "%s CVT enum produces a CVT label" % str(variant.variant_id))
+	else:
+		var expected_gear_count: String = str(variant.specs.gear_ratios.size())
+		_expect(expected_gear_count in transmission_label, "%s transmission label reflects the configured gear count" % str(variant.variant_id))
 	if variant.specs.is_manual_transmission():
-		_expect("manual" in variant.get_transmission_label().to_lower(), "%s manual enum produces a manual label" % str(variant.variant_id))
+		_expect("manual" in transmission_label.to_lower(), "%s manual enum produces a manual label" % str(variant.variant_id))
 	elif variant.specs.is_automatic_transmission():
-		_expect("automatic" in variant.get_transmission_label().to_lower(), "%s automatic enum produces an automatic label" % str(variant.variant_id))
+		_expect("automatic" in transmission_label.to_lower(), "%s automatic enum produces an automatic label" % str(variant.variant_id))
 
 
 func _test_empty_variant() -> void:
