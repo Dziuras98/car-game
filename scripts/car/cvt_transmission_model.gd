@@ -100,7 +100,13 @@ func get_drive_acceleration(
 	if current_gear == 0 or drive_blocked:
 		return 0.0
 	var ratio: float = reverse_ratio if current_gear < 0 else _current_ratio
-	var clutch_factor: float = get_clutch_factor(engine_rpm)
+	var clutch_rpm: float = engine_rpm
+	if current_gear < 0:
+		# Self-shifting cars use the brake axis as the reverse drive request. At launch,
+		# wheel-coupled RPM is still idle, so use the commanded engine speed to model
+		# the centrifugal clutch engaging instead of letting it fall open again.
+		clutch_rpm = maxf(clutch_rpm, get_commanded_engine_rpm(throttle))
+	var clutch_factor: float = get_clutch_factor(clutch_rpm)
 	var engine_torque: float = (
 		peak_engine_torque
 		* maxf(torque_multiplier, 0.0)
