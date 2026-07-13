@@ -1,15 +1,24 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
-[ext_resource type="PackedScene" path="res://1967_ford_mustang_shelby_cobra_gt500.glb" id="1_model"]
-[ext_resource type="PackedScene" path="res://scenes/cars/mustang_shelby_gt500_1967_low_detail_visuals.tscn" id="2_low_detail"]
+[ext_resource type="Script" path="res://scripts/car/mustang_shelby_gt500_1967_visual_controller.gd" id="1_controller"]
+[ext_resource type="PackedScene" path="res://1967_ford_mustang_shelby_cobra_gt500.glb" id="2_model"]
+[ext_resource type="PackedScene" path="res://scenes/cars/mustang_shelby_gt500_1967_low_detail_visuals.tscn" id="3_low_detail"]
 
 [node name="MustangShelbyGT5001967Visuals" type="Node3D"]
+script = ExtResource("1_controller")
+detailed_root_path = NodePath("ModelAlignment")
+low_detail_root_path = NodePath("LowDetail")
+visibility_aabb = AABB(-0.96, -0.05, -2.49, 1.92, 1.46, 4.98)
+visual_wheel_radius = 0.32915
 metadata/_source_url = "https://sketchfab.com/3d-models/1967-ford-mustang-shelby-cobra-gt500-e310cc7537bf4d1aa644a2c233a5fec6"
-metadata/_integration_phase = "visual_foundation"
+metadata/_integration_phase = "visual_runtime"
+metadata/_source_bounds_m = Vector3(1.7936, 1.3534, 4.8189)
+metadata/_measured_wheelbase_m = 2.7437
 
 [node name="ModelAlignment" type="Node3D" parent="."]
 
-[node name="DetailedModel" parent="ModelAlignment" instance=ExtResource("1_model")]
+[node name="DetailedModel" parent="ModelAlignment" instance=ExtResource("2_model")]
+transform = Transform3D(-100, 0, 0, 0, 100, 0, 0, 0, -100, 0, 0.0005, 0)
 
-[node name="LowDetail" parent="." instance=ExtResource("2_low_detail")]
+[node name="LowDetail" parent="." instance=ExtResource("3_low_detail")]
 visible = false
