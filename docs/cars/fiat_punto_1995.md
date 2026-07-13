@@ -30,43 +30,103 @@ This inventory covers engine and transmission combinations that were available d
 
 The commercial name `Punto 60` hides a mid-1995 engine-code and rated-output transition. These calibrations must not be silently collapsed into one engine resource unless primary documentation proves that their complete torque curves and control behavior are equivalent.
 
+## User-supplied hardtop gearbox table
+
+A gearbox and final-drive table supplied during integration provides the following data for 1993-1999 hardtop Punto models. The exact publication, manual edition or catalogue page has not yet been identified, so these values are recorded as high-value provisional evidence rather than primary-source-confirmed runtime data.
+
+### Five- and six-speed gear sets
+
+| Gear set | 1st | 2nd | 3rd | 4th | 5th | 6th | Reverse |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| standard petrol 5MT (`55, 60, 75, 90`) | 3.909 | 2.157 | 1.480 | 1.121 | 0.902 | - | 3.818 |
+| long petrol 5MT (`55*`, `60**`, `90***`) | 3.909 | 2.157 | 1.345 | 0.974 | 0.808 | - | 3.818 |
+| Punto 55 6-Speed | 3.545 | 2.157 | 1.480 | 1.121 | 0.902 | 0.744 | 3.818 |
+| Punto GT 5MT, supplied table | 3.909 | 2.238 | 1.541 | 1.156 | 0.891 | - | 3.909 |
+| Punto TD 5MT | 3.909 | 2.238 | 1.440 | 1.029 | 0.794 | - | 3.909 |
+
+Body-code qualifiers attached to the long petrol gear set:
+
+- Punto 55: `176BA53F`, `176BA55F`, `176BA53P`, `176BA55P`;
+- Punto 60: `176BB53F`, `176BB55F`, `176BB53P`, `176BB55P`;
+- Punto 90: `176BL53A`, `176BL55A`, `176BL53P`, `176BL55P`.
+
+The body-code table proves that the commercial engine name alone is insufficient to select the transmission calibration. Runtime variant selection must either encode the relevant transmission family explicitly or resolve it from a verified body-code/trim mapping.
+
+### Final-drive ratios
+
+| Commercial version | Final drive | Qualification |
+|---|---:|---|
+| Punto 55 standard | 3.866 | normal five-speed candidate |
+| Punto 55 long / ED candidate | 3.563 | applies to the listed `176BA...` body codes |
+| Punto 55 6-Speed | 4.923 | dedicated six-speed final drive |
+| Punto 60 | 3.563 | shared final drive in the supplied table; individual gear set still depends on body code |
+| Punto 75 | 3.733 | standard petrol five-speed |
+| Punto 90 | 3.563 | individual gear set still depends on body code |
+| Punto GT | 3.353 | GT five-speed |
+| Punto TD | 3.733 | TD five-speed |
+
+No hardtop final-drive entry was supplied for the naturally aspirated Punto D. It must not be assumed to use the TD final drive without separate evidence.
+
+### GT ratio conflict
+
+An earlier secondary technical table recorded the GT gear set as:
+
+`3.909 / 2.238 / 1.520 / 1.156 / 0.872`, reverse `3.909`.
+
+The newly supplied table instead gives:
+
+`3.909 / 2.238 / 1.541 / 1.156 / 0.891`, reverse `3.909`, final drive `3.353`.
+
+The conflict affects third and fifth gear. Neither pair is promoted to authoritative runtime data until the gearbox variant, source edition and production applicability are identified. The final drive `3.353` is retained as provisional evidence.
+
+### Cabriolet table
+
+The supplied information also includes Cabriolet-specific gear and final-drive tables. They are not imported into the hatchback variant matrix because the current source model is a hardtop and this document deliberately scopes passenger hatchbacks. The Cabriolet table also contains an apparent `0.121` fourth-gear transcription in one column; that value must be checked against the original source before any future Cabriolet work.
+
 ## Required engine/transmission combinations
 
-The following is the conservative candidate set. Stable IDs are reserved now so research does not later overwrite or ambiguously rename a playable variant.
+The candidate set now separates every transmission calibration exposed by the supplied hardtop table. IDs remain research reservations until body-code applicability and source provenance are verified.
 
 | Candidate stable variant ID | Engine | Transmission | Research status |
 |---|---|---|---|
-| `fiat_punto_176_1995_55_5mt` | 1.1 `176A6.000` | normal five-speed manual | confirmed combination; exact ratios/final drive still required |
-| `fiat_punto_176_1995_55_ed_5mt` | 1.1 `176A6.000` | Economy Drive five-speed manual with taller gearing | confirmed distinct transmission calibration; exact ratios/final drive still required |
-| `fiat_punto_176_1995_55_6mt` | 1.1 `176A6.000` | six-speed manual with shorter overall final gearing | confirmed combination; exact ratios/final drive still required |
-| `fiat_punto_176_1995_60_a7_5mt` | 1.2 `176A7.000` | five-speed manual | confirmed early-1995 combination; exact ratios/final drive still required |
-| `fiat_punto_176_1995_60_b4_5mt` | 1.2 `176B4.000` | five-speed manual | confirmed late-1995 combination; exact ratios/final drive still required |
-| `fiat_punto_176_1995_60_a7_ecvt` | 1.2 `176A7.000` | Selecta electronically controlled CVT | provisional engine-code split; primary evidence required |
-| `fiat_punto_176_1995_60_b4_ecvt` | 1.2 `176B4.000` | Selecta electronically controlled CVT | provisional engine-code split; primary evidence required |
-| `fiat_punto_176_1995_75_5mt` | 1.2 `176A8.000` | five-speed manual | confirmed combination; exact ratios/final drive still required |
-| `fiat_punto_176_1995_90_5mt` | 1.6 `176A9.000` | five-speed manual | confirmed combination; Sporting/final-drive distinction still requires verification |
-| `fiat_punto_176_1995_gt_5mt` | 1.4 turbo `176A4.000` | five-speed manual | confirmed; forward and reverse ratios known, final drive still required |
-| `fiat_punto_176_1995_d_5mt` | 1.7 diesel `176B3.000` | five-speed manual | confirmed combination; exact ratios/final drive still required |
-| `fiat_punto_176_1995_td70_5mt` | 1.7 turbo-diesel `176A5.000` | five-speed manual | confirmed market-dependent combination; exact ratios/final drive still required |
-| `fiat_punto_176_1995_td70_cat_5mt` | 1.7 turbo-diesel `176A3.000` | five-speed manual | confirmed market-dependent combination; exact ratios/final drive still required |
+| `fiat_punto_176_1995_55_5mt` | 1.1 `176A6.000` | standard 5MT, `3.909/2.157/1.480/1.121/0.902`, FD `3.866` | provisional ratios; body-code applicability still to verify |
+| `fiat_punto_176_1995_55_ed_5mt` | 1.1 `176A6.000` | long 5MT, `3.909/2.157/1.345/0.974/0.808`, FD `3.563` | strongly consistent with Economy Drive; listed `176BA...` codes require primary confirmation |
+| `fiat_punto_176_1995_55_6mt` | 1.1 `176A6.000` | 6MT, `3.545/2.157/1.480/1.121/0.902/0.744`, FD `4.923` | complete provisional ratio set |
+| `fiat_punto_176_1995_60_a7_5mt` | 1.2 `176A7.000` | standard 5MT, FD `3.563` | provisional engine/body-code intersection |
+| `fiat_punto_176_1995_60_a7_long_5mt` | 1.2 `176A7.000` | long 5MT, FD `3.563` | provisional; applies only if an early-1995 car used a listed `176BB...` code |
+| `fiat_punto_176_1995_60_b4_5mt` | 1.2 `176B4.000` | standard 5MT, FD `3.563` | provisional engine/body-code intersection |
+| `fiat_punto_176_1995_60_b4_long_5mt` | 1.2 `176B4.000` | long 5MT, FD `3.563` | provisional; applies only if a late-1995 car used a listed `176BB...` code |
+| `fiat_punto_176_1995_60_a7_ecvt` | 1.2 `176A7.000` | Selecta electronically controlled CVT | provisional engine-code split; CVT data required |
+| `fiat_punto_176_1995_60_b4_ecvt` | 1.2 `176B4.000` | Selecta electronically controlled CVT | provisional engine-code split; CVT data required |
+| `fiat_punto_176_1995_75_5mt` | 1.2 `176A8.000` | standard 5MT, FD `3.733` | complete provisional ratio set |
+| `fiat_punto_176_1995_90_5mt` | 1.6 `176A9.000` | standard 5MT, FD `3.563` | provisional body-code applicability |
+| `fiat_punto_176_1995_90_long_5mt` | 1.6 `176A9.000` | long 5MT, FD `3.563` | listed `176BL...` body-code combination; primary confirmation required |
+| `fiat_punto_176_1995_gt_5mt` | 1.4 turbo `176A4.000` | GT 5MT, provisional FD `3.353` | third- and fifth-gear source conflict unresolved |
+| `fiat_punto_176_1995_d_5mt` | 1.7 diesel `176B3.000` | five-speed manual | ratios and final drive still unresolved |
+| `fiat_punto_176_1995_td70_5mt` | 1.7 turbo-diesel `176A5.000` | TD 5MT, `3.909/2.238/1.440/1.029/0.794`, FD `3.733` | complete provisional ratio set |
+| `fiat_punto_176_1995_td70_cat_5mt` | 1.7 turbo-diesel `176A3.000` | TD 5MT, `3.909/2.238/1.440/1.029/0.794`, FD `3.733` | complete provisional ratio set; market applicability still required |
 
-The Selecta was sold throughout 1995, but currently available secondary summaries disagree or remain ambiguous about which 1.2 engine code was paired with the ECVT before and after the June 1995 transition. Two candidate IDs are therefore reserved without claiming that both are independently validated production combinations. Primary Fiat parts, workshop or homologation documentation must settle this before runtime resources are created.
+The table now contains 16 reserved candidates. This is not a claim that all 16 were independently orderable combinations. Four Punto 60 manual IDs represent the unresolved intersection of two 1995 engine calibrations with two body-code-dependent gear sets. They must be collapsed only after original Fiat documentation proves which intersections did not exist.
 
-## Confirmed transmission distinctions
+The Selecta was sold throughout 1995, but currently available secondary summaries disagree or remain ambiguous about which 1.2 engine code was paired with the ECVT before and after the June 1995 transition. Two candidate IDs are therefore reserved without claiming that both are independently validated production combinations.
+
+## Confirmed and provisional transmission distinctions
 
 ### Punto 55 normal five-speed
 
-This is the baseline manual gearbox used by regular Punto 55 versions. Exact individual ratios and final drive have not yet been accepted because no primary or clearly identified period table has been located.
+The supplied table gives the standard petrol gear set and a `3.866` final drive. This combination remains provisional pending identification of the original source and its production/body-code scope.
 
 ### Punto 55 ED five-speed
 
-`ED` means Economy Drive. It is not merely an equipment package: it uses a differently calibrated five-speed gearbox with taller gearing for lower fuel consumption. It therefore requires a separate `CarSpecs` resource even though the engine code is shared with the ordinary Punto 55.
+`ED` means Economy Drive. It is not merely an equipment package: it uses a differently calibrated five-speed gearbox with taller third, fourth and fifth gears. The supplied `176BA...` body-code list and `3.563` final drive are consistent with the expected ED behavior, but the explicit ED-to-body-code mapping still requires primary confirmation.
 
 ### Punto 55 six-speed
 
-The 1.1-litre 55 was offered with a six-speed manual. Period summaries describe it as using a shorter overall final ratio than the ordinary five-speed. This version therefore requires its own gear set and final drive rather than adding a sixth ratio to the standard 55 data.
+The six-speed is a genuinely different transmission calibration, not the standard five-speed with an added ratio. It uses a shorter first gear, a sixth gear of `0.744` and a much shorter `4.923` final drive.
 
-Published launch dates differ by market-oriented secondary catalogues: one lists a September 1994 production interval, while another describes availability from May 1995. The combination was unquestionably available during calendar year 1995.
+### Punto 60 and Punto 90 five-speeds
+
+The supplied body-code qualifiers show that selected Punto 60 and Punto 90 cars used the long petrol gear set. Because their final drives remain the same as the corresponding standard versions, the distinction exists in third, fourth and fifth gear rather than the differential ratio.
 
 ### Punto 60 Selecta ECVT
 
@@ -83,21 +143,6 @@ Consequently, the Selecta must not be approximated by a fake one-speed or multi-
 - over-temperature or launch limitations only if supported by evidence.
 
 Until that model exists, Selecta variants must remain catalog-ineligible.
-
-### Punto GT five-speed
-
-The period technical table currently provides these gearbox ratios:
-
-| Gear | Ratio |
-|---|---:|
-| 1 | 3.909 |
-| 2 | 2.238 |
-| 3 | 1.520 |
-| 4 | 1.156 |
-| 5 | 0.872 |
-| Reverse | 3.909 |
-
-The final-drive ratio is still required from an identified primary or period technical source before a runtime `CarSpecs` file is authored.
 
 ## 1995 GT visual split
 
@@ -119,18 +164,20 @@ The following must not be added as 1995 production powertrains:
 
 ## Evidence quality and unresolved data
 
-This first pass establishes the complete candidate powertrain matrix, but it is not sufficient for physics implementation. Before creating playable resources, obtain or cross-check:
+The manual-transmission gap is substantially reduced, but the table is still not sufficient by itself for authoritative physics implementation. Before creating final playable resources, obtain or cross-check:
 
-1. Fiat workshop-manual or homologation gearbox tables for every five- and six-speed version;
-2. all final-drive ratios;
-3. Selecta ECVT ratio range and control behavior;
-4. complete or defensibly reconstructed torque curves, with published power/torque anchors preserved exactly;
-5. engine idle, governed/redline and limiter behavior;
-6. curb mass by three-door powertrain rather than generic model range;
-7. tyre size, wheel radius, drag coefficient and frontal area by version;
-8. performance targets from identified period road tests for regression bands;
-9. market applicability of both TD 70 calibrations and both possible 1995 Selecta engine-code pairings;
-10. whether the Punto 90 Sporting uses transmission or final-drive ratios distinct from ordinary Punto 90 versions.
+1. the original publication or Fiat document containing the supplied hatchback ratio tables;
+2. exact body-code meaning and the trim/engine/date applicability of every `176BA`, `176BB` and `176BL` code;
+3. which early/late Punto 60 engine codes were actually paired with each five-speed family;
+4. the correct GT third and fifth gears (`1.520/0.872` versus `1.541/0.891`);
+5. Punto D gearbox ratios and final drive;
+6. Selecta ECVT ratio range, final drive and control behavior;
+7. complete or defensibly reconstructed torque curves, with published power/torque anchors preserved exactly;
+8. engine idle, governed/redline and limiter behavior;
+9. curb mass by three-door powertrain rather than generic model range;
+10. tyre size, wheel radius, drag coefficient and frontal area by version;
+11. performance targets from identified period road tests for regression bands;
+12. market applicability of both TD 70 calibrations and both possible 1995 Selecta engine-code pairings.
 
 No unknown ratio should be invented merely to make a variant playable. A reconstructed value must be labelled as calibration and constrained by identified performance evidence.
 
@@ -141,17 +188,20 @@ The current catalog contract requires one model definition with one variant reso
 Recommended implementation order:
 
 1. inspect and normalize the GLB, identify GT1 versus GT2, and establish a model-specific visual contract;
-2. recover exact manual gearbox and final-drive tables;
-3. build the GT drivetrain first because its gear ratios and engine anchors are the best documented;
-4. implement and validate ordinary manual variants only after their exact gearing is recovered;
-5. add a dedicated CVT model before exposing Selecta;
-6. author trim-specific visual substitutions and only then register non-GT variants in the catalog.
+2. recover the source provenance and resolve the GT ratio conflict;
+3. build the GT drivetrain after its final ratio set is settled;
+4. implement 55, 55 ED, 55 6-Speed, 75 and TD manual variants from the supplied table, with provisional-source annotations until primary corroboration is obtained;
+5. resolve Punto 60 and Punto 90 body-code intersections before exposing their additional long-geared variants;
+6. recover Punto D gearing;
+7. add a dedicated CVT model before exposing Selecta;
+8. author trim-specific visual substitutions and only then register non-GT variants in the catalog.
 
 ## Research references
 
 - Type 176 production range, 1995 equipment/transmission notes, engine codes, output, torque and production periods: https://de.wikipedia.org/wiki/Fiat_Punto_%28Typ_176%29
 - Italian 1993-1996 three-door range and descriptions of 55 ED, 55 6 Speed and Selecta: https://it.wikipedia.org/wiki/Fiat_Punto_%281993%29
-- GT production phases, engine specification and period gearbox-ratio table: https://it.wikipedia.org/wiki/Fiat_Punto_GT
+- GT production phases, engine specification and an earlier secondary gearbox-ratio table: https://it.wikipedia.org/wiki/Fiat_Punto_GT
 - Period-oriented catalogue cross-check for three-door production intervals, masses and transmission types: https://www.automoto.it/catalogo/fiat/punto
+- user-supplied 1993-1999 hardtop gearbox/final-drive table, exact originating publication not yet identified.
 
-These are secondary research sources. The next phase should replace or corroborate every drivetrain-critical number with Fiat technical documentation, homologation data, a clearly identified period road test or an original owner/workshop manual before gameplay tuning is accepted as authoritative.
+Secondary and user-supplied evidence must be replaced or corroborated with Fiat technical documentation, homologation data, a clearly identified period road test or an original owner/workshop manual before drivetrain-critical values are accepted as authoritative.
