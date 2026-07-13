@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
-[ext_resource type="Script" path="res://scripts/car/profiled_engine_audio.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/cross_plane_v8_engine_audio.gd" id="2_engine_audio"]
 [ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
 [ext_resource type="PackedScene" path="res://scenes/cars/mustang_shelby_gt500_1967_visuals.tscn" id="4_visuals"]
 [ext_resource type="Resource" path="res://resources/audio/ford_428_fe_audio_profile.tres" id="5_audio_profile"]
@@ -38,6 +38,11 @@ script = ExtResource("2_engine_audio")
 profile = ExtResource("5_audio_profile")
 cylinders = 8
 force_full_runtime_generation = true
+crossplane_roughness = 0.82
+low_order_rumble = 0.90
+bank_stereo_width = 0.78
+exhaust_crossover = 0.22
+cam_loaf = 0.38
 unit_size = 7.0
 max_distance = 85.0
 
