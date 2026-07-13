@@ -1,0 +1,68 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_specs.gd" id="1_specs"]
+[ext_resource type="Resource" path="res://resources/cars/fiat/punto_176_1995/specs/176a4_1372_turbo_torque_curve.tres" id="2_curve"]
+
+[resource]
+script = ExtResource("1_specs")
+display_name = "Fiat Punto GT 5MT"
+brake_deceleration = 33.0
+reverse_acceleration = 9.0
+coast_deceleration = 4.5
+handbrake_deceleration = 17.5
+max_forward_speed = 55.555556
+max_reverse_speed = 8.5
+steering_speed = 3.2
+wheel_base = 2.45
+front_axle_track_width = 1.4
+rear_axle_track_width = 1.38
+max_steering_angle_degrees = 34.0
+idle_rpm = 850.0
+peak_torque_rpm = 3000.0
+power_peak_rpm = 5750.0
+redline_rpm = 6500.0
+rev_limiter_rpm = 6750.0
+torque_curve = ExtResource("2_curve")
+low_rpm_torque_multiplier = 0.39215686
+mid_rpm_torque_multiplier = 0.95588235
+redline_torque_multiplier = 0.56372549
+engine_force = 25.0
+engine_brake_force = 3.1
+rpm_response = 7.8
+transmission_type = 1
+gear_ratios = Array[float]([3.909, 2.238, 1.541, 1.156, 0.891])
+reverse_gear_ratio = 3.909
+final_drive_ratio = 3.353
+peak_engine_torque = 204.0
+wheel_radius = 0.28
+drivetrain_efficiency = 0.80
+shift_delay = 0.28
+max_drive_acceleration = 18.0
+vehicle_mass = 1000.0
+drag_coefficient = 0.32
+frontal_area = 1.9
+air_density = 1.225
+rolling_resistance_coefficient = 0.014
+front_lateral_grip = 9.8
+rear_lateral_grip = 9.5
+front_tire_width_m = 0.185
+rear_tire_width_m = 0.185
+handbrake_lateral_grip_multiplier = 0.28
+steering_slip_gain = 0.86
+slip_speed_threshold = 2.1
+slip_steering_lock_threshold = 0.55
+slip_steering_same_direction_multiplier = 0.13
+skid_mark_min_slip = 0.45
+skid_mark_interval = 0.055
+skid_mark_lifetime = 10.0
+skid_mark_width = 0.19
+skid_mark_length = 0.78
+gravity = 30.0
+floor_stick_force = 0.54
+suspension_probe_height = 0.34
+suspension_rest_length = 0.22
+suspension_travel = 0.13
+suspension_stiffness = 33.0
+suspension_damping = 5.6
+ground_probe_collision_mask = 1
+minimum_ground_normal_dot = 0.35
