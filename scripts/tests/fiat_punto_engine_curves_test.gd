@@ -21,14 +21,6 @@ const CURVE_CASES: Array[Dictionary] = [
 		"power_peak_rpm": 5500.0,
 	},
 	{
-		"path": "res://resources/cars/fiat/punto_176_1995/specs/176b4_1242_fire_spi_torque_curve.tres",
-		"code": "176B4.000",
-		"peak_torque_nm": 96.0,
-		"peak_torque_rpm": 3000.0,
-		"power_peak_kw": 44.0,
-		"power_peak_rpm": 5500.0,
-	},
-	{
 		"path": "res://resources/cars/fiat/punto_176_1995/specs/176a8_1242_fire_mpi_torque_curve.tres",
 		"code": "176A8.000",
 		"peak_torque_nm": 106.0,
@@ -66,14 +58,6 @@ const CURVE_CASES: Array[Dictionary] = [
 		"peak_torque_nm": 134.0,
 		"peak_torque_rpm": 2500.0,
 		"power_peak_kw": 52.0,
-		"power_peak_rpm": 4500.0,
-	},
-	{
-		"path": "res://resources/cars/fiat/punto_176_1995/specs/176a3_1698_td_cat_torque_curve.tres",
-		"code": "176A3.000",
-		"peak_torque_nm": 134.0,
-		"peak_torque_rpm": 2500.0,
-		"power_peak_kw": 51.0,
 		"power_peak_rpm": 4500.0,
 	},
 ]
