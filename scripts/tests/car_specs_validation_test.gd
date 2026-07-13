@@ -47,9 +47,16 @@ func _run() -> void:
 
 	var invalid_tires: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
 	invalid_tires.handbrake_lateral_grip_multiplier = -0.1
+	invalid_tires.longitudinal_grip_coefficient = 0.0
+	invalid_tires.longitudinal_peak_slip_ratio = 0.0
+	invalid_tires.longitudinal_slide_grip_multiplier = 1.1
 	invalid_tires.skid_mark_min_slip = 1.1
-	_expect(_contains_error(invalid_tires.validate(), "handbrake_lateral_grip_multiplier"), "negative handbrake grip multiplier is rejected")
-	_expect(_contains_error(invalid_tires.validate(), "skid_mark_min_slip"), "slip threshold above one is rejected")
+	var tire_errors: PackedStringArray = invalid_tires.validate()
+	_expect(_contains_error(tire_errors, "handbrake_lateral_grip_multiplier"), "negative handbrake grip multiplier is rejected")
+	_expect(_contains_error(tire_errors, "longitudinal_grip_coefficient"), "non-positive longitudinal grip coefficient is rejected")
+	_expect(_contains_error(tire_errors, "longitudinal_peak_slip_ratio"), "non-positive peak longitudinal slip ratio is rejected")
+	_expect(_contains_error(tire_errors, "longitudinal_slide_grip_multiplier"), "sliding longitudinal grip above the peak is rejected")
+	_expect(_contains_error(tire_errors, "skid_mark_min_slip"), "slip threshold above one is rejected")
 
 	var invalid_automatic: CarSpecs = AUTOMATIC_SPECS.duplicate(true) as CarSpecs
 	invalid_automatic.automatic_downshift_rpm = invalid_automatic.automatic_upshift_rpm
