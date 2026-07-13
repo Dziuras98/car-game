@@ -342,6 +342,11 @@ func _get_transmission_drive_acceleration(state: CarRuntimeState, throttle: floa
 		get_rev_limiter_multiplier(),
 		_get_torque_converter_torque_multiplier(throttle)
 	)
+	acceleration = clampf(
+		acceleration,
+		-_config.max_drive_acceleration,
+		_config.max_drive_acceleration
+	)
 	if _config.is_manual_transmission():
 		acceleration *= _clutch_model.get_transmitted_torque_factor(state.clutch_engagement)
 	return acceleration * _get_longitudinal_grip_factor(state)
@@ -358,17 +363,4 @@ func _get_ground_contact_factor(state: CarRuntimeState) -> float:
 		float(state.ground_contact_count) / float(GroundContactModel.PROBE_COUNT),
 		0.0,
 		1.0
-	)
-
-
-func _get_longitudinal_grip_factor(state: CarRuntimeState) -> float:
-	var contact_factor: float = _get_ground_contact_factor(state)
-	if contact_factor <= 0.0:
-		return 0.0
-	return (
-		_tire_model.get_longitudinal_grip_factor(
-			state.tire_slip_intensity,
-			state.surface_grip_multiplier
-		)
-		* contact_factor
 	)
