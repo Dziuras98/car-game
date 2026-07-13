@@ -19,25 +19,25 @@ func _run() -> void:
 	add_child(car)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var audio: BakedEngineAudioPlayer = car.get_node_or_null("EngineAudio") as BakedEngineAudioPlayer
-	_expect(audio != null, "the production car uses the baked engine-audio player")
+	var audio: ProfiledEngineAudioSynthesizer = car.get_node_or_null("EngineAudio") as ProfiledEngineAudioSynthesizer
+	_expect(audio != null, "the player car uses the profiled live engine synthesizer")
 	if audio == null:
 		await _cleanup(car)
 		return
-	_expect(audio.is_using_baked_bank(), "the production player prepares its committed WAV bank")
-	_expect(not audio.uses_audio_stream_generator(), "the production player does not allocate an AudioStreamGenerator")
+	_expect(audio.profile != null and audio.profile.is_valid(), "the player synthesizer has a valid engine profile")
+	_expect(audio.force_full_runtime_generation, "the player synthesizer bypasses distance LOD and shared voice budgeting")
+	_expect(audio.should_generate_procedural_audio(1.0 / 60.0), "full player synthesis remains enabled for every runtime update")
 
 	if DisplayServer.get_name() == "headless":
-		_expect(not audio.is_processing(), "headless runtime disables audible playback updates")
-		_expect(audio.get_active_voice_count() == 0, "headless runtime starts no audio voices")
+		_expect(not audio.is_processing(), "headless runtime disables audible synthesis updates")
+		_expect(audio.stream == null, "headless runtime does not allocate an AudioStreamGenerator")
 		await _cleanup(car)
 		return
 
 	await get_tree().create_timer(0.10).timeout
-	_expect(audio.is_processing(), "windowed runtime updates the baked playback controller")
-	_expect(audio.get_loaded_voice_stream_count() >= 2, "windowed runtime selects WAV streams for coast and load layers")
-	_expect(audio.get_active_voice_count() >= 1, "windowed runtime plays at least one audible WAV voice")
-	_expect(not audio.uses_audio_stream_generator(), "live playback remains sample-based after startup")
+	_expect(audio.is_processing(), "windowed runtime updates the live synthesis controller")
+	_expect(audio.stream is AudioStreamGenerator, "windowed runtime allocates an AudioStreamGenerator")
+	_expect(audio.playing, "windowed runtime starts procedural engine playback")
 	await _cleanup(car)
 
 
