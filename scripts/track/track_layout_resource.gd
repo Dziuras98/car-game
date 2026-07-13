@@ -3,6 +3,12 @@ class_name TrackLayoutResource
 
 const MAX_WIDTH_VARIATION: float = 0.45
 const MIN_POINT_DISTANCE_SQUARED: float = 0.0001
+const MIN_PROFILE_TRACK_WIDTH: float = 0.1
+const MAX_PROFILE_TRACK_WIDTH: float = 100.0
+const MAX_PROFILE_SHOULDER_WIDTH: float = 100.0
+const MAX_PROFILE_BARRIER_DISTANCE: float = 250.0
+const MAX_RACING_LINE_OFFSET: float = 50.0
+const MAX_BANKING_DEGREES: float = 20.0
 
 @export_group("Identity")
 @export var track_id: StringName = &"track"
@@ -53,6 +59,38 @@ const MIN_POINT_DISTANCE_SQUARED: float = 0.0001
 		if is_equal_approx(barrier_distance_from_road, value):
 			return
 		barrier_distance_from_road = value
+		emit_changed()
+
+@export_group("Road Profiles")
+@export var track_width_profile: PackedVector2Array = PackedVector2Array():
+	set(value):
+		if track_width_profile == value:
+			return
+		track_width_profile = value
+		emit_changed()
+@export var shoulder_width_profile: PackedVector2Array = PackedVector2Array():
+	set(value):
+		if shoulder_width_profile == value:
+			return
+		shoulder_width_profile = value
+		emit_changed()
+@export var barrier_distance_profile: PackedVector2Array = PackedVector2Array():
+	set(value):
+		if barrier_distance_profile == value:
+			return
+		barrier_distance_profile = value
+		emit_changed()
+@export var racing_line_offset_profile: PackedVector2Array = PackedVector2Array():
+	set(value):
+		if racing_line_offset_profile == value:
+			return
+		racing_line_offset_profile = value
+		emit_changed()
+@export var banking_degrees_profile: PackedVector2Array = PackedVector2Array():
+	set(value):
+		if banking_degrees_profile == value:
+			return
+		banking_degrees_profile = value
 		emit_changed()
 
 @export_group("Checkpoints")
@@ -134,6 +172,41 @@ func validate() -> PackedStringArray:
 	if not _is_finite_vector2(grass_size) or grass_size.x <= 0.0 or grass_size.y <= 0.0:
 		errors.append("grass_size components must be finite and greater than zero")
 	_append_non_negative(errors, "barrier_distance_from_road", barrier_distance_from_road)
+	_append_profile_range_errors(
+		errors,
+		"track_width_profile",
+		track_width_profile,
+		MIN_PROFILE_TRACK_WIDTH,
+		MAX_PROFILE_TRACK_WIDTH
+	)
+	_append_profile_range_errors(
+		errors,
+		"shoulder_width_profile",
+		shoulder_width_profile,
+		0.0,
+		MAX_PROFILE_SHOULDER_WIDTH
+	)
+	_append_profile_range_errors(
+		errors,
+		"barrier_distance_profile",
+		barrier_distance_profile,
+		0.0,
+		MAX_PROFILE_BARRIER_DISTANCE
+	)
+	_append_profile_range_errors(
+		errors,
+		"racing_line_offset_profile",
+		racing_line_offset_profile,
+		-MAX_RACING_LINE_OFFSET,
+		MAX_RACING_LINE_OFFSET
+	)
+	_append_profile_range_errors(
+		errors,
+		"banking_degrees_profile",
+		banking_degrees_profile,
+		-MAX_BANKING_DEGREES,
+		MAX_BANKING_DEGREES
+	)
 
 	if not has_valid_checkpoint_sequence():
 		errors.append("checkpoint_progresses must be finite, strictly increasing and within (0, 1)")
@@ -166,6 +239,84 @@ func get_checkpoint_count() -> int:
 
 func get_checkpoint_gate_count() -> int:
 	return get_checkpoint_count() + 1
+
+
+func get_track_width_at(progress: float) -> float:
+	return _sample_loop_profile(track_width_profile, progress, track_width)
+
+
+func get_shoulder_width_at(progress: float) -> float:
+	return _sample_loop_profile(shoulder_width_profile, progress, shoulder_width)
+
+
+func get_barrier_distance_at(progress: float) -> float:
+	return _sample_loop_profile(barrier_distance_profile, progress, barrier_distance_from_road)
+
+
+func get_racing_line_offset_at(progress: float) -> float:
+	return _sample_loop_profile(racing_line_offset_profile, progress, 0.0)
+
+
+func get_banking_degrees_at(progress: float) -> float:
+	return _sample_loop_profile(banking_degrees_profile, progress, 0.0)
+
+
+func _sample_loop_profile(profile: PackedVector2Array, progress: float, fallback: float) -> float:
+	if profile.is_empty():
+		return fallback
+	if profile.size() == 1:
+		return profile[0].y
+
+	var normalized_progress: float = fposmod(progress, 1.0)
+	var first: Vector2 = profile[0]
+	var last: Vector2 = profile[-1]
+	if normalized_progress < first.x:
+		return _interpolate_wrapped_profile(last, first, normalized_progress + 1.0)
+
+	for sample_index: int in range(profile.size() - 1):
+		var current: Vector2 = profile[sample_index]
+		var next: Vector2 = profile[sample_index + 1]
+		if normalized_progress <= next.x:
+			return _interpolate_profile_pair(current, next, normalized_progress)
+
+	return _interpolate_wrapped_profile(last, first, normalized_progress)
+
+
+func _interpolate_wrapped_profile(last: Vector2, first: Vector2, progress: float) -> float:
+	var wrapped_first: Vector2 = Vector2(first.x + 1.0, first.y)
+	return _interpolate_profile_pair(last, wrapped_first, progress)
+
+
+func _interpolate_profile_pair(current: Vector2, next: Vector2, progress: float) -> float:
+	var span: float = next.x - current.x
+	if span <= 0.000001:
+		return current.y
+	return lerpf(current.y, next.y, clampf((progress - current.x) / span, 0.0, 1.0))
+
+
+func _append_profile_range_errors(
+	errors: PackedStringArray,
+	profile_name: String,
+	profile: PackedVector2Array,
+	minimum_value: float,
+	maximum_value: float
+) -> void:
+	var previous_progress: float = -1.0
+	for sample_index: int in range(profile.size()):
+		var sample: Vector2 = profile[sample_index]
+		if not _is_finite_vector2(sample):
+			errors.append("%s[%d] must be finite" % [profile_name, sample_index])
+			continue
+		if sample.x < 0.0 or sample.x > 1.0:
+			errors.append("%s[%d].x must be within [0, 1]" % [profile_name, sample_index])
+		if sample_index > 0 and sample.x <= previous_progress:
+			errors.append("%s progress values must be strictly increasing" % profile_name)
+		if sample.y < minimum_value or sample.y > maximum_value:
+			errors.append(
+				"%s[%d].y must be within [%.3f, %.3f]"
+				% [profile_name, sample_index, minimum_value, maximum_value]
+			)
+		previous_progress = sample.x
 
 
 func _append_positive(errors: PackedStringArray, property_name: String, value: float) -> void:
