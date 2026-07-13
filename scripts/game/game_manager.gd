@@ -380,13 +380,20 @@ func _on_menu_selection_completed(
 		return
 	if _session_state.is_free_drive():
 		_race_session.hide_lap_ui()
+	_set_driving_ui_visible(true)
 	_menu.complete_loading(true)
+	if _session_state.is_free_drive() and is_instance_valid(_current_car):
+		_current_car.set_player_input_enabled(true)
 
 
 func _handle_session_start_failure(result: GameSessionStartTransaction.Result) -> void:
 	var message: String = GameSessionStartTransaction.get_failure_message(result)
 	if result == GameSessionStartTransaction.Result.NOT_CONFIGURED:
 		_reset_to_main_menu(message)
+		return
+	if result == GameSessionStartTransaction.Result.ALREADY_RUNNING:
+		if not message.is_empty():
+			push_warning(message)
 		return
 	if not message.is_empty():
 		push_error(message)
@@ -431,13 +438,15 @@ func _spawn_car(car_index: int, spawn_global_transform: Transform3D) -> bool:
 	if next_car == null:
 		return false
 	_current_car = next_car
-	_set_driving_ui_visible(true)
 	_update_car_targets()
 	return true
 
 
 func _is_player_input_enabled_for_spawn() -> bool:
-	return _race_session == null or not _race_session.are_player_controls_locked()
+	return (
+		_session_state.is_free_drive()
+		and (_race_session == null or not _race_session.are_player_controls_locked())
+	)
 
 
 func _set_driving_ui_visible(visible: bool) -> void:
