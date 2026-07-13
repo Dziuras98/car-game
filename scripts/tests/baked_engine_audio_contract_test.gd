@@ -4,10 +4,12 @@ const BANK_PATHS: Array[String] = [
 	"res://assets/audio/engine/370z_stock/bank.tres",
 	"res://assets/audio/engine/370z_nismo/bank.tres",
 ]
-const SCENE_PATHS: Array[String] = [
+const PLAYER_SCENE_PATHS: Array[String] = [
 	"res://scenes/cars/370z.tscn",
-	"res://scenes/cars/370z_ai.tscn",
 	"res://scenes/cars/370z_nismo.tscn",
+]
+const AI_SCENE_PATHS: Array[String] = [
+	"res://scenes/cars/370z_ai.tscn",
 	"res://scenes/cars/370z_nismo_ai.tscn",
 ]
 
@@ -17,7 +19,8 @@ var _failures: Array[String] = []
 
 func _initialize() -> void:
 	_test_banks()
-	_test_production_scenes()
+	_test_player_scenes()
+	_test_ai_scenes()
 	_finish()
 
 
@@ -51,21 +54,39 @@ func _test_wav(
 	_expect(absf(wav.get_length() - bank.loop_seconds) <= 0.02, "%s clip retains the configured loop duration at anchor %d" % [layer_name, index])
 
 
-func _test_production_scenes() -> void:
-	for scene_path: String in SCENE_PATHS:
+func _test_player_scenes() -> void:
+	for scene_path: String in PLAYER_SCENE_PATHS:
 		var packed_scene: PackedScene = load(scene_path) as PackedScene
-		_expect(packed_scene != null, "production car scene loads: %s" % scene_path)
+		_expect(packed_scene != null, "player car scene loads: %s" % scene_path)
 		if packed_scene == null:
 			continue
 		var car: Node = packed_scene.instantiate()
 		var audio: Node = car.get_node_or_null("EngineAudio")
-		_expect(audio is BakedEngineAudioPlayer, "production scene uses BakedEngineAudioPlayer: %s" % scene_path)
-		_expect(not (audio is ProfiledEngineAudioSynthesizer), "production scene excludes the profiled live synthesizer: %s" % scene_path)
-		_expect(not (audio is EngineAudioSynthesizer), "production scene excludes the raw live synthesizer: %s" % scene_path)
+		_expect(audio is ProfiledEngineAudioSynthesizer, "player scene uses the profiled live synthesizer: %s" % scene_path)
+		_expect(not (audio is BakedEngineAudioPlayer), "player scene does not use the baked runtime player: %s" % scene_path)
+		if audio is ProfiledEngineAudioSynthesizer:
+			var synth: ProfiledEngineAudioSynthesizer = audio as ProfiledEngineAudioSynthesizer
+			_expect(synth.profile != null, "player scene assigns an engine-audio profile: %s" % scene_path)
+			_expect(synth.profile == null or synth.profile.is_valid(), "player scene assigns a valid engine-audio profile: %s" % scene_path)
+			_expect(synth.force_full_runtime_generation, "player scene bypasses procedural audio LOD and voice budgeting: %s" % scene_path)
+		car.free()
+
+
+func _test_ai_scenes() -> void:
+	for scene_path: String in AI_SCENE_PATHS:
+		var packed_scene: PackedScene = load(scene_path) as PackedScene
+		_expect(packed_scene != null, "AI car scene loads: %s" % scene_path)
+		if packed_scene == null:
+			continue
+		var car: Node = packed_scene.instantiate()
+		var audio: Node = car.get_node_or_null("EngineAudio")
+		_expect(audio is BakedEngineAudioPlayer, "AI scene uses BakedEngineAudioPlayer: %s" % scene_path)
+		_expect(not (audio is ProfiledEngineAudioSynthesizer), "AI scene excludes the profiled live synthesizer: %s" % scene_path)
+		_expect(not (audio is EngineAudioSynthesizer), "AI scene excludes the raw live synthesizer: %s" % scene_path)
 		if audio is BakedEngineAudioPlayer:
 			var baked_audio: BakedEngineAudioPlayer = audio as BakedEngineAudioPlayer
-			_expect(baked_audio.bank != null, "production scene assigns a baked bank: %s" % scene_path)
-			_expect(not baked_audio.uses_audio_stream_generator(), "production scene contains no generator stream: %s" % scene_path)
+			_expect(baked_audio.bank != null, "AI scene assigns a baked bank: %s" % scene_path)
+			_expect(not baked_audio.uses_audio_stream_generator(), "AI scene contains no generator stream: %s" % scene_path)
 		car.free()
 
 
