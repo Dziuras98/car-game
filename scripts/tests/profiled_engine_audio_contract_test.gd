@@ -15,8 +15,12 @@ func _run() -> void:
 	root.add_child(audio)
 	await process_frame
 	_expect(
-		audio.cylinders == ProfiledEngineAudioSynthesizer.SUPPORTED_CYLINDER_COUNT,
-		"profiled VQ37VHR audio normalizes unsupported cylinder counts to six"
+		audio.cylinders == 8,
+		"profiled engine audio preserves an explicitly configured V8 cylinder count"
+	)
+	_expect(
+		EngineAudioSynthesizer.firing_frequency_hz(3000.0, audio.cylinders) == 200.0,
+		"the configured V8 produces four firing events per crankshaft revolution"
 	)
 	_expect(
 		audio.should_generate_procedural_audio(1.0 / 60.0),
