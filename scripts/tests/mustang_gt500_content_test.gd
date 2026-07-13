@@ -106,8 +106,8 @@ func _test_engine_curve() -> void:
 
 	engine.set_rpm(5400.0)
 	var power_torque_nm: float = specs.peak_engine_torque * engine.get_torque_multiplier()
-	var power_bhp: float = _power_bhp(power_torque_nm, 5400.0)
-	_expect(absf(power_bhp - 355.0) < 0.10, "the curve produces the advertised 355 bhp at 5400 RPM")
+	var power_hp: float = _power_mechanical_hp(power_torque_nm, 5400.0)
+	_expect(absf(power_hp - 355.0) < 0.10, "the curve produces the advertised 355 SAE gross hp at 5400 RPM")
 
 	engine.set_rpm(2500.0)
 	var low_speed_torque: float = specs.peak_engine_torque * engine.get_torque_multiplier()
@@ -207,7 +207,7 @@ func _build_engine_model(specs: CarSpecs) -> EngineModel:
 	return engine
 
 
-func _power_bhp(torque_nm: float, rpm: float) -> float:
+func _power_mechanical_hp(torque_nm: float, rpm: float) -> float:
 	return torque_nm * rpm / 7127.0
 
 
