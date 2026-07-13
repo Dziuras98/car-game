@@ -64,14 +64,14 @@ class ManualCar:
 
 
 func _initialize() -> void:
-	_run()
-	_finish()
+	_run.call_deferred()
 
 
 func _run() -> void:
 	_test_external_shift_requests_are_one_shot()
 	_test_manual_shift_thresholds()
 	_test_manual_recovery_sequence()
+	_finish()
 
 
 func _test_external_shift_requests_are_one_shot() -> void:
