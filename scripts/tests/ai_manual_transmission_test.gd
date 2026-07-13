@@ -1,5 +1,7 @@
 extends SceneTree
 
+const MANUAL_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
+
 var _checks: int = 0
 var _failures: Array[String] = []
 
@@ -84,6 +86,7 @@ func _test_external_shift_requests_are_one_shot() -> void:
 	car_input.request_external_gear_down()
 	car_input.read_drive_input()
 	_expect(car_input.gear_down_pressed and not car_input.gear_up_pressed, "external downshift request reaches the powertrain input snapshot")
+	car_input.request_external_gear_up()
 	car_input.set_external_input_enabled(false)
 	car_input.set_external_input_enabled(true)
 	car_input.read_drive_input()
@@ -130,6 +133,9 @@ func _test_manual_shift_thresholds() -> void:
 
 func _test_manual_recovery_sequence() -> void:
 	var car: ManualCar = ManualCar.new()
+	car.car_specs = MANUAL_SPECS
+	root.add_child(car)
+	car.set_physics_process(false)
 	var profile: AiDriverProfile = AiDriverProfile.new()
 	profile.recovery_stop_speed_kmh = 1.0
 	profile.reverse_engage_timeout_seconds = 2.0
