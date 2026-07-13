@@ -46,6 +46,13 @@ var torque_converter_stall_rpm: float = 2600.0
 var torque_converter_coupling_rpm: float = 4200.0
 var torque_converter_stall_torque_multiplier: float = 1.65
 
+var cvt_max_ratio: float = 2.50
+var cvt_target_rpm_min: float = 1800.0
+var cvt_target_rpm_max: float = 5500.0
+var cvt_ratio_response: float = 8.0
+var cvt_clutch_engagement_rpm: float = 1250.0
+var cvt_clutch_full_rpm: float = 2200.0
+
 var vehicle_mass: float = 1200.0
 var drag_coefficient: float = 0.30
 var frontal_area: float = 2.05
@@ -86,8 +93,20 @@ func is_automatic_transmission() -> bool:
 	return transmission_type == CarSpecs.TransmissionType.AUTOMATIC
 
 
-func uses_geared_transmission() -> bool:
+func is_cvt_transmission() -> bool:
+	return transmission_type == CarSpecs.TransmissionType.CVT
+
+
+func is_self_shifting_transmission() -> bool:
+	return is_automatic_transmission() or is_cvt_transmission()
+
+
+func uses_discrete_gears() -> bool:
 	return is_manual_transmission() or is_automatic_transmission()
+
+
+func uses_geared_transmission() -> bool:
+	return uses_discrete_gears() or is_cvt_transmission()
 
 
 func duplicate_config() -> CarDriveConfig:
@@ -128,7 +147,13 @@ func sanitize() -> void:
 	suspension_damping = maxf(suspension_damping, 0.0)
 	ground_probe_collision_mask = maxi(ground_probe_collision_mask, 1)
 	minimum_ground_normal_dot = clampf(minimum_ground_normal_dot, 0.0, 1.0)
-	if transmission_type < CarSpecs.TransmissionType.DIRECT_DRIVE or transmission_type > CarSpecs.TransmissionType.AUTOMATIC:
+	cvt_max_ratio = maxf(cvt_max_ratio, CvtTransmissionModel.MIN_DYNAMIC_RATIO)
+	cvt_target_rpm_min = maxf(cvt_target_rpm_min, idle_rpm)
+	cvt_target_rpm_max = maxf(cvt_target_rpm_max, cvt_target_rpm_min)
+	cvt_ratio_response = maxf(cvt_ratio_response, 0.01)
+	cvt_clutch_engagement_rpm = maxf(cvt_clutch_engagement_rpm, idle_rpm)
+	cvt_clutch_full_rpm = maxf(cvt_clutch_full_rpm, cvt_clutch_engagement_rpm + 1.0)
+	if transmission_type < CarSpecs.TransmissionType.DIRECT_DRIVE or transmission_type > CarSpecs.TransmissionType.CVT:
 		transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
-	if uses_geared_transmission() and gear_ratios.is_empty():
+	if uses_discrete_gears() and gear_ratios.is_empty():
 		gear_ratios = [1.0]
