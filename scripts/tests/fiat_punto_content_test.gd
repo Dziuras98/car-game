@@ -17,7 +17,8 @@ const TARGETS: Dictionary = {
 const PERFORMANCE_TOLERANCE_SECONDS: float = 1.5
 const SIMULATION_STEP: float = 1.0 / 120.0
 const MAX_ACCELERATION_TEST_SECONDS: float = 30.0
-const MANUAL_UPSHIFT_RPM_RATIO: float = 0.86
+const POWER_PEAK_UPSHIFT_MULTIPLIER: float = 1.04
+const REDLINE_UPSHIFT_MULTIPLIER: float = 0.98
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -113,7 +114,10 @@ func _simulate_zero_to_100(specs: CarSpecs) -> float:
 			and state.shift_timer <= 0.0
 			and state.current_gear < config.gear_ratios.size()
 		):
-			var upshift_rpm: float = lerpf(config.idle_rpm, config.redline_rpm, MANUAL_UPSHIFT_RPM_RATIO)
+			var upshift_rpm: float = minf(
+				config.redline_rpm * REDLINE_UPSHIFT_MULTIPLIER,
+				config.power_peak_rpm * POWER_PEAK_UPSHIFT_MULTIPLIER
+			)
 			request_upshift = state.engine_rpm >= upshift_rpm
 		controller.update(state, 1.0, 0.0, false, request_upshift, false, SIMULATION_STEP)
 		elapsed += SIMULATION_STEP
