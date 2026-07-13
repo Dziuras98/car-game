@@ -249,6 +249,12 @@ func _set_player_input_enabled(enabled: bool) -> void:
 func _stop_participant_car(car: PlayerCarController) -> void:
 	if not is_instance_valid(car):
 		return
+	var opponent_index: int = _opponents.find(car)
+	if opponent_index >= 0 and _car_spawner != null:
+		var ai_drivers: Array[AiRaceDriver] = _car_spawner.get_ai_drivers()
+		if opponent_index < ai_drivers.size() and is_instance_valid(ai_drivers[opponent_index]):
+			ai_drivers[opponent_index].set_driver_enabled(false)
+	car.set_player_input_enabled(false)
 	car.set_external_drive_inputs(0.0, 0.0, 0.0, true)
 
 

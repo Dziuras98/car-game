@@ -6,6 +6,7 @@ signal driver_fault(message: String)
 const MAX_OPPONENT_COUNT: int = 15
 const MIN_LATERAL_SPAWN_SEPARATION: float = 2.2
 const MIN_LONGITUDINAL_SPAWN_SEPARATION: float = 4.8
+const MIN_TRACK_EDGE_CLEARANCE: float = MIN_LATERAL_SPAWN_SEPARATION * 0.5
 
 var opponent_lane_spacing: float = 4.2
 var opponent_row_spacing: float = 7.0
@@ -18,6 +19,7 @@ var _opponent_layout: OpponentSpawnLayout
 var _paint_randomizer: OpponentPaintRandomizer
 var _opponent_spawner: OpponentParticipantSpawner
 var _car_spawn: Node3D
+var _track: GeneratedTrack
 var _configured: bool = false
 
 
@@ -81,6 +83,7 @@ func configure(
 	opponent_lane_spacing = lane_spacing
 	opponent_row_spacing = row_spacing
 	_car_spawn = car_spawn
+	_track = track
 	if random_seed >= 0:
 		_rng.seed = random_seed
 	else:
@@ -118,7 +121,12 @@ func configure(
 
 
 func is_configured() -> bool:
-	return _configured
+	return (
+		_configured
+		and is_instance_valid(_car_spawn)
+		and is_instance_valid(_track)
+		and _track.has_committed_generation()
+	)
 
 
 func has_available_cars() -> bool:
@@ -166,7 +174,12 @@ func validate_opponent_spawn_request(opponent_count: int) -> PackedStringArray:
 		opponent_row_spacing,
 		-1
 	)
-	if not _configured or not is_instance_valid(_car_spawn) or _opponent_layout == null:
+	if (
+		not _configured
+		or not is_instance_valid(_car_spawn)
+		or not is_instance_valid(_track)
+		or _opponent_layout == null
+	):
 		errors.append("CarSpawner must be configured before validating an opponent grid")
 		return errors
 	if opponent_count > 0 and not has_ai_eligible_cars():
@@ -178,10 +191,28 @@ func validate_opponent_spawn_request(opponent_count: int) -> PackedStringArray:
 	for opponent_index: int in range(opponent_count):
 		transforms.append(_opponent_layout.get_spawn_transform(_car_spawn, opponent_index))
 	var spawn_inverse: Transform3D = _car_spawn.global_transform.affine_inverse()
-	for first_index: int in range(transforms.size()):
-		var first_local: Vector3 = spawn_inverse * transforms[first_index].origin
-		for second_index: int in range(first_index + 1, transforms.size()):
-			var second_local: Vector3 = spawn_inverse * transforms[second_index].origin
+	var start_line_half_width: float = 0.0
+	var track_layout: TrackLayoutResource = _track.get_track_layout()
+	if track_layout != null:
+		start_line_half_width = maxf(track_layout.get_track_width_at(0.0) * 0.5, 0.0)
+
+	var local_positions: Array[Vector3] = []
+	for transform_index: int in range(transforms.size()):
+		var local_position: Vector3 = spawn_inverse * transforms[transform_index].origin
+		local_positions.append(local_position)
+		if (
+			start_line_half_width > 0.0
+			and absf(local_position.x) + MIN_TRACK_EDGE_CLEARANCE > start_line_half_width
+		):
+			errors.append(
+				"spawn transform %d exceeds the usable start-line track width"
+				% transform_index
+			)
+
+	for first_index: int in range(local_positions.size()):
+		var first_local: Vector3 = local_positions[first_index]
+		for second_index: int in range(first_index + 1, local_positions.size()):
+			var second_local: Vector3 = local_positions[second_index]
 			if (
 				absf(first_local.x - second_local.x) < MIN_LATERAL_SPAWN_SEPARATION
 				and absf(first_local.z - second_local.z) < MIN_LONGITUDINAL_SPAWN_SEPARATION

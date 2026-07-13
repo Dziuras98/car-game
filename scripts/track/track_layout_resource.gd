@@ -318,6 +318,18 @@ func _append_profile_range_errors(
 			)
 		previous_progress = sample.x
 
+	if profile.size() >= 2:
+		var first: Vector2 = profile[0]
+		var last: Vector2 = profile[-1]
+		if (
+			_is_finite_vector2(first)
+			and _is_finite_vector2(last)
+			and is_equal_approx(first.x, 0.0)
+			and is_equal_approx(last.x, 1.0)
+			and not is_equal_approx(first.y, last.y)
+		):
+			errors.append("%s endpoint values at progress 0 and 1 must match" % profile_name)
+
 
 func _append_positive(errors: PackedStringArray, property_name: String, value: float) -> void:
 	if not is_finite(value) or value <= 0.0:
