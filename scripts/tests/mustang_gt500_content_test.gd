@@ -66,7 +66,7 @@ func _test_player_scene(scene_path: String, label: String) -> void:
 	_expect(car.get_node_or_null("VisualRoot") != null, "%s scene contains the imported visual wrapper" % label)
 	var audio: ProfiledEngineAudioSynthesizer = car.get_node_or_null("EngineAudio") as ProfiledEngineAudioSynthesizer
 	_expect(audio != null, "%s scene uses live profiled engine synthesis" % label)
-	_expect(audio == null or audio.cylinders == 8, "%s scene synthesizes an eight-cylinder firing order" % label)
+	_expect(audio == null or audio.cylinders == 8, "%s scene configures an eight-cylinder firing frequency" % label)
 	car.free()
 
 
@@ -84,7 +84,7 @@ func _test_powertrain_specs() -> void:
 	_expect(automatic.is_automatic_transmission(), "the C6 variant uses the automatic transmission model")
 	_expect(automatic.gear_ratios == [2.46, 1.46, 1.0], "the automatic uses the three C6 forward ratios")
 	_expect(is_equal_approx(automatic.reverse_gear_ratio, 2.18), "the C6 reverse ratio is represented")
-	_expect(is_equal_approx(manual.final_drive_ratio, 3.5), "the manual uses the documented representative 3.50 axle")
+	_expect(is_equal_approx(manual.final_drive_ratio, 3.89), "the manual uses the documented 3.89 axle")
 	_expect(is_equal_approx(automatic.final_drive_ratio, 3.5), "the automatic uses the documented 3.50 axle")
 	_expect(manual.torque_curve == automatic.torque_curve, "both transmissions share one authoritative engine curve")
 	_expect(is_equal_approx(manual.peak_engine_torque, 569.4435), "420 lb-ft is converted to SI without rounding drift")
@@ -107,7 +107,7 @@ func _test_engine_curve() -> void:
 	engine.set_rpm(5400.0)
 	var power_torque_nm: float = specs.peak_engine_torque * engine.get_torque_multiplier()
 	var power_bhp: float = _power_bhp(power_torque_nm, 5400.0)
-	_expect(absf(power_bhp - 355.0) < 0.25, "the curve produces the advertised 355 bhp at 5400 RPM")
+	_expect(absf(power_bhp - 355.0) < 0.10, "the curve produces the advertised 355 bhp at 5400 RPM")
 
 	engine.set_rpm(2500.0)
 	var low_speed_torque: float = specs.peak_engine_torque * engine.get_torque_multiplier()
@@ -130,7 +130,7 @@ func _test_performance_targets() -> void:
 	print("[MUSTANG_GT500_PERFORMANCE] manual=%s" % JSON.stringify(manual_result))
 	print("[MUSTANG_GT500_PERFORMANCE] automatic=%s" % JSON.stringify(automatic_result))
 
-	_expect(_in_range(float(manual_result["zero_to_sixty_s"]), 5.8, 7.8), "the four-speed 0-60 mph result remains inside the period-reference band")
+	_expect(_in_range(float(manual_result["zero_to_sixty_s"]), 6.0, 7.8), "the four-speed 0-60 mph result remains inside the period-reference band")
 	_expect(_in_range(float(manual_result["quarter_mile_s"]), 14.0, 16.5), "the four-speed quarter mile remains inside the period-reference band")
 	_expect(_in_range(float(manual_result["quarter_trap_mph"]), 90.0, 108.0), "the four-speed quarter-mile trap speed remains plausible")
 	_expect(_in_range(float(manual_result["top_speed_kmh"]), 190.0, 207.0), "the four-speed reaches the documented approximate top-speed region")
