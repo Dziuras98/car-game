@@ -2,6 +2,7 @@ extends SceneTree
 
 const MANUAL_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_6mt_specs.tres")
 const AUTOMATIC_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
+const CVT_SPECS: CarSpecs = preload("res://resources/cars/fiat/punto_176_1995/specs/punto_60_cvt_specs.tres")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -15,8 +16,11 @@ func _initialize() -> void:
 func _run() -> void:
 	_expect(MANUAL_SPECS.validate().is_empty(), "manual production specs pass comprehensive validation")
 	_expect(AUTOMATIC_SPECS.validate().is_empty(), "automatic production specs pass comprehensive validation")
-	_expect(MANUAL_SPECS.is_manual_transmission() and not MANUAL_SPECS.is_automatic_transmission(), "manual specs expose one exclusive transmission mode")
-	_expect(AUTOMATIC_SPECS.is_automatic_transmission() and not AUTOMATIC_SPECS.is_manual_transmission(), "automatic specs expose one exclusive transmission mode")
+	_expect(CVT_SPECS.validate().is_empty(), "CVT production specs pass comprehensive validation")
+	_expect(MANUAL_SPECS.is_manual_transmission() and not MANUAL_SPECS.is_automatic_transmission() and not MANUAL_SPECS.is_cvt_transmission(), "manual specs expose one exclusive transmission mode")
+	_expect(AUTOMATIC_SPECS.is_automatic_transmission() and not AUTOMATIC_SPECS.is_manual_transmission() and not AUTOMATIC_SPECS.is_cvt_transmission(), "automatic specs expose one exclusive transmission mode")
+	_expect(CVT_SPECS.is_cvt_transmission() and not CVT_SPECS.is_manual_transmission() and not CVT_SPECS.is_automatic_transmission(), "CVT specs expose one exclusive transmission mode")
+	_expect(CVT_SPECS.uses_geared_transmission() and not CVT_SPECS.uses_discrete_gears(), "CVT is powered without declaring fake discrete gears")
 
 	var invalid_transmission: CarSpecs = MANUAL_SPECS.duplicate(true) as CarSpecs
 	invalid_transmission.transmission_type = 999
@@ -52,6 +56,15 @@ func _run() -> void:
 	invalid_automatic.torque_converter_coupling_rpm = invalid_automatic.torque_converter_stall_rpm - 1.0
 	_expect(_contains_error(invalid_automatic.validate(), "automatic_downshift_rpm"), "overlapping automatic shift thresholds are rejected")
 	_expect(_contains_error(invalid_automatic.validate(), "torque_converter_coupling_rpm"), "invalid torque-converter RPM ordering is rejected")
+
+	var invalid_cvt: CarSpecs = CVT_SPECS.duplicate(true) as CarSpecs
+	invalid_cvt.cvt_max_ratio = 0.0
+	invalid_cvt.cvt_target_rpm_max = invalid_cvt.cvt_target_rpm_min - 1.0
+	invalid_cvt.cvt_clutch_full_rpm = invalid_cvt.cvt_clutch_engagement_rpm
+	var cvt_errors: PackedStringArray = invalid_cvt.validate()
+	_expect(_contains_error(cvt_errors, "cvt_max_ratio"), "CVT shortest ratio must be positive")
+	_expect(_contains_error(cvt_errors, "cvt_target_rpm_max"), "CVT target RPM ordering is validated")
+	_expect(_contains_error(cvt_errors, "cvt_clutch_full_rpm"), "CVT clutch RPM ordering is validated")
 
 
 func _contains_error(errors: PackedStringArray, fragment: String) -> bool:
