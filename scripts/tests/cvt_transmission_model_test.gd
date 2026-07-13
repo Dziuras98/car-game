@@ -2,6 +2,9 @@ extends SceneTree
 
 const CVT_SPECS: CarSpecs = preload("res://resources/cars/fiat/punto_176_1995/specs/punto_60_cvt_specs.tres")
 const CVT_VARIANT: CarVariantDefinition = preload("res://resources/cars/fiat/punto_176_1995/variants/punto_60_cvt.tres")
+const RECOVERY_REVERSE_INPUT: float = 0.8
+const RECOVERY_WINDOW_SECONDS: float = 2.5
+const RECOVERY_DISTANCE_METERS: float = 3.0
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -10,6 +13,7 @@ var _failures: Array[String] = []
 func _initialize() -> void:
 	_test_specs_contract()
 	_test_unbounded_overdrive_ratio()
+	_test_reverse_launch_contract()
 	_test_runtime_and_ai_contract()
 	_finish()
 
@@ -27,22 +31,7 @@ func _test_specs_contract() -> void:
 
 
 func _test_unbounded_overdrive_ratio() -> void:
-	var model := CvtTransmissionModel.new()
-	model.configure(
-		CVT_SPECS.idle_rpm,
-		CVT_SPECS.cvt_max_ratio,
-		CVT_SPECS.reverse_gear_ratio,
-		CVT_SPECS.final_drive_ratio,
-		CVT_SPECS.wheel_radius,
-		CVT_SPECS.peak_engine_torque,
-		CVT_SPECS.drivetrain_efficiency,
-		CVT_SPECS.vehicle_mass,
-		CVT_SPECS.cvt_target_rpm_min,
-		CVT_SPECS.cvt_target_rpm_max,
-		CVT_SPECS.cvt_ratio_response,
-		CVT_SPECS.cvt_clutch_engagement_rpm,
-		CVT_SPECS.cvt_clutch_full_rpm
-	)
+	var model: CvtTransmissionModel = _build_model()
 	_expect(is_equal_approx(model.get_current_ratio(), CVT_SPECS.cvt_max_ratio), "CVT resets at its shortest ratio")
 	for step: int in range(600):
 		model.update_ratio(30.0, 1.0, 1.0 / 120.0)
@@ -59,6 +48,25 @@ func _test_unbounded_overdrive_ratio() -> void:
 	_expect(model.get_target_rpm() < CVT_SPECS.cvt_target_rpm_max, "partial load commands lower engine RPM")
 
 
+func _test_reverse_launch_contract() -> void:
+	var model: CvtTransmissionModel = _build_model()
+	var idle_torque_multiplier: float = CVT_SPECS.torque_curve.sample(CVT_SPECS.idle_rpm)
+	var reverse_acceleration: float = model.get_drive_acceleration(
+		RECOVERY_REVERSE_INPUT,
+		-1,
+		false,
+		CVT_SPECS.idle_rpm,
+		idle_torque_multiplier,
+		1.0
+	)
+	_expect(reverse_acceleration < -0.1, "CVT centrifugal clutch engages for reverse launch from idle")
+	var idealized_distance: float = 0.5 * absf(reverse_acceleration) * pow(RECOVERY_WINDOW_SECONDS, 2.0)
+	_expect(
+		idealized_distance >= RECOVERY_DISTANCE_METERS,
+		"CVT reverse launch provides enough force for the AI recovery-distance contract"
+	)
+
+
 func _test_runtime_and_ai_contract() -> void:
 	var config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(CVT_SPECS)
 	_expect(config != null and config.is_cvt_transmission(), "CVT maps into runtime configuration")
@@ -71,6 +79,26 @@ func _test_runtime_and_ai_contract() -> void:
 		if instance != null:
 			_expect(instance.car_specs == CVT_SPECS, "CVT scene carries authoritative specs")
 			instance.free()
+
+
+func _build_model() -> CvtTransmissionModel:
+	var model := CvtTransmissionModel.new()
+	model.configure(
+		CVT_SPECS.idle_rpm,
+		CVT_SPECS.cvt_max_ratio,
+		CVT_SPECS.reverse_gear_ratio,
+		CVT_SPECS.final_drive_ratio,
+		CVT_SPECS.wheel_radius,
+		CVT_SPECS.peak_engine_torque,
+		CVT_SPECS.drivetrain_efficiency,
+		CVT_SPECS.vehicle_mass,
+		CVT_SPECS.cvt_target_rpm_min,
+		CVT_SPECS.cvt_target_rpm_max,
+		CVT_SPECS.cvt_ratio_response,
+		CVT_SPECS.cvt_clutch_engagement_rpm,
+		CVT_SPECS.cvt_clutch_full_rpm
+	)
+	return model
 
 
 func _expect(condition: bool, message: String) -> void:
