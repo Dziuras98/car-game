@@ -10,6 +10,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	_test_manual_shift_requests_and_timer()
+	_test_manual_shift_assist()
 	_test_manual_drive_blocking_and_gears()
 	_test_automatic_reverse_and_drive_selection()
 	_test_automatic_direction_interlock()
@@ -34,6 +35,33 @@ func _test_manual_shift_requests_and_timer() -> void:
 
 	powertrain.update(state, 0.0, 0.0, false, false, true, 0.0)
 	_expect(state.current_gear == 1, "manual gear-down moves from second to first gear")
+
+
+func _test_manual_shift_assist() -> void:
+	var config: CarDriveConfig = _build_manual_config()
+	var upshift_state: CarRuntimeState = _build_state(config)
+	var upshift_powertrain: CarPowertrainController = _build_powertrain(config, upshift_state)
+
+	upshift_powertrain.update(upshift_state, 1.0, 0.0, false, true, false, 0.0)
+	_expect(is_zero_approx(upshift_state.throttle_input), "manual upshift immediately cuts applied throttle")
+	upshift_powertrain.update(upshift_state, 0.75, 0.0, false, false, false, 0.10)
+	_expect(is_zero_approx(upshift_state.throttle_input), "manual upshift keeps throttle cut for the shift delay")
+	_advance_shift(upshift_powertrain, upshift_state, 0.75, 0.0)
+	_expect(is_equal_approx(upshift_state.throttle_input, 0.75), "manual upshift restores driver throttle after the shift")
+
+	var downshift_state: CarRuntimeState = _build_state(config)
+	downshift_state.current_gear = 2
+	downshift_state.forward_speed = 12.0
+	var downshift_powertrain: CarPowertrainController = _build_powertrain(config, downshift_state)
+
+	downshift_powertrain.update(downshift_state, 0.0, 0.0, false, false, true, 0.0)
+	_expect(downshift_state.current_gear == 1, "manual downshift selects the lower forward gear")
+	_expect(downshift_state.throttle_input > 0.0, "manual downshift automatically applies a throttle blip")
+	var rpm_before_blip: float = downshift_state.engine_rpm
+	downshift_powertrain.update(downshift_state, 0.0, 0.0, false, false, false, 0.10)
+	_expect(downshift_state.engine_rpm > rpm_before_blip, "manual downshift throttle blip raises engine RPM")
+	_advance_shift(downshift_powertrain, downshift_state, 0.0, 0.0)
+	_expect(is_zero_approx(downshift_state.throttle_input), "manual downshift releases the automatic throttle blip after the shift")
 
 
 func _test_manual_drive_blocking_and_gears() -> void:
