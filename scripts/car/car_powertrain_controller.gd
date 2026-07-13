@@ -4,6 +4,12 @@ class_name CarPowertrainController
 const MAX_FRAME_DELTA: float = 0.10
 const MAX_SIMULATION_SUBSTEP: float = 1.0 / 120.0
 
+enum ManualShiftAssistMode {
+	NONE,
+	UPSHIFT_CUT,
+	DOWNSHIFT_BLIP,
+}
+
 var _manual_transmission_model: ManualTransmissionModel = ManualTransmissionModel.new()
 var _automatic_transmission_model: AutomaticTransmissionModel = AutomaticTransmissionModel.new()
 var _shift_timer_model: ShiftTimerModel = ShiftTimerModel.new()
@@ -15,6 +21,8 @@ var _torque_converter_model: TorqueConverterModel = TorqueConverterModel.new()
 var _tire_model: TireModel = TireModel.new()
 var _config: CarDriveConfig
 var _runtime_state: CarRuntimeState
+var _manual_shift_assist_mode: int = ManualShiftAssistMode.NONE
+var _manual_shift_target_rpm: float = 0.0
 
 
 func configure(config: CarDriveConfig) -> void:
@@ -22,6 +30,7 @@ func configure(config: CarDriveConfig) -> void:
 	if _runtime_state != null:
 		preserved_engine_rpm = _runtime_state.engine_rpm
 
+	_reset_manual_shift_assist()
 	_config = config.duplicate_config()
 	_config.sanitize()
 	_engine_model.configure(
@@ -66,6 +75,7 @@ func configure(config: CarDriveConfig) -> void:
 
 func reset(state: CarRuntimeState) -> void:
 	_runtime_state = state
+	_reset_manual_shift_assist()
 	state.engine_rpm = _engine_model.reset()
 	state.clutch_engagement = 0.0 if _config != null and _config.is_manual_transmission() else 1.0
 
@@ -79,15 +89,17 @@ func update(state: CarRuntimeState, throttle: float, brake: float, handbrake_act
 	var safe_brake: float = clampf(brake, 0.0, 1.0)
 	_update_shift_timer(state, safe_delta)
 	_update_transmission_input(state, safe_throttle, safe_brake, gear_up_pressed, gear_down_pressed)
+	var assisted_throttle: float = _get_assisted_throttle(state, safe_throttle)
+	state.throttle_input = assisted_throttle
 	if safe_delta <= 0.0:
-		_update_engine(state, safe_throttle, 0.0)
+		_update_engine(state, assisted_throttle, 0.0)
 		return
 	var remaining_delta: float = safe_delta
 	while remaining_delta > 0.000001:
 		var step: float = minf(remaining_delta, MAX_SIMULATION_SUBSTEP)
-		_update_clutch(state, safe_throttle, step)
-		_update_engine(state, safe_throttle, step)
-		_update_speed_step(state, safe_throttle, safe_brake, handbrake_active, step)
+		_update_clutch(state, assisted_throttle, step)
+		_update_engine(state, assisted_throttle, step)
+		_update_speed_step(state, assisted_throttle, safe_brake, handbrake_active, step)
 		remaining_delta -= step
 
 
@@ -166,15 +178,62 @@ func _update_automatic_transmission(state: CarRuntimeState, throttle: float, bra
 
 func _update_shift_timer(state: CarRuntimeState, delta: float) -> void:
 	state.shift_timer = _shift_timer_model.update_timer(state.shift_timer, delta)
+	if state.shift_timer <= 0.0:
+		_reset_manual_shift_assist()
 
 
 func _set_transmission_gear(state: CarRuntimeState, next_gear: int) -> void:
 	if next_gear == state.current_gear:
 		return
+	var previous_gear: int = state.current_gear
 	state.current_gear = next_gear
 	state.shift_timer = _shift_timer_model.get_shift_delay(_config.is_automatic_transmission(), _config.automatic_shift_delay, _config.shift_delay)
 	if _config.is_manual_transmission():
 		state.clutch_engagement = 0.0
+		_start_manual_shift_assist(state, previous_gear, next_gear)
+
+
+func _start_manual_shift_assist(state: CarRuntimeState, previous_gear: int, next_gear: int) -> void:
+	_reset_manual_shift_assist()
+	if state.shift_timer <= 0.0 or previous_gear <= 0 or next_gear <= 0:
+		return
+	if next_gear > previous_gear:
+		_manual_shift_assist_mode = ManualShiftAssistMode.UPSHIFT_CUT
+		return
+	if next_gear >= previous_gear:
+		return
+
+	var coupled_rpm: float = _get_coupled_engine_rpm_for_gear(state, next_gear)
+	_manual_shift_target_rpm = clampf(coupled_rpm, _config.idle_rpm, _config.redline_rpm)
+	if _manual_shift_target_rpm <= state.engine_rpm + 25.0:
+		_manual_shift_target_rpm = 0.0
+		return
+	_manual_shift_assist_mode = ManualShiftAssistMode.DOWNSHIFT_BLIP
+
+
+func _get_assisted_throttle(state: CarRuntimeState, requested_throttle: float) -> float:
+	var safe_throttle: float = clampf(requested_throttle, 0.0, 1.0)
+	if not _config.is_manual_transmission() or state.shift_timer <= 0.0:
+		return safe_throttle
+	if _manual_shift_assist_mode == ManualShiftAssistMode.UPSHIFT_CUT:
+		return 0.0
+	if _manual_shift_assist_mode != ManualShiftAssistMode.DOWNSHIFT_BLIP:
+		return safe_throttle
+	if state.engine_rpm >= _manual_shift_target_rpm - 25.0:
+		return safe_throttle
+
+	var usable_rpm_range: float = maxf(_config.rev_limiter_rpm - _config.idle_rpm, 1.0)
+	var blip_throttle: float = clampf(
+		(_manual_shift_target_rpm - _config.idle_rpm) / usable_rpm_range,
+		0.0,
+		1.0
+	)
+	return maxf(safe_throttle, blip_throttle)
+
+
+func _reset_manual_shift_assist() -> void:
+	_manual_shift_assist_mode = ManualShiftAssistMode.NONE
+	_manual_shift_target_rpm = 0.0
 
 
 func _update_clutch(state: CarRuntimeState, throttle: float, delta: float) -> void:
