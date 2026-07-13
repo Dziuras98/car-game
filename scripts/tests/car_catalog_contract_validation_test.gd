@@ -35,27 +35,30 @@ func _run() -> void:
 	_expect(_contains_error(missing_scene.validate(), "car_scene"), "variants without player scenes are rejected")
 
 	var missing_ai_scene: CarCatalog = _single_model_catalog()
-	var automatic_variant: CarVariantDefinition = null
-	for variant: CarVariantDefinition in missing_ai_scene.models[0].variants:
-		if variant.ai_eligible:
-			automatic_variant = variant
-			break
-	_expect(automatic_variant != null, "fixture contains an AI-eligible variant")
+	var automatic_variant: CarVariantDefinition = _find_automatic_variant(missing_ai_scene)
+	_expect(automatic_variant != null, "fixture contains an AI-eligible automatic variant")
 	if automatic_variant != null:
 		automatic_variant.ai_car_scene = null
 		_expect(_contains_error(missing_ai_scene.validate(), "ai_car_scene"), "AI-eligible variants without dedicated AI scenes are rejected")
 
 	var manual_ai: CarCatalog = _single_model_catalog()
-	var manual_variant: CarVariantDefinition = null
-	for variant: CarVariantDefinition in manual_ai.models[0].variants:
-		if variant.specs != null and variant.specs.is_manual_transmission():
-			manual_variant = variant
-			break
+	var manual_variant: CarVariantDefinition = _find_manual_variant(manual_ai)
 	_expect(manual_variant != null, "fixture contains a manual variant")
 	if manual_variant != null:
 		manual_variant.ai_eligible = true
-		manual_variant.ai_car_scene = automatic_variant.ai_car_scene if automatic_variant != null else null
-		_expect(_contains_error(manual_ai.validate(), "ai_eligible"), "manual AI variants are rejected")
+		manual_variant.ai_car_scene = _get_production_ai_scene()
+		_expect(manual_ai.validate().is_empty(), "manual variants with dedicated AI scenes are accepted")
+		_expect(manual_variant.is_ai_eligible_for_race(), "manual variants satisfy the runtime AI eligibility contract")
+
+	var direct_drive_ai: CarCatalog = _single_model_catalog()
+	var direct_drive_variant: CarVariantDefinition = _find_manual_variant(direct_drive_ai)
+	_expect(direct_drive_variant != null, "fixture provides a variant for unsupported transmission validation")
+	if direct_drive_variant != null:
+		direct_drive_variant.specs = direct_drive_variant.specs.duplicate(true) as CarSpecs
+		direct_drive_variant.specs.transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
+		direct_drive_variant.ai_eligible = true
+		direct_drive_variant.ai_car_scene = _get_production_ai_scene()
+		_expect(_contains_error(direct_drive_ai.validate(), "geared transmission"), "AI variants without a geared transmission are rejected")
 
 	var duplicate_sort_order: CarCatalog = _single_model_catalog()
 	duplicate_sort_order.models[0].variants[1].sort_order = duplicate_sort_order.models[0].variants[0].sort_order
@@ -66,6 +69,27 @@ func _single_model_catalog() -> CarCatalog:
 	var catalog: CarCatalog = CarCatalog.new()
 	catalog.models = [CATALOG.models[0].duplicate(true) as CarModelDefinition]
 	return catalog
+
+
+func _find_manual_variant(catalog: CarCatalog) -> CarVariantDefinition:
+	for variant: CarVariantDefinition in catalog.models[0].variants:
+		if variant.specs != null and variant.specs.is_manual_transmission():
+			return variant
+	return null
+
+
+func _find_automatic_variant(catalog: CarCatalog) -> CarVariantDefinition:
+	for variant: CarVariantDefinition in catalog.models[0].variants:
+		if variant.specs != null and variant.specs.is_automatic_transmission():
+			return variant
+	return null
+
+
+func _get_production_ai_scene() -> PackedScene:
+	for variant: CarVariantDefinition in CATALOG.get_all_variants():
+		if variant.ai_car_scene != null:
+			return variant.ai_car_scene
+	return null
 
 
 func _contains_error(errors: PackedStringArray, fragment: String) -> bool:
