@@ -1,6 +1,6 @@
 extends SceneTree
 
-const MUSTANG_SCENE: PackedScene = preload("res://scenes/cars/mustang_shelby_gt500_1967.tscn")
+const MUSTANG_SCENE: PackedScene = preload("res://scenes/cars/mustang_shelby_gt500_1967_4mt.tscn")
 const FORD_PROFILE: EngineAudioProfile = preload("res://resources/audio/ford_428_fe_audio_profile.tres")
 const TEST_FRAME_COUNT: int = 8192
 
@@ -44,7 +44,7 @@ func _test_ford_fe_firing_cadence() -> void:
 
 func _test_mustang_scene_contract() -> void:
 	var car: PlayerCarController = MUSTANG_SCENE.instantiate() as PlayerCarController
-	_expect(car != null, "the shared 1967 Shelby scene instantiates")
+	_expect(car != null, "the complete 1967 Shelby manual scene instantiates")
 	if car == null:
 		return
 	root.add_child(car)
