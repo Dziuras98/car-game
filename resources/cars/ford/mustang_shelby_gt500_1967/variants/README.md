@@ -12,7 +12,7 @@ The production catalog contains exactly two playable variants.
 - rear axle: 3.89;
 - drivetrain: RWD;
 - default variant: yes;
-- AI eligibility: no, pending a dedicated AI scene and detailed-wheel contract.
+- AI eligibility: no, pending a dedicated AI scene and AI-appropriate engine-audio resource.
 
 ## Three-speed automatic
 
@@ -24,7 +24,9 @@ The production catalog contains exactly two playable variants.
 - rear axle: 3.50;
 - drivetrain: RWD;
 - default variant: no;
-- AI eligibility: no, pending a dedicated AI scene and detailed-wheel contract.
+- AI eligibility: no, pending a dedicated AI scene and AI-appropriate engine-audio resource.
+
+Both variants use the completed shared detailed-wheel controller and the same sampled 428 FE engine curve.
 
 ## Excluded from this model
 
