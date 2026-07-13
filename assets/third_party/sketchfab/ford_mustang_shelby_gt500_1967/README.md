@@ -1,20 +1,31 @@
-# 1967 Ford Mustang Shelby GT500 source asset
+# 1967 Shelby G.T. 500 source asset
 
 ## Source
 
 - Original model: https://sketchfab.com/3d-models/1967-ford-mustang-shelby-cobra-gt500-e310cc7537bf4d1aa644a2c233a5fec6
 - Current repository file: `res://1967_ford_mustang_shelby_cobra_gt500.glb`
-- Integration state: visual foundation only
+- Runtime wrapper: `res://scenes/cars/mustang_shelby_gt500_1967_visuals.tscn`
+- Integration state: player-runtime visual contract complete
 
-The binary GLB remains in the repository root during this phase because it was uploaded there directly. The visual wrapper references that path explicitly. A later asset-cleanup change should relocate the binary into this directory and update the wrapper in the same commit.
+The GLB remains in the repository root because it was uploaded there directly. Relocation into this directory must update every Godot path in the same commit.
 
-## Required follow-up before gameplay integration
+## Verified import data
 
-1. Record the exact Sketchfab license and author attribution from the downloaded package metadata.
-2. Inspect and document the imported node hierarchy, especially all four wheel, tyre, rim, brake-disc and caliper assemblies.
-3. Measure the imported bounds and establish the authoritative scale, forward axis, origin and ground offset.
-4. Verify materials, transparency, normals, texture import settings and shadow behaviour in Godot.
-5. Remove decorative or hidden geometry that has no visible contribution in the game camera.
-6. Create explicit model-specific wheel bindings before attaching `CarVisualController`.
+The headless Godot hierarchy inspection established:
 
-Do not add this car to `resources/cars/catalog.tres` until the visual bindings, collision scene and at least one complete `CarSpecs`/variant pair are valid.
+- 71 render meshes;
+- source unit conversion: 100×;
+- corrected project transform: X and Z axes inverted, Y preserved;
+- measured rendered bounds after conversion: approximately 1.7936 × 1.3534 × 4.8189 m;
+- measured wheelbase from tyre centres: approximately 2.7437 m;
+- four separately addressable tyre, wheel and brake-rotor groups;
+- separately addressable front brake calipers.
+
+`MustangShelbyGT5001967VisualController` binds all four detailed wheel assemblies explicitly. The front calipers follow steering without spinning; rear brake hardware remains fixed. The wrapper also supplies the standard screen-visibility LOD policy and a four-wheel low-detail fallback.
+
+## Remaining asset work
+
+1. Record the exact Sketchfab licence and author attribution from the original downloaded package metadata.
+2. Verify transparency, normals, imported textures and shadow behaviour under representative gameplay lighting.
+3. Relocate the GLB into this directory in an atomic path-update commit.
+4. Remove geometry only after profiling proves that it has no visible contribution and the 71-mesh regression is intentionally updated.
