@@ -72,22 +72,43 @@ class TransactionCase:
 	var selection: CarSelectionState
 	var harness: TransactionHarness
 	var transaction: GameSessionStartTransaction
+	var progress_values: Array[float] = []
+	var progress_stages: Array[GameSessionStartTransaction.ProgressStage] = []
+
+	func record_progress(
+		progress: float,
+		stage: GameSessionStartTransaction.ProgressStage
+	) -> void:
+		progress_values.append(progress)
+		progress_stages.append(stage)
+
+	func has_monotonic_progress() -> bool:
+		var previous: float = 0.0
+		for progress: float in progress_values:
+			if progress < previous:
+				return false
+			previous = progress
+		return true
 
 
 func _initialize() -> void:
-	_test_unconfigured_transaction()
-	_test_validation_failures()
-	_test_successful_free_drive_transaction()
-	_test_successful_race_transaction()
-	_test_stage_failures()
-	_test_session_begin_rejection()
-	_test_commit_rejection()
+	_run.call_deferred()
+
+
+func _run() -> void:
+	await _test_unconfigured_transaction()
+	await _test_validation_failures()
+	await _test_successful_free_drive_transaction()
+	await _test_successful_race_transaction()
+	await _test_stage_failures()
+	await _test_session_begin_rejection()
+	await _test_commit_rejection()
 	_finish()
 
 
 func _test_unconfigured_transaction() -> void:
 	var transaction: GameSessionStartTransaction = GameSessionStartTransaction.new()
-	var result: GameSessionStartTransaction.Result = transaction.execute(
+	var result: GameSessionStartTransaction.Result = await transaction.execute(
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID,
@@ -98,7 +119,7 @@ func _test_unconfigured_transaction() -> void:
 
 func _test_validation_failures() -> void:
 	var invalid_mode_case: TransactionCase = _build_case()
-	var invalid_mode_result: GameSessionStartTransaction.Result = invalid_mode_case.transaction.execute(
+	var invalid_mode_result: GameSessionStartTransaction.Result = await invalid_mode_case.transaction.execute(
 		&"unsupported",
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID,
@@ -109,7 +130,7 @@ func _test_validation_failures() -> void:
 	_expect(invalid_mode_case.state.is_menu(), "unsupported mode leaves lifecycle unchanged")
 
 	var invalid_car_case: TransactionCase = _build_case()
-	var invalid_car_result: GameSessionStartTransaction.Result = invalid_car_case.transaction.execute(
+	var invalid_car_result: GameSessionStartTransaction.Result = await invalid_car_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
 		&"missing_variant",
@@ -119,7 +140,7 @@ func _test_validation_failures() -> void:
 	_expect(invalid_car_case.harness.call_order.is_empty(), "invalid car selection does not clear or stage runtime")
 
 	var invalid_track_case: TransactionCase = _build_case()
-	var invalid_track_result: GameSessionStartTransaction.Result = invalid_track_case.transaction.execute(
+	var invalid_track_result: GameSessionStartTransaction.Result = await invalid_track_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		&"missing_track",
 		VALID_VARIANT_ID,
@@ -131,7 +152,7 @@ func _test_validation_failures() -> void:
 
 func _test_successful_free_drive_transaction() -> void:
 	var test_case: TransactionCase = _build_case()
-	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
+	var result: GameSessionStartTransaction.Result = await test_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID,
@@ -150,11 +171,25 @@ func _test_successful_free_drive_transaction() -> void:
 	_expect(test_case.harness.activated_track_id == VALID_TRACK_ID, "transaction stages the exact selected track")
 	_expect(test_case.harness.spawned_car_index >= 0, "transaction resolves an exact catalog car index")
 	_expect(test_case.harness.track_committed and test_case.harness.track_finalized, "successful transaction commits and finalizes the staged track")
+	_expect(test_case.has_monotonic_progress(), "free-drive loading progress is monotonic")
+	_expect(
+		test_case.progress_stages == [
+			GameSessionStartTransaction.ProgressStage.VALIDATING,
+			GameSessionStartTransaction.ProgressStage.CLEARING_RUNTIME,
+			GameSessionStartTransaction.ProgressStage.PREPARING_TRACK,
+			GameSessionStartTransaction.ProgressStage.CONFIGURING_RUNTIME,
+			GameSessionStartTransaction.ProgressStage.SPAWNING_PLAYER,
+			GameSessionStartTransaction.ProgressStage.FINALIZING,
+			GameSessionStartTransaction.ProgressStage.COMPLETE,
+		],
+		"free-drive transaction reports each real startup stage"
+	)
+	_expect(not test_case.progress_values.is_empty() and is_equal_approx(test_case.progress_values[-1], 1.0), "free-drive progress reaches completion")
 
 
 func _test_successful_race_transaction() -> void:
 	var test_case: TransactionCase = _build_case()
-	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
+	var result: GameSessionStartTransaction.Result = await test_case.transaction.execute(
 		GameModes.RACE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID,
@@ -166,14 +201,16 @@ func _test_successful_race_transaction() -> void:
 		test_case.harness.call_order == [&"reset", &"stage", &"configure", &"spawn", &"race", &"track_commit", &"track_finalize"],
 		"race startup completes before track and lifecycle finalization"
 	)
+	_expect(GameSessionStartTransaction.ProgressStage.STARTING_RACE in test_case.progress_stages, "race progress includes opponent and race preparation")
+	_expect(test_case.has_monotonic_progress(), "race loading progress is monotonic")
 
 
 func _test_stage_failures() -> void:
-	_run_stage_failure(&"stage", GameSessionStartTransaction.Result.TRACK_STAGE_FAILED)
-	_run_stage_failure(&"configure", GameSessionStartTransaction.Result.RUNTIME_CONFIGURATION_FAILED)
-	_run_stage_failure(&"spawn", GameSessionStartTransaction.Result.PLAYER_SPAWN_FAILED)
-	_run_stage_failure(&"race", GameSessionStartTransaction.Result.RACE_START_FAILED, GameModes.RACE)
-	_run_stage_failure(&"track_commit", GameSessionStartTransaction.Result.TRACK_COMMIT_FAILED)
+	await _run_stage_failure(&"stage", GameSessionStartTransaction.Result.TRACK_STAGE_FAILED)
+	await _run_stage_failure(&"configure", GameSessionStartTransaction.Result.RUNTIME_CONFIGURATION_FAILED)
+	await _run_stage_failure(&"spawn", GameSessionStartTransaction.Result.PLAYER_SPAWN_FAILED)
+	await _run_stage_failure(&"race", GameSessionStartTransaction.Result.RACE_START_FAILED, GameModes.RACE)
+	await _run_stage_failure(&"track_commit", GameSessionStartTransaction.Result.TRACK_COMMIT_FAILED)
 
 
 func _run_stage_failure(
@@ -182,7 +219,7 @@ func _run_stage_failure(
 	mode_id: StringName = GameModes.FREE_DRIVE
 ) -> void:
 	var test_case: TransactionCase = _build_case(fail_step)
-	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
+	var result: GameSessionStartTransaction.Result = await test_case.transaction.execute(
 		mode_id,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID,
@@ -193,6 +230,7 @@ func _run_stage_failure(
 	_expect(test_case.state.get_mode_id() == &"", "%s failure clears committed mode state" % fail_step)
 	_expect(test_case.harness.reset_count == 2, "%s failure performs prepare reset and rollback reset" % fail_step)
 	_expect(not test_case.harness.track_committed, "%s failure leaves no committed replacement track" % fail_step)
+	_expect(test_case.has_monotonic_progress(), "%s failure never reverses reported progress" % fail_step)
 
 
 func _test_session_begin_rejection() -> void:
@@ -202,7 +240,7 @@ func _test_session_begin_rejection() -> void:
 		test_case.state.commit(GameModes.FREE_DRIVE, VALID_TRACK_ID, VALID_VARIANT_ID) == GameSessionState.Result.OK,
 		"begin-rejection fixture commits an active session"
 	)
-	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
+	var result: GameSessionStartTransaction.Result = await test_case.transaction.execute(
 		GameModes.FREE_DRIVE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID,
@@ -216,7 +254,7 @@ func _test_session_begin_rejection() -> void:
 
 func _test_commit_rejection() -> void:
 	var test_case: TransactionCase = _build_case(&"session_commit")
-	var result: GameSessionStartTransaction.Result = test_case.transaction.execute(
+	var result: GameSessionStartTransaction.Result = await test_case.transaction.execute(
 		GameModes.RACE,
 		VALID_TRACK_ID,
 		VALID_VARIANT_ID,
@@ -250,6 +288,7 @@ func _build_case(fail_step: StringName = &"") -> TransactionCase:
 		Callable(test_case.harness, "finalize_track_commit")
 	)
 	_expect(configured, "transaction fixture configures")
+	test_case.transaction.progress_changed.connect(test_case.record_progress)
 	return test_case
 
 
