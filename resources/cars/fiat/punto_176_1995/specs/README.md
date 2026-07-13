@@ -2,7 +2,7 @@
 
 ## Evidence status
 
-The nine resources in this directory are dense, constrained reconstructions of full-load crankshaft torque curves. The research pass did not locate a complete, identified Fiat factory dynamometer trace for any of the exact 1995 engine codes.
+The seven resources in this directory are dense, constrained reconstructions of full-load crankshaft torque curves. The research pass did not locate a complete, identified Fiat factory dynamometer trace for any of the exact selected 1995 engine codes.
 
 Each curve therefore separates:
 
@@ -27,32 +27,22 @@ These resources must not be described as digitized factory graphs. They are game
 | Engine code | Runtime identity | Exact torque anchor | Exact power anchor | Resource |
 |---|---|---:|---:|---|
 | `176A6.000` | Punto 55 1.1 FIRE SPI | 85 Nm at 3,500 RPM | 40 kW at 5,500 RPM | `176a6_1108_fire_torque_curve.tres` |
-| `176A7.000` | Punto 60 early 1.2 FIRE SPI | 96 Nm at 3,000 RPM | 43 kW at 5,500 RPM | `176a7_1242_fire_spi_torque_curve.tres` |
-| `176B4.000` | Punto 60 late 1.2 FIRE SPI | 96 Nm at 3,000 RPM | 44 kW at 5,500 RPM | `176b4_1242_fire_spi_torque_curve.tres` |
+| `176A7.000` | Punto 60 1.2 FIRE SPI | 96 Nm at 3,000 RPM | 43 kW at 5,500 RPM | `176a7_1242_fire_spi_torque_curve.tres` |
 | `176A8.000` | Punto 75 1.2 FIRE MPI | 106 Nm at 4,000 RPM | 54 kW at 6,000 RPM | `176a8_1242_fire_mpi_torque_curve.tres` |
 | `176A9.000` | Punto 90 1.6 MPI | 127 Nm at 2,750 RPM | 65 kW at 5,750 RPM | `176a9_1581_sohc_mpi_torque_curve.tres` |
 | `176A4.000` | Punto GT 1.4 Turbo | 204 Nm at 3,000 RPM | 98 kW at 5,750 RPM | `176a4_1372_turbo_torque_curve.tres` |
 | `176B3.000` | Punto D 1.7 naturally aspirated diesel | 98 Nm at 2,500 RPM | 42 kW at 4,500 RPM | `176b3_1698_d_torque_curve.tres` |
 | `176A5.000` | Punto TD 70 1.7 turbo-diesel | 134 Nm at 2,500 RPM | 52 kW at 4,500 RPM | `176a5_1698_td_torque_curve.tres` |
-| `176A3.000` | Punto TD 70 with oxidation catalyst | 134 Nm at 2,500 RPM | 51 kW at 4,500 RPM | `176a3_1698_td_cat_torque_curve.tres` |
 
 ## Calibration distinctions
-
-### Early and late Punto 60
-
-The `176A7.000` and `176B4.000` resources deliberately share the same 96 Nm peak and similar low- and mid-range samples. The later calibration retains slightly more upper-range torque so that it reaches 44 kW rather than 43 kW at 5,500 RPM. They must not be merged into one resource while their published ratings differ.
 
 ### Punto GT
 
 The GT reconstruction represents the published 204 Nm full-load peak and a progressive turbo build-up before 3,000 RPM. The engine resource does not simulate transient boost pressure, overboost duration, charge temperature or wastegate state. Those effects require a separate forced-induction model if they are introduced later.
 
-### TD catalyst split
-
-Both TD resources retain the same published 134 Nm peak at 2,500 RPM. The oxidation-catalyst calibration loses upper-range torque so that it produces 51 kW rather than 52 kW at 4,500 RPM.
-
 ## Validation
 
-`scripts/tests/fiat_punto_engine_curves_test.gd` loads all nine resources and verifies:
+`scripts/tests/fiat_punto_engine_curves_test.gd` loads all seven resources and verifies:
 
 - resource validation;
 - exact torque-peak multipliers;
