@@ -69,6 +69,9 @@ msgstr "Car"
 msgid "Prosty owal"
 msgstr "Simple oval"
 
+msgid "Tor Poznań"
+msgstr "Poznań Circuit"
+
 msgid "370Z automat"
 msgstr "370Z automatic"
 
