@@ -15,8 +15,8 @@ func _run() -> void:
 	_expect(CATALOG.validate().is_empty(), "production catalog passes the authoritative validation contract")
 
 	var duplicate_models: CarCatalog = CarCatalog.new()
-	var first_model: CarModelDefinition = CATALOG.models[0].duplicate(true) as CarModelDefinition
-	var second_model: CarModelDefinition = CATALOG.models[0].duplicate(true) as CarModelDefinition
+	var first_model: CarModelDefinition = _duplicate_model(CATALOG.models[0])
+	var second_model: CarModelDefinition = _duplicate_model(CATALOG.models[0])
 	duplicate_models.models = [first_model, second_model]
 	_expect(_contains_error(duplicate_models.validate(), "model_id must be globally unique"), "duplicate model IDs are rejected")
 	_expect(_contains_error(duplicate_models.validate(), "variant_id must be globally unique"), "duplicate variant IDs across models are rejected")
@@ -67,8 +67,17 @@ func _run() -> void:
 
 func _single_model_catalog() -> CarCatalog:
 	var catalog: CarCatalog = CarCatalog.new()
-	catalog.models = [CATALOG.models[0].duplicate(true) as CarModelDefinition]
+	catalog.models = [_duplicate_model(CATALOG.models[0])]
 	return catalog
+
+
+func _duplicate_model(source: CarModelDefinition) -> CarModelDefinition:
+	var model: CarModelDefinition = source.duplicate(false) as CarModelDefinition
+	var variants: Array[CarVariantDefinition] = []
+	for source_variant: CarVariantDefinition in source.variants:
+		variants.append(source_variant.duplicate(true) as CarVariantDefinition)
+	model.variants = variants
+	return model
 
 
 func _find_manual_variant(catalog: CarCatalog) -> CarVariantDefinition:
