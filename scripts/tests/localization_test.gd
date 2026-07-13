@@ -29,6 +29,11 @@ func _initialize() -> void:
 
 	TranslationServer.set_locale("pl")
 	_expect(tr("Wyścig") == "Wyścig", "Polish locale preserves the race mode label")
+	_expect(tr("Ładowanie...") == "Ładowanie...", "Polish locale preserves the loading title")
+	_expect(
+		tr("Przygotowywanie toru i samochodów") == "Przygotowywanie toru i samochodów",
+		"Polish locale preserves the loading description"
+	)
 	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Okrążenie 2/3", "Polish formatted HUD label remains valid")
 	_expect(tr("PRĘDKOŚĆ") == "PRĘDKOŚĆ", "Polish speedometer title preserves diacritics")
 	_expect(tr("Kierowca %d") % 2 == "Kierowca 2", "Polish opponent result label preserves its placeholder")
@@ -51,6 +56,11 @@ func _initialize() -> void:
 	_expect(tr("Wyścig") == "Race", "English locale translates the race mode")
 	_expect(tr("Jazda swobodna") == "Free drive", "English locale translates free drive")
 	_expect(tr("Tryb") == "Mode", "English locale translates the menu context label")
+	_expect(tr("Ładowanie...") == "Loading...", "English locale translates the loading title")
+	_expect(
+		tr("Przygotowywanie toru i samochodów") == "Preparing the track and cars",
+		"English locale translates the loading description"
+	)
 	_expect(tr("Brak dostępnych torów") == "No tracks available", "English locale translates menu validation feedback")
 	_expect(tr("Okrążenie %d/%d") % [2, 3] == "Lap 2/3", "English locale preserves lap placeholders")
 	_expect(tr("Pozycja %d/%d") % [1, 4] == "Position 1/4", "English locale preserves position placeholders")

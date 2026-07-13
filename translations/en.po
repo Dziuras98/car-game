@@ -30,6 +30,12 @@ msgstr "Choose variant"
 msgid "Wstecz"
 msgstr "Back"
 
+msgid "Ładowanie..."
+msgstr "Loading..."
+
+msgid "Przygotowywanie toru i samochodów"
+msgstr "Preparing the track and cars"
+
 msgid "Tryb"
 msgstr "Mode"
 

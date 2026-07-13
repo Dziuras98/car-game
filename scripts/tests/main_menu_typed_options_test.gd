@@ -71,11 +71,19 @@ func _run() -> void:
 	var variant_buttons: Array[Button] = _get_option_buttons(menu)
 	_expect(variant_buttons.size() == 1 and variant_buttons[0].text == "Wariant testowy", "variant step renders typed variant data")
 	variant_buttons[0].pressed.emit()
+	_expect(menu.is_loading_screen_visible(), "valid selection immediately opens the blocking loading screen")
+	_expect(not _get_selection_panel(menu).visible, "selection controls are hidden while loading")
+	_expect(_get_loading_details(menu).text.contains("Tor testowy"), "loading screen identifies the selected track")
+	_expect(_get_loading_details(menu).text.contains("Wariant testowy"), "loading screen identifies the selected car variant")
+	await get_tree().process_frame
+	_expect(menu.is_loading_screen_visible(), "loading screen remains visible for a rendered frame before session startup")
+	await get_tree().process_frame
 	await get_tree().process_frame
 	_expect(_selection_count == 1, "valid typed selection emits exactly once")
 	_expect(_selected_mode == GameModes.FREE_DRIVE, "selection preserves the chosen StringName mode id")
 	_expect(_selected_track == &"test_track", "selection preserves the chosen StringName track id")
 	_expect(_selected_variant == &"test_variant", "selection preserves the chosen variant id")
+	_expect(not menu.is_loading_screen_visible(), "failed standalone session admission restores the selection menu")
 
 	var invalid_menu: MainMenu = MAIN_MENU_SCENE.instantiate() as MainMenu
 	add_child(invalid_menu)
@@ -100,6 +108,16 @@ func _get_option_buttons(menu: MainMenu) -> Array[Button]:
 		if child is Button:
 			result.append(child as Button)
 	return result
+
+
+func _get_selection_panel(menu: MainMenu) -> PanelContainer:
+	return menu.get_node("Root/CenterContainer/PanelContainer") as PanelContainer
+
+
+func _get_loading_details(menu: MainMenu) -> Label:
+	return menu.get_node(
+		"Root/CenterContainer/LoadingPanelContainer/MarginContainer/VBoxContainer/DetailsLabel"
+	) as Label
 
 
 func _get_subtitle(menu: MainMenu) -> Label:

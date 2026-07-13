@@ -30,6 +30,12 @@ msgstr "Wybierz wariant"
 msgid "Wstecz"
 msgstr "Wstecz"
 
+msgid "Ładowanie..."
+msgstr "Ładowanie..."
+
+msgid "Przygotowywanie toru i samochodów"
+msgstr "Przygotowywanie toru i samochodów"
+
 msgid "Tryb"
 msgstr "Tryb"
 
