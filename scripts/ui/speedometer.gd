@@ -30,7 +30,7 @@ func set_target_node(target: PlayerCarController) -> void:
 	_last_gear_text = ""
 	_display_timer = 0.0
 	set_process(is_instance_valid(target))
-	if is_inside_tree() and target != null:
+	if is_inside_tree() and is_instance_valid(target) and target.is_inside_tree():
 		target_path = get_path_to(target)
 		_sync_tachometer_range()
 	_update_car_display_name()
