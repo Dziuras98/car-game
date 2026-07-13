@@ -198,7 +198,7 @@ The canonical end-to-end scene is:
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-It runs `scripts/tests/full_program_smoke_test.gd` and covers menu navigation, the loading step, automatic/manual/CVT-capable content paths, free drive, braking/reverse, steering, random car switching, race setup, AI movement, results cleanup and post-race re-entry.
+It runs `scripts/tests/full_program_smoke_test.gd` and covers menu/back navigation, the loading transition, Nissan automatic and manual free drive, braking/reverse, steering, random car switching, Nissan race setup, AI movement, results cleanup and post-race re-entry. CVT, Fiat and Shelby contracts are covered by focused automatically discovered tests rather than this single end-to-end fixture.
 
 Run the complete suite locally:
 
@@ -231,6 +231,8 @@ See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gate
 - `docs/architecture.md` — subsystem ownership and dependency boundaries;
 - `docs/car_catalog.md` — catalog/model/variant/spec rules and current catalog content;
 - `docs/vehicle_model.md` — current handling, transmission and tire model;
+- `docs/performance.md` — current operation-count, visual-LOD and backend-specific performance contracts;
+- `docs/track_layout_resources.md` — catalog-backed layout, profile and generated-geometry contracts;
 - `docs/baked_engine_audio.md` — scene-specific live/baked audio backends and baking workflow;
 - `docs/audio/vq37vhr_procedural_model.md` — Nissan VQ37VHR procedural model;
 - `docs/cars/nissan_370z_nismo_2016.md` — Nissan 370Z/NISMO content and sources;
