@@ -31,7 +31,6 @@ const CHARACTER_PROPERTY_NAMES: Array[StringName] = [
 	&"turbo_blowoff",
 ]
 
-
 @export_group("Levels")
 @export_range(-80.0, 12.0, 0.5) var idle_volume_db: float = -10.0
 @export_range(-80.0, 12.0, 0.5) var load_volume_db: float = 0.0
@@ -116,12 +115,17 @@ func apply_to(engine_audio: Object) -> bool:
 	if not validation_errors.is_empty():
 		push_error("EngineAudioProfile is invalid: %s" % "; ".join(validation_errors))
 		return false
+	var supported_properties: Dictionary = {}
+	for target_property: Dictionary in engine_audio.get_property_list():
+		supported_properties[StringName(target_property.get("name", &""))] = true
 	for property: Dictionary in get_property_list():
 		var property_name: StringName = property.get("name", &"")
 		var usage: int = int(property.get("usage", 0))
 		if property_name == &"" or usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
 			continue
 		if property_name in [&"script", &"resource_local_to_scene", &"resource_name", &"resource_path"]:
+			continue
+		if not supported_properties.has(property_name):
 			continue
 		engine_audio.set(property_name, get(property_name))
 	return true
