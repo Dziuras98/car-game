@@ -392,8 +392,6 @@ func _handle_session_start_failure(result: GameSessionStartTransaction.Result) -
 		_reset_to_main_menu(message)
 		return
 	if result == GameSessionStartTransaction.Result.ALREADY_RUNNING:
-		if not message.is_empty():
-			push_warning(message)
 		return
 	if not message.is_empty():
 		push_error(message)
