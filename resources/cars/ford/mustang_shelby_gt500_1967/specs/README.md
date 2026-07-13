@@ -17,7 +17,7 @@ Both variants use the same naturally aspirated 428 FE Police Interceptor-based V
 The sampled curve is constrained to:
 
 - 420 lb-ft / 569.44 Nm at 3,200 RPM;
-- 355 bhp / approximately 264.7 kW at 5,400 RPM;
+- 355 hp SAE gross / approximately 264.7 kW at 5,400 RPM;
 - declining torque after the power peak;
 - one shared resource for both transmissions.
 
