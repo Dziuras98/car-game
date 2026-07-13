@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_model_definition.gd" id="1_model"]
+[ext_resource type="Resource" path="res://resources/cars/ford/mustang_shelby_gt500_1967/variants/gt500_428_4mt.tres" id="2_manual"]
+[ext_resource type="Resource" path="res://resources/cars/ford/mustang_shelby_gt500_1967/variants/gt500_428_3at.tres" id="3_automatic"]
+
+[resource]
+script = ExtResource("1_model")
+manufacturer = "Shelby"
+model_id = &"ford_mustang_shelby_gt500_1967"
+display_name = "G.T. 500 (1967)"
+generation = "1967 Shelby Mustang"
+production_year_start = 1967
+production_year_end = 1967
+variants = Array[Resource]([ExtResource("2_manual"), ExtResource("3_automatic")])
+default_variant_id = &"ford_mustang_shelby_gt500_1967_4mt"
