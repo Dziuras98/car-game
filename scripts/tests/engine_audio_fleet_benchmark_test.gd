@@ -2,6 +2,7 @@ extends SceneTree
 
 const AUDIO_PROFILE: EngineAudioProfile = preload("res://resources/audio/370z_stock_audio_profile.tres")
 const AI_CAR_SCENE: PackedScene = preload("res://scenes/cars/370z_ai.tscn")
+const AI_CAR_SPECS: CarSpecs = preload("res://resources/cars/nissan/370z/specs/370z_7at_specs.tres")
 const OPERATING_RPM: float = 5200.0
 const OPERATING_LOAD: float = 0.82
 const OPERATING_THROTTLE: float = 0.78
@@ -111,8 +112,9 @@ func _prepare_ai_fixture() -> void:
 			_failures.append("could not instantiate baked AI car %d" % ai_index)
 			continue
 		car.name = "AudioBenchmarkAi%d" % (ai_index + 1)
-		car.global_position = Vector3(float(ai_index) * 4.0, 1.0, 0.0)
+		car.car_specs = AI_CAR_SPECS
 		root.add_child(car)
+		car.global_position = Vector3(float(ai_index) * 4.0, 1.0, 0.0)
 		_ai_cars.append(car)
 	await process_frame
 	await physics_frame
