@@ -1,48 +1,35 @@
 # Ford Mustang Shelby G.T. 500 (1967) content root
 
-This directory reserves the canonical catalog location for the production 1967 Shelby G.T. 500 fastback.
+This directory is the canonical catalog location for the production 1967 Shelby G.T. 500 fastback.
 
-## Current phase
+## Implemented content
 
-The visual foundation and production powertrain matrix are documented:
+- model definition: `model.tres`;
+- shared reconstructed 428 FE PI curve: `specs/gt500_428_pi_torque_curve.tres`;
+- four-speed manual specs: `specs/gt500_428_4mt_specs.tres`;
+- C6 automatic specs: `specs/gt500_428_3at_specs.tres`;
+- four-speed variant: `variants/gt500_428_4mt.tres`;
+- automatic variant: `variants/gt500_428_3at.tres`;
+- player scenes: `res://scenes/cars/mustang_shelby_gt500_1967_4mt.tscn` and `res://scenes/cars/mustang_shelby_gt500_1967_3at.tscn`;
+- shared base scene, collision and procedural V8 audio;
+- detailed imported wrapper and low-detail fallback;
+- catalog, engine-anchor and deterministic performance regression tests.
 
-- detailed wrapper: `res://scenes/cars/mustang_shelby_gt500_1967_visuals.tscn`;
-- low-detail fallback: `res://scenes/cars/mustang_shelby_gt500_1967_low_detail_visuals.tscn`;
-- inspection scene: `res://scenes/dev/mustang_shelby_gt500_1967_visual_preview.tscn`;
-- source asset record: `res://assets/third_party/sketchfab/ford_mustang_shelby_gt500_1967/README.md`;
-- powertrain research: `res://docs/cars/ford_mustang_shelby_gt500_1967.md`.
+The model is registered in `resources/cars/catalog.tres` with stable model ID `ford_mustang_shelby_gt500_1967`.
 
-The model is intentionally not referenced by `resources/cars/catalog.tres` yet. Registering it now would require fabricated gearbox, axle, torque-curve or scene data.
+## Production variant boundary
 
-## Verified production variant boundary
+The normal-production model exposes exactly:
 
-The 1967 production model uses one shared 428 FE Police Interceptor-based dual-four-barrel V8 and two transmission choices:
+1. `ford_mustang_shelby_gt500_1967_4mt` — 428 FE, close-ratio four-speed Toploader, 3.89 axle;
+2. `ford_mustang_shelby_gt500_1967_3at` — 428 FE, three-speed C6 automatic, 3.50 axle.
 
-1. four-speed Ford manual, Toploader family;
-2. three-speed Ford C6 SelectShift Cruise-O-Matic automatic.
+Both versions share the same engine curve and differ in gearbox, converter, driveline efficiency, launch traction and mass calibration.
 
-Planned stable IDs:
+The 427 FE Super Snake remains a separate one-off prototype and is not part of this model's variant list.
 
-- model: `ford_mustang_shelby_gt500_1967`;
-- manual variant: `ford_mustang_shelby_gt500_1967_4mt`;
-- automatic variant: `ford_mustang_shelby_gt500_1967_3at`.
+## Remaining restrictions
 
-The 427 FE Super Snake is a one-off prototype and is not part of this production model's normal variant list.
+Both variants are deliberately `ai_eligible = false` until the imported detailed model has four verified wheel bindings and dedicated AI scenes. The binary GLB also remains in the repository root until its source transform and asset relocation can be changed atomically.
 
-## Planned canonical structure
-
-```text
-resources/cars/ford/mustang_shelby_gt500_1967/
-  model.tres
-  specs/
-    gt500_428_pi_torque_curve.tres
-    gt500_428_4mt_specs.tres
-    gt500_428_3at_specs.tres
-  variants/
-    gt500_428_4mt.tres
-    gt500_428_3at.tres
-```
-
-Both specs resources will reference the same torque curve. Transmission-specific ratios, shift behavior, driveline losses, axle ratio and mass must remain separate.
-
-`model.tres`, both variant resources and their specs should be added together only after the visual scene bindings, collision, exact gearbox ratios, final-drive ratios, mass and engine curve have been verified.
+See `res://docs/cars/ford_mustang_shelby_gt500_1967.md` for the complete research, uncertainty and performance-calibration record.
