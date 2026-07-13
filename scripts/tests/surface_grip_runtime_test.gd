@@ -12,6 +12,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	_test_longitudinal_grip_budget()
+	_test_longitudinal_slip_curve()
 	_test_contact_capacity_scaling()
 	_test_lateral_grip_budget()
 	await _test_generated_surface_contract()
@@ -24,7 +25,7 @@ func _test_longitudinal_grip_budget() -> void:
 	var grass_state: CarRuntimeState = _make_state(config)
 	grass_state.surface_grip_multiplier = 0.5
 	var sliding_state: CarRuntimeState = _make_state(config)
-	sliding_state.tire_slip_intensity = 0.8
+	sliding_state.lateral_slip_intensity = 0.8
 
 	var dry_powertrain: CarPowertrainController = _make_powertrain(config, dry_state)
 	var grass_powertrain: CarPowertrainController = _make_powertrain(config, grass_state)
@@ -34,6 +35,8 @@ func _test_longitudinal_grip_budget() -> void:
 	sliding_powertrain.update(sliding_state, 1.0, 0.0, false, false, false, 0.1)
 	_expect(dry_state.forward_speed > grass_state.forward_speed, "lower surface grip reduces drive acceleration")
 	_expect(dry_state.forward_speed > sliding_state.forward_speed, "lateral slip consumes longitudinal acceleration budget")
+	_expect(dry_state.longitudinal_slip_ratio > config.longitudinal_peak_slip_ratio, "excess drive demand creates positive longitudinal slip")
+	_expect(dry_state.longitudinal_slip_intensity > 0.0, "wheelspin contributes to the tire slip signal")
 
 	var dry_brake_state: CarRuntimeState = _make_state(config)
 	dry_brake_state.forward_speed = 12.0
@@ -45,6 +48,64 @@ func _test_longitudinal_grip_budget() -> void:
 	dry_brakes.update(dry_brake_state, 0.0, 1.0, false, false, false, 0.1)
 	grass_brakes.update(grass_brake_state, 0.0, 1.0, false, false, false, 0.1)
 	_expect(dry_brake_state.forward_speed < grass_brake_state.forward_speed, "lower surface grip increases braking distance")
+	_expect(dry_brake_state.longitudinal_slip_ratio < -config.longitudinal_peak_slip_ratio, "excess brake demand creates negative longitudinal slip")
+	_expect(dry_brake_state.forward_speed > 12.0 - config.brake_deceleration * 0.1, "locked-wheel braking is limited below raw brake demand")
+
+
+func _test_longitudinal_slip_curve() -> void:
+	var tire_model: TireModel = TireModel.new()
+	var peak_capacity: float = tire_model.get_longitudinal_acceleration_capacity(
+		0.0,
+		1.0,
+		1.0,
+		1.0
+	)
+	var below_peak: Vector2 = tire_model.resolve_longitudinal_acceleration(
+		peak_capacity * 0.5,
+		0.0,
+		1.0,
+		1.0,
+		1.0,
+		0.12,
+		0.78
+	)
+	var above_peak: Vector2 = tire_model.resolve_longitudinal_acceleration(
+		peak_capacity * 3.0,
+		0.0,
+		1.0,
+		1.0,
+		1.0,
+		0.12,
+		0.78
+	)
+	var combined_load: Vector2 = tire_model.resolve_longitudinal_acceleration(
+		peak_capacity,
+		0.8,
+		1.0,
+		1.0,
+		1.0,
+		0.12,
+		0.78
+	)
+	var locked_brake: Vector2 = tire_model.resolve_longitudinal_acceleration(
+		-peak_capacity * 3.0,
+		0.0,
+		1.0,
+		1.0,
+		1.0,
+		0.12,
+		0.78
+	)
+	_expect(is_equal_approx(below_peak.x, peak_capacity * 0.5), "sub-peak longitudinal demand is transmitted without clipping")
+	_expect(below_peak.y > 0.0 and below_peak.y < 0.12, "sub-peak traction produces elastic positive slip ratio")
+	_expect(above_peak.x < peak_capacity, "wheelspin falls from peak grip toward sliding grip")
+	_expect(above_peak.y > 0.12, "wheelspin exceeds configured peak slip ratio")
+	_expect(combined_load.x < peak_capacity, "lateral load reduces the available longitudinal peak")
+	_expect(locked_brake.x > -peak_capacity and locked_brake.y < -0.12, "wheel lock limits braking and produces negative slip ratio")
+	_expect(
+		tire_model.calculate_combined_slip_intensity(0.8, 0.8) == 1.0,
+		"combined lateral and longitudinal slip is clamped to one"
+	)
 
 
 func _test_contact_capacity_scaling() -> void:
@@ -143,6 +204,9 @@ func _build_direct_drive_config() -> CarDriveConfig:
 	config.rear_lateral_grip = 10.0
 	config.front_tire_width_m = 0.225
 	config.rear_tire_width_m = 0.245
+	config.longitudinal_grip_coefficient = 1.0
+	config.longitudinal_peak_slip_ratio = 0.12
+	config.longitudinal_slide_grip_multiplier = 0.78
 	config.slip_speed_threshold = 2.2
 	config.sanitize()
 	return config
