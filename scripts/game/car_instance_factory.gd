@@ -33,6 +33,21 @@ func get_ai_eligible_count() -> int:
 	return _ai_eligible_variants.size()
 
 
+func get_random_available_index_excluding(excluded_index: int) -> int:
+	var available_count: int = _available_variants.size()
+	if available_count <= 0:
+		return -1
+	if excluded_index < 0 or excluded_index >= available_count:
+		return _rng.randi_range(0, available_count - 1) if _rng != null else 0
+	if available_count == 1:
+		return -1
+
+	var selected_index: int = _rng.randi_range(0, available_count - 2) if _rng != null else 0
+	if selected_index >= excluded_index:
+		selected_index += 1
+	return selected_index
+
+
 func capture_random_state() -> int:
 	return _rng.state if _rng != null else 0
 

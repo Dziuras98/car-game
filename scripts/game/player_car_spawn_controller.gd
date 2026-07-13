@@ -46,7 +46,9 @@ func switch_to_next_car(spawn_global_transform: Transform3D, player_input_enable
 	if _factory == null or not _factory.has_available_cars():
 		return null
 
-	var next_index: int = (_current_car_index + 1) % _factory.get_available_count()
+	var next_index: int = _factory.get_random_available_index_excluding(_current_car_index)
+	if next_index < 0:
+		return null
 	return spawn_player_car(next_index, spawn_global_transform, player_input_enabled)
 
 
