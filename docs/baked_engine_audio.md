@@ -7,6 +7,19 @@ The runtime uses two engine-audio backends with distinct performance targets:
 
 This keeps the detailed, continuously reacting synthesis for the car the player hears most clearly while avoiding per-sample GDScript work for every opponent.
 
+## Non-negotiable player-audio invariant
+
+Procedural engine audio for the player car is a permanent product requirement. It must not be replaced by a baked bank, reduced to the AI playback backend, disabled through distance LOD, or made subject to the shared procedural voice budget.
+
+The following contract is therefore mandatory for every playable car:
+
+- the player scene uses a profiled live synthesizer derived from `EngineAudioSynthesizer`;
+- `force_full_runtime_generation` remains enabled;
+- RPM, engine load and applied throttle continue to drive synthesis in real time;
+- performance work must preserve the generated signal and may not silently substitute the AI backend.
+
+Optimizations should instead target surrounding orchestration, unnecessary additional procedural voices, benchmark accuracy, or implementation changes proven to preserve the resulting player signal. Any deliberate change to this invariant requires an explicit product decision and corresponding documentation and test updates.
+
 ## Player-car runtime
 
 The player scenes are:
@@ -45,6 +58,25 @@ They use `BakedEngineAudioPlayer` with the corresponding committed bank. Each ba
 - crossfades coast and load layers from current engine load and throttle.
 
 The normal steady state uses one coast voice and one load voice. Two additional native players exist only for short anchor transitions.
+
+## Runtime performance benchmark
+
+`scripts/tests/engine_audio_fleet_benchmark_test.gd` measures the production race layout rather than an artificial fleet of procedural synthesizers:
+
+```text
+1 × ProfiledEngineAudioSynthesizer for the player
+3 × BakedEngineAudioPlayer for AI opponents
+```
+
+The benchmark records separate player, AI and combined race costs for the startup-buffer and steady-state windows. It uses median timings and fails CI when:
+
+- the protected single player synthesizer exceeds its main-thread budget;
+- the combined production race layout exceeds its main-thread budget;
+- an AI fixture stops using a prepared baked bank or allocates `AudioStreamGenerator`.
+
+The report is written to `build/test-logs/engine-audio-fleet-benchmark.json` and uploaded with normal CI diagnostics. A four-procedural-voice result is not treated as representative of gameplay because production AI cars do not use that backend.
+
+The budgets are regression guards, not permission to remove or downgrade live player synthesis. If the player cost approaches the limit, investigate implementation efficiency while preserving the player-audio invariant above.
 
 ## Repository layout
 
@@ -107,6 +139,7 @@ The workflow downloads the pinned Godot binary, verifies its checksum, imports r
 7. Bake and commit the generated bank.
 8. Assign the bank to `BakedEngineAudioPlayer` in the AI scene.
 9. Extend the audio backend contract test with the new player and AI scenes.
+10. Extend the production race benchmark fixture when the default opponent fleet changes.
 
 ## Validation
 
@@ -114,6 +147,8 @@ Automated coverage verifies that:
 
 - player scenes use valid profiled synthesizers with full runtime generation enabled;
 - AI scenes use prepared baked banks and do not allocate `AudioStreamGenerator`;
+- the production race benchmark contains one procedural player and three baked AI voices;
+- player and combined race main-thread costs remain below explicit regression budgets;
 - every committed clip exists and imports as mono `AudioStreamWAV`;
 - sample rate and duration match bank metadata;
 - the packaged player-car smoke test exposes live synthesis;
