@@ -4,7 +4,7 @@ class_name TorPoznanBarrierConfiguration
 const RIGHT_BARRIER_EXCLUSION_META: StringName = &"right_barrier_exclusion_ranges"
 
 
-func _enter_tree() -> void:
+func _ready() -> void:
 	var track: GeneratedTrack = get_parent() as GeneratedTrack
 	if track == null or track.track_layout == null:
 		return
