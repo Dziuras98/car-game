@@ -36,6 +36,30 @@ msgstr "Loading..."
 msgid "Przygotowywanie toru i samochodów"
 msgstr "Preparing the track and cars"
 
+msgid "Sprawdzanie konfiguracji"
+msgstr "Checking configuration"
+
+msgid "Przygotowywanie sesji"
+msgstr "Preparing session"
+
+msgid "Przygotowywanie toru"
+msgstr "Preparing track"
+
+msgid "Konfigurowanie symulacji"
+msgstr "Configuring simulation"
+
+msgid "Tworzenie samochodu"
+msgstr "Creating car"
+
+msgid "Przygotowywanie przeciwników"
+msgstr "Preparing opponents"
+
+msgid "Finalizowanie sesji"
+msgstr "Finalizing session"
+
+msgid "Gotowe"
+msgstr "Ready"
+
 msgid "Tryb"
 msgstr "Mode"
 
