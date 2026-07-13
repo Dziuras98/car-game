@@ -35,17 +35,17 @@ func _run() -> void:
 		_finish()
 		return
 
-	var startup_frames: int = maxi(roundi(float(MIX_RATE) * STARTUP_BUFFER_SECONDS), 1)
-	var steady_frames: int = maxi(roundi(float(MIX_RATE) * STEADY_WINDOW_SECONDS), 1)
-	var startup_updates: int = maxi(ceili(STARTUP_BUFFER_SECONDS * float(PHYSICS_FPS)), 1)
-	var steady_updates: int = maxi(ceili(STEADY_WINDOW_SECONDS * float(PHYSICS_FPS)), 1)
+	var startup_frames: int = maxi(roundi(MIX_RATE * STARTUP_BUFFER_SECONDS), 1)
+	var steady_frames: int = maxi(roundi(MIX_RATE * STEADY_WINDOW_SECONDS), 1)
+	var startup_updates: int = maxi(ceili(STARTUP_BUFFER_SECONDS * PHYSICS_FPS), 1)
+	var steady_updates: int = maxi(ceili(STEADY_WINDOW_SECONDS * PHYSICS_FPS), 1)
 
-	var player_startup: Dictionary = _benchmark_player_generation(startup_frames)
-	var player_steady: Dictionary = _benchmark_player_generation(steady_frames)
-	var ai_startup: Dictionary = _benchmark_baked_ai_runtime(startup_updates, STARTUP_BUFFER_SECONDS)
-	var ai_steady: Dictionary = _benchmark_baked_ai_runtime(steady_updates, STEADY_WINDOW_SECONDS)
-	var race_startup: Dictionary = _combine_race_cost(player_startup, ai_startup, STARTUP_BUFFER_SECONDS)
-	var race_steady: Dictionary = _combine_race_cost(player_steady, ai_steady, STEADY_WINDOW_SECONDS)
+	var player_startup: Dictionary = _benchmark_player(startup_frames)
+	var player_steady: Dictionary = _benchmark_player(steady_frames)
+	var ai_startup: Dictionary = _benchmark_ai(startup_updates, STARTUP_BUFFER_SECONDS)
+	var ai_steady: Dictionary = _benchmark_ai(steady_updates, STEADY_WINDOW_SECONDS)
+	var race_startup: Dictionary = _combine(player_startup, ai_startup, STARTUP_BUFFER_SECONDS)
+	var race_steady: Dictionary = _combine(player_steady, ai_steady, STEADY_WINDOW_SECONDS)
 
 	_expect(bool(player_startup.get("valid", false)), "procedural player startup benchmark completes")
 	_expect(bool(player_steady.get("valid", false)), "procedural player steady benchmark completes")
@@ -97,10 +97,8 @@ func _run() -> void:
 		"production_race_startup": race_startup,
 		"production_race_steady": race_steady,
 	}
-
-	var serialized: String = JSON.stringify(report, "\t")
 	print("[ENGINE_AUDIO_FLEET_BENCHMARK] %s" % JSON.stringify(report))
-	_write_report(serialized)
+	_write_report(JSON.stringify(report, "\t"))
 	await _cleanup_fixture()
 	_finish()
 
@@ -114,7 +112,7 @@ func _prepare_ai_fixture() -> void:
 		car.name = "AudioBenchmarkAi%d" % (ai_index + 1)
 		car.car_specs = AI_CAR_SPECS
 		root.add_child(car)
-		car.global_position = Vector3(float(ai_index) * 4.0, 1.0, 0.0)
+		car.global_position = Vector3(ai_index * 4.0, 1.0, 0.0)
 		_ai_cars.append(car)
 	await process_frame
 	await physics_frame
@@ -130,12 +128,11 @@ func _prepare_ai_fixture() -> void:
 		_ai_audio_players.append(audio)
 
 	for _warmup_index: int in range(4):
-		for audio: BakedEngineAudioPlayer in _ai_audio_players:
-			audio._process(1.0 / float(PHYSICS_FPS))
+		_update_ai_players(1.0 / PHYSICS_FPS)
 
 
-func _benchmark_player_generation(frames_per_sample: int) -> Dictionary:
-	var elapsed_samples: Array[int] = []
+func _benchmark_player(frame_count: int) -> Dictionary:
+	var timings: Array[int] = []
 	var checksum: float = 0.0
 	for _sample_index: int in range(SAMPLE_COUNT):
 		var synthesizer: EngineAudioSynthesizer = EngineAudioSynthesizer.new()
@@ -143,109 +140,107 @@ func _benchmark_player_generation(frames_per_sample: int) -> Dictionary:
 		if AUDIO_PROFILE == null or not AUDIO_PROFILE.apply_to(synthesizer):
 			synthesizer.free()
 			return {"valid": false, "reason": "profile_apply_failed"}
-		synthesizer.generate_test_frames(
-			WARMUP_FRAMES,
-			OPERATING_RPM,
-			OPERATING_LOAD,
-			OPERATING_THROTTLE
-		)
+		synthesizer.generate_test_frames(WARMUP_FRAMES, OPERATING_RPM, OPERATING_LOAD, OPERATING_THROTTLE)
 		var started_usec: int = Time.get_ticks_usec()
 		var generated: PackedFloat32Array = synthesizer.generate_test_frames(
-			frames_per_sample,
+			frame_count,
 			OPERATING_RPM,
 			OPERATING_LOAD,
 			OPERATING_THROTTLE
 		)
-		elapsed_samples.append(Time.get_ticks_usec() - started_usec)
-		var sample_stride: int = maxi(generated.size() / 64, 1)
-		for sample_index: int in range(0, generated.size(), sample_stride):
+		timings.append(Time.get_ticks_usec() - started_usec)
+		var stride: int = maxi(generated.size() / 64, 1)
+		for sample_index: int in range(0, generated.size(), stride):
 			checksum += absf(generated[sample_index])
 		synthesizer.free()
-
-	elapsed_samples.sort()
-	var elapsed_usec: int = elapsed_samples[elapsed_samples.size() / 2]
-	var represented_seconds: float = float(frames_per_sample) / float(MIX_RATE)
-	return {
-		"valid": elapsed_usec > 0 and is_finite(checksum),
-		"backend": "ProfiledEngineAudioSynthesizer",
-		"voice_count": 1,
-		"frames": frames_per_sample,
-		"represented_seconds": represented_seconds,
-		"elapsed_usec": elapsed_usec,
-		"elapsed_ms": float(elapsed_usec) / 1000.0,
-		"main_thread_fraction": _safe_ratio(
-			float(elapsed_usec),
-			represented_seconds * 1_000_000.0
-		),
-		"sample_count": SAMPLE_COUNT,
-		"checksum": checksum,
-	}
+	return _timed_result(
+		"ProfiledEngineAudioSynthesizer",
+		1,
+		_median(timings),
+		float(frame_count) / MIX_RATE,
+		checksum,
+		{"frames": frame_count}
+	)
 
 
-func _benchmark_baked_ai_runtime(updates_per_voice: int, represented_seconds: float) -> Dictionary:
+func _benchmark_ai(updates_per_voice: int, represented_seconds: float) -> Dictionary:
 	if _ai_audio_players.size() != AI_VOICE_COUNT:
 		return {"valid": false, "reason": "incomplete_ai_fixture"}
-	var elapsed_samples: Array[int] = []
+	var timings: Array[int] = []
 	var checksum: float = 0.0
 	for _sample_index: int in range(SAMPLE_COUNT):
 		var started_usec: int = Time.get_ticks_usec()
 		for _repetition: int in range(AI_MEASUREMENT_REPETITIONS):
 			for _update_index: int in range(updates_per_voice):
-				for audio: BakedEngineAudioPlayer in _ai_audio_players:
-					audio._process(1.0 / float(PHYSICS_FPS))
-		var total_elapsed_usec: int = Time.get_ticks_usec() - started_usec
-		elapsed_samples.append(maxi(roundi(float(total_elapsed_usec) / float(AI_MEASUREMENT_REPETITIONS)), 1))
+				_update_ai_players(1.0 / PHYSICS_FPS)
+		var measured_usec: int = Time.get_ticks_usec() - started_usec
+		timings.append(maxi(roundi(float(measured_usec) / AI_MEASUREMENT_REPETITIONS), 1))
 		for audio: BakedEngineAudioPlayer in _ai_audio_players:
-			checksum += audio.get_selected_anchor_rpm() + float(audio.get_loaded_voice_stream_count())
+			checksum += audio.get_selected_anchor_rpm() + audio.get_loaded_voice_stream_count()
+	return _timed_result(
+		"BakedEngineAudioPlayer",
+		AI_VOICE_COUNT,
+		_median(timings),
+		represented_seconds,
+		checksum,
+		{
+			"updates_per_voice": updates_per_voice,
+			"measurement_repetitions": AI_MEASUREMENT_REPETITIONS,
+		}
+	)
 
-	elapsed_samples.sort()
-	var elapsed_usec: int = elapsed_samples[elapsed_samples.size() / 2]
-	return {
+
+func _update_ai_players(delta: float) -> void:
+	for audio: BakedEngineAudioPlayer in _ai_audio_players:
+		audio._process(delta)
+
+
+func _timed_result(
+	backend: String,
+	voice_count: int,
+	elapsed_usec: int,
+	represented_seconds: float,
+	checksum: float,
+	extra: Dictionary
+) -> Dictionary:
+	var result: Dictionary = {
 		"valid": elapsed_usec > 0 and is_finite(checksum),
-		"backend": "BakedEngineAudioPlayer",
-		"voice_count": AI_VOICE_COUNT,
-		"updates_per_voice": updates_per_voice,
+		"backend": backend,
+		"voice_count": voice_count,
 		"represented_seconds": represented_seconds,
 		"elapsed_usec": elapsed_usec,
-		"elapsed_ms": float(elapsed_usec) / 1000.0,
-		"main_thread_fraction": _safe_ratio(
-			float(elapsed_usec),
-			represented_seconds * 1_000_000.0
-		),
+		"elapsed_ms": elapsed_usec / 1000.0,
+		"main_thread_fraction": _safe_ratio(elapsed_usec, represented_seconds * 1_000_000.0),
 		"sample_count": SAMPLE_COUNT,
-		"measurement_repetitions": AI_MEASUREMENT_REPETITIONS,
 		"checksum": checksum,
 	}
+	result.merge(extra, true)
+	return result
 
 
-func _combine_race_cost(
-	player_result: Dictionary,
-	ai_result: Dictionary,
-	represented_seconds: float
-) -> Dictionary:
+func _combine(player_result: Dictionary, ai_result: Dictionary, represented_seconds: float) -> Dictionary:
 	var elapsed_usec: int = int(player_result.get("elapsed_usec", 0)) + int(ai_result.get("elapsed_usec", 0))
 	return {
 		"valid": bool(player_result.get("valid", false)) and bool(ai_result.get("valid", false)),
 		"layout": "1 procedural player + 3 baked AI",
 		"represented_seconds": represented_seconds,
 		"elapsed_usec": elapsed_usec,
-		"elapsed_ms": float(elapsed_usec) / 1000.0,
-		"main_thread_fraction": _safe_ratio(
-			float(elapsed_usec),
-			represented_seconds * 1_000_000.0
-		),
+		"elapsed_ms": elapsed_usec / 1000.0,
+		"main_thread_fraction": _safe_ratio(elapsed_usec, represented_seconds * 1_000_000.0),
 	}
 
 
+func _median(values: Array[int]) -> int:
+	values.sort()
+	return values[values.size() / 2] if not values.is_empty() else 0
+
+
 func _safe_ratio(numerator: float, denominator: float) -> float:
-	if denominator <= 0.0:
-		return INF
-	return numerator / denominator
+	return numerator / denominator if denominator > 0.0 else INF
 
 
 func _write_report(serialized: String) -> void:
-	var absolute_path: String = ProjectSettings.globalize_path(REPORT_PATH)
-	var file: FileAccess = FileAccess.open(absolute_path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(ProjectSettings.globalize_path(REPORT_PATH), FileAccess.WRITE)
 	if file == null:
 		_failures.append("could not write benchmark report: %s" % error_string(FileAccess.get_open_error()))
 		return
@@ -254,11 +249,13 @@ func _write_report(serialized: String) -> void:
 
 
 func _cleanup_fixture() -> void:
+	_ai_audio_players.clear()
 	for car: PlayerCarController in _ai_cars:
 		if is_instance_valid(car):
-			car.queue_free()
-	_ai_audio_players.clear()
+			car.free()
 	_ai_cars.clear()
+	ProceduralAudioPlayer3D.reset_voice_budget()
+	await process_frame
 	await process_frame
 
 
