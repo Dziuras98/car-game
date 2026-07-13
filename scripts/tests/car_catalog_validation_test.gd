@@ -177,9 +177,10 @@ func _validate_specs(variant_id_key: String, specs: CarSpecs) -> void:
 	_expect(specs.power_peak_rpm >= specs.peak_torque_rpm, "variant %s specs power peak is at or above torque peak" % variant_id_key)
 	_expect(specs.redline_rpm >= specs.power_peak_rpm, "variant %s specs redline is at or above the power peak" % variant_id_key)
 	_expect(specs.rev_limiter_rpm >= specs.redline_rpm, "variant %s specs rev limiter is at or above redline" % variant_id_key)
-	_expect(specs.gear_ratios.size() > 0, "variant %s specs define at least one forward gear ratio" % variant_id_key)
-	_expect(not (specs.is_manual_transmission() and specs.is_automatic_transmission()), "variant %s specs do not enable manual and automatic transmission at the same time" % variant_id_key)
-	_expect(specs.is_manual_transmission() or specs.is_automatic_transmission(), "variant %s specs use an explicit transmission mode" % variant_id_key)
+	if specs.uses_discrete_gears():
+		_expect(specs.gear_ratios.size() > 0, "variant %s discrete transmission defines at least one forward gear ratio" % variant_id_key)
+	_expect(not (specs.is_manual_transmission() and specs.is_automatic_transmission()), "variant %s specs do not expose conflicting transmission modes" % variant_id_key)
+	_expect(specs.is_manual_transmission() or specs.is_automatic_transmission() or specs.is_cvt_transmission(), "variant %s specs use an explicit transmission mode" % variant_id_key)
 	_expect(specs.reverse_gear_ratio > 0.0, "variant %s specs have positive reverse gear ratio" % variant_id_key)
 	_expect(specs.final_drive_ratio > 0.0, "variant %s specs have positive final drive ratio" % variant_id_key)
 	_expect(specs.peak_engine_torque > 0.0, "variant %s specs have positive peak engine torque" % variant_id_key)
