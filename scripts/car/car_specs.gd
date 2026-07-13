@@ -82,6 +82,9 @@ enum TransmissionType {
 @export var rear_lateral_grip: float = 10.0
 @export var front_tire_width_m: float = 0.225
 @export var rear_tire_width_m: float = 0.245
+@export var longitudinal_grip_coefficient: float = 1.05
+@export var longitudinal_peak_slip_ratio: float = 0.12
+@export_range(0.0, 1.0, 0.01) var longitudinal_slide_grip_multiplier: float = 0.78
 @export var handbrake_lateral_grip_multiplier: float = 0.28
 @export var steering_slip_gain: float = 0.85
 @export var slip_speed_threshold: float = 2.2
@@ -252,6 +255,9 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "rear_lateral_grip", rear_lateral_grip)
 	_append_positive(errors, "front_tire_width_m", front_tire_width_m)
 	_append_positive(errors, "rear_tire_width_m", rear_tire_width_m)
+	_append_positive(errors, "longitudinal_grip_coefficient", longitudinal_grip_coefficient)
+	_append_positive(errors, "longitudinal_peak_slip_ratio", longitudinal_peak_slip_ratio)
+	_append_range(errors, "longitudinal_slide_grip_multiplier", longitudinal_slide_grip_multiplier, 0.0, 1.0)
 	_append_range(errors, "handbrake_lateral_grip_multiplier", handbrake_lateral_grip_multiplier, 0.0, 1.0)
 	_append_non_negative(errors, "steering_slip_gain", steering_slip_gain)
 	_append_positive(errors, "slip_speed_threshold", slip_speed_threshold)
