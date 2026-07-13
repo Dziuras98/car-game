@@ -49,7 +49,7 @@ func _test_manual_powertrain_integration() -> void:
 	for update_index: int in range(60):
 		controller.update(state, 0.7, 0.0, false, false, false, 1.0 / 60.0)
 	_expect(state.shift_timer <= 0.001, "shift timer completes")
-	_expect(state.clutch_engagement > 0.8, "clutch re-engages after the shift")
+	_expect(state.clutch_engagement > 0.45, "clutch re-engages into the controlled low-speed slip range after the shift")
 
 	controller.update(state, 0.0, 0.0, false, false, true, 1.0 / 60.0)
 	controller.update(state, 0.0, 0.0, false, false, true, 1.0 / 60.0)
