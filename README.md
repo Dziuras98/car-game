@@ -2,34 +2,42 @@
 
 Godot 4.7 prototype focused on car driving, short races, data-driven vehicle variants and procedurally generated tracks. Windows is the sole target platform; player input is provided through keyboard and gamepad actions.
 
-The project is intentionally kept text-heavy and regression-tested so gameplay systems can be changed without silently breaking exported builds.
+The project is intentionally text-heavy and regression-tested so gameplay systems can be changed without silently breaking exported builds.
 
 ## Current baseline
 
 The repository currently provides:
 
 - free-drive and race modes owned by the shared `GameModes` contract, with explicit validation and rollback on failed session startup;
+- a blocking loading step between the final menu selection and gameplay, with monotonic progress reported by the staged startup pipeline;
 - catalog-driven track, car model and car variant selection through typed resource arrays;
+- four catalog models and fifteen playable variants:
+  - Nissan 370Z Z34 — 6MT and 7AT;
+  - Nissan 370Z NISMO Z34 V2 — 6MT and 7AT;
+  - 1967 Shelby G.T. 500 — four-speed manual and C6 three-speed automatic;
+  - 1995 Fiat Punto Type 176 — nine petrol, diesel, turbo and Selecta CVT variants;
 - authoritative validation across `CarCatalog`, `CarModelDefinition`, `CarVariantDefinition` and `CarSpecs`;
-- standard 2016 Nissan 370Z and 2016 Nissan 370Z NISMO models, each with 6MT and 7AT variants backed by `CarSpecs` resources;
 - explicit AI eligibility on supported car variants and all-or-nothing opponent spawning;
+- AI support for explicitly eligible manual, conventional automatic and CVT variants, including manual shift requests and reverse recovery;
 - a modular `CharacterBody3D` vehicle runtime with powertrain, transmission, tire, four-point ground-contact and reset helpers;
-- `TransmissionType` as the sole transmission-mode state;
-- relational gearbox/automatic-transmission validation in addition to per-field tuning ranges;
-- surface-dependent grip and a friction-circle longitudinal-force budget;
-- generated track surfaces, collision, barriers, markers, checkpoints and stadium decoration;
+- `CarSpecs.TransmissionType` as the sole transmission-mode state, including direct drive, manual, automatic and CVT modes;
+- automatic throttle cut on manual upshifts and RPM-targeted throttle blips on manual downshifts;
+- relational gearbox, automatic-transmission and CVT validation in addition to per-field tuning ranges;
+- surface-dependent grip, lateral slip, longitudinal slip-ratio traction/braking limits and combined-slip effects;
+- two catalog tracks: the generated simple oval and the calibrated Tor Poznań reconstruction;
+- generated track surfaces, collision, variable width/banking profiles, barriers, markers, checkpoints and track-specific decoration;
 - ordered checkpoint validation and continuous race-position progress;
-- AI opponents that consume the typed generated-track contract and operate both manual and automatic geared transmissions;
-- speedometer, tachometer, minimap, countdown, lap/position HUD, results and pause UI;
+- speedometer, tachometer, minimap, loading, countdown, lap/position HUD, active-car label, results and pause UI;
+- random selection of a different catalog variant when switching cars in free drive;
 - Polish and English localization resources with explicit startup loading;
 - keyboard and gamepad player input plus a separate external AI input channel;
-- validated stock/NISMO procedural engine-audio profiles, bounded live audio voices and skid-mark buffers;
+- model-specific procedural player audio, Nissan baked AI audio banks, bounded audio processing and skid-mark buffers;
 - Windows production and packaged-test export presets;
 - one complete project-verification entrypoint and automatically discovered regression tests with per-command timeouts plus runtime-error and unexpected-warning detection;
 - current-tree and complete-history public-repository safety checks;
 - SHA-pinned GitHub Actions, verified export-template archives and diagnostics-only pull-request artifacts.
 
-The project remains a prototype. Structural correctness and test coverage take priority over adding more cars or tracks.
+The project remains a prototype. Structural correctness and test coverage take priority over uncontrolled feature expansion.
 
 ## Engine and startup
 
@@ -48,8 +56,9 @@ The project remains a prototype. Structural correctness and test coverage take p
 2. Open `project.godot` in Godot 4.7.
 3. Run the project with `F6`/`F5` as appropriate.
 4. Select mode, track, model and variant in the menu.
+5. The menu enters a non-cancellable loading step while the selected session is validated and constructed.
 
-The complete car and track catalogs are validated before menu construction. The active track is created before the selected car. A gameplay session is considered started only after the exact mode/track/variant IDs, player car and required race participants validate. A failed step clears partial runtime state and returns to the menu. Free drive enables input immediately; race mode starts the countdown only after the complete opponent set and lap tracking are ready.
+The complete car and track catalogs are validated before menu construction. The active track is created before the selected car. A gameplay session is considered started only after the exact mode/track/variant IDs, player car and required race participants validate. A failed step clears partial runtime state and returns to the menu. Free drive enables input immediately after commit; race mode starts the countdown only after the complete opponent set and lap tracking are ready.
 
 ## Controls
 
@@ -83,18 +92,18 @@ CarCatalog
 Important paths:
 
 - `resources/cars/catalog.tres`
-- `resources/cars/nissan/370z/model.tres`
-- `resources/cars/nissan/370z/variants/`
-- `resources/cars/nissan/370z/specs/`
-- `resources/cars/nissan/370z_nismo/model.tres`
-- `resources/cars/nissan/370z_nismo/variants/`
-- `resources/cars/nissan/370z_nismo/specs/`
+- `resources/cars/nissan/370z/`
+- `resources/cars/nissan/370z_nismo/`
+- `resources/cars/ford/mustang_shelby_gt500_1967/`
+- `resources/cars/fiat/punto_176_1995/`
 - `scripts/car/car_controller.gd`
 - `scripts/car/car_drive_config_builder.gd`
+- `scripts/car/car_powertrain_controller.gd`
+- `scripts/car/tire_model.gd`
 
-`CarCatalog.validate()` is the authoritative content boundary. It enforces globally unique model/variant IDs and delegates model, variant and specification validation. `CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly. The standard and NISMO base scenes contain visual, collision and audio structure only and do not serialize variant tuning values.
+`CarCatalog.validate()` is the authoritative content boundary. It enforces globally unique model/variant IDs and delegates model, variant and specification validation. `CarSpecs` is the authoritative tuning source. Runtime controllers consume a sanitized `CarDriveConfig`; game systems use the public `PlayerCarController` API instead of reading tuning fields directly.
 
-`CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. Eligible manual and automatic variants must provide a dedicated AI scene. Manual opponents use one-shot external shift requests, RPM hysteresis and explicit neutral/reverse transitions during recovery.
+`CarVariantDefinition.ai_eligible` is the sole declaration that a variant may be used by the current AI. An eligible variant must provide a valid AI scene and a geared transmission supported by the runtime. Manual opponents use one-shot external shift requests, RPM hysteresis and explicit neutral/reverse transitions during recovery. Conventional automatics and CVTs manage their own direction and ratio/gear state.
 
 ### Tracks
 
@@ -113,16 +122,18 @@ Important paths:
 - `resources/tracks/catalog.tres`
 - `resources/tracks/simple_oval_definition.tres`
 - `resources/tracks/simple_oval.tres`
+- `resources/tracks/tor_poznan_definition.tres`
+- `resources/tracks/tor_poznan.tres`
 - `scripts/race/generated_track.gd`
 - `scripts/track/`
 
-`TrackCatalog.default_track_id` is the sole default-track declaration. Generated geometry is rebuilt atomically and publishes a geometry revision so AI, minimap and lap tracking can refresh their cached data.
+`TrackCatalog.default_track_id` is the sole default-track declaration. Generated geometry is rebuilt atomically and publishes a geometry revision so AI, minimap and lap tracking can refresh their cached data. The Tor Poznań resource additionally uses progress-based width, shoulder, barrier, racing-line and banking profiles plus a dedicated pit/trackside environment configuration.
 
 ## Runtime architecture
 
-`GameManager` coordinates menu state, active track, transactional session startup, spawning, camera/HUD binding and transitions between free drive and race. Detailed responsibilities are delegated to:
+`GameManager` coordinates menu state, loading progress, active track, transactional session startup, spawning, camera/HUD binding and transitions between free drive and race. Detailed responsibilities are delegated to:
 
-- `GameModes`, `CarSelectionState`, `MenuOptionsBuilder` and `TrackSpawnController`;
+- `GameModes`, `GameSessionState`, `GameSessionStartTransaction`, `CarSelectionState`, `MenuOptionsBuilder` and `TrackSpawnController`;
 - `CarSpawner`, `CarInstanceFactory` and participant spawn helpers;
 - `RaceSessionController`, `RaceManager` and `LapTracker`;
 - `PlayerCarController`, powertrain/chassis helpers and `CarInput`;
@@ -131,6 +142,34 @@ Important paths:
 Production coordinators do not expose test-simulation entry points. Integration tests use the dedicated `GameTestAdapter` and observable runtime state.
 
 See `docs/architecture.md` for the current boundaries.
+
+## Vehicle model
+
+The game uses a deterministic arcade vehicle model rather than rigid-body wheels. Each simulation substep:
+
+1. samples four typed ground probes;
+2. recovers lateral speed and calculates lateral slip;
+3. updates the selected transmission, clutch/converter/CVT state and engine RPM;
+4. converts requested drive, service-brake, reverse and handbrake acceleration into tire-limited longitudinal acceleration;
+5. records signed longitudinal slip ratio and combines lateral/longitudinal slip for steering, effects and audio;
+6. applies steering, suspension/gravity and collision-resolved movement.
+
+Longitudinal capacity is based on the configured tire coefficient, gravity, surface grip, active-contact fraction and remaining friction-circle capacity after lateral use. Requests beyond peak grip enter a configurable sliding region instead of producing unlimited acceleration or braking.
+
+See `docs/vehicle_model.md` for the complete model and limitations.
+
+## Engine audio
+
+Audio backends are selected by scene rather than inferred from catalog position:
+
+- Nissan player scenes use live `ProfiledEngineAudioSynthesizer` generation;
+- Nissan AI scenes use committed baked coast/load WAV banks through `BakedEngineAudioPlayer`;
+- the Shelby player scenes use the dedicated live cross-plane Ford FE synthesizer and are not currently AI-eligible;
+- Fiat Punto player and AI variants share live variant scenes using the dedicated four-cylinder petrol/diesel/turbo synthesizer.
+
+The existing production audio benchmark represents the Nissan race fixture (`1` live player voice plus `3` baked AI voices); it is not a universal assertion that every AI-capable car uses baked audio.
+
+See `docs/baked_engine_audio.md` and the model-specific car documents for the current contracts.
 
 ## Automated tests
 
@@ -151,14 +190,7 @@ It performs:
 7. a separate timeout and diagnostic log for every command;
 8. failure on Godot runtime errors and non-allowlisted warnings even when the process exits with code `0`.
 
-Expected warnings from deliberate negative-path tests are allowlisted by exact test path and anchored message pattern. Resource fallbacks, invalid UIDs, importer warnings, `ObjectDB` leaks and other new warnings fail verification.
-
-The static checks also reject orphaned test scripts, production `_for_test` identifiers, completed-migration regressions, implicit mode/index/AI fallbacks, mutable GitHub Action tags and reintroduced architectural fallback paths. A runtime test must be one of:
-
-- a standalone `SceneTree` test;
-- a script referenced by a scene under `scenes/tests/`;
-- an editor launcher;
-- an explicitly allowed test helper.
+Expected warnings from deliberate negative-path tests are allowlisted by exact test path and anchored message pattern. Resource fallbacks, invalid UIDs, unexpected importer warnings, `ObjectDB` leaks and other new warnings fail verification.
 
 The canonical end-to-end scene is:
 
@@ -166,7 +198,7 @@ The canonical end-to-end scene is:
 scenes/tests/full_program_smoke_test.tscn
 ```
 
-It runs `scripts/tests/full_program_smoke_test.gd` and covers menu navigation, automatic and manual free drive, braking/reverse, steering, car switching, race setup, AI movement, results cleanup and post-race re-entry.
+It runs `scripts/tests/full_program_smoke_test.gd` and covers menu navigation, the loading step, automatic/manual/CVT-capable content paths, free drive, braking/reverse, steering, random car switching, race setup, AI movement, results cleanup and post-race re-entry.
 
 Run the complete suite locally:
 
@@ -191,19 +223,25 @@ See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gate
 
 - `LICENSE` preserves all rights unless a later license explicitly grants reuse rights.
 - `SECURITY.md` defines private vulnerability reporting and secret-response rules.
-- `THIRD_PARTY_NOTICES.md` records trademark and asset-provenance policy.
+- `THIRD_PARTY_NOTICES.md` records trademark, license and asset-provenance status, including unresolved provenance records that block redistribution assumptions.
 - `.github/dependabot.yml` proposes updates for pinned GitHub Actions.
 
 ## Documentation
 
 - `docs/architecture.md` — subsystem ownership and dependency boundaries;
-- `docs/car_catalog.md` — car catalog/model/variant/spec and AI-eligibility rules;
-- `docs/cars/nissan_370z_nismo_2016.md` — NISMO content scope, specifications and model sources;
-- `docs/audio/vq37vhr_procedural_model.md` — procedural VQ37VHR audio path and active profile levels;
-- `docs/vehicle_model.md` — current handling and powertrain model;
-- `docs/roadmap.md` — completed remediation stages and separately deferred feature expansion;
+- `docs/car_catalog.md` — catalog/model/variant/spec rules and current catalog content;
+- `docs/vehicle_model.md` — current handling, transmission and tire model;
+- `docs/baked_engine_audio.md` — scene-specific live/baked audio backends and baking workflow;
+- `docs/audio/vq37vhr_procedural_model.md` — Nissan VQ37VHR procedural model;
+- `docs/cars/nissan_370z_nismo_2016.md` — Nissan 370Z/NISMO content and sources;
+- `docs/cars/ford_mustang_shelby_gt500_1967.md` — Shelby content and calibration;
+- `docs/cars/fiat_punto_1995.md` — Fiat Punto variants, CVT and synthesis;
+- `docs/tor_poznan_reconstruction.md` — Tor Poznań geometry and environment reconstruction;
+- `docs/runtime_safety_contracts.md` — transactional runtime safety contracts;
+- `docs/accepted_risks.md` — explicitly accepted project risks;
+- `docs/roadmap.md` — completed platform stages and remaining feature work;
 - `docs/continuous_integration.md` — Windows CI, repository-safety and artifact behavior;
-- `docs/windows_export.md` — Windows export details;
+- `docs/windows_export.md` — Windows export details.
 
 ## Change rules
 
@@ -211,8 +249,8 @@ See `docs/continuous_integration.md` and `docs/windows_export.md` for exact gate
 2. Add focused regression coverage with subsystem changes.
 3. Preserve compatibility with the canonical full-program smoke test.
 4. Keep detailed handling-tuning changes separate from structural refactors.
-5. Update the relevant documentation when ownership or data flow changes.
+5. Update the relevant documentation when ownership, content, data flow or runtime behavior changes.
 6. Do not introduce an alternate fallback path when an explicit catalog or resource field already owns the decision.
 7. Do not expose test-only suffixes or simulation entry points from production classes.
-8. Preserve prepare-then-commit semantics for tracks, session startup and opponent sets.
+8. Preserve prepare-then-commit semantics for tracks, session startup, runtime specs and opponent sets.
 9. Treat any catalog validation error as a startup-blocking configuration error.
