@@ -2,9 +2,9 @@
 
 ## Evidence status
 
-The seven resources in this directory are dense, constrained reconstructions of full-load crankshaft torque curves. The research pass did not locate a complete, identified Fiat factory dynamometer trace for any of the exact selected 1995 engine codes.
+The seven resources in this directory are dense, constrained reconstructions of full-load crankshaft torque curves. The research pass did not locate a complete, identified Fiat factory dynamometer trace for any of the selected exact 1995 engine codes.
 
-Each curve therefore separates:
+Each curve separates:
 
 - exact published anchors: maximum torque and its RPM, plus maximum power and its RPM;
 - reconstructed intermediate samples selected to produce a smooth and physically plausible full-load characteristic;
@@ -36,9 +36,21 @@ These resources must not be described as digitized factory graphs. They are game
 
 ## Calibration distinctions
 
+### Punto FIRE engines
+
+The 1.1 SPI, 1.2 SPI and 1.2 MPI curves are independent resources. They preserve their different torque-peak positions and upper-range power output rather than scaling one generic FIRE curve at runtime.
+
+### Punto 90
+
+The 1.6 calibration reaches its torque peak earlier than the smaller naturally aspirated petrol engines. Its reconstruction therefore retains stronger low- and mid-range torque before falling toward the 5,750 RPM power peak.
+
 ### Punto GT
 
-The GT reconstruction represents the published 204 Nm full-load peak and a progressive turbo build-up before 3,000 RPM. The engine resource does not simulate transient boost pressure, overboost duration, charge temperature or wastegate state. Those effects require a separate forced-induction model if they are introduced later.
+The GT reconstruction represents the published 204 Nm full-load peak and a progressive turbo build-up before 3,000 RPM. The torque-curve resource does not simulate transient boost pressure, overboost duration, charge temperature or wastegate state. Those effects are represented only in the dedicated audio layer unless a separate forced-induction physics model is introduced later.
+
+### Naturally aspirated and turbo diesels
+
+The `176B3.000` and `176A5.000` resources are separate curves. The TD retains substantially more torque through the working range while both diesel calibrations fall sharply after the 4,500 RPM power point.
 
 ## Validation
 
