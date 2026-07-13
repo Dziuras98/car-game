@@ -6,6 +6,7 @@ const MIN_TRACK_WIDTH: float = 0.1
 const MAX_WIDTH_VARIATION: float = 0.45
 const MIN_CURVATURE_SEGMENT_LENGTH: float = 0.01
 const CURVATURE_FOR_FULL_WIDTH_VARIATION: float = 0.04
+const MAX_RACING_LINE_OFFSET_RATIO: float = 0.8
 
 
 func build(config: TrackGenerationConfig) -> TrackGeometryData:
@@ -29,20 +30,36 @@ func build(config: TrackGenerationConfig) -> TrackGeometryData:
 	var shoulder_width: float = maxf(safe_config.shoulder_width, 0.0)
 
 	geometry.center_points = points
-	geometry.racing_line_points = points
 	geometry.center = _get_points_center(points)
 
-	for index in point_count:
+	for index: int in range(point_count):
 		var previous: Vector3 = points[(index - 1 + point_count) % point_count]
 		var current: Vector3 = points[index]
 		var next: Vector3 = points[(index + 1) % point_count]
 		var tangent: Vector3 = (next - previous).normalized()
 		var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x).normalized()
+		var progress: float = float(index) / float(point_count)
+		var banking_radians: float = deg_to_rad(layout.get_banking_degrees_at(progress))
+		if not is_zero_approx(banking_radians):
+			side = side.rotated(tangent, banking_radians).normalized()
+
 		var curvature: float = _calculate_curvature(previous, current, next)
+		var local_track_width: float = maxf(layout.get_track_width_at(progress), MIN_TRACK_WIDTH)
+		if layout.track_width_profile.is_empty():
+			local_track_width = track_width
 		var half_width: float = get_half_width_for_curvature(
-			track_width,
+			local_track_width,
 			width_variation,
 			curvature
+		)
+		var local_shoulder_width: float = maxf(layout.get_shoulder_width_at(progress), 0.0)
+		if layout.shoulder_width_profile.is_empty():
+			local_shoulder_width = shoulder_width
+		var maximum_racing_line_offset: float = half_width * MAX_RACING_LINE_OFFSET_RATIO
+		var racing_line_offset: float = clampf(
+			layout.get_racing_line_offset_at(progress),
+			-maximum_racing_line_offset,
+			maximum_racing_line_offset
 		)
 
 		geometry.forward_vectors.append(tangent)
@@ -50,8 +67,13 @@ func build(config: TrackGenerationConfig) -> TrackGeometryData:
 		geometry.half_widths.append(half_width)
 		geometry.left_edge_points.append(current - side * half_width)
 		geometry.right_edge_points.append(current + side * half_width)
-		geometry.left_shoulder_outer_points.append(current - side * (half_width + shoulder_width))
-		geometry.right_shoulder_outer_points.append(current + side * (half_width + shoulder_width))
+		geometry.left_shoulder_outer_points.append(
+			current - side * (half_width + local_shoulder_width)
+		)
+		geometry.right_shoulder_outer_points.append(
+			current + side * (half_width + local_shoulder_width)
+		)
+		geometry.racing_line_points.append(current + side * racing_line_offset)
 
 	return geometry
 
@@ -103,13 +125,13 @@ func _sample_track_points(
 		return sampled_points
 
 	var safe_sample_count: int = maxi(samples_per_segment, 1)
-	for index in control_point_count:
+	for index: int in range(control_point_count):
 		var p0: Vector3 = control_points[(index - 1 + control_point_count) % control_point_count]
 		var p1: Vector3 = control_points[index]
 		var p2: Vector3 = control_points[(index + 1) % control_point_count]
 		var p3: Vector3 = control_points[(index + 2) % control_point_count]
 
-		for step in safe_sample_count:
+		for step: int in range(safe_sample_count):
 			var t: float = float(step) / float(safe_sample_count)
 			sampled_points.append(_catmull_rom(p0, p1, p2, p3, t))
 

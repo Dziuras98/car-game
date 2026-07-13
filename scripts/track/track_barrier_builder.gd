@@ -15,8 +15,7 @@ func build_barriers(
 	parent.add_child(barriers)
 	barriers.owner = parent.owner
 
-	var barrier_distance: float = config.barrier_distance_from_road if config != null else 12.0
-	var transforms: Array[Transform3D] = _build_segment_transforms(geometry, barrier_distance)
+	var transforms: Array[Transform3D] = _build_segment_transforms(geometry, config)
 	if transforms.is_empty():
 		return
 
@@ -48,16 +47,21 @@ func build_barriers(
 
 func _build_segment_transforms(
 	geometry: TrackGeometryData,
-	barrier_distance_from_road: float
+	config: TrackGenerationConfig
 ) -> Array[Transform3D]:
 	var transforms: Array[Transform3D] = []
-	var safe_distance: float = maxf(barrier_distance_from_road, 0.0)
-	for index: int in range(0, geometry.center_points.size(), 2):
+	var point_count: int = geometry.center_points.size()
+	var default_distance: float = config.barrier_distance_from_road if config != null else 12.0
+	for index: int in range(0, point_count, 2):
 		var current: Vector3 = geometry.center_points[index]
 		var tangent: Vector3 = geometry.forward_vectors[index]
 		var side: Vector3 = geometry.right_vectors[index]
 		var yaw: float = atan2(tangent.x, tangent.z)
-		var barrier_offset: float = geometry.half_widths[index] + safe_distance
+		var progress: float = float(index) / float(point_count)
+		var local_distance: float = default_distance
+		if config != null and config.track_layout != null:
+			local_distance = config.track_layout.get_barrier_distance_at(progress)
+		var barrier_offset: float = geometry.half_widths[index] + maxf(local_distance, 0.0)
 		var basis: Basis = Basis(Vector3.UP, yaw)
 		transforms.append(
 			Transform3D(basis, current - side * barrier_offset + Vector3.UP * 0.45)
