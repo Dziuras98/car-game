@@ -1,0 +1,82 @@
+extends SceneTree
+
+const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
+const EXPECTED_CALIBRATIONS: Dictionary = {
+	&"nissan_370z_7at": Vector4(1.02, 0.11, 0.82, 10.0),
+	&"nissan_370z_6mt": Vector4(1.02, 0.11, 0.82, 10.0),
+	&"nissan_370z_nismo_6mt_eu": Vector4(1.08, 0.10, 0.84, 10.5),
+	&"nissan_370z_nismo_7at_global": Vector4(1.08, 0.10, 0.84, 10.5),
+	&"ford_mustang_shelby_gt500_1967_4mt": Vector4(0.68, 0.16, 0.66, 9.2),
+	&"ford_mustang_shelby_gt500_1967_3at": Vector4(0.68, 0.16, 0.66, 9.2),
+	&"fiat_punto_176_1995_55_5mt": Vector4(0.80, 0.14, 0.72, 9.5),
+	&"fiat_punto_176_1995_55_6mt": Vector4(0.80, 0.14, 0.72, 9.5),
+	&"fiat_punto_176_1995_60_a7_5mt": Vector4(0.82, 0.14, 0.73, 9.7),
+	&"fiat_punto_176_1995_60_a7_ecvt": Vector4(0.82, 0.14, 0.73, 9.7),
+	&"fiat_punto_176_1995_75_5mt": Vector4(0.84, 0.135, 0.74, 9.9),
+	&"fiat_punto_176_1995_90_5mt": Vector4(0.86, 0.13, 0.75, 10.1),
+	&"fiat_punto_176_1995_gt_5mt": Vector4(0.90, 0.12, 0.77, 10.5),
+	&"fiat_punto_176_1995_d_5mt": Vector4(0.80, 0.14, 0.72, 9.5),
+	&"fiat_punto_176_1995_td70_5mt": Vector4(0.82, 0.14, 0.73, 9.7),
+}
+
+var _checks: int = 0
+var _failures: Array[String] = []
+
+
+func _initialize() -> void:
+	_run()
+	_finish()
+
+
+func _run() -> void:
+	_expect(CATALOG != null, "production car catalog loads")
+	if CATALOG == null:
+		return
+	var variants: Array[CarVariantDefinition] = CATALOG.get_all_variants()
+	_expect(
+		variants.size() == EXPECTED_CALIBRATIONS.size(),
+		"every production variant is covered by an explicit longitudinal tire calibration"
+	)
+	var seen_ids: Dictionary = {}
+	for variant: CarVariantDefinition in variants:
+		if variant == null:
+			_expect(false, "catalog does not contain null variants")
+			continue
+		var variant_id: StringName = variant.variant_id
+		seen_ids[variant_id] = true
+		_expect(EXPECTED_CALIBRATIONS.has(variant_id), "%s has a registered tire calibration" % str(variant_id))
+		if not EXPECTED_CALIBRATIONS.has(variant_id) or variant.specs == null:
+			continue
+		var expected: Vector4 = EXPECTED_CALIBRATIONS[variant_id]
+		var specs: CarSpecs = variant.specs
+		_expect(is_equal_approx(specs.longitudinal_grip_coefficient, expected.x), "%s uses its calibrated longitudinal grip coefficient" % str(variant_id))
+		_expect(is_equal_approx(specs.longitudinal_peak_slip_ratio, expected.y), "%s uses its calibrated peak slip ratio" % str(variant_id))
+		_expect(is_equal_approx(specs.longitudinal_slide_grip_multiplier, expected.z), "%s uses its calibrated sliding-grip multiplier" % str(variant_id))
+		_expect(is_equal_approx(specs.brake_deceleration, expected.w), "%s uses brake demand matched to the tire curve" % str(variant_id))
+		var peak_braking_capacity: float = TireModel.STANDARD_GRAVITY * specs.longitudinal_grip_coefficient
+		var brake_demand_ratio: float = specs.brake_deceleration / maxf(peak_braking_capacity, 0.001)
+		_expect(
+			brake_demand_ratio >= 0.95 and brake_demand_ratio <= 1.45,
+			"%s full brake demand remains near the tire peak instead of requesting several g" % str(variant_id)
+		)
+	_expect(seen_ids.size() == EXPECTED_CALIBRATIONS.size(), "no calibrated production variant is missing from the catalog")
+
+
+func _expect(condition: bool, message: String) -> void:
+	_checks += 1
+	if condition:
+		print("[CATALOG_LONGITUDINAL_TIRE_CALIBRATION_TEST][PASS] %s" % message)
+		return
+	_failures.append(message)
+	push_error("[CATALOG_LONGITUDINAL_TIRE_CALIBRATION_TEST][FAIL] %s" % message)
+
+
+func _finish() -> void:
+	if _failures.is_empty():
+		print("[CATALOG_LONGITUDINAL_TIRE_CALIBRATION_TEST] Passed: %d checks" % _checks)
+		quit(0)
+		return
+	push_error("[CATALOG_LONGITUDINAL_TIRE_CALIBRATION_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
+	for failure_message: String in _failures:
+		push_error("[CATALOG_LONGITUDINAL_TIRE_CALIBRATION_TEST] - %s" % failure_message)
+	quit(1)
