@@ -12,8 +12,8 @@ This directory is the canonical catalog location for the production 1967 Shelby 
 - automatic variant: `variants/gt500_428_3at.tres`;
 - player scenes: `res://scenes/cars/mustang_shelby_gt500_1967_4mt.tscn` and `res://scenes/cars/mustang_shelby_gt500_1967_3at.tscn`;
 - shared base scene, collision and procedural V8 audio;
-- detailed imported wrapper and low-detail fallback;
-- catalog, engine-anchor and deterministic performance regression tests.
+- model-specific detailed-wheel controller and screen-visibility LOD fallback;
+- catalog, visual, engine-anchor and deterministic performance regression tests.
 
 The model is registered in `resources/cars/catalog.tres` with stable model ID `ford_mustang_shelby_gt500_1967`.
 
@@ -30,6 +30,8 @@ The 427 FE Super Snake remains a separate one-off prototype and is not part of t
 
 ## Remaining restrictions
 
-Both variants are deliberately `ai_eligible = false` until the imported detailed model has four verified wheel bindings and dedicated AI scenes. The binary GLB also remains in the repository root until its source transform and asset relocation can be changed atomically.
+Both variants are deliberately `ai_eligible = false` only because dedicated AI scenes and the appropriate AI audio path have not yet been authored. The shared detailed model already has four verified wheel bindings and the standard LOD contract.
+
+The binary GLB remains in the repository root until its source path and asset relocation can be changed atomically.
 
 See `res://docs/cars/ford_mustang_shelby_gt500_1967.md` for the complete research, uncertainty and performance-calibration record.
