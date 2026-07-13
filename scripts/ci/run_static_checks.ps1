@@ -394,7 +394,7 @@ Assert-Contains "scripts/ci/run_tests.ps1" @("run_static_checks.ps1", "Get-Child
 Assert-DoesNotMatch ".github/workflows/windows-tests.yml" @('uses:\s+actions/(checkout|cache|upload-artifact)@v\d+')
 Assert-Contains ".github/workflows/windows-tests.yml" @(
     "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-    "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+    "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
     "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
     "fetch-depth: 0",
     "persist-credentials: false",
