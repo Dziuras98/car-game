@@ -1,8 +1,8 @@
 # Third-Party Names and Assets
 
-This project is unofficial and is not sponsored, endorsed by or affiliated with Nissan Motor Co., Ltd., Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher or studio named below.
+This project is unofficial and is not sponsored, endorsed by or affiliated with Nissan Motor Co., Ltd., Fiat S.p.A./Stellantis, Ford Motor Company, Shelby American, Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher, studio or asset author named below.
 
-Names such as "Nissan", "370Z", "Need for Speed" and "Real Racing" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The project license and the Creative Commons asset license described below do not grant trademark rights.
+Names such as "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "Need for Speed" and "Real Racing" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
 
 ## Sketchfab Nissan 370Z visual models
 
@@ -26,9 +26,9 @@ The following third-party GLB files are included under the uploader's stated **C
 
 ### Project modifications
 
-The GLB geometry and embedded textures are preserved as downloaded. The game applies technical integration changes in Godot wrapper scenes: a uniform `100` scale, a `180`-degree Y-axis rotation, vertical ground alignment and composition with independently authored collision, controller and procedural-audio nodes.
+The Nissan GLB geometry and embedded textures are preserved as downloaded. The game applies technical integration changes in Godot wrapper scenes: a uniform `100` scale, a `180`-degree Y-axis rotation, vertical ground alignment and composition with independently authored collision, controller and procedural-audio nodes.
 
-The canonical GLB files exist only at the paths listed above; duplicate source mirrors are not retained in the repository.
+The canonical Nissan GLB files exist only at the paths listed above; duplicate source mirrors are not retained in the repository.
 
 Redistributed copies or builds containing these assets must provide attribution to Ddiaz Design, link the relevant Sketchfab source and CC BY-NC-SA 4.0 license, identify the modifications, remain noncommercial and preserve ShareAlike for adapted model material. Detailed scope and attribution wording are recorded in `assets/third_party/sketchfab/README.md`.
 
@@ -40,9 +40,45 @@ The project owner has directed their inclusion in this noncommercial prototype w
 
 ### Accepted project decision
 
-The owner has explicitly accepted this known limitation for the current private/noncommercial prototype because no suitable replacement assets are available and there is no commercialization plan. The decision, audit treatment and mandatory review triggers are recorded in the repository's accepted-risk register.
+The owner has explicitly accepted this known Nissan limitation for the current private/noncommercial prototype because no suitable replacement assets are available and there is no commercialization plan. The decision, audit treatment and mandatory review triggers are recorded in `docs/accepted_risks.md`.
 
-This accepted-risk record does not claim full rights clearance. It means ordinary technical audits should not report the unchanged provenance limitation as a new remediation item unless a documented review trigger occurs.
+This accepted-risk record does not claim full rights clearance. It means ordinary technical audits should not report the unchanged Nissan provenance limitation as a new remediation item unless a documented review trigger occurs.
+
+## Additional Sketchfab models with incomplete repository provenance records
+
+The repository also contains two external GLB assets whose source pages are documented in model-specific integration notes, but whose author attribution and license terms are not currently recorded in this repository.
+
+These entries are **not** covered by the Nissan CC BY-NC-SA statement above and are **not** recorded as accepted risks in `docs/accepted_risks.md`.
+
+### 1967 Ford Mustang Shelby G.T. 500
+
+- included GLB: `1967_ford_mustang_shelby_cobra_gt500.glb`;
+- source page: https://sketchfab.com/3d-models/1967-ford-mustang-shelby-cobra-gt500-e310cc7537bf4d1aa644a2c233a5fec6;
+- integration record: `docs/cars/ford_mustang_shelby_gt500_1967.md`;
+- author: not recorded in the repository;
+- license: not recorded in the repository;
+- current use: source visual model for the playable 1967 Shelby G.T. 500 scenes.
+
+### 1995 Fiat Punto GT / Type 176
+
+- included GLB: `free_1995_fiat_punto_gt.glb`;
+- source page: https://sketchfab.com/3d-models/free-1995-fiat-punto-gt-48db6facb4b64e99b60f36b8c01185e1;
+- integration record: `docs/cars/fiat_punto_1995.md`;
+- author: not recorded in the repository;
+- license: not recorded in the repository;
+- current use: source visual model shared by the playable and AI-eligible Fiat Punto Type 176 variants.
+
+### Distribution status of incomplete records
+
+Until the repository records the uploader/author, exact license, required attribution and any provenance limitations for each asset:
+
+- no contributor should describe either model as rights-cleared, freely reusable or covered by the repository's root `LICENSE`;
+- no public binary/source redistribution should assume permission to include these files;
+- no commercialization or external distribution decision should rely on the fact that the assets were downloadable from Sketchfab;
+- the assets should be relocated into a clearly identified third-party asset directory only together with complete path updates and a verified provenance record;
+- removal or replacement remains the safe option if acceptable permission cannot be demonstrated.
+
+This section records a documentation and rights-verification gap. It does not infer license terms from a model title, page availability or the word "free" in a filename.
 
 ## Contribution policy
 
@@ -57,3 +93,5 @@ Before committing any additional external model, texture, sound, font, logo or o
 - known provenance limitations or unresolved rights-chain concerns.
 
 Contributors must not describe an external asset as rights-cleared unless the repository contains a demonstrable license or permission covering the submitted material. Unverified provenance must be disclosed explicitly rather than inferred from a download label.
+
+When an asset with incomplete provenance is intentionally retained, the owner must separately decide whether to remove it, complete the license record or add a dated accepted-risk entry with explicit scope and review triggers. One asset's accepted-risk decision never applies automatically to another asset.
