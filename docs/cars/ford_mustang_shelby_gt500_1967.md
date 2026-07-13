@@ -20,7 +20,7 @@ The normal-production 1967 G.T. 500 used one engine specification with two trans
 | `ford_mustang_shelby_gt500_1967_4mt` | close-ratio four-speed Ford Toploader | 3.89:1 | playable |
 | `ford_mustang_shelby_gt500_1967_3at` | three-speed Ford C6 SelectShift Cruise-O-Matic | 3.50:1 | playable |
 
-The manual is the default catalog variant. Neither variant is currently AI-eligible because dedicated AI scenes and validated detailed-wheel bindings are still required.
+The manual is the default catalog variant. Neither variant is currently AI-eligible because dedicated AI scenes have not yet been authored; the shared detailed-wheel and LOD contract is complete.
 
 ## Shared 428 FE engine
 
@@ -34,13 +34,13 @@ Reference specification:
 - two 600 CFM Holley four-barrel carburetors;
 - advertised compression ratio: 10.5:1;
 - advertised maximum torque: 420 lb-ft / 569.44 Nm at 3,200 RPM;
-- advertised maximum power: 355 bhp / approximately 264.7 kW at 5,400 RPM.
+- advertised maximum power: 355 bhp / approximately 264.95 kW at 5,400 RPM.
 
 This is not the 1968 428 Cobra Jet used by the G.T. 500KR.
 
 ## Torque and power curve methodology
 
-No complete factory dynamometer trace for the exact dual-four-barrel 1967 Shelby application was located in the available primary and archival material. The runtime curve is therefore a dense, constrained reconstruction rather than a falsely labelled surviving factory graph.
+No complete factory dynamometer trace for the exact dual-four-barrel 1967 Shelby application was located in the available factory-derived summaries, archival references or identified period material. The runtime curve is therefore a dense, constrained reconstruction rather than a falsely labelled surviving factory graph.
 
 The reconstruction follows these rules:
 
@@ -73,7 +73,7 @@ resources/cars/ford/mustang_shelby_gt500_1967/specs/gt500_428_pi_torque_curve.tr
 | 4,500 | 0.928571 | 528.8 | 249.2 | 334.2 | reconstructed |
 | 5,000 | 0.878571 | 500.3 | 262.0 | 351.3 | reconstructed |
 | 5,200 | 0.852381 | 485.4 | 264.3 | 354.4 | reconstructed |
-| 5,400 | 0.822143 | 468.2 | 264.7 | 355.0 | exact advertised power anchor |
+| 5,400 | 0.822793 | 468.5 | 264.95 | 355.0 | exact advertised power anchor |
 | 5,600 | 0.773810 | 440.6 | 258.4 | 346.5 | reconstructed falloff |
 | 5,800 | 0.714286 | 406.7 | 247.0 | 331.3 | calibrated redline |
 | 6,000 | 0.642857 | 366.1 | 230.0 | 308.4 | calibrated limiter boundary |
@@ -89,7 +89,7 @@ The table represents crankshaft output before driveline losses. It must not be c
 - rear axle: 3.89;
 - driveline efficiency input: 0.78;
 - shift interruption: 0.35 s;
-- calibrated launch acceleration ceiling: 6.5 m/s².
+- calibrated launch acceleration ceiling: 5.4 m/s².
 
 The acceleration ceiling represents the longitudinal traction available from the period-sized tyre and live-axle chassis. It prevents the true 428 torque curve from producing a modern-tyre launch while leaving in-gear engine output intact.
 
@@ -125,33 +125,52 @@ Shared geometry and baseline assumptions:
 
 Mass, drag and tyre coefficients are calibration inputs selected from the range of published dimensions, test weights and period-car behavior. They are not all direct type-approval measurements.
 
-## Performance targets and regression policy
+## Performance regression
 
-The deterministic powertrain regression executes the same `CarPowertrainController`, clutch, converter, resistance and shift logic used by gameplay. It integrates straight-line distance at 120 Hz and records:
+The deterministic regression executes the same `CarPowertrainController`, clutch, converter, resistance and shift logic used by gameplay. It integrates straight-line distance at 120 Hz.
 
-- 0-60 mph;
-- quarter-mile elapsed time;
-- quarter-mile trap speed;
-- stabilized maximum speed.
+Accepted bands cover variation among period tests, launch technique, tyre condition and axle/transmission configuration:
 
-Accepted reference bands intentionally cover variation among period tests, launch technique, tyre condition and axle/transmission configuration:
-
-| Variant | 0-60 mph target | Quarter-mile target | Approximate maximum-speed region |
+| Variant | 0-60 mph target | Quarter-mile target | Maximum-speed target |
 |---|---:|---:|---:|
-| four-speed | 5.8-7.8 s | 14.0-16.5 s | 190-207 km/h |
+| four-speed | 6.0-7.8 s | 14.0-16.5 s | 190-207 km/h |
 | C6 automatic | 6.2-8.5 s | 14.4-17.2 s | 188-207 km/h |
 
-The test also requires the manual not to be materially slower than the automatic. Exact CI-produced values are printed under the `MUSTANG_GT500_PERFORMANCE` prefix.
+Validated CI results from the final drivetrain calibration:
+
+| Variant | 0-60 mph | Quarter mile | Trap speed | Stabilized maximum speed |
+|---|---:|---:|---:|---:|
+| four-speed | 6.33 s | 14.70 s | 103.39 mph | 196.70 km/h |
+| C6 automatic | 7.05 s | 15.06 s | 100.90 mph | 205.92 km/h |
+
+The manual and automatic therefore differ through gearing, losses, shift behavior, converter behavior, mass and launch traction—not through separate or falsified engine curves.
+
+## Detailed visual integration
+
+The imported GLB was inspected through a temporary headless hierarchy probe and then converted to a permanent model-specific visual contract.
+
+Measured imported content:
+
+- 71 render meshes;
+- source bounds after applying the 100x unit correction: 1.7936 m wide, 1.3534 m high and 4.8189 m long;
+- measured wheelbase from tyre centers: 2.7437 m;
+- reference wheelbase used by physics: 2.7432 m;
+- four separate tyres, wheels, brake rotors and calipers;
+- source front axis corrected into Godot project forward without mirroring the finished vehicle.
+
+`MustangShelbyGT5001967VisualController` binds all four detailed tyre/wheel/rotor groups explicitly. Front calipers follow steering without spinning; rear calipers remain fixed. The standard screen-visibility LOD controller swaps the detailed GLB and the model-specific low-detail fallback.
 
 ## Procedural audio
 
-Both versions share `resources/audio/ford_428_fe_audio_profile.tres`. It configures the existing live synthesizer for:
+Both versions share `resources/audio/ford_428_fe_audio_profile.tres`. The profiled synthesizer was generalized so an explicitly configured cylinder count is no longer overwritten with six cylinders.
 
-- eight cylinders;
+The GT500 profile uses:
+
+- eight-cylinder firing frequency;
 - strong low-frequency exhaust resonance;
 - separated V-bank pulse character;
 - audible dual-carburetor induction;
-- low mechanical rasp compared with the VQ37 profiles;
+- lower mechanical rasp than the VQ37 profiles;
 - restrained overrun and a non-digital limiter cut.
 
 The profile is a synthesis calibration, not measured acoustic data from a surviving production car.
@@ -174,21 +193,19 @@ The Super Snake may only be added later as a separately identified prototype wit
 
 The implementation cross-checks the surviving published anchors against multiple independent summaries and transmission references:
 
-- Shelby model history, production engine and 1967/1968 naming distinction: https://en.wikipedia.org/wiki/Shelby_Mustang
-- Ford FE configuration list and the exact 1967 Shelby 2×4V rating: https://en.wikipedia.org/wiki/Ford_FE_engine
+- Shelby model history, production engine, axle ratios, approximate period performance and 1967/1968 naming distinction: https://en.wikipedia.org/wiki/Shelby_Mustang
+- Ford FE configuration list and exact 1967 Shelby 2×4V rating: https://en.wikipedia.org/wiki/Ford_FE_engine
 - Toploader close- and wide-ratio gear sets: https://en.wikipedia.org/wiki/Ford_Toploader_transmission
-- Ford C6 history and application context: https://en.wikipedia.org/wiki/Ford_C6_transmission
-- historical and auction documentation should be preferred over current restomod specifications whenever an additional value is introduced.
+- Ford C6 ratios and application context: https://en.wikipedia.org/wiki/Ford_C6_transmission
+- production totals cross-check: https://en.wikipedia.org/wiki/Shelby_American
 
-A future revision should replace secondary summaries with scanned Ford/Shelby order sheets, SAAC registry records or identified period road-test pages wherever licensing and stable archival access permit.
+No intermediate torque sample is represented as a measured factory point. A future revision should replace secondary summaries with scanned Ford/Shelby order sheets, SAAC registry records or identified period road-test pages wherever licensing and stable archival access permit.
 
-## Remaining visual work
+## Remaining work
 
-The car is playable and catalogued, but the imported model still requires completion of the detailed visual contract:
+The normal player integration is complete. Remaining work is limited to:
 
-1. measure and apply the authoritative source scale, forward axis and ground offset;
-2. bind four detailed wheel assemblies to exact imported node paths;
-3. attach the standard screen-visibility LOD controller;
-4. verify materials, transparency, normals and shadows;
-5. relocate the GLB into its third-party asset directory;
-6. create dedicated AI scenes after the visual wheel contract is valid.
+1. verify imported material transparency, normals and shadow behavior in representative gameplay lighting;
+2. relocate the binary GLB into its third-party asset directory in an atomic path-update commit;
+3. create dedicated AI scenes and then enable both variants for AI use;
+4. replace reconstructed torque samples if an identified period dynamometer trace becomes available.
