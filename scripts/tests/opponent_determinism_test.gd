@@ -5,7 +5,9 @@ const SIMPLE_OVAL_SCENE: PackedScene = preload("res://scenes/tracks/simple_oval.
 const OPPONENT_COUNT: int = 4
 const REQUIRED_AI_VARIANT_IDS: Array[StringName] = [
 	&"nissan_370z_7at",
+	&"nissan_370z_6mt",
 	&"nissan_370z_nismo_7at_global",
+	&"nissan_370z_nismo_6mt_eu",
 ]
 
 var _checks: int = 0
@@ -41,14 +43,22 @@ func _run() -> void:
 func _test_catalog_ai_eligibility() -> void:
 	var eligible_ids: Dictionary = {}
 	var eligible_count: int = 0
+	var manual_count: int = 0
+	var automatic_count: int = 0
 	for variant: CarVariantDefinition in CATALOG.get_all_variants():
 		if variant == null or not variant.is_ai_eligible_for_race():
 			continue
 		eligible_count += 1
 		eligible_ids[variant.variant_id] = true
 		_expect(variant.ai_eligible, "AI eligibility is declared by variant metadata: %s" % str(variant.variant_id))
-		_expect(variant.get_specs() != null and variant.get_specs().is_automatic_transmission(), "AI-eligible variant uses a supported automatic transmission: %s" % str(variant.variant_id))
-	_expect(eligible_count >= REQUIRED_AI_VARIANT_IDS.size(), "catalog exposes at least the required automatic opponent variants")
+		_expect(variant.get_specs() != null and variant.get_specs().uses_geared_transmission(), "AI-eligible variant uses a supported geared transmission: %s" % str(variant.variant_id))
+		if variant.get_specs().is_manual_transmission():
+			manual_count += 1
+		elif variant.get_specs().is_automatic_transmission():
+			automatic_count += 1
+	_expect(eligible_count >= REQUIRED_AI_VARIANT_IDS.size(), "catalog exposes all required opponent variants")
+	_expect(manual_count > 0, "catalog exposes manual-transmission opponents")
+	_expect(automatic_count > 0, "catalog retains automatic-transmission opponents")
 	for required_id: StringName in REQUIRED_AI_VARIANT_IDS:
 		_expect(eligible_ids.has(required_id), "required AI variant remains eligible: %s" % str(required_id))
 
@@ -64,12 +74,16 @@ func _capture_spawn_signature(world: Node3D, spawn_marker: Node3D, track: Genera
 	_expect(opponents.size() == OPPONENT_COUNT, "opponent commit is all-or-nothing for the requested count")
 	_expect(opponents.size() == drivers.size(), "each seeded opponent has exactly one typed AI driver")
 
-	var all_automatic: bool = true
+	var all_supported_transmissions: bool = true
 	var all_have_variant_ids: bool = true
 	for opponent: PlayerCarController in opponents:
-		all_automatic = all_automatic and opponent.car_specs != null and opponent.car_specs.is_automatic_transmission()
+		all_supported_transmissions = (
+			all_supported_transmissions
+			and opponent.car_specs != null
+			and opponent.car_specs.uses_geared_transmission()
+		)
 		all_have_variant_ids = all_have_variant_ids and opponent.has_meta(CarInstanceFactory.VARIANT_ID_METADATA)
-	_expect(all_automatic, "opponent selection never falls back to an unsupported manual variant")
+	_expect(all_supported_transmissions, "opponent selection supports both manual and automatic geared variants")
 	_expect(all_have_variant_ids, "opponent instances retain stable catalog variant IDs")
 
 	spawner.set_ai_enabled(true)
