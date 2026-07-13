@@ -114,9 +114,11 @@ Purpose:
 - declares `ai_eligible` explicitly for variants supported by the current AI input model;
 - stores presentation metadata that is not derivable from specs, such as the engine and drivetrain labels;
 - reads mass directly from `CarSpecs` and derives the transmission label from it so display data cannot drift from runtime physics;
-- rejects an AI-eligible variant unless its specs use an automatic transmission and `ai_car_scene` is present.
+- rejects an AI-eligible variant unless its specs use a manual or automatic geared transmission and `ai_car_scene` is present.
 
-`ai_eligible` is not inferred from catalog order or from the presence of an automatic gearbox. The current AI requires a valid automatic-transmission variant, an explicit dedicated AI scene, and `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`. The manual 370Z remains player-selectable but is not an opponent fallback.
+`ai_eligible` is not inferred from catalog order or transmission type. The current AI supports explicitly eligible manual and automatic geared variants with dedicated AI scenes. `CarInstanceFactory` considers only variants for which `is_ai_eligible_for_race()` returns `true`.
+
+For manual opponents, `AiRaceDriver` sends one-shot shift requests through `CarInput`. It upshifts near redline under power, downshifts at low RPM, uses an earlier reduction threshold while braking, and suppresses additional requests while a shift is in progress. Recovery explicitly traverses first gear, neutral and reverse while holding the service brake whenever direction changes.
 
 Every car scene that uses `CarVisualController` must expose a detailed root, a low-detail root and four explicit model-specific detailed-wheel bindings. The controller creates a `VisibleOnScreenNotifier3D` covering the vehicle bounds and starts conservatively in low detail. When the notifier enters the active camera view, the detailed root becomes visible; when it leaves the view, the low-detail root replaces it. This policy applies equally to the player car and AI cars and does not require per-frame distance checks in GDScript.
 
@@ -190,7 +192,7 @@ Callers must treat a non-empty validation result as a configuration error. Menu 
 7. If two variants share identical visuals, they may reference the same player scene but different specs.
 8. If two variants need different meshes or nodes, they may reference different player scenes.
 9. Set `ai_eligible = true` only when the current AI can operate the variant without additional gearbox or control logic.
-10. Every AI-eligible variant must reference a dedicated `ai_car_scene` whose visual controller provides detailed and low-detail roots.
+10. Every AI-eligible variant must use a manual or automatic geared transmission and reference a dedicated `ai_car_scene` whose visual controller provides detailed and low-detail roots.
 11. Every car visual wrapper must use `CarVisualController` screen-visibility LOD or provide an equivalent explicitly tested policy.
 12. Add the model to `resources/cars/catalog.tres`; do not add a fallback scene array elsewhere.
 13. Use globally unique model and variant IDs and unique sort orders inside each model.
