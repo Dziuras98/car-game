@@ -11,11 +11,16 @@ func _initialize() -> void:
 func _run() -> void:
 	var audio: ProfiledEngineAudioSynthesizer = ProfiledEngineAudioSynthesizer.new()
 	audio.cylinders = 8
+	audio.force_full_runtime_generation = true
 	root.add_child(audio)
 	await process_frame
 	_expect(
 		audio.cylinders == ProfiledEngineAudioSynthesizer.SUPPORTED_CYLINDER_COUNT,
 		"profiled VQ37VHR audio normalizes unsupported cylinder counts to six"
+	)
+	_expect(
+		audio.should_generate_procedural_audio(1.0 / 60.0),
+		"full runtime generation bypasses procedural distance and voice limits"
 	)
 	audio.queue_free()
 	await process_frame
