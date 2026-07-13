@@ -24,7 +24,7 @@ func _frame_target() -> void:
 		push_error("Car model preview could not find any MeshInstance3D bounds.")
 		return
 
-	var bounds: AABB = bounds_result["bounds"] as AABB
+	var bounds: AABB = bounds_result["bounds"]
 	var center: Vector3 = target.to_global(bounds.get_center())
 	var radius: float = maxf(bounds.size.length() * 0.5, 0.5)
 	var direction: Vector3 = view_direction.normalized()
