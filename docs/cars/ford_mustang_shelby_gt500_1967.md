@@ -34,7 +34,7 @@ Reference specification:
 - two 600 CFM Holley four-barrel carburetors;
 - advertised compression ratio: 10.5:1;
 - advertised maximum torque: 420 lb-ft / 569.44 Nm at 3,200 RPM;
-- advertised maximum power: 355 bhp / approximately 264.95 kW at 5,400 RPM.
+- advertised maximum power: 355 hp (SAE gross) / approximately 264.7 kW at 5,400 RPM.
 
 This is not the 1968 428 Cobra Jet used by the G.T. 500KR.
 
@@ -45,7 +45,7 @@ No complete factory dynamometer trace for the exact dual-four-barrel 1967 Shelby
 The reconstruction follows these rules:
 
 1. the 3,200 RPM sample is fixed exactly at 420 lb-ft;
-2. the 5,400 RPM sample is calculated to produce exactly 355 bhp;
+2. the 5,400 RPM sample is calculated to produce exactly 355 hp using the SAE mechanical-horsepower relation;
 3. the curve remains broad through the mid-range, consistent with the 428 FE architecture and the low advertised torque peak;
 4. torque falls after the power peak and continues falling toward the limiter;
 5. the same engine resource is shared by both transmissions;
@@ -59,7 +59,7 @@ resources/cars/ford/mustang_shelby_gt500_1967/specs/gt500_428_pi_torque_curve.tr
 
 ### Sampled runtime curve
 
-| RPM | Torque multiplier | Torque (Nm) | Power (kW) | Power (bhp) | Evidence status |
+| RPM | Torque multiplier | Torque (Nm) | Power (kW) | Power (hp) | Evidence status |
 |---:|---:|---:|---:|---:|---|
 | 700 | 0.595238 | 339.0 | 24.8 | 33.3 | reconstructed idle/load transition |
 | 1,000 | 0.714286 | 406.7 | 42.6 | 57.1 | reconstructed |
@@ -73,7 +73,7 @@ resources/cars/ford/mustang_shelby_gt500_1967/specs/gt500_428_pi_torque_curve.tr
 | 4,500 | 0.928571 | 528.8 | 249.2 | 334.2 | reconstructed |
 | 5,000 | 0.878571 | 500.3 | 262.0 | 351.3 | reconstructed |
 | 5,200 | 0.852381 | 485.4 | 264.3 | 354.4 | reconstructed |
-| 5,400 | 0.822793 | 468.5 | 264.95 | 355.0 | exact advertised power anchor |
+| 5,400 | 0.822793 | 468.5 | 264.7 | 355.0 | exact advertised power anchor |
 | 5,600 | 0.773810 | 440.6 | 258.4 | 346.5 | reconstructed falloff |
 | 5,800 | 0.714286 | 406.7 | 247.0 | 331.3 | calibrated redline |
 | 6,000 | 0.642857 | 366.1 | 230.0 | 308.4 | calibrated limiter boundary |
