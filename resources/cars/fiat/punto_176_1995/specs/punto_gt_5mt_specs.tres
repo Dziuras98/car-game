@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_specs")
 display_name = "Fiat Punto GT 5MT"
-brake_deceleration = 33.0
+brake_deceleration = 10.5
 reverse_acceleration = 9.0
 coast_deceleration = 4.5
 handbrake_deceleration = 17.5
@@ -47,6 +47,9 @@ front_lateral_grip = 9.8
 rear_lateral_grip = 9.5
 front_tire_width_m = 0.185
 rear_tire_width_m = 0.185
+longitudinal_grip_coefficient = 0.90
+longitudinal_peak_slip_ratio = 0.12
+longitudinal_slide_grip_multiplier = 0.77
 handbrake_lateral_grip_multiplier = 0.28
 steering_slip_gain = 0.86
 slip_speed_threshold = 2.1
