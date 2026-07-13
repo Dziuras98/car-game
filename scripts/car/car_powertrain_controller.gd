@@ -12,6 +12,7 @@ enum ManualShiftAssistMode {
 
 var _manual_transmission_model: ManualTransmissionModel = ManualTransmissionModel.new()
 var _automatic_transmission_model: AutomaticTransmissionModel = AutomaticTransmissionModel.new()
+var _cvt_transmission_model: CvtTransmissionModel = CvtTransmissionModel.new()
 var _shift_timer_model: ShiftTimerModel = ShiftTimerModel.new()
 var _clutch_model: ClutchModel = ClutchModel.new()
 var _engine_model: EngineModel = EngineModel.new()
@@ -67,17 +68,43 @@ func configure(config: CarDriveConfig) -> void:
 		_config.torque_converter_coupling_rpm,
 		_config.torque_converter_stall_torque_multiplier
 	)
+	_cvt_transmission_model.configure(
+		_config.idle_rpm,
+		_config.cvt_max_ratio,
+		_config.reverse_gear_ratio,
+		_config.final_drive_ratio,
+		_config.wheel_radius,
+		_config.peak_engine_torque,
+		_config.drivetrain_efficiency,
+		_config.vehicle_mass,
+		_config.cvt_target_rpm_min,
+		_config.cvt_target_rpm_max,
+		_config.cvt_ratio_response,
+		_config.cvt_clutch_engagement_rpm,
+		_config.cvt_clutch_full_rpm
+	)
 
 	if _runtime_state != null:
 		_runtime_state.engine_rpm = _engine_model.set_rpm(preserved_engine_rpm)
-		_runtime_state.clutch_engagement = clampf(_runtime_state.clutch_engagement, 0.0, 1.0) if _config.is_manual_transmission() else 1.0
+		if _config.is_manual_transmission():
+			_runtime_state.clutch_engagement = clampf(_runtime_state.clutch_engagement, 0.0, 1.0)
+		elif _config.is_cvt_transmission():
+			_runtime_state.clutch_engagement = _cvt_transmission_model.get_clutch_factor(_runtime_state.engine_rpm)
+		else:
+			_runtime_state.clutch_engagement = 1.0
 
 
 func reset(state: CarRuntimeState) -> void:
 	_runtime_state = state
 	_reset_manual_shift_assist()
+	_cvt_transmission_model.reset()
 	state.engine_rpm = _engine_model.reset()
-	state.clutch_engagement = 0.0 if _config != null and _config.is_manual_transmission() else 1.0
+	if _config != null and _config.is_manual_transmission():
+		state.clutch_engagement = 0.0
+	elif _config != null and _config.is_cvt_transmission():
+		state.clutch_engagement = _cvt_transmission_model.get_clutch_factor(state.engine_rpm)
+	else:
+		state.clutch_engagement = 1.0
 
 
 func update(state: CarRuntimeState, throttle: float, brake: float, handbrake_active: bool, gear_up_pressed: bool, gear_down_pressed: bool, delta: float) -> void:
@@ -92,13 +119,17 @@ func update(state: CarRuntimeState, throttle: float, brake: float, handbrake_act
 	var assisted_throttle: float = _get_assisted_throttle(state, safe_throttle)
 	state.throttle_input = assisted_throttle
 	if safe_delta <= 0.0:
+		_update_cvt_ratio(state, assisted_throttle, 0.0)
+		_update_clutch(state, assisted_throttle, 0.0)
 		_update_engine(state, assisted_throttle, 0.0)
 		return
 	var remaining_delta: float = safe_delta
 	while remaining_delta > 0.000001:
 		var step: float = minf(remaining_delta, MAX_SIMULATION_SUBSTEP)
+		_update_cvt_ratio(state, assisted_throttle, step)
 		_update_clutch(state, assisted_throttle, step)
 		_update_engine(state, assisted_throttle, step)
+		_update_clutch(state, assisted_throttle, 0.0)
 		_update_speed_step(state, assisted_throttle, safe_brake, handbrake_active, step)
 		remaining_delta -= step
 
@@ -106,11 +137,11 @@ func update(state: CarRuntimeState, throttle: float, brake: float, handbrake_act
 func get_engine_load(state: CarRuntimeState) -> float:
 	if _config == null:
 		return 0.0
-	if _config.uses_geared_transmission() and (state.current_gear == 0 or state.shift_timer > 0.0):
+	if _config.uses_discrete_gears() and (state.current_gear == 0 or state.shift_timer > 0.0):
 		return 0.0
 	if _config.is_manual_transmission() and state.clutch_engagement <= 0.05:
 		return 0.0
-	if _config.is_automatic_transmission() and state.current_gear < 0:
+	if _config.is_self_shifting_transmission() and state.current_gear < 0:
 		return state.brake_input
 	return state.throttle_input
 
@@ -128,6 +159,8 @@ func get_gear_text(state: CarRuntimeState) -> String:
 		if state.current_gear < 0:
 			return "R"
 		return "D%d" % clampi(state.current_gear, 1, maxi(_config.gear_ratios.size(), 1))
+	if _config.is_cvt_transmission():
+		return "R" if state.current_gear < 0 else "D"
 	if state.forward_speed < -0.25:
 		return "R"
 	if state.forward_speed > 0.25:
@@ -143,6 +176,10 @@ func get_rev_limiter_multiplier() -> float:
 	return _engine_model.get_rev_limiter_multiplier()
 
 
+func get_cvt_ratio() -> float:
+	return _cvt_transmission_model.get_current_ratio() if _config != null and _config.is_cvt_transmission() else 0.0
+
+
 func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: float, gear_up_pressed: bool, gear_down_pressed: bool) -> void:
 	if _config.is_manual_transmission():
 		var requested_gear: int = _manual_transmission_model.get_requested_gear(state.current_gear, _config.gear_ratios.size(), gear_up_pressed, gear_down_pressed)
@@ -151,6 +188,9 @@ func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: 
 		return
 	if _config.is_automatic_transmission():
 		_update_automatic_transmission(state, throttle, brake)
+		return
+	if _config.is_cvt_transmission():
+		_update_cvt_transmission(state, throttle, brake)
 
 
 func _update_automatic_transmission(state: CarRuntimeState, throttle: float, brake: float) -> void:
@@ -176,6 +216,20 @@ func _update_automatic_transmission(state: CarRuntimeState, throttle: float, bra
 		_set_transmission_gear(state, requested_gear)
 
 
+func _update_cvt_transmission(state: CarRuntimeState, throttle: float, brake: float) -> void:
+	if state.shift_timer > 0.0:
+		return
+	var threshold: float = CvtTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD
+	if state.current_gear < 0:
+		if throttle > 0.05 and brake <= 0.05 and state.forward_speed >= -threshold:
+			_set_transmission_gear(state, 1)
+		return
+	if brake > 0.05 and throttle <= 0.05 and state.forward_speed <= threshold:
+		_set_transmission_gear(state, -1)
+	elif state.current_gear <= 0:
+		_set_transmission_gear(state, 1)
+
+
 func _update_shift_timer(state: CarRuntimeState, delta: float) -> void:
 	state.shift_timer = _shift_timer_model.update_timer(state.shift_timer, delta)
 	if state.shift_timer <= 0.0:
@@ -187,7 +241,7 @@ func _set_transmission_gear(state: CarRuntimeState, next_gear: int) -> void:
 		return
 	var previous_gear: int = state.current_gear
 	state.current_gear = next_gear
-	state.shift_timer = _shift_timer_model.get_shift_delay(_config.is_automatic_transmission(), _config.automatic_shift_delay, _config.shift_delay)
+	state.shift_timer = _shift_timer_model.get_shift_delay(_config.is_self_shifting_transmission(), _config.automatic_shift_delay, _config.shift_delay)
 	if _config.is_manual_transmission():
 		state.clutch_engagement = 0.0
 		_start_manual_shift_assist(state, previous_gear, next_gear)
@@ -236,7 +290,16 @@ func _reset_manual_shift_assist() -> void:
 	_manual_shift_target_rpm = 0.0
 
 
+func _update_cvt_ratio(state: CarRuntimeState, throttle: float, delta: float) -> void:
+	if not _config.is_cvt_transmission() or state.current_gear < 0:
+		return
+	_cvt_transmission_model.update_ratio(state.forward_speed, throttle, delta)
+
+
 func _update_clutch(state: CarRuntimeState, throttle: float, delta: float) -> void:
+	if _config.is_cvt_transmission():
+		state.clutch_engagement = _cvt_transmission_model.get_clutch_factor(state.engine_rpm)
+		return
 	if not _config.is_manual_transmission():
 		state.clutch_engagement = 1.0
 		return
@@ -269,7 +332,7 @@ func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> v
 	if _config.uses_geared_transmission():
 		var direction_threshold: float = AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD
 		if (
-			_config.is_automatic_transmission()
+			_config.is_self_shifting_transmission()
 			and (
 				state.current_gear < 1
 				or state.forward_speed < -direction_threshold
@@ -287,7 +350,7 @@ func _apply_brake_or_reverse(state: CarRuntimeState, brake: float, delta: float)
 	if _config.is_manual_transmission():
 		state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
 		return
-	if _config.is_automatic_transmission():
+	if _config.is_self_shifting_transmission():
 		if state.current_gear < 0:
 			if state.forward_speed > AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
 				state.forward_speed = move_toward(state.forward_speed, 0.0, brake_delta)
@@ -308,6 +371,8 @@ func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
 		return lerpf(_config.idle_rpm, _config.redline_rpm, speed_ratio)
 	if state.current_gear == 0:
 		return _config.idle_rpm
+	if _config.is_cvt_transmission():
+		return _cvt_transmission_model.get_coupled_engine_rpm(state.forward_speed, state.current_gear)
 	var coupled_rpm: float = _get_coupled_engine_rpm_for_gear(state, state.current_gear)
 	if _config.is_automatic_transmission():
 		return _get_torque_converter_rpm(state, coupled_rpm)
@@ -319,7 +384,7 @@ func _get_engine_free_rev_blend(state: CarRuntimeState) -> float:
 		return 1.0
 	if state.ground_contact_count <= 0:
 		return 1.0
-	if _config.is_manual_transmission():
+	if _config.is_manual_transmission() or _config.is_cvt_transmission():
 		return 1.0 - clampf(state.clutch_engagement, 0.0, 1.0)
 	return 0.0
 
@@ -334,14 +399,25 @@ func _get_torque_converter_rpm(state: CarRuntimeState, coupled_rpm: float) -> fl
 
 
 func _get_transmission_drive_acceleration(state: CarRuntimeState, throttle: float) -> float:
-	var acceleration: float = _drivetrain_model.get_drive_acceleration(
-		throttle,
-		state.current_gear,
-		_config.uses_geared_transmission() and state.shift_timer > 0.0,
-		get_torque_multiplier(),
-		get_rev_limiter_multiplier(),
-		_get_torque_converter_torque_multiplier(throttle)
-	)
+	var acceleration: float
+	if _config.is_cvt_transmission():
+		acceleration = _cvt_transmission_model.get_drive_acceleration(
+			throttle,
+			state.current_gear,
+			state.shift_timer > 0.0,
+			state.engine_rpm,
+			get_torque_multiplier(),
+			get_rev_limiter_multiplier()
+		)
+	else:
+		acceleration = _drivetrain_model.get_drive_acceleration(
+			throttle,
+			state.current_gear,
+			_config.uses_discrete_gears() and state.shift_timer > 0.0,
+			get_torque_multiplier(),
+			get_rev_limiter_multiplier(),
+			_get_torque_converter_torque_multiplier(throttle)
+		)
 	acceleration = clampf(
 		acceleration,
 		-_config.max_drive_acceleration,
