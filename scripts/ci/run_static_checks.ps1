@@ -253,6 +253,12 @@ Assert-GDScriptFunctions "scripts/race/race_participant.gd" @(
 Assert-Contains "scripts/race/race_participant.gd" @("participant_id: StringName", "enum Kind")
 Assert-DoesNotContain "scripts/race/lap_tracker.gd" @(".has_method(", ".call(")
 Assert-DoesNotContain "scripts/race/ai_race_driver.gd" @(".has_method(", ".has_signal(", ".call(")
+Assert-GDScriptFunctions "scripts/race/ai_race_driver.gd" @(
+    "_update_manual_transmission",
+    "_request_manual_gear",
+    "_set_reverse_recovery_inputs",
+    "_set_return_to_forward_inputs"
+)
 Assert-DoesNotContain "scripts/game/player_car_spawn_controller.gd" @("clampi(car_index")
 Assert-GDScriptFunctions "scripts/game/opponent_participant_spawner.gd" @("spawn_opponents", "clear_opponents")
 Assert-GDScriptFunctions "scripts/game/car_instance_factory.gd" @("has_ai_eligible_cars")
@@ -295,6 +301,19 @@ Assert-DoesNotContain "scripts/car/car_controller.gd" @(
     "func _set(",
     "func _apply_car_specs("
 )
+Assert-GDScriptFunctions "scripts/car/car_controller.gd" @(
+    "is_manual_transmission",
+    "get_forward_gear_count",
+    "is_shift_in_progress",
+    "request_external_gear_up",
+    "request_external_gear_down",
+    "clear_external_gear_requests"
+)
+Assert-GDScriptFunctions "scripts/car/car_input.gd" @(
+    "request_external_gear_up",
+    "request_external_gear_down",
+    "clear_external_gear_requests"
+)
 Assert-Contains "scripts/car/car_chassis_controller.gd" @(
     "var _probe_local_positions: Array[Vector3]",
     "for local_probe_position: Vector3 in _probe_local_positions",
@@ -309,7 +328,6 @@ Assert-DoesNotContain "scripts/car/car_chassis_controller.gd" @(
 Assert-DoesNotMatch "scenes/cars/370z.tscn" @(
     '(?m)^\s*(acceleration|brake_deceleration|reverse_acceleration|coast_deceleration|handbrake_deceleration|max_forward_speed|max_reverse_speed|steering_speed|wheel_base|max_steering_angle_degrees|idle_rpm|peak_torque_rpm|redline_rpm|rev_limiter_rpm|low_rpm_torque_multiplier|mid_rpm_torque_multiplier|redline_torque_multiplier|engine_force|engine_brake_force|rpm_response|manual_transmission_enabled|automatic_transmission_enabled|gear_ratios|reverse_gear_ratio|final_drive_ratio|peak_engine_torque|wheel_radius|drivetrain_efficiency|shift_delay|automatic_upshift_rpm|automatic_downshift_rpm|automatic_kickdown_throttle|automatic_kickdown_rpm|automatic_shift_delay|torque_converter_stall_rpm|torque_converter_coupling_rpm|torque_converter_stall_torque_multiplier|vehicle_mass|drag_coefficient|frontal_area|air_density|rolling_resistance_coefficient|lateral_grip|handbrake_lateral_grip_multiplier|steering_slip_gain|slip_speed_threshold|slip_steering_lock_threshold|slip_steering_same_direction_multiplier|skid_mark_min_slip|skid_mark_interval|skid_mark_lifetime|skid_mark_width|skid_mark_length|gravity|floor_stick_force)\s*='
 )
-
 Assert-DoesNotContain "scripts/car/car_variant_definition.gd" @(
     "var transmission_label:",
     "var mass_kg:",
@@ -330,16 +348,18 @@ foreach ($specPath in @(
         '(?m)^\s*automatic_transmission_enabled\s*='
     )
 }
-Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_6mt.tres" @(
-    '(?m)^\s*mass_kg\s*=',
-    '(?m)^\s*transmission_label\s*=',
-    '(?m)^\s*ai_eligible\s*=\s*true\s*$'
-)
-Assert-DoesNotMatch "resources/cars/nissan/370z/variants/370z_7at.tres" @(
-    '(?m)^\s*mass_kg\s*=',
-    '(?m)^\s*transmission_label\s*='
-)
-Assert-Contains "resources/cars/nissan/370z/variants/370z_7at.tres" @("ai_eligible = true")
+foreach ($variantPath in @(
+    "resources/cars/nissan/370z/variants/370z_6mt.tres",
+    "resources/cars/nissan/370z/variants/370z_7at.tres",
+    "resources/cars/nissan/370z_nismo/variants/370z_nismo_6mt.tres",
+    "resources/cars/nissan/370z_nismo/variants/370z_nismo_7at.tres"
+)) {
+    Assert-DoesNotMatch $variantPath @(
+        '(?m)^\s*mass_kg\s*=',
+        '(?m)^\s*transmission_label\s*='
+    )
+    Assert-Contains $variantPath @("ai_eligible = true")
+}
 
 # Track ownership remains typed and explicit.
 Assert-GDScriptFunctions "scripts/track/track_catalog.gd" @("validate")

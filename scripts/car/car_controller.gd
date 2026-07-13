@@ -91,6 +91,28 @@ func get_current_gear() -> int:
 	return _runtime_state.current_gear
 
 
+func is_manual_transmission() -> bool:
+	return _drive_config != null and _drive_config.is_manual_transmission()
+
+
+func get_forward_gear_count() -> int:
+	if _drive_config == null or not _drive_config.uses_geared_transmission():
+		return 0
+	return _drive_config.gear_ratios.size()
+
+
+func get_idle_rpm() -> float:
+	return _drive_config.idle_rpm if _drive_config != null else 0.0
+
+
+func get_redline_rpm() -> float:
+	return _drive_config.redline_rpm if _drive_config != null else 0.0
+
+
+func is_shift_in_progress() -> bool:
+	return _runtime_state.shift_timer > 0.0
+
+
 func get_lateral_speed() -> float:
 	return _runtime_state.lateral_speed
 
@@ -115,6 +137,22 @@ func set_external_input_enabled(enabled: bool) -> void:
 
 func set_external_drive_inputs(throttle: float, brake: float, steering: float, handbrake_active: bool = false) -> void:
 	_car_input.set_external_drive_inputs(throttle, brake, steering, handbrake_active)
+
+
+func request_external_gear_up() -> void:
+	if not is_manual_transmission() or is_shift_in_progress():
+		return
+	_car_input.request_external_gear_up()
+
+
+func request_external_gear_down() -> void:
+	if not is_manual_transmission() or is_shift_in_progress():
+		return
+	_car_input.request_external_gear_down()
+
+
+func clear_external_gear_requests() -> void:
+	_car_input.clear_external_gear_requests()
 
 
 func set_force_low_detail_visuals(enabled: bool) -> void:

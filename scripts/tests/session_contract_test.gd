@@ -4,7 +4,9 @@ const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const GAME_MANAGER_SCRIPT = preload("res://scripts/game/game_manager.gd")
 const REQUIRED_AI_VARIANT_IDS: Array[StringName] = [
 	&"nissan_370z_7at",
+	&"nissan_370z_6mt",
 	&"nissan_370z_nismo_7at_global",
+	&"nissan_370z_nismo_6mt_eu",
 ]
 
 var _checks: int = 0
@@ -32,7 +34,7 @@ func _init() -> void:
 			continue
 		explicitly_eligible_count += 1
 		eligible_ids[variant.variant_id] = true
-		_expect(variant.get_specs() != null and variant.get_specs().is_automatic_transmission(), "every AI-eligible variant uses a supported automatic transmission: %s" % str(variant.variant_id))
+		_expect(variant.get_specs() != null and variant.get_specs().uses_geared_transmission(), "every AI-eligible variant uses a supported geared transmission: %s" % str(variant.variant_id))
 		_expect(variant.get_ai_car_scene() != null, "every AI-eligible variant owns a dedicated AI scene: %s" % str(variant.variant_id))
 	_expect(factory.get_ai_eligible_count() == explicitly_eligible_count, "factory derives opponent variants only from explicit catalog AI eligibility")
 	for required_id: StringName in REQUIRED_AI_VARIANT_IDS:

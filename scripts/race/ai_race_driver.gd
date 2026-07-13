@@ -12,6 +12,11 @@ enum DriverState {
 }
 
 const MIN_RACING_LINE_POINT_COUNT: int = 3
+const MANUAL_UPSHIFT_RPM_RATIO: float = 0.86
+const MANUAL_DOWNSHIFT_RPM_RATIO: float = 0.30
+const MANUAL_BRAKING_DOWNSHIFT_RPM_RATIO: float = 0.42
+const MANUAL_UPSHIFT_THROTTLE_THRESHOLD: float = 0.35
+const MANUAL_REVERSE_THROTTLE: float = 0.65
 
 var _car: PlayerCarController
 var _track: GeneratedTrack
@@ -167,6 +172,7 @@ func _physics_process(delta: float) -> void:
 		throttle = 0.45
 
 	_car.set_external_drive_inputs(throttle, brake, steering)
+	_update_manual_transmission(throttle, brake)
 	_update_stuck_detection(speed_kmh, throttle, local_target, safe_delta)
 
 
@@ -192,6 +198,7 @@ func _reset_driver_state() -> void:
 func _neutralize_car_input(disable_external_input: bool) -> void:
 	if not is_instance_valid(_car):
 		return
+	_car.clear_external_gear_requests()
 	_car.set_external_drive_inputs(0.0, 0.0, 0.0, false)
 	if disable_external_input:
 		_car.set_external_input_enabled(false)
@@ -202,7 +209,10 @@ func _fail_driver(message: String) -> void:
 	set_physics_process(false)
 	if is_instance_valid(_car):
 		_car.set_external_input_enabled(true)
-		if _car.get_current_gear() < 0 or _car.get_speed_kmh() < 0.0:
+		_car.clear_external_gear_requests()
+		if _car.is_manual_transmission():
+			_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)
+		elif _car.get_current_gear() < 0 or _car.get_speed_kmh() < 0.0:
 			_car.set_external_drive_inputs(1.0, 0.0, 0.0, false)
 		else:
 			_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)
@@ -211,6 +221,53 @@ func _fail_driver(message: String) -> void:
 	_fault_reported = true
 	push_error(message)
 	driver_fault.emit(message)
+
+
+func _update_manual_transmission(throttle: float, brake: float) -> void:
+	if not is_instance_valid(_car) or not _car.is_manual_transmission():
+		return
+	if _car.is_shift_in_progress():
+		return
+
+	var current_gear: int = _car.get_current_gear()
+	if current_gear <= 0:
+		_request_manual_gear(1)
+		return
+
+	var forward_gear_count: int = _car.get_forward_gear_count()
+	if forward_gear_count <= 0:
+		return
+	var idle_rpm: float = _car.get_idle_rpm()
+	var redline_rpm: float = maxf(_car.get_redline_rpm(), idle_rpm + 1.0)
+	var engine_rpm: float = _car.get_engine_rpm()
+	var upshift_rpm: float = lerpf(idle_rpm, redline_rpm, MANUAL_UPSHIFT_RPM_RATIO)
+	var downshift_ratio: float = (
+		MANUAL_BRAKING_DOWNSHIFT_RPM_RATIO
+		if brake > 0.05
+		else MANUAL_DOWNSHIFT_RPM_RATIO
+	)
+	var downshift_rpm: float = lerpf(idle_rpm, redline_rpm, downshift_ratio)
+
+	if (
+		current_gear < forward_gear_count
+		and throttle >= MANUAL_UPSHIFT_THROTTLE_THRESHOLD
+		and engine_rpm >= upshift_rpm
+	):
+		_car.request_external_gear_up()
+	elif current_gear > 1 and engine_rpm <= downshift_rpm:
+		_car.request_external_gear_down()
+
+
+func _request_manual_gear(target_gear: int) -> void:
+	if not is_instance_valid(_car) or not _car.is_manual_transmission():
+		return
+	if _car.is_shift_in_progress():
+		return
+	var current_gear: int = _car.get_current_gear()
+	if current_gear < target_gear:
+		_car.request_external_gear_up()
+	elif current_gear > target_gear:
+		_car.request_external_gear_down()
 
 
 func _update_stuck_detection(speed_kmh: float, throttle: float, local_target: Vector3, delta: float) -> void:
@@ -236,10 +293,7 @@ func _update_recovery(delta: float) -> void:
 	var stop_speed: float = _profile.recovery_stop_speed_kmh
 	match _driver_state:
 		DriverState.RECOVERY_BRAKE_TO_STOP:
-			if signed_speed_kmh < -stop_speed:
-				_car.set_external_drive_inputs(1.0, 0.0, recovery_steering)
-			else:
-				_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
+			_set_recovery_stop_inputs(signed_speed_kmh, stop_speed, recovery_steering)
 			if absf(signed_speed_kmh) <= stop_speed:
 				_driver_state = DriverState.RECOVERY_ENGAGE_REVERSE
 				_recovery_timer = _profile.reverse_engage_timeout_seconds
@@ -249,10 +303,8 @@ func _update_recovery(delta: float) -> void:
 				_fail_driver("AiRaceDriver could not stop before engaging reverse during recovery.")
 		DriverState.RECOVERY_ENGAGE_REVERSE:
 			_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
-			if (
-				_car.get_current_gear() < 0
-				and signed_speed_kmh < -stop_speed * 0.25
-			):
+			_request_manual_gear(-1)
+			if _is_reverse_gear_engaged(signed_speed_kmh, stop_speed):
 				_driver_state = DriverState.RECOVERY_REVERSE_UNTIL_CLEAR
 				_recovery_start_position = _car.global_position
 				_recovery_timer = _profile.reverse_recovery_seconds
@@ -261,7 +313,7 @@ func _update_recovery(delta: float) -> void:
 			if _recovery_timer <= 0.0:
 				_fail_driver("AiRaceDriver could not engage reverse during recovery.")
 		DriverState.RECOVERY_REVERSE_UNTIL_CLEAR:
-			_car.set_external_drive_inputs(0.0, 0.8, recovery_steering)
+			_set_reverse_recovery_inputs(recovery_steering)
 			var displacement: Vector3 = _car.global_position - _recovery_start_position
 			displacement.y = 0.0
 			var reverse_is_confirmed: bool = (
@@ -276,7 +328,7 @@ func _update_recovery(delta: float) -> void:
 			if _recovery_timer <= 0.0:
 				_fail_driver("AiRaceDriver did not achieve the required reverse recovery distance.")
 		DriverState.RECOVERY_RETURN_TO_FORWARD:
-			_car.set_external_drive_inputs(1.0, 0.0, recovery_steering)
+			_set_return_to_forward_inputs(signed_speed_kmh, stop_speed, recovery_steering)
 			if _car.get_current_gear() > 0 and signed_speed_kmh >= -stop_speed * 0.25:
 				_finish_recovery()
 				return
@@ -285,6 +337,41 @@ func _update_recovery(delta: float) -> void:
 				_fail_driver("AiRaceDriver could not return to a forward gear after recovery.")
 		_:
 			_finish_recovery()
+
+
+func _set_recovery_stop_inputs(signed_speed_kmh: float, stop_speed: float, steering: float) -> void:
+	if _car.is_manual_transmission() or signed_speed_kmh >= -stop_speed:
+		_car.set_external_drive_inputs(0.0, 0.8, steering)
+		return
+	_car.set_external_drive_inputs(1.0, 0.0, steering)
+
+
+func _is_reverse_gear_engaged(signed_speed_kmh: float, stop_speed: float) -> bool:
+	if _car.get_current_gear() >= 0:
+		return false
+	if _car.is_manual_transmission():
+		return true
+	return signed_speed_kmh < -stop_speed * 0.25
+
+
+func _set_reverse_recovery_inputs(steering: float) -> void:
+	if not _car.is_manual_transmission():
+		_car.set_external_drive_inputs(0.0, 0.8, steering)
+		return
+	if _car.get_current_gear() < 0:
+		_car.set_external_drive_inputs(MANUAL_REVERSE_THROTTLE, 0.0, steering)
+		return
+	_car.set_external_drive_inputs(0.0, 0.8, steering)
+	_request_manual_gear(-1)
+
+
+func _set_return_to_forward_inputs(signed_speed_kmh: float, stop_speed: float, steering: float) -> void:
+	if not _car.is_manual_transmission():
+		_car.set_external_drive_inputs(1.0, 0.0, steering)
+		return
+	_car.set_external_drive_inputs(0.0, 0.8, steering)
+	if signed_speed_kmh >= -stop_speed * 0.25:
+		_request_manual_gear(1)
 
 
 func _get_recovery_steering() -> float:

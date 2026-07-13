@@ -35,8 +35,8 @@ func _test_catalog_content() -> void:
 		_expect(catalog.validate().is_empty(), "the complete car catalog validates")
 		var manual_variant := catalog.get_variant_by_id(&"nissan_370z_nismo_6mt_eu")
 		var automatic_variant := catalog.get_variant_by_id(&"nissan_370z_nismo_7at_global")
-		_expect(manual_variant != null and not manual_variant.ai_eligible, "the manual NISMO is player-only")
-		_expect(automatic_variant != null and automatic_variant.ai_eligible, "the automatic NISMO is explicitly AI-compatible")
+		_expect(manual_variant != null and manual_variant.is_ai_eligible_for_race(), "the manual NISMO is explicitly AI-compatible")
+		_expect(automatic_variant != null and automatic_variant.is_ai_eligible_for_race(), "the automatic NISMO is explicitly AI-compatible")
 
 
 func _test_powertrain_specs() -> void:

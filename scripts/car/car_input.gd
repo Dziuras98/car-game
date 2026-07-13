@@ -14,6 +14,8 @@ var _external_throttle: float = 0.0
 var _external_brake: float = 0.0
 var _external_steering: float = 0.0
 var _external_handbrake: bool = false
+var _external_gear_up_requested: bool = false
+var _external_gear_down_requested: bool = false
 
 
 func set_player_input_enabled(enabled: bool) -> void:
@@ -26,6 +28,7 @@ func set_external_input_enabled(enabled: bool) -> void:
 	_external_input_enabled = enabled
 	if not enabled:
 		set_external_drive_inputs(0.0, 0.0, 0.0, false)
+		clear_external_gear_requests()
 
 
 func set_external_drive_inputs(target_throttle: float, target_brake: float, target_steering: float, target_handbrake_active: bool = false) -> void:
@@ -33,6 +36,21 @@ func set_external_drive_inputs(target_throttle: float, target_brake: float, targ
 	_external_brake = clampf(target_brake, 0.0, 1.0)
 	_external_steering = clampf(target_steering, -1.0, 1.0)
 	_external_handbrake = target_handbrake_active
+
+
+func request_external_gear_up() -> void:
+	_external_gear_up_requested = true
+	_external_gear_down_requested = false
+
+
+func request_external_gear_down() -> void:
+	_external_gear_down_requested = true
+	_external_gear_up_requested = false
+
+
+func clear_external_gear_requests() -> void:
+	_external_gear_up_requested = false
+	_external_gear_down_requested = false
 
 
 func should_reset_car() -> bool:
@@ -49,6 +67,9 @@ func read_drive_input() -> void:
 		brake = _external_brake
 		steering = _external_steering
 		handbrake_active = _external_handbrake
+		gear_up_pressed = _external_gear_up_requested
+		gear_down_pressed = _external_gear_down_requested
+		clear_external_gear_requests()
 		return
 
 	if not _player_input_enabled:
