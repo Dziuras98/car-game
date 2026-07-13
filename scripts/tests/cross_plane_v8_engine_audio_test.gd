@@ -124,7 +124,7 @@ func _all_frames_finite(frames: PackedVector2Array) -> bool:
 func _peak(frames: PackedVector2Array) -> float:
 	var result: float = 0.0
 	for frame: Vector2 in frames:
-		result = maxf(result, absf(frame.x), absf(frame.y))
+		result = maxf(result, maxf(absf(frame.x), absf(frame.y)))
 	return result
 
 
