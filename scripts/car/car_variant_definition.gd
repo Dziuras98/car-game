@@ -46,8 +46,8 @@ func validate() -> PackedStringArray:
 		errors.append("engine_label must not be empty")
 	if drivetrain_label.strip_edges().is_empty():
 		errors.append("drivetrain_label must not be empty")
-	if ai_eligible and specs != null and not specs.is_automatic_transmission():
-		errors.append("ai_eligible variants must use an automatic transmission")
+	if ai_eligible and specs != null and not specs.uses_geared_transmission():
+		errors.append("ai_eligible variants must use a geared transmission")
 	return errors
 
 
@@ -80,7 +80,7 @@ func is_ai_eligible_for_race() -> bool:
 		and _scene_has_player_car_root(ai_car_scene)
 		and specs != null
 		and specs.is_valid()
-		and specs.is_automatic_transmission()
+		and specs.uses_geared_transmission()
 	)
 
 
