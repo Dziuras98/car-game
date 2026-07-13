@@ -1,0 +1,68 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_specs.gd" id="1_specs"]
+[ext_resource type="Resource" path="res://resources/cars/fiat/punto_176_1995/specs/176a8_1242_fire_mpi_torque_curve.tres" id="2_curve"]
+
+[resource]
+script = ExtResource("1_specs")
+display_name = "Fiat Punto 75 5MT"
+brake_deceleration = 32.0
+reverse_acceleration = 9.0
+coast_deceleration = 4.4
+handbrake_deceleration = 17.0
+max_forward_speed = 47.222222
+max_reverse_speed = 8.5
+steering_speed = 3.1
+wheel_base = 2.45
+front_axle_track_width = 1.4
+rear_axle_track_width = 1.38
+max_steering_angle_degrees = 35.0
+idle_rpm = 850.0
+peak_torque_rpm = 4000.0
+power_peak_rpm = 6000.0
+redline_rpm = 6500.0
+rev_limiter_rpm = 6700.0
+torque_curve = ExtResource("2_curve")
+low_rpm_torque_multiplier = 0.47169811
+mid_rpm_torque_multiplier = 0.98113208
+redline_torque_multiplier = 0.71698113
+engine_force = 25.0
+engine_brake_force = 2.7
+rpm_response = 7.5
+transmission_type = 1
+gear_ratios = Array[float]([3.909, 2.157, 1.48, 1.121, 0.902])
+reverse_gear_ratio = 3.818
+final_drive_ratio = 3.733
+peak_engine_torque = 106.0
+wheel_radius = 0.285
+drivetrain_efficiency = 0.86
+shift_delay = 0.32
+max_drive_acceleration = 18.0
+vehicle_mass = 880.0
+drag_coefficient = 0.33
+frontal_area = 1.9
+air_density = 1.225
+rolling_resistance_coefficient = 0.014
+front_lateral_grip = 8.8
+rear_lateral_grip = 8.6
+front_tire_width_m = 0.165
+rear_tire_width_m = 0.165
+handbrake_lateral_grip_multiplier = 0.3
+steering_slip_gain = 0.82
+slip_speed_threshold = 2.0
+slip_steering_lock_threshold = 0.54
+slip_steering_same_direction_multiplier = 0.14
+skid_mark_min_slip = 0.44
+skid_mark_interval = 0.058
+skid_mark_lifetime = 10.0
+skid_mark_width = 0.18
+skid_mark_length = 0.75
+gravity = 30.0
+floor_stick_force = 0.52
+suspension_probe_height = 0.35
+suspension_rest_length = 0.23
+suspension_travel = 0.14
+suspension_stiffness = 31.0
+suspension_damping = 5.2
+ground_probe_collision_mask = 1
+minimum_ground_normal_dot = 0.35
