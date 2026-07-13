@@ -96,8 +96,6 @@ func _show_current_step() -> void:
 			_show_model_step()
 		STEP_VARIANT:
 			_show_variant_step()
-		STEP_LOADING:
-			_show_loading_step(&"")
 		_:
 			_show_mode_step()
 
@@ -265,6 +263,8 @@ func _on_model_pressed(model_index: int) -> void:
 
 
 func _on_variant_pressed(car_variant_id: StringName) -> void:
+	if _current_step != STEP_VARIANT:
+		return
 	var valid_variant: bool = false
 	for variant: CarVariantMenuOption in _get_selected_model_variants():
 		if variant.variant_id == car_variant_id:
