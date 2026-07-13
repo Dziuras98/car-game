@@ -128,7 +128,9 @@ func _test_visual_scene() -> void:
 	_expect(car.get_node_or_null("VisualRoot") is CarVisualController, "the NISMO scene uses the visual LOD controller")
 	_expect(car.get_node_or_null("VisualRoot/SketchfabModel") is Node3D, "the NISMO scene uses the detailed imported model")
 	_expect(car.get_node_or_null("VisualRoot/LowDetail") is Node3D, "the NISMO scene includes the low-detail opponent model")
-	_expect(car.get_node_or_null("EngineAudio") is BakedEngineAudioPlayer, "the NISMO scene uses committed baked engine audio")
+	var engine_audio := car.get_node_or_null("EngineAudio") as ProfiledEngineAudioSynthesizer
+	_expect(engine_audio != null, "the NISMO player scene uses profiled live engine synthesis")
+	_expect(engine_audio == null or engine_audio.force_full_runtime_generation, "the NISMO player scene keeps full runtime synthesis enabled")
 
 	var collision_names: Array[String] = ["CollisionCabin", "CollisionFront", "CollisionRear"]
 	var collision_count: int = 0
