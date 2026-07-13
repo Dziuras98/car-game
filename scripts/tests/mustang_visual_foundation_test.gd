@@ -4,6 +4,12 @@ const SOURCE_MODEL_PATH: String = "res://1967_ford_mustang_shelby_cobra_gt500.gl
 const VISUAL_SCENE_PATH: String = "res://scenes/cars/mustang_shelby_gt500_1967_visuals.tscn"
 const LOW_DETAIL_SCENE_PATH: String = "res://scenes/cars/mustang_shelby_gt500_1967_low_detail_visuals.tscn"
 const PREVIEW_SCENE_PATH: String = "res://scenes/dev/mustang_shelby_gt500_1967_visual_preview.tscn"
+const REQUIRED_WHEEL_IDS: Array[StringName] = [
+	&"front_left",
+	&"front_right",
+	&"rear_left",
+	&"rear_right",
+]
 const REQUIRED_LOW_DETAIL_WHEELS: Array[StringName] = [
 	&"WheelFrontLeft",
 	&"WheelFrontRight",
@@ -35,18 +41,43 @@ func _test_source_and_visual_wrapper() -> void:
 	if packed_visuals == null:
 		return
 
-	var visuals: Node3D = packed_visuals.instantiate() as Node3D
-	_expect(visuals != null, "the Mustang visual wrapper instantiates as Node3D")
+	var visuals: MustangShelbyGT5001967VisualController = packed_visuals.instantiate() as MustangShelbyGT5001967VisualController
+	_expect(visuals != null, "the Mustang wrapper instantiates as its model-specific CarVisualController")
 	if visuals == null:
 		return
 
 	root.add_child(visuals)
 	await process_frame
-	_expect(visuals.get_node_or_null("ModelAlignment") is Node3D, "the wrapper exposes an isolated alignment root")
-	_expect(visuals.get_node_or_null("ModelAlignment/DetailedModel") is Node3D, "the wrapper contains the imported detailed model")
+	var alignment: Node3D = visuals.get_node_or_null("ModelAlignment") as Node3D
+	var detailed: Node3D = visuals.get_node_or_null("ModelAlignment/DetailedModel") as Node3D
 	var low_detail: Node3D = visuals.get_node_or_null("LowDetail") as Node3D
+	_expect(alignment != null, "the wrapper exposes an isolated alignment root")
+	_expect(detailed != null, "the wrapper contains the imported detailed model")
 	_expect(low_detail != null, "the wrapper contains a low-detail fallback")
-	_expect(low_detail == null or not low_detail.visible, "the detailed wrapper keeps the fallback hidden by default")
+	if detailed != null:
+		_expect(absf(detailed.transform.basis.x.x + 100.0) < 0.001, "the source X axis is flipped while applying the 100x source scale")
+		_expect(absf(detailed.transform.basis.y.y - 100.0) < 0.001, "the source vertical axis is preserved at 100x scale")
+		_expect(absf(detailed.transform.basis.z.z + 100.0) < 0.001, "the source front axis is rotated into project forward")
+
+	_expect(visuals.get_detailed_wheel_binding_count() == 4, "the detailed model registers exactly four wheel assemblies")
+	_expect(visuals.get_low_detail_wheel_binding_count() == 4, "the low-detail model registers exactly four wheel assemblies")
+	_expect(visuals.get_registered_wheel_count() == 4, "the visual controller exposes four logical wheels")
+	for wheel_id: StringName in REQUIRED_WHEEL_IDS:
+		_expect(visuals.get_detailed_wheel_spin_pivot(wheel_id) != null, "%s has a detailed spin pivot" % wheel_id)
+		_expect(visuals.get_detailed_wheel_steering_pivot(wheel_id) != null, "%s has a detailed steering pivot" % wheel_id)
+
+	var bounds_state: Dictionary = _calculate_bounds(alignment)
+	var bounds: AABB = bounds_state["bounds"] as AABB
+	_expect(int(bounds_state["mesh_count"]) == 71, "the detailed model retains all 71 imported render meshes")
+	_expect(bounds.size.x > 1.78 and bounds.size.x < 1.81, "the detailed model width matches the measured source bounds")
+	_expect(bounds.size.y > 1.34 and bounds.size.y < 1.37, "the detailed model height matches the measured source bounds")
+	_expect(bounds.size.z > 4.80 and bounds.size.z < 4.84, "the detailed model length matches the measured source bounds")
+	_expect(absf(bounds.position.y) < 0.01, "the detailed tyres are aligned with the gameplay ground plane")
+
+	visuals.set_force_low_detail(true)
+	_expect(visuals.is_using_low_detail(), "forced low-detail mode activates")
+	_expect(alignment == null or not alignment.visible, "forced low-detail mode hides the imported model")
+	_expect(low_detail != null and low_detail.visible, "forced low-detail mode shows the fallback model")
 	visuals.queue_free()
 	await process_frame
 
@@ -83,11 +114,40 @@ func _test_preview_scene() -> void:
 	root.add_child(preview)
 	await process_frame
 	await process_frame
-	_expect(preview.get_node_or_null("VehicleVisual") is Node3D, "the preview contains the Mustang visual wrapper")
+	_expect(preview.get_node_or_null("VehicleVisual") is MustangShelbyGT5001967VisualController, "the preview contains the completed Mustang visual controller")
 	_expect(preview.get_node_or_null("Camera3D") is Camera3D, "the preview contains a framing camera")
 	_expect(preview.get_node_or_null("Ground") is MeshInstance3D, "the preview contains a ground reference")
 	preview.queue_free()
 	await process_frame
+
+
+func _calculate_bounds(root_node: Node3D) -> Dictionary:
+	var state: Dictionary = {
+		"initialized": false,
+		"mesh_count": 0,
+		"bounds": AABB(),
+	}
+	_collect_bounds(root_node, Transform3D.IDENTITY, state)
+	_expect(bool(state["initialized"]), "the detailed model exposes renderable mesh bounds")
+	return state
+
+
+func _collect_bounds(node: Node, parent_transform: Transform3D, state: Dictionary) -> void:
+	var current_transform: Transform3D = parent_transform
+	if node is Node3D:
+		current_transform = parent_transform * (node as Node3D).transform
+	if node is MeshInstance3D:
+		var mesh_instance: MeshInstance3D = node as MeshInstance3D
+		if mesh_instance.mesh != null:
+			var transformed_bounds: AABB = current_transform * mesh_instance.get_aabb()
+			if bool(state["initialized"]):
+				state["bounds"] = (state["bounds"] as AABB).merge(transformed_bounds)
+			else:
+				state["bounds"] = transformed_bounds
+				state["initialized"] = true
+			state["mesh_count"] = int(state["mesh_count"]) + 1
+	for child: Node in node.get_children():
+		_collect_bounds(child, current_transform, state)
 
 
 func _expect(condition: bool, message: String) -> void:
