@@ -1,8 +1,16 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/race/generated_track.gd" id="1_track_generator"]
 [ext_resource type="Resource" path="res://resources/tracks/tor_poznan.tres" id="2_layout"]
+[ext_resource type="Script" path="res://scripts/tracks/tor_poznan_environment.gd" id="3_environment"]
+[ext_resource type="Script" path="res://scripts/tracks/tor_poznan_barrier_configuration.gd" id="4_barrier_configuration"]
 
 [node name="TorPoznan" type="Node3D"]
 script = ExtResource("1_track_generator")
 track_layout = ExtResource("2_layout")
+
+[node name="BarrierConfiguration" type="Node" parent="."]
+script = ExtResource("4_barrier_configuration")
+
+[node name="TrackEnvironment" type="Node3D" parent="."]
+script = ExtResource("3_environment")
