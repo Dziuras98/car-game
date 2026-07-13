@@ -64,8 +64,7 @@ func _run() -> void:
 	_expect(not variants.is_empty(), "car catalog exposes a variant for integration testing")
 	if menu != null and not variants.is_empty():
 		menu.emit_signal("selection_completed", &"free_drive", &"alternate_track", variants[0].variant_id)
-		await get_tree().process_frame
-		await get_tree().physics_frame
+		await _wait_for_session_start(main, &"alternate_track")
 
 	var selected_track: Node3D = main.call("get_active_track") as Node3D
 	_expect(selected_track != null, "selected alternate track is instantiated")
@@ -99,6 +98,18 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_finish()
+
+
+func _wait_for_session_start(main: Node3D, expected_track_id: StringName) -> void:
+	for _frame_index: int in range(30):
+		await get_tree().process_frame
+		if (
+			main.call("get_selected_track_id") == expected_track_id
+			and main.call("get_current_car") != null
+		):
+			await get_tree().physics_frame
+			return
+	await get_tree().physics_frame
 
 
 func _test_track_spawn_transaction(
