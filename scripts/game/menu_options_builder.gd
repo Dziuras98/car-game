@@ -26,6 +26,7 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 	for model: CarModelDefinition in car_catalog.get_models():
 		if model == null:
 			continue
+		var model_label: String = model.get_model_name()
 		var variants: Array[CarVariantMenuOption] = []
 		for variant: CarVariantDefinition in model.get_variants():
 			if variant == null or variant.get_car_scene() == null:
@@ -38,15 +39,19 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 				continue
 			variants.append(CarVariantMenuOption.new(
 				variant.variant_id,
-				"%s — DPI %d" % [
-					TranslationServer.translate(variant.get_menu_name()),
-					performance_index,
-				]
+				TranslationServer.translate(variant.get_menu_name()),
+				performance_index,
+				variant.get_car_scene(),
+				specs,
+				variant.engine_label,
+				variant.drivetrain_label,
+				model.model_id,
+				model_label
 			))
 		if not variants.is_empty():
 			menu_models.append(CarModelMenuOption.new(
 				model.model_id,
-				model.get_model_name(),
+				model_label,
 				variants
 			))
 
