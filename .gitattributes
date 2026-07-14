@@ -1,2 +1,9 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
+assets/tracks/suzuka/**/*.bin filter=lfs diff=lfs merge=lfs -text
+assets/tracks/suzuka/**/*.png filter=lfs diff=lfs merge=lfs -text
+assets/tracks/suzuka/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+assets/tracks/suzuka/**/*.webp filter=lfs diff=lfs merge=lfs -text
+assets/tracks/suzuka/**/*.glb filter=lfs diff=lfs merge=lfs -text
+assets/tracks/suzuka/**/*.dds filter=lfs diff=lfs merge=lfs -text
+assets/tracks/suzuka/**/*.kn5 filter=lfs diff=lfs merge=lfs -text
