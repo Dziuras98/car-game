@@ -1,7 +1,11 @@
 extends SceneTree
 
 const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
-const EXPECTED_CALIBRATIONS: Dictionary = {
+const BMW_DYNAMICS_PATHS: Array[String] = [
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_petrol.csv",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_diesel.csv",
+]
+const EXPECTED_LEGACY_CALIBRATIONS: Dictionary = {
 	&"nissan_370z_7at": Vector4(1.02, 0.11, 0.82, 10.0),
 	&"nissan_370z_6mt": Vector4(1.02, 0.11, 0.82, 10.0),
 	&"nissan_370z_nismo_6mt_eu": Vector4(1.08, 0.10, 0.84, 10.5),
@@ -32,9 +36,10 @@ func _run() -> void:
 	_expect(CATALOG != null, "production car catalog loads")
 	if CATALOG == null:
 		return
+	var expected_calibrations: Dictionary = _build_expected_calibrations()
 	var variants: Array[CarVariantDefinition] = CATALOG.get_all_variants()
 	_expect(
-		variants.size() == EXPECTED_CALIBRATIONS.size(),
+		variants.size() == expected_calibrations.size(),
 		"every production variant is covered by an explicit longitudinal tire calibration"
 	)
 	var seen_ids: Dictionary = {}
@@ -44,10 +49,10 @@ func _run() -> void:
 			continue
 		var variant_id: StringName = variant.variant_id
 		seen_ids[variant_id] = true
-		_expect(EXPECTED_CALIBRATIONS.has(variant_id), "%s has a registered tire calibration" % str(variant_id))
-		if not EXPECTED_CALIBRATIONS.has(variant_id) or variant.specs == null:
+		_expect(expected_calibrations.has(variant_id), "%s has a registered tire calibration" % str(variant_id))
+		if not expected_calibrations.has(variant_id) or variant.specs == null:
 			continue
-		var expected: Vector4 = EXPECTED_CALIBRATIONS[variant_id]
+		var expected: Vector4 = expected_calibrations[variant_id]
 		var specs: CarSpecs = variant.specs
 		_expect(is_equal_approx(specs.longitudinal_grip_coefficient, expected.x), "%s uses its calibrated longitudinal grip coefficient" % str(variant_id))
 		_expect(is_equal_approx(specs.longitudinal_peak_slip_ratio, expected.y), "%s uses its calibrated peak slip ratio" % str(variant_id))
@@ -59,7 +64,41 @@ func _run() -> void:
 			brake_demand_ratio >= 0.95 and brake_demand_ratio <= 1.45,
 			"%s full brake demand remains near the tire peak instead of requesting several g" % str(variant_id)
 		)
-	_expect(seen_ids.size() == EXPECTED_CALIBRATIONS.size(), "no calibrated production variant is missing from the catalog")
+	_expect(seen_ids.size() == expected_calibrations.size(), "no calibrated production variant is missing from the catalog")
+
+
+func _build_expected_calibrations() -> Dictionary:
+	var result: Dictionary = EXPECTED_LEGACY_CALIBRATIONS.duplicate(true)
+	for path: String in BMW_DYNAMICS_PATHS:
+		var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+		_expect(file != null, "BMW tire calibration source loads: %s" % path)
+		if file == null:
+			continue
+		var headers: PackedStringArray = file.get_csv_line()
+		var candidate_index: int = headers.find("candidate_id")
+		var brake_index: int = headers.find("brake_deceleration_target_mps2")
+		_expect(candidate_index >= 0 and brake_index >= 0, "BMW tire calibration source exposes required columns: %s" % path)
+		if candidate_index < 0 or brake_index < 0:
+			continue
+		while not file.eof_reached():
+			var values: PackedStringArray = file.get_csv_line()
+			if values.is_empty() or values[0].strip_edges().is_empty():
+				continue
+			if candidate_index >= values.size() or brake_index >= values.size():
+				continue
+			var candidate_id: String = values[candidate_index].strip_edges()
+			var brake_text: String = values[brake_index].strip_edges()
+			if candidate_id.is_empty() or not brake_text.is_valid_float():
+				continue
+			var brake_deceleration: float = brake_text.to_float()
+			var grip_coefficient: float = clampf(brake_deceleration / 9.81, 0.88, 1.12)
+			result[StringName("bmw_e46_sedan_%s" % candidate_id)] = Vector4(
+				grip_coefficient,
+				0.12,
+				0.78,
+				brake_deceleration
+			)
+	return result
 
 
 func _expect(condition: bool, message: String) -> void:
