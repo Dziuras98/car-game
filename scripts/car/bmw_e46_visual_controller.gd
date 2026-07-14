@@ -5,6 +5,7 @@ const TARGET_BODY_LENGTH_M: float = 4.471
 const MIN_VALID_MODEL_LENGTH_M: float = 0.1
 
 var _detailed_scale_correction: float = 1.0
+var _detailed_scale_normalized: bool = false
 
 
 func _ready() -> void:
@@ -13,6 +14,7 @@ func _ready() -> void:
 
 
 func get_detailed_model_size_m() -> Vector3:
+	_normalize_detailed_model_scale()
 	var detailed_root: Node3D = get_node_or_null(detailed_root_path) as Node3D
 	if detailed_root == null:
 		return Vector3.ZERO
@@ -20,10 +22,13 @@ func get_detailed_model_size_m() -> Vector3:
 
 
 func get_detailed_scale_correction() -> float:
+	_normalize_detailed_model_scale()
 	return _detailed_scale_correction
 
 
 func _normalize_detailed_model_scale() -> void:
+	if _detailed_scale_normalized:
+		return
 	var detailed_root: Node3D = get_node_or_null(detailed_root_path) as Node3D
 	if detailed_root == null:
 		push_error("BMW E46 detailed visual root is missing.")
@@ -39,10 +44,10 @@ func _normalize_detailed_model_scale() -> void:
 		push_error("BMW E46 detailed model produced an invalid scale correction.")
 		return
 	detailed_root.scale = detailed_root.scale * _detailed_scale_correction
+	_detailed_scale_normalized = true
 
 
 func _calculate_mesh_bounds_in_controller_space(root: Node3D) -> AABB:
-	var controller_inverse: Transform3D = global_transform.affine_inverse()
 	var pending: Array[Node] = [root]
 	var combined := AABB()
 	var has_point: bool = false
@@ -54,7 +59,7 @@ func _calculate_mesh_bounds_in_controller_space(root: Node3D) -> AABB:
 		if mesh_instance == null or mesh_instance.mesh == null:
 			continue
 		var mesh_bounds: AABB = mesh_instance.get_aabb()
-		var mesh_to_controller: Transform3D = controller_inverse * mesh_instance.global_transform
+		var mesh_to_controller: Transform3D = _get_transform_to_controller(mesh_instance)
 		for corner_index: int in 8:
 			var corner := Vector3(
 				mesh_bounds.end.x if (corner_index & 1) != 0 else mesh_bounds.position.x,
@@ -68,6 +73,20 @@ func _calculate_mesh_bounds_in_controller_space(root: Node3D) -> AABB:
 			else:
 				combined = combined.expand(point)
 	return combined
+
+
+func _get_transform_to_controller(node: Node3D) -> Transform3D:
+	var result := Transform3D.IDENTITY
+	var cursor: Node = node
+	while cursor != null and cursor != self:
+		var spatial := cursor as Node3D
+		if spatial != null:
+			result = spatial.transform * result
+		cursor = cursor.get_parent()
+	if cursor != self:
+		push_error("BMW E46 mesh is not a descendant of its visual controller.")
+		return Transform3D.IDENTITY
+	return result
 
 
 func _get_explicit_detailed_wheel_specs() -> Array[Dictionary]:
