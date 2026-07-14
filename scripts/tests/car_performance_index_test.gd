@@ -49,7 +49,11 @@ func _initialize() -> void:
 	for model: CarModelMenuOption in menu_models:
 		for option: CarVariantMenuOption in model.variants:
 			menu_variant_count += 1
-			_expect(option.label.contains(" — DPI "), "%s menu label exposes DPI" % option.variant_id)
+			_expect(option.performance_index > 0, "%s menu option exposes structured DPI" % option.variant_id)
+			_expect(
+				not option.label.contains(" — DPI "),
+				"%s keeps DPI separate from the variant label" % option.variant_id
+			)
 	_expect(
 		menu_variant_count == variants.size(),
 		"every authoritative catalog variant is represented by a DPI menu option"
