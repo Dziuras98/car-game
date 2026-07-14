@@ -183,9 +183,25 @@ func get_cvt_ratio() -> float:
 
 func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: float, gear_up_pressed: bool, gear_down_pressed: bool) -> void:
 	if _config.is_manual_transmission():
-		var requested_gear: int = _manual_transmission_model.get_requested_gear(state.current_gear, _config.gear_ratios.size(), gear_up_pressed, gear_down_pressed)
+		var requested_gear: int = _manual_transmission_model.get_requested_gear(
+			state.current_gear,
+			_config.gear_ratios.size(),
+			gear_up_pressed,
+			gear_down_pressed
+		)
 		if requested_gear != state.current_gear:
-			_set_transmission_gear(state, requested_gear)
+			var requested_gear_rpm: float = (
+				_get_coupled_engine_rpm_for_gear(state, requested_gear)
+				if requested_gear > 0
+				else _config.idle_rpm
+			)
+			if _manual_transmission_model.is_shift_safe(
+				requested_gear,
+				state.forward_speed,
+				requested_gear_rpm,
+				_config.rev_limiter_rpm
+			):
+				_set_transmission_gear(state, requested_gear)
 		return
 	if _config.is_automatic_transmission():
 		_update_automatic_transmission(state, throttle, brake)
@@ -320,10 +336,17 @@ func _update_speed_step(state: CarRuntimeState, throttle: float, brake: float, h
 		_apply_brake_or_reverse(state, brake, delta)
 	else:
 		var ground_factor: float = _get_ground_contact_factor(state)
-		var passive_deceleration: float = _config.coast_deceleration * ground_factor
+		state.forward_speed = move_toward(
+			state.forward_speed,
+			0.0,
+			_config.coast_deceleration * ground_factor * delta
+		)
 		if absf(state.forward_speed) > 0.0 and (not _config.is_manual_transmission() or state.clutch_engagement > 0.1):
-			passive_deceleration += _config.engine_brake_force * state.clutch_engagement * ground_factor
-		state.forward_speed = move_toward(state.forward_speed, 0.0, passive_deceleration * delta)
+			_apply_braking_acceleration(
+				state,
+				_config.engine_brake_force * state.clutch_engagement,
+				delta
+			)
 	if handbrake_active:
 		_apply_braking_acceleration(state, _config.handbrake_deceleration, delta)
 	state.forward_speed = _resistance_model.apply(state.forward_speed, delta, state.ground_contact_count > 0)

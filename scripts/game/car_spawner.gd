@@ -57,7 +57,6 @@ func configure(
 	row_spacing: float,
 	random_seed: int = -1
 ) -> bool:
-	_configured = false
 	var configuration_errors: PackedStringArray = validate_configuration_values(
 		0,
 		lane_spacing,
@@ -80,41 +79,55 @@ func configure(
 		push_error("CarSpawner requires at least one configured car variant.")
 		return false
 
-	opponent_lane_spacing = lane_spacing
-	opponent_row_spacing = row_spacing
-	_car_spawn = car_spawn
-	_track = track
+	var next_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	if random_seed >= 0:
-		_rng.seed = random_seed
+		next_rng.seed = random_seed
 	else:
-		_rng.randomize()
-	_session_seed = _rng.seed
+		next_rng.randomize()
+	var next_session_seed: int = next_rng.seed
 
-	_factory = CarInstanceFactory.new()
-	_factory.configure(available_car_variants, _rng)
-	if not _factory.has_available_cars():
+	var next_factory: CarInstanceFactory = CarInstanceFactory.new()
+	next_factory.configure(available_car_variants, next_rng)
+	if not next_factory.has_available_cars():
 		push_error("CarSpawner produced no available player car variants.")
 		return false
 
-	_player_spawner = PlayerCarSpawnController.new()
-	_player_spawner.configure(owner_node, _factory)
+	var next_player_spawner: PlayerCarSpawnController = PlayerCarSpawnController.new()
+	next_player_spawner.configure(owner_node, next_factory)
 
-	_opponent_layout = OpponentSpawnLayout.new()
-	_opponent_layout.configure(lane_spacing, row_spacing)
+	var next_opponent_layout: OpponentSpawnLayout = OpponentSpawnLayout.new()
+	next_opponent_layout.configure(lane_spacing, row_spacing)
 
-	_paint_randomizer = OpponentPaintRandomizer.new()
-	_paint_randomizer.configure(_rng)
+	var next_paint_randomizer: OpponentPaintRandomizer = OpponentPaintRandomizer.new()
+	next_paint_randomizer.configure(next_rng)
 
-	_opponent_spawner = OpponentParticipantSpawner.new()
-	_opponent_spawner.configure(
+	var next_opponent_spawner: OpponentParticipantSpawner = OpponentParticipantSpawner.new()
+	next_opponent_spawner.configure(
 		owner_node,
 		car_spawn,
 		track,
-		_factory,
-		_opponent_layout,
-		_paint_randomizer,
-		_session_seed
+		next_factory,
+		next_opponent_layout,
+		next_paint_randomizer,
+		next_session_seed
 	)
+	if not next_opponent_spawner.is_configured():
+		push_error("CarSpawner could not configure the opponent participant spawner.")
+		return false
+
+	clear_current_car()
+	clear_opponents()
+	opponent_lane_spacing = lane_spacing
+	opponent_row_spacing = row_spacing
+	_rng = next_rng
+	_session_seed = next_session_seed
+	_factory = next_factory
+	_player_spawner = next_player_spawner
+	_opponent_layout = next_opponent_layout
+	_paint_randomizer = next_paint_randomizer
+	_opponent_spawner = next_opponent_spawner
+	_car_spawn = car_spawn
+	_track = track
 	_opponent_spawner.driver_fault.connect(_on_driver_fault)
 	_configured = true
 	return true

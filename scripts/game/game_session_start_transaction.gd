@@ -59,7 +59,6 @@ func configure(
 	commit_track: Callable,
 	finalize_track_commit: Callable
 ) -> bool:
-	_configured = false
 	if _execution_in_progress:
 		push_error("GameSessionStartTransaction cannot be reconfigured while executing.")
 		return false
