@@ -118,14 +118,14 @@ func _generate_stereo_frame() -> Vector2:
 	var high_blend: float = _smoothstep((rpm_ratio - 0.58) / 0.38)
 
 	_phase_idle_modulation = fposmod(_phase_idle_modulation + TAU * 6.1 * delta, TAU)
-	_idle_noise = lerpf(_idle_noise, _rng.randf_range(-1.0, 1.0), 0.0022)
+	_idle_noise = lerpf(_idle_noise, _rng.randf_range(-1.0, 1.0), sample_rate_invariant_alpha(0.0022, sample_rate))
 	var idle_speed_variation: float = (
 		sin(_phase_idle_modulation) * 0.42
 		+ _idle_noise * 0.58
 	) * idle_irregularity * (1.0 + cam_loaf * 1.8) * idle_blend
 
-	var firing_frequency: float = maxf(firing_frequency_hz(rpm, 8) * (1.0 + idle_speed_variation), 1.0)
-	var crank_frequency: float = maxf(rpm / 60.0, 1.0)
+	var firing_frequency: float = maxf(firing_frequency_hz(rpm, 8) * (1.0 + idle_speed_variation), 0.0)
+	var crank_frequency: float = maxf(rpm / 60.0, 0.0)
 	var previous_event_phase: float = _event_phase
 	_event_phase = fposmod(_event_phase + firing_frequency * delta, 1.0)
 	var event_started: bool = _event_phase < previous_event_phase
@@ -160,11 +160,7 @@ func _generate_stereo_frame() -> Vector2:
 	var startup_gate: float = 1.0
 	var starter_motor: float = 0.0
 	if _startup_remaining > 0.0:
-		var startup_progress: float = 1.0 - clampf(
-			_startup_remaining / maxf(starter_duration, 0.01),
-			0.0,
-			1.0
-		)
+		var startup_progress: float = _startup_progress
 		startup_gate = _smoothstep((startup_progress - 0.20) / 0.50)
 		var starter_frequency: float = 82.0 + startup_progress * 78.0
 		_starter_phase = fposmod(_starter_phase + TAU * starter_frequency * delta, TAU)
@@ -173,34 +169,20 @@ func _generate_stereo_frame() -> Vector2:
 			+ sin(_starter_phase * 2.0) * 0.20
 			+ _noise_medium * 0.12
 		) * sin(startup_progress * PI) * starter_motor_level
-		_startup_remaining = maxf(_startup_remaining - delta, 0.0)
-
-	var shutdown_gate: float = 1.0
-	if _shutdown_remaining > 0.0:
-		var shutdown_progress: float = 1.0 - clampf(
-			_shutdown_remaining / maxf(shutdown_duration, 0.01),
-			0.0,
-			1.0
-		)
-		shutdown_gate = 1.0 - _smoothstep(shutdown_progress)
-		_shutdown_remaining = maxf(_shutdown_remaining - delta, 0.0)
-		if _shutdown_remaining <= 0.0:
-			_engine_running = false
-	var running_gate: float = 1.0 if _engine_running or _shutdown_remaining > 0.0 else 0.0
 
 	var event_bank: int = FORD_FE_BANK_SEQUENCE[_event_index]
 	var cylinder_gain: float = EVENT_GAINS[_event_index]
 	var pulse: float = combustion_pulse(_event_phase * TAU)
-	pulse *= cylinder_gain * ignition_gate * startup_gate * shutdown_gate * running_gate
+	pulse *= cylinder_gain * ignition_gate * startup_gate
 	var pulse_derivative: float = pulse - _previous_combustion
 	var pulse_acceleration: float = pulse_derivative - _previous_pulse_derivative
 	_previous_combustion = pulse
 	_previous_pulse_derivative = pulse_derivative
 
 	var white_noise: float = _rng.randf_range(-1.0, 1.0)
-	_noise_slow = lerpf(_noise_slow, white_noise, 0.022)
-	_noise_medium = lerpf(_noise_medium, white_noise, 0.12)
-	_noise_fast = lerpf(_noise_fast, white_noise, 0.34)
+	_noise_slow = lerpf(_noise_slow, white_noise, sample_rate_invariant_alpha(0.022, sample_rate))
+	_noise_medium = lerpf(_noise_medium, white_noise, sample_rate_invariant_alpha(0.12, sample_rate))
+	_noise_fast = lerpf(_noise_fast, white_noise, sample_rate_invariant_alpha(0.34, sample_rate))
 	var highpassed_noise: float = white_noise - _noise_medium
 	var differentiated_noise: float = white_noise - _previous_white_noise
 	_previous_white_noise = white_noise
@@ -311,15 +293,16 @@ func _generate_stereo_frame() -> Vector2:
 
 	var common_mix: float = common_exhaust + intake_mix + mechanical_mix + overrun_mix
 	var scale: float = load_gain * rpm_gain * 0.29
-	var left_sample: float = (common_mix + left_bank * (0.50 + crossplane_roughness * 0.34)) * scale
-	var right_sample: float = (common_mix + right_bank * (0.50 + crossplane_roughness * 0.34)) * scale
+	var left_sample: float = (common_mix + left_bank * (0.50 + crossplane_roughness * 0.34)) * scale * _engine_state_gain
+	var right_sample: float = (common_mix + right_bank * (0.50 + crossplane_roughness * 0.34)) * scale * _engine_state_gain
 	left_sample += starter_motor * 0.36
 	right_sample += starter_motor * 0.36
 
-	var left_dc: float = left_sample - _dc_left_input + 0.996 * _dc_left_output
+	var dc_decay: float = sample_rate_invariant_decay(0.996, sample_rate)
+	var left_dc: float = left_sample - _dc_left_input + dc_decay * _dc_left_output
 	_dc_left_input = left_sample
 	_dc_left_output = left_dc
-	var right_dc: float = right_sample - _dc_right_input + 0.996 * _dc_right_output
+	var right_dc: float = right_sample - _dc_right_input + dc_decay * _dc_right_output
 	_dc_right_input = right_sample
 	_dc_right_output = right_dc
 	var gain: float = db_to_linear(synthesis_gain_db)
@@ -384,6 +367,32 @@ func _process_metal(input_value: float, frequency: float, damping: float, sample
 	var high: float = input_value - _metal_low - damping * _metal_band
 	_metal_band += coefficient * high
 	return _metal_band
+
+
+func _clear_audio_tail_state() -> void:
+	super._clear_audio_tail_state()
+	_bank_a_thump = 0.0
+	_bank_b_thump = 0.0
+	_doublet_envelope = 0.0
+	_header_a_low = 0.0
+	_header_a_band = 0.0
+	_header_b_low = 0.0
+	_header_b_band = 0.0
+	_rumble_low = 0.0
+	_rumble_band = 0.0
+	_common_body_low = 0.0
+	_common_body_band = 0.0
+	_common_mid_low = 0.0
+	_common_mid_band = 0.0
+	_carb_low = 0.0
+	_carb_band = 0.0
+	_metal_low = 0.0
+	_metal_band = 0.0
+	_dc_left_input = 0.0
+	_dc_left_output = 0.0
+	_dc_right_input = 0.0
+	_dc_right_output = 0.0
+	_last_stereo_frame = Vector2.ZERO
 
 
 func _update_debug_state() -> void:

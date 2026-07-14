@@ -27,7 +27,6 @@ var _punto_phase_turbo: float = 0.0
 var _punto_previous_pulse: float = 0.0
 var _punto_slow_noise: float = 0.0
 var _punto_mid_noise: float = 0.0
-var _punto_fast_noise: float = 0.0
 var _punto_previous_noise: float = 0.0
 var _punto_exhaust_low: float = 0.0
 var _punto_exhaust_band: float = 0.0
@@ -46,7 +45,6 @@ var _punto_dc_output: float = 0.0
 
 func _ready() -> void:
 	cylinders = 4
-	force_full_runtime_generation = true
 	super._ready()
 
 
@@ -75,9 +73,8 @@ func _generate_sample() -> float:
 	var high_blend: float = _smoothstep((rpm_ratio - 0.45) / 0.45)
 
 	var white_noise: float = _rng.randf_range(-1.0, 1.0)
-	_punto_slow_noise = lerpf(_punto_slow_noise, white_noise, 0.018)
-	_punto_mid_noise = lerpf(_punto_mid_noise, white_noise, 0.12)
-	_punto_fast_noise = lerpf(_punto_fast_noise, white_noise, 0.42)
+	_punto_slow_noise = lerpf(_punto_slow_noise, white_noise, EngineAudioSynthesizer.sample_rate_invariant_alpha(0.018, sample_rate))
+	_punto_mid_noise = lerpf(_punto_mid_noise, white_noise, EngineAudioSynthesizer.sample_rate_invariant_alpha(0.12, sample_rate))
 	var high_noise: float = white_noise - _punto_mid_noise
 	var differentiated_noise: float = white_noise - _punto_previous_noise
 	_punto_previous_noise = white_noise
@@ -85,8 +82,8 @@ func _generate_sample() -> float:
 	var idle_wander: float = (
 		sin(_punto_phase_crank * 0.37) * 0.55 + _punto_slow_noise * 0.45
 	) * idle_irregularity * idle_blend
-	var firing_hz: float = maxf(EngineAudioSynthesizer.firing_frequency_hz(rpm, 4) * (1.0 + idle_wander), 1.0)
-	var crank_hz: float = maxf(rpm / 60.0, 1.0)
+	var firing_hz: float = maxf(EngineAudioSynthesizer.firing_frequency_hz(rpm, 4) * (1.0 + idle_wander), 0.0)
+	var crank_hz: float = maxf(rpm / 60.0, 0.0)
 	_punto_phase_firing = fposmod(_punto_phase_firing + TAU * firing_hz * delta, TAU)
 	_punto_phase_crank = fposmod(_punto_phase_crank + TAU * crank_hz * delta, TAU)
 	_punto_phase_valvetrain = fposmod(_punto_phase_valvetrain + TAU * crank_hz * 4.0 * delta, TAU)
@@ -107,7 +104,7 @@ func _generate_sample() -> float:
 	var startup_gate: float = 1.0
 	var starter_motor: float = 0.0
 	if _startup_remaining > 0.0:
-		var startup_progress: float = 1.0 - clampf(_startup_remaining / maxf(starter_duration, 0.01), 0.0, 1.0)
+		var startup_progress: float = _startup_progress
 		startup_gate = _smoothstep((startup_progress - 0.20) / 0.52)
 		_starter_phase = fposmod(_starter_phase + TAU * (82.0 + startup_progress * 88.0) * delta, TAU)
 		starter_motor = (
@@ -115,16 +112,6 @@ func _generate_sample() -> float:
 			+ sin(_starter_phase * 2.0) * 0.24
 			+ _punto_mid_noise * 0.13
 		) * sin(startup_progress * PI) * starter_motor_level
-		_startup_remaining = maxf(_startup_remaining - delta, 0.0)
-
-	var shutdown_gate: float = 1.0
-	if _shutdown_remaining > 0.0:
-		var shutdown_progress: float = 1.0 - clampf(_shutdown_remaining / maxf(shutdown_duration, 0.01), 0.0, 1.0)
-		shutdown_gate = 1.0 - _smoothstep(shutdown_progress)
-		_shutdown_remaining = maxf(_shutdown_remaining - delta, 0.0)
-		if _shutdown_remaining <= 0.0:
-			_engine_running = false
-	var running_gate: float = 1.0 if _engine_running or _shutdown_remaining > 0.0 else 0.0
 
 	var normalized_phase: float = fposmod(_punto_phase_firing, TAU) / TAU
 	var spark_spike: float = exp(-normalized_phase * lerpf(15.0, 31.0, combustion_sharpness))
@@ -135,7 +122,7 @@ func _generate_sample() -> float:
 	var diesel_tail: float = exp(-normalized_phase * 5.8) * 0.29
 	var diesel_pulse: float = diesel_spike + diesel_knock - diesel_tail
 	var pulse: float = lerpf(spark_pulse, diesel_pulse, diesel_combustion)
-	pulse *= ignition_gate * startup_gate * shutdown_gate * running_gate
+	pulse *= ignition_gate * startup_gate
 	var pulse_derivative: float = pulse - _punto_previous_pulse
 	_punto_previous_pulse = pulse
 
@@ -187,6 +174,7 @@ func _generate_sample() -> float:
 	var spool_target: float = spool_rpm * (0.18 + load * 0.82) * (0.30 + throttle * 0.70)
 	_punto_turbo_spool = lerpf(_punto_turbo_spool, spool_target, 1.0 - exp(-5.5 * delta))
 	var turbo_hz: float = (620.0 + rpm_ratio * 5200.0 + _punto_turbo_spool * 2300.0) * turbo_pitch_scale
+	turbo_hz = EngineAudioSynthesizer.bandlimited_frequency(turbo_hz, sample_rate)
 	_punto_phase_turbo = fposmod(_punto_phase_turbo + TAU * turbo_hz * delta, TAU)
 	var turbo_raw: float = (
 		sin(_punto_phase_turbo) * 0.70
@@ -207,7 +195,7 @@ func _generate_sample() -> float:
 	var crackle: float = _next_overrun_crackle(delta, white_noise) * overrun_crackle
 	var low_rpm_weight: float = lerpf(1.10, 0.78, high_blend)
 	var load_gain: float = lerpf(0.38 + idle_blend * 0.15, 1.10, load)
-	var sample: float = (
+	var engine_sample: float = (
 		exhaust_body * (0.68 + exhaust_resonance * 1.08) * low_rpm_weight
 		+ exhaust_harmonics * (0.18 + exhaust_roughness * 0.42)
 		+ intake_tone * intake_presence * (0.22 + throttle * 1.38 + _throttle_transient * induction_transient)
@@ -217,9 +205,11 @@ func _generate_sample() -> float:
 		+ pulse_derivative * high_rpm_rasp * high_blend * 0.24
 		+ turbo_mix
 		+ crackle
-	) * load_gain * 0.33 + starter_motor * 0.42
+	) * load_gain * 0.33
+	var sample: float = engine_sample * _engine_state_gain + starter_motor * 0.42
 
-	var dc_blocked: float = sample - _punto_dc_input + 0.995 * _punto_dc_output
+	var dc_decay: float = EngineAudioSynthesizer.sample_rate_invariant_decay(0.995, sample_rate)
+	var dc_blocked: float = sample - _punto_dc_input + dc_decay * _punto_dc_output
 	_punto_dc_input = sample
 	_punto_dc_output = dc_blocked
 	return tanh(dc_blocked * db_to_linear(synthesis_gain_db) * 1.12) * 0.96
@@ -261,6 +251,23 @@ func _process_punto_resonator(input_value: float, frequency: float, damping: flo
 	return band
 
 
+func _clear_audio_tail_state() -> void:
+	super._clear_audio_tail_state()
+	_punto_previous_pulse = 0.0
+	_punto_exhaust_low = 0.0
+	_punto_exhaust_band = 0.0
+	_punto_intake_low = 0.0
+	_punto_intake_band = 0.0
+	_punto_mechanical_low = 0.0
+	_punto_mechanical_band = 0.0
+	_punto_turbo_low = 0.0
+	_punto_turbo_band = 0.0
+	_punto_turbo_spool = 0.0
+	_punto_turbo_release = 0.0
+	_punto_dc_input = 0.0
+	_punto_dc_output = 0.0
+
+
 func _update_debug_state() -> void:
 	_debug_state = {
 		"mode": "Fiat Tipo 176 four-cylinder procedural model",
@@ -287,7 +294,6 @@ func _reset_synthesis_state() -> void:
 	_punto_previous_pulse = 0.0
 	_punto_slow_noise = 0.0
 	_punto_mid_noise = 0.0
-	_punto_fast_noise = 0.0
 	_punto_previous_noise = 0.0
 	_punto_exhaust_low = 0.0
 	_punto_exhaust_band = 0.0

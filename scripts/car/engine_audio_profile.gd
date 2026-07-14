@@ -7,6 +7,12 @@ const MIN_OUTPUT_VOLUME_BOOST_DB: float = 0.0
 const MAX_OUTPUT_VOLUME_BOOST_DB: float = 16.0
 const MIN_SYNTHESIS_GAIN_DB: float = -6.0
 const MAX_SYNTHESIS_GAIN_DB: float = 12.0
+const PROFILE_METADATA_NAMES: Array[StringName] = [
+	&"engine_layout",
+	&"firing_order",
+	&"aspiration",
+	&"family_id",
+]
 const CHARACTER_PROPERTY_NAMES: Array[StringName] = [
 	&"high_rpm_rasp",
 	&"intake_presence",
@@ -118,6 +124,8 @@ func apply_to(engine_audio: Object) -> bool:
 	var supported_properties: Dictionary = {}
 	for target_property: Dictionary in engine_audio.get_property_list():
 		supported_properties[StringName(target_property.get("name", &""))] = true
+	var defaults: EngineAudioProfile = EngineAudioProfile.new()
+	var ignored_non_default: PackedStringArray = PackedStringArray()
 	for property: Dictionary in get_property_list():
 		var property_name: StringName = property.get("name", &"")
 		var usage: int = int(property.get("usage", 0))
@@ -125,9 +133,18 @@ func apply_to(engine_audio: Object) -> bool:
 			continue
 		if property_name in [&"script", &"resource_local_to_scene", &"resource_name", &"resource_path"]:
 			continue
-		if not supported_properties.has(property_name):
+		if supported_properties.has(property_name):
+			engine_audio.set(property_name, get(property_name))
 			continue
-		engine_audio.set(property_name, get(property_name))
+		if property_name in PROFILE_METADATA_NAMES:
+			continue
+		if defaults.get(property_name) != get(property_name):
+			ignored_non_default.append(str(property_name))
+	if not ignored_non_default.is_empty():
+		print_verbose(
+			"EngineAudioProfile ignored unsupported non-default controls on %s: %s"
+			% [engine_audio.get_class(), ", ".join(ignored_non_default)]
+		)
 	return true
 
 

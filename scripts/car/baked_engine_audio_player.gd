@@ -19,6 +19,7 @@ class LayerPlaybackState:
 @export_range(1.0, 40.0, 0.5) var load_smoothing: float = 16.0
 @export_range(0.5, 2.0, 0.01) var minimum_pitch_scale: float = 0.75
 @export_range(0.5, 2.0, 0.01) var maximum_pitch_scale: float = 1.35
+@export_range(0.02, 0.50, 0.01) var resume_fade_seconds: float = 0.10
 
 var _car: PlayerCarController
 var _coast_layer: LayerPlaybackState = LayerPlaybackState.new()
@@ -27,6 +28,9 @@ var _smoothed_rpm: float = 700.0
 var _smoothed_load_mix: float = 0.0
 var _engine_gain: float = 1.0
 var _engine_running: bool = true
+var _virtual_loop_phase: float = 0.0
+var _resume_gain: float = 1.0
+var _was_suspended: bool = false
 
 
 func _ready() -> void:
@@ -34,6 +38,7 @@ func _ready() -> void:
 	stream = null
 	procedural_voice_group = &"engine"
 	max_procedural_voices = mini(max_procedural_voices, 6)
+	procedural_voice_cost = 2
 	procedural_generation_distance = maxf(max_distance, 0.0) + 5.0
 	_car = get_parent() as PlayerCarController
 	if bank == null or _car == null or not bank.prepare():
@@ -72,14 +77,28 @@ func _process(delta: float) -> void:
 		1.0 - exp(-load_smoothing * safe_delta)
 	)
 	var target_engine_gain: float = 1.0 if _engine_running else 0.0
-	_engine_gain = move_toward(_engine_gain, target_engine_gain, safe_delta * 4.0)
+	var transition_seconds: float = bank.startup_duration if _engine_running else bank.shutdown_duration
+	_engine_gain = move_toward(
+		_engine_gain,
+		target_engine_gain,
+		safe_delta / maxf(transition_seconds, 0.01)
+	)
+	var phase_anchor: int = bank.find_nearest_anchor_index(_smoothed_rpm)
+	_virtual_loop_phase = fposmod(
+		_virtual_loop_phase + safe_delta * _get_pitch_scale(_smoothed_rpm, phase_anchor),
+		maxf(bank.loop_seconds, 0.001)
+	)
 	if not should_generate_procedural_audio(safe_delta):
 		_suspend_playback()
 		return
+	if _was_suspended:
+		_was_suspended = false
+		_resume_gain = 0.0
+	_resume_gain = move_toward(_resume_gain, 1.0, safe_delta / maxf(resume_fade_seconds, 0.01))
 
 	var anchor_index: int = bank.find_nearest_anchor_index(_smoothed_rpm)
-	var coast_gain: float = cos(_smoothed_load_mix * PI * 0.5) * _engine_gain
-	var loaded_gain: float = sin(_smoothed_load_mix * PI * 0.5) * _engine_gain
+	var coast_gain: float = cos(_smoothed_load_mix * PI * 0.5) * _engine_gain * _resume_gain
+	var loaded_gain: float = sin(_smoothed_load_mix * PI * 0.5) * _engine_gain * _resume_gain
 	_update_layer(
 		_coast_layer,
 		false,
@@ -115,6 +134,13 @@ func is_using_baked_bank() -> bool:
 
 func get_selected_anchor_rpm() -> float:
 	return bank.get_anchor_rpm(_coast_layer.anchor_index) if bank != null else 0.0
+
+
+func get_procedural_voice_cost() -> int:
+	for layer: LayerPlaybackState in [_coast_layer, _load_layer]:
+		if layer.transition_anchor_index >= 0:
+			return 4
+	return 2
 
 
 func get_active_voice_count() -> int:
@@ -184,6 +210,7 @@ func _suspend_playback() -> void:
 		layer.anchor_index = -1
 		layer.transition_anchor_index = -1
 		layer.transition_elapsed = 0.0
+	_was_suspended = true
 
 
 func _update_layer(
@@ -204,7 +231,7 @@ func _update_layer(
 			_get_stream(use_load_streams, target_anchor_index),
 			target_rpm,
 			target_anchor_index,
-			0.0
+			_virtual_loop_phase
 		)
 	elif target_anchor_index != state.anchor_index and state.transition_anchor_index < 0:
 		var inactive_index: int = 1 - state.active_player_index

@@ -5,7 +5,10 @@ class_name ProceduralAudioPlayer3D
 @export var procedural_distance_check_interval: float = 0.2
 @export var procedural_voice_group: StringName = &"default"
 @export_range(1, 32, 1) var max_procedural_voices: int = 6
+@export_range(1, 8, 1) var procedural_voice_cost: int = 1
 
+# Entries use {"distance_squared": float, "cost": int}. Keeping the historic
+# variable name avoids invalidating old test and debug tooling.
 static var _voice_distances_by_group: Dictionary = {}
 
 var _audio_lod_check_timer: float = 0.0
@@ -27,14 +30,18 @@ func is_position_audible(source_position: Vector3, listener_position: Vector3) -
 	return source_position.distance_squared_to(listener_position) <= safe_distance * safe_distance
 
 
+func get_procedural_voice_cost() -> int:
+	return maxi(procedural_voice_cost, 1)
+
+
 func release_procedural_voice() -> void:
 	var group_key: String = str(procedural_voice_group)
-	var group_distances: Dictionary = _voice_distances_by_group.get(group_key, {})
-	group_distances.erase(get_instance_id())
-	if group_distances.is_empty():
+	var group_entries: Dictionary = _voice_distances_by_group.get(group_key, {})
+	group_entries.erase(get_instance_id())
+	if group_entries.is_empty():
 		_voice_distances_by_group.erase(group_key)
 	else:
-		_voice_distances_by_group[group_key] = group_distances
+		_voice_distances_by_group[group_key] = group_entries
 
 
 func is_procedural_generation_active() -> bool:
@@ -45,9 +52,10 @@ static func report_voice_distance(
 	group: StringName,
 	source_id: int,
 	distance_squared: float,
-	max_voices: int
+	max_voices: int,
+	voice_cost: int = 1
 ) -> bool:
-	return _report_voice_distance(group, source_id, distance_squared, max_voices)
+	return _report_voice_distance(group, source_id, distance_squared, max_voices, voice_cost)
 
 
 static func reset_voice_budget() -> void:
@@ -73,7 +81,8 @@ func _resolve_audibility_and_budget() -> bool:
 		procedural_voice_group,
 		get_instance_id(),
 		distance_squared,
-		max_procedural_voices
+		max_procedural_voices,
+		get_procedural_voice_cost()
 	)
 
 
@@ -81,15 +90,29 @@ static func _report_voice_distance(
 	group: StringName,
 	source_id: int,
 	distance_squared: float,
-	max_voices: int
+	max_voices: int,
+	voice_cost: int = 1
 ) -> bool:
 	var group_key: String = str(group)
-	var group_distances: Dictionary = _voice_distances_by_group.get(group_key, {})
-	group_distances[source_id] = maxf(distance_squared, 0.0)
-	_voice_distances_by_group[group_key] = group_distances
+	var group_entries: Dictionary = _voice_distances_by_group.get(group_key, {})
+	group_entries[source_id] = {
+		"distance_squared": maxf(distance_squared, 0.0),
+		"cost": maxi(voice_cost, 1),
+	}
+	_voice_distances_by_group[group_key] = group_entries
 
-	var source_ids: Array = group_distances.keys()
+	var source_ids: Array = group_entries.keys()
 	source_ids.sort_custom(func(left: Variant, right: Variant) -> bool:
-		return float(group_distances[left]) < float(group_distances[right])
+		return float(group_entries[left].get("distance_squared", INF)) < float(
+			group_entries[right].get("distance_squared", INF)
+		)
 	)
-	return source_ids.find(source_id) < maxi(max_voices, 1)
+	var spent_budget: int = 0
+	var safe_budget: int = maxi(max_voices, 1)
+	for candidate_id: Variant in source_ids:
+		var entry: Dictionary = group_entries[candidate_id]
+		var candidate_cost: int = maxi(int(entry.get("cost", 1)), 1)
+		if candidate_id == source_id:
+			return spent_budget + candidate_cost <= safe_budget
+		spent_budget += candidate_cost
+	return false

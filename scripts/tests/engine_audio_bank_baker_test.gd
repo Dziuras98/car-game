@@ -14,6 +14,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_remove_output_directory()
+	_create_unrelated_file()
 	var preset: EngineAudioBakePreset = EngineAudioBakePreset.new()
 	preset.bank_id = "test_bank"
 	preset.profile = STOCK_PROFILE
@@ -31,12 +32,24 @@ func _run() -> void:
 	_expect(int(manifest.get("sample_rate", 0)) == 16000, "the manifest records the preset sample rate")
 	_expect(FileAccess.file_exists(OUTPUT_DIRECTORY.path_join("bank_manifest.json")), "the baker writes a JSON manifest")
 	_expect(FileAccess.file_exists(OUTPUT_DIRECTORY.path_join("bank.tres")), "the baker writes a runtime bank resource")
+	_expect(FileAccess.file_exists(OUTPUT_DIRECTORY.path_join("unrelated.wav")), "atomic publishing preserves unrelated files")
+	_expect(not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path("%s.__staging" % OUTPUT_DIRECTORY)), "successful bake removes its staging directory")
+	_expect(not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path("%s.__backup" % OUTPUT_DIRECTORY)), "successful bake removes its backup directory")
 	for layer_name: String in EngineAudioBankBaker.LAYER_NAMES:
 		for rpm: int in preset.sample_rpms:
 			var path: String = OUTPUT_DIRECTORY.path_join("%s_%04d.wav" % [layer_name, rpm])
 			_expect(_has_pcm16_wav_header(path), "the baker writes PCM16 WAV data: %s" % path)
 	_remove_output_directory()
 	_finish()
+
+
+func _create_unrelated_file() -> void:
+	var absolute_path: String = ProjectSettings.globalize_path(OUTPUT_DIRECTORY)
+	DirAccess.make_dir_recursive_absolute(absolute_path)
+	var file: FileAccess = FileAccess.open(OUTPUT_DIRECTORY.path_join("unrelated.wav"), FileAccess.WRITE)
+	if file != null:
+		file.store_string("must survive bank publishing")
+		file.close()
 
 
 func _has_pcm16_wav_header(path: String) -> bool:
@@ -54,14 +67,19 @@ func _has_pcm16_wav_header(path: String) -> bool:
 
 
 func _remove_output_directory() -> void:
-	var absolute_path: String = ProjectSettings.globalize_path(OUTPUT_DIRECTORY)
-	if not DirAccess.dir_exists_absolute(absolute_path):
-		return
-	var directory: DirAccess = DirAccess.open(OUTPUT_DIRECTORY)
-	if directory != null:
-		for file_name: String in directory.get_files():
-			directory.remove(file_name)
-	DirAccess.remove_absolute(absolute_path)
+	for directory_path: String in [
+		OUTPUT_DIRECTORY,
+		"%s.__staging" % OUTPUT_DIRECTORY,
+		"%s.__backup" % OUTPUT_DIRECTORY,
+	]:
+		var absolute_path: String = ProjectSettings.globalize_path(directory_path)
+		if not DirAccess.dir_exists_absolute(absolute_path):
+			continue
+		var directory: DirAccess = DirAccess.open(directory_path)
+		if directory != null:
+			for file_name: String in directory.get_files():
+				directory.remove(file_name)
+		DirAccess.remove_absolute(absolute_path)
 
 
 func _expect(condition: bool, message: String) -> void:
