@@ -38,6 +38,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
+          lfs: true
 
       - name: Download and verify Godot
         shell: pwsh
