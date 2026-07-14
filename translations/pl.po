@@ -57,6 +57,9 @@ msgstr "Podgląd niedostępny"
 msgid "Napęd bezpośredni"
 msgstr "Napęd bezpośredni"
 
+msgid "DPI"
+msgstr "DPI"
+
 msgid "Wstecz"
 msgstr "Wstecz"
 
