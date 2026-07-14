@@ -5,7 +5,6 @@ const GAME_TEST_ADAPTER_SCRIPT: Script = preload("res://scripts/tests/game_test_
 const MODE_FREE: String = "free_drive"
 const MODE_RACE: String = "race"
 const TRACK_SIMPLE_OVAL: String = "simple_oval"
-const MODEL_NISSAN_370Z: String = "Nissan 370Z"
 const VARIANT_NISSAN_370Z_7AT: StringName = &"nissan_370z_7at"
 const VARIANT_NISSAN_370Z_6MT: StringName = &"nissan_370z_6mt"
 const SHORT_DRIVE_DURATION: float = 0.85
@@ -73,21 +72,31 @@ func _test_menu_back_navigation() -> void:
 	print("[SMOKE] Testing menu back navigation")
 	await _press_button_with_text(tr("Jazda swobodna"))
 	await _press_button_with_text(tr("Prosty owal"))
-	await _press_button_with_text(MODEL_NISSAN_370Z)
-	await _press_button_with_text(tr("Wstecz"))
-	_expect(_find_visible_button_with_text(_main, MODEL_NISSAN_370Z) != null, "back from variant selection returns to model selection")
+	_expect(
+		_find_visible_button_with_text(_main, tr("370Z automat")) != null,
+		"flat car browser exposes variants immediately after track selection"
+	)
 
 	await _press_button_with_text(tr("Wstecz"))
-	_expect(_find_visible_button_with_text(_main, tr("Prosty owal")) != null, "back from model selection returns to track selection")
+	_expect(
+		_find_visible_button_with_text(_main, tr("Prosty owal")) != null,
+		"back from flat car browser returns to track selection"
+	)
 
 	await _press_button_with_text(tr("Wstecz"))
-	_expect(_find_visible_button_with_text(_main, tr("Jazda swobodna")) != null, "back from track selection returns to mode selection")
-	_expect(_find_visible_button_with_text(_main, tr("Wyścig")) != null, "race mode remains visible after backing to mode selection")
+	_expect(
+		_find_visible_button_with_text(_main, tr("Jazda swobodna")) != null,
+		"back from track selection returns to mode selection"
+	)
+	_expect(
+		_find_visible_button_with_text(_main, tr("Wyścig")) != null,
+		"race mode remains visible after backing to mode selection"
+	)
 
 
 func _test_free_drive_automatic() -> void:
 	print("[SMOKE] Testing extended free drive automatic flow")
-	await _select_menu_path(tr("Jazda swobodna"), MODEL_NISSAN_370Z, tr("370Z automat"))
+	await _select_menu_path(tr("Jazda swobodna"), tr("370Z automat"))
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected")
 	_expect(_selected_track_id() == TRACK_SIMPLE_OVAL, "simple oval track is selected")
@@ -146,7 +155,7 @@ func _test_free_drive_automatic() -> void:
 
 func _test_free_drive_manual() -> void:
 	print("[SMOKE] Testing extended free drive manual flow")
-	await _select_menu_path(tr("Jazda swobodna"), MODEL_NISSAN_370Z, tr("370Z manual"))
+	await _select_menu_path(tr("Jazda swobodna"), tr("370Z manual"))
 
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode is selected for manual car")
 	_expect(_selected_car_variant_id() == VARIANT_NISSAN_370Z_6MT, "manual variant id is selected")
@@ -192,7 +201,7 @@ func _test_free_drive_manual() -> void:
 
 func _test_race_mode() -> void:
 	print("[SMOKE] Testing extended race flow")
-	await _select_menu_path(tr("Wyścig"), MODEL_NISSAN_370Z, tr("370Z automat"))
+	await _select_menu_path(tr("Wyścig"), tr("370Z automat"))
 
 	_expect(_selected_mode_id() == MODE_RACE, "race mode is selected")
 	_expect(_selected_car_variant_id() == VARIANT_NISSAN_370Z_7AT, "race automatic variant id is selected")
@@ -236,7 +245,7 @@ func _test_race_mode() -> void:
 
 func _test_post_race_free_drive_reentry() -> void:
 	print("[SMOKE] Testing post-race free-drive reentry")
-	await _select_menu_path(tr("Jazda swobodna"), MODEL_NISSAN_370Z, tr("370Z automat"))
+	await _select_menu_path(tr("Jazda swobodna"), tr("370Z automat"))
 	_expect(_selected_mode_id() == MODE_FREE, "free-drive mode can be selected again after race cleanup")
 	_expect(_current_car() != null, "player car respawns after race cleanup")
 	var car_after_reentry: PlayerCarController = _current_car()
@@ -244,11 +253,11 @@ func _test_post_race_free_drive_reentry() -> void:
 		await _expect_car_accelerates_for(car_after_reentry, SHORT_DRIVE_DURATION, "car accelerates after post-race free-drive reentry")
 
 
-func _select_menu_path(mode_label: String, model_label: String, car_label: String) -> void:
+func _select_menu_path(mode_label: String, car_label: String) -> void:
 	await _press_button_with_text(mode_label)
 	await _press_button_with_text(tr("Prosty owal"))
-	await _press_button_with_text(model_label)
 	await _press_button_with_text(car_label)
+	await _press_button_with_text(tr("Wybierz"))
 	await _frames(8)
 
 
