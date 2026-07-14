@@ -2,12 +2,12 @@ extends CarVisualController
 class_name PolonezCaroMr93VisualController
 
 const TARGET_BODY_LENGTH: float = 4.318
-
-var _wheel_debug_emitted: bool = false
+const DETAILED_ROOT_PATH: NodePath = ^"SketchfabModel"
+const LOW_DETAIL_ROOT_PATH: NodePath = ^"LowDetail"
 
 
 func _ready() -> void:
-	_resolve_visual_roots()
+	_resolve_polonez_visual_roots()
 	_normalize_detailed_model()
 	super._ready()
 	_configure_wheel_visuals()
@@ -15,16 +15,6 @@ func _ready() -> void:
 
 func get_registered_wheel_count() -> int:
 	_configure_wheel_visuals()
-	if _low_detail_wheel_nodes.size() != 4 and not _wheel_debug_emitted:
-		_wheel_debug_emitted = true
-		print(
-			"[POLONEZ_WHEEL_DEBUG] root=%s low_detail_root=%s count=%d\n%s" % [
-				name,
-				str(_low_detail_root),
-				_low_detail_wheel_nodes.size(),
-				get_tree_string_pretty(),
-			]
-		)
 	return _low_detail_wheel_nodes.size()
 
 
@@ -43,12 +33,17 @@ func update_vehicle_visuals(
 	)
 
 
+func _resolve_polonez_visual_roots() -> void:
+	_detailed_root = get_node_or_null(DETAILED_ROOT_PATH) as Node3D
+	_low_detail_root = get_node_or_null(LOW_DETAIL_ROOT_PATH) as Node3D
+
+
 func _configure_wheel_visuals() -> void:
 	if not is_inside_tree():
 		return
 	if _wheel_visuals_configured and _low_detail_wheel_nodes.size() == 4:
 		return
-	_resolve_visual_roots()
+	_resolve_polonez_visual_roots()
 	# The imported Sketchfab hierarchy is not a stable wheel-animation contract.
 	# Preserve its authored hierarchy and animate the explicit low-detail wheels.
 	_collect_low_detail_wheel_nodes()
