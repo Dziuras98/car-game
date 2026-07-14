@@ -3,6 +3,8 @@ class_name PolonezCaroMr93VisualController
 
 const TARGET_BODY_LENGTH: float = 4.318
 
+var _wheel_debug_emitted: bool = false
+
 
 func _ready() -> void:
 	_resolve_visual_roots()
@@ -13,6 +15,16 @@ func _ready() -> void:
 
 func get_registered_wheel_count() -> int:
 	_configure_wheel_visuals()
+	if _low_detail_wheel_nodes.size() != 4 and not _wheel_debug_emitted:
+		_wheel_debug_emitted = true
+		print(
+			"[POLONEZ_WHEEL_DEBUG] root=%s low_detail_root=%s count=%d\n%s" % [
+				name,
+				str(_low_detail_root),
+				_low_detail_wheel_nodes.size(),
+				get_tree_string_pretty(),
+			]
+		)
 	return _low_detail_wheel_nodes.size()
 
 
