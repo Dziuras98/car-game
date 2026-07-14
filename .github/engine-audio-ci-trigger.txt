@@ -1,1 +1,0 @@
-Run the complete verification after fixing the VQ shutdown gate and sample-rate helper fast path.
