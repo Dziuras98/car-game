@@ -150,7 +150,7 @@ The current candidate defaults are:
 | 1.6 GLE | 3.90 | selected table default; 4.10/4.30 alternatives retained only as evidence |
 | 1.6 GLI | 3.90 | selected table default; 4.10/4.30 alternatives retained only as evidence |
 | 1.9 GLD | 3.72 | forum mapping; exact 3.727 possibility retained |
-| 2.0 GLE Ford | 3.64 | copied with the matched Sierra/Merkur Type 9 set |
+| 2.0 GLE Ford | 3.64 | copied with the matched Sierra-derived Type 9 set |
 
 The 1.6 alternatives are not expanded into extra playable variants until a
 parts catalog, build sheet or owner manual maps them to specific engine codes,
