@@ -26,6 +26,8 @@ func _test_variant(variant: CarVariantDefinition) -> void:
 		_expect(expected_gear_count in transmission_label, "%s transmission label reflects the configured gear count" % str(variant.variant_id))
 	if variant.specs.is_manual_transmission():
 		_expect("manual" in transmission_label.to_lower(), "%s manual enum produces a manual label" % str(variant.variant_id))
+	elif variant.specs.is_smg_transmission():
+		_expect("smg" in transmission_label.to_lower(), "%s SMG subtype produces an SMG label" % str(variant.variant_id))
 	elif variant.specs.is_automatic_transmission():
 		_expect("automatic" in transmission_label.to_lower(), "%s automatic enum produces an automatic label" % str(variant.variant_id))
 

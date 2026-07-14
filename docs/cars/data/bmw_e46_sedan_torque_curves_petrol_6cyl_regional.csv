@@ -1,0 +1,53 @@
+engine_key,engine_code,rpm,torque_nm,power_kw,point_class,reconstruction_confidence,note
+m54_b25_us_137,M54B25 US,700,123.2,9,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,1000,144.6,15.1,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,1500,173,27.2,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,2000,199.1,41.7,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,2500,218,57.1,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,3000,229.9,72.2,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,3500,237,86.9,published_anchor,low,maximum torque anchor
+m54_b25_us_137,M54B25 US,4000,235.8,98.8,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,4500,232.3,109.4,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,5000,225.1,117.9,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,6000,218,137,published_anchor,low,maximum power anchor converted to torque
+m54_b25_us_137,M54B25 US,6500,187.2,127.4,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b25_us_137,M54B25 US,6700,146,102.4,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,700,121.7,8.9,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,1000,142.7,14.9,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,1500,170.8,26.8,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,2000,196.6,41.2,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,2500,215.3,56.4,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,3000,227,71.3,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,3500,234,85.8,published_anchor,low,maximum torque anchor
+m56_b25_sulev_135,M56B25 SULEV,4000,232.8,97.5,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,4500,229.3,108.1,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,5000,222.3,116.4,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,6000,214.9,135,published_anchor,low,maximum power anchor converted to torque
+m56_b25_sulev_135,M56B25 SULEV,6500,184.4,125.5,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m56_b25_sulev_135,M56B25 SULEV,6700,143.9,100.9,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,700,150.8,11.1,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,1000,176.9,18.5,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,1500,211.7,33.3,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,2000,243.6,51,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,2500,266.8,69.8,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,3000,281.3,88.4,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,3500,290,106.3,published_anchor,low,maximum torque anchor
+m54_b30_us_168,M54B30 US,4000,288.6,120.9,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,4500,284.2,133.9,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,5000,275.5,144.3,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,5900,271.9,168,published_anchor,low,maximum power anchor converted to torque
+m54_b30_us_168,M54B30 US,6500,229.5,156.2,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_us_168,M54B30 US,6700,179,125.6,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,700,156.5,11.5,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,1000,183.6,19.2,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,1500,219.7,34.5,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,2000,252.8,53,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,2500,276.9,72.5,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,3000,292,91.7,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,3500,301,110.3,published_anchor,low,maximum torque anchor
+m54_b30_zhp_175,M54B30 ZHP/ZAM,4000,299.5,125.5,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,4500,295,139,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,5000,285.9,149.7,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,5900,283.2,175,published_anchor,low,maximum power anchor converted to torque
+m54_b30_zhp_175,M54B30 ZHP/ZAM,6800,235.9,168,reconstructed,low,shape reconstructed from engine family and adjacent anchors
+m54_b30_zhp_175,M54B30 ZHP/ZAM,7000,184,134.9,reconstructed,low,shape reconstructed from engine family and adjacent anchors

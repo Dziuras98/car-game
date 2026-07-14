@@ -1,8 +1,23 @@
 # Third-Party Names and Assets
 
-This project is unofficial and is not sponsored, endorsed by or affiliated with Nissan Motor Co., Ltd., Fiat S.p.A./Stellantis, Ford Motor Company, Shelby American, Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher, studio or asset author named below.
+This project is unofficial and is not sponsored, endorsed by or affiliated with BMW AG, Nissan Motor Co., Ltd., Fiat S.p.A./Stellantis, Ford Motor Company, Shelby American, Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher, studio or asset author named below.
 
-Names such as "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "Need for Speed" and "Real Racing" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
+Names such as "BMW", "3 Series", "E46", "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "Need for Speed" and "Real Racing" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
+
+## Sketchfab BMW E46 visual model
+
+The following third-party GLB is included under the uploader's stated **Creative Commons Attribution 4.0 International** license and is expressly excluded from the repository's root `LICENSE`.
+
+### Low Poly Car - BMW E46 1998
+
+- author: ROH3D (`roh3d`);
+- source: https://sketchfab.com/3d-models/low-poly-car-bmw-e46-1998-d9bfd8126e754164b48ded833c017bbf;
+- included GLB: `assets/third_party/sketchfab/bmw_e46_1998/low_poly_car_bmw_e46_1998.glb`;
+- uploader-stated license: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/;
+- source publication date shown by Sketchfab: May 25, 2025;
+- project use: shared detailed visual body for the non-M BMW E46 sedan variants.
+
+The game adds Godot wrapper scenes, collision volumes, screen-visibility LOD, low-detail fallback geometry, drivetrain configuration and procedural audio. These integration changes do not transfer authorship of the underlying model. Redistributed copies or builds containing the GLB must credit ROH3D, link the source page and CC BY 4.0 license, and identify that the model was integrated and adapted for Godot runtime use.
 
 ## Sketchfab Nissan 370Z visual models
 

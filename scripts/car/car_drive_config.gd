@@ -1,7 +1,6 @@
 extends RefCounted
 class_name CarDriveConfig
 
-
 var brake_deceleration: float = 34.0
 var reverse_acceleration: float = 12.0
 var coast_deceleration: float = 5.0
@@ -46,6 +45,14 @@ var torque_converter_stall_rpm: float = 2600.0
 var torque_converter_coupling_rpm: float = 4200.0
 var torque_converter_stall_torque_multiplier: float = 1.65
 
+var smg_enabled: bool = false
+var smg_auto_mode: bool = true
+var smg_shift_delay: float = 0.22
+var smg_launch_full_speed: float = 4.0
+var smg_upshift_rpm: float = 6100.0
+var smg_downshift_rpm: float = 1800.0
+var smg_clutch_reengage_point: float = 0.48
+
 var cvt_max_ratio: float = 2.50
 var cvt_target_rpm_min: float = 1800.0
 var cvt_target_rpm_max: float = 5500.0
@@ -87,30 +94,29 @@ var suspension_damping: float = 5.0
 var ground_probe_collision_mask: int = 1
 var minimum_ground_normal_dot: float = 0.35
 
-
 func is_manual_transmission() -> bool:
 	return transmission_type == CarSpecs.TransmissionType.MANUAL
-
 
 func is_automatic_transmission() -> bool:
 	return transmission_type == CarSpecs.TransmissionType.AUTOMATIC
 
+func is_smg_transmission() -> bool:
+	return is_automatic_transmission() and smg_enabled
+
+func is_torque_converter_automatic() -> bool:
+	return is_automatic_transmission() and not smg_enabled
 
 func is_cvt_transmission() -> bool:
 	return transmission_type == CarSpecs.TransmissionType.CVT
 
-
 func is_self_shifting_transmission() -> bool:
 	return is_automatic_transmission() or is_cvt_transmission()
-
 
 func uses_discrete_gears() -> bool:
 	return is_manual_transmission() or is_automatic_transmission()
 
-
 func uses_geared_transmission() -> bool:
 	return uses_discrete_gears() or is_cvt_transmission()
-
 
 func duplicate_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
@@ -127,7 +133,6 @@ func duplicate_config() -> CarDriveConfig:
 		config.set(property_name, value)
 	config.sanitize()
 	return config
-
 
 func sanitize() -> void:
 	max_forward_speed = maxf(max_forward_speed, 0.1)
@@ -159,7 +164,14 @@ func sanitize() -> void:
 	cvt_ratio_response = maxf(cvt_ratio_response, 0.01)
 	cvt_clutch_engagement_rpm = maxf(cvt_clutch_engagement_rpm, idle_rpm)
 	cvt_clutch_full_rpm = maxf(cvt_clutch_full_rpm, cvt_clutch_engagement_rpm + 1.0)
+	smg_shift_delay = maxf(smg_shift_delay, 0.01)
+	smg_launch_full_speed = maxf(smg_launch_full_speed, 0.25)
+	smg_upshift_rpm = clampf(smg_upshift_rpm, idle_rpm + 1.0, redline_rpm)
+	smg_downshift_rpm = clampf(smg_downshift_rpm, idle_rpm, smg_upshift_rpm - 1.0)
+	smg_clutch_reengage_point = clampf(smg_clutch_reengage_point, 0.05, 0.95)
 	if transmission_type < CarSpecs.TransmissionType.DIRECT_DRIVE or transmission_type > CarSpecs.TransmissionType.CVT:
 		transmission_type = CarSpecs.TransmissionType.DIRECT_DRIVE
+	if smg_enabled and not is_automatic_transmission():
+		smg_enabled = false
 	if uses_discrete_gears() and gear_ratios.is_empty():
 		gear_ratios = [1.0]
