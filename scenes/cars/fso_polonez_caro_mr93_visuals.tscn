@@ -1,8 +1,38 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/polonez_caro_mr93_visual_controller.gd" id="1_controller"]
 [ext_resource type="PackedScene" path="res://1993_fso_polonez_caro_mr93_lp_new.glb" id="2_model"]
-[ext_resource type="PackedScene" path="res://scenes/cars/fso_polonez_caro_mr93_low_detail_visuals.tscn" id="3_low"]
+
+[sub_resource type="StandardMaterial3D" id="BodyMaterial"]
+albedo_color = Color(0.63, 0.12, 0.085, 1)
+metallic = 0.10
+roughness = 0.48
+
+[sub_resource type="StandardMaterial3D" id="GlassMaterial"]
+albedo_color = Color(0.025, 0.045, 0.060, 1)
+metallic = 0.02
+roughness = 0.18
+
+[sub_resource type="StandardMaterial3D" id="TrimMaterial"]
+albedo_color = Color(0.035, 0.035, 0.038, 1)
+metallic = 0.02
+roughness = 0.78
+
+[sub_resource type="BoxMesh" id="BodyMesh"]
+material = SubResource("BodyMaterial")
+size = Vector3(1.65, 0.64, 4.318)
+
+[sub_resource type="BoxMesh" id="CabinMesh"]
+material = SubResource("GlassMaterial")
+size = Vector3(1.45, 0.70, 2.02)
+
+[sub_resource type="CylinderMesh" id="WheelMesh"]
+material = SubResource("TrimMaterial")
+top_radius = 0.298
+bottom_radius = 0.298
+height = 0.165
+radial_segments = 14
+rings = 1
 
 [node name="FsoPolonezCaroMr93Visuals" type="Node3D"]
 script = ExtResource("1_controller")
@@ -13,5 +43,47 @@ visual_wheel_radius = 0.298
 
 [node name="SketchfabModel" parent="." instance=ExtResource("2_model")]
 
-[node name="LowDetail" parent="." instance=ExtResource("3_low")]
+[node name="LowDetail" type="Node3D" parent="."]
 visible = false
+
+[node name="Body" type="MeshInstance3D" parent="LowDetail"]
+position = Vector3(0, 0.57, 0)
+mesh = SubResource("BodyMesh")
+cast_shadow = 0
+
+[node name="Cabin" type="MeshInstance3D" parent="LowDetail"]
+position = Vector3(0, 1.02, 0.22)
+mesh = SubResource("CabinMesh")
+cast_shadow = 0
+
+[node name="WheelFrontLeft" type="Node3D" parent="LowDetail"]
+position = Vector3(-0.74, 0.298, -1.2545)
+
+[node name="Mesh" type="MeshInstance3D" parent="LowDetail/WheelFrontLeft"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0
+
+[node name="WheelFrontRight" type="Node3D" parent="LowDetail"]
+position = Vector3(0.74, 0.298, -1.2545)
+
+[node name="Mesh" type="MeshInstance3D" parent="LowDetail/WheelFrontRight"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0
+
+[node name="WheelRearLeft" type="Node3D" parent="LowDetail"]
+position = Vector3(-0.73, 0.298, 1.2545)
+
+[node name="Mesh" type="MeshInstance3D" parent="LowDetail/WheelRearLeft"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0
+
+[node name="WheelRearRight" type="Node3D" parent="LowDetail"]
+position = Vector3(0.73, 0.298, 1.2545)
+
+[node name="Mesh" type="MeshInstance3D" parent="LowDetail/WheelRearRight"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0
