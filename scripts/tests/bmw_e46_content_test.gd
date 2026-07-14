@@ -123,6 +123,8 @@ func _test_torque_converter_automatic_player_model() -> void:
 	var player_car := BmwE46CarController.new()
 	var apply_result: PlayerCarController.SpecsApplyResult = player_car.try_apply_car_specs(variant.specs)
 	_expect(apply_result == PlayerCarController.SpecsApplyResult.OK, "330i 5AT specs apply to the player controller")
+	root.add_child(player_car)
+	player_car.set_physics_process(false)
 	_expect(not player_car.is_manual_transmission(), "330i 5AT player runtime does not expose a manual transmission")
 	_expect(player_car.get_forward_gear_count() == 5, "330i 5AT player runtime keeps all five automatic gears")
 	player_car.free()
