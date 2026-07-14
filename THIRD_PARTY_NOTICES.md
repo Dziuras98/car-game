@@ -80,6 +80,24 @@ Until the repository records the uploader/author, exact license, required attrib
 
 This section records a documentation and rights-verification gap. It does not infer license terms from a model title, page availability or the word "free" in a filename.
 
+## AssettoWorld Suzuka circuit assets
+
+The Suzuka circuit package and the converted Godot assets derived from it are third-party materials sourced from AssettoWorld. They are not original project assets and are expressly excluded from the repository's root `LICENSE`.
+
+- asset: Suzuka circuit for Assetto Corsa;
+- source page: https://www.assettoworld.com/track/suzuka;
+- supplied archive: `ac_suzuka_v.1.0.rar`;
+- source platform named by the project owner: AssettoWorld;
+- permission basis: the project owner reports that AssettoWorld's operators stated that files supplied through their site may be used, modified and redistributed for any noncommercial purpose;
+- permitted project use: noncommercial modification, format conversion, integration and redistribution;
+- prohibited use: commercial use, monetized distribution, paid access, advertising-supported distribution, sponsorship use and commercial licensing;
+- attribution: redistributed copies must identify AssettoWorld as the source and link the source page above;
+- license boundary: the assets are provided under this source-specific noncommercial permission statement, not under CC BY, CC BY-SA or the repository's root license.
+
+The conversion to glTF/PNG, collision grouping, racing-line extraction and Godot integration do not transfer authorship of the underlying geometry, textures or source track data to this project. Project-authored scripts and configuration remain separately governed by the repository license, while the imported and converted track content remains subject to the AssettoWorld noncommercial restriction.
+
+The permission record and required notice wording are documented in `docs/suzuka_asset_permission.md`. Any downstream copy containing the Suzuka assets must preserve that file or an equivalent notice.
+
 ## Contribution policy
 
 Before committing any additional external model, texture, sound, font, logo or other asset, this file must record:
