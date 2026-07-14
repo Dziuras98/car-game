@@ -13,6 +13,10 @@ func _ready() -> void:
 	super._ready()
 
 
+func prepare_for_preview() -> void:
+	_normalize_detailed_model_scale()
+
+
 func get_detailed_model_size_m() -> Vector3:
 	_normalize_detailed_model_scale()
 	var detailed_root: Node3D = get_node_or_null(detailed_root_path) as Node3D
