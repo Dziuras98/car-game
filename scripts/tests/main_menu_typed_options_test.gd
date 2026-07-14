@@ -25,8 +25,21 @@ func _run() -> void:
 	var track_options: Array[TrackMenuOption] = [
 		TrackMenuOption.new(&"test_track", "Tor testowy", 4),
 	]
+	var test_specs := CarSpecs.new()
+	test_specs.peak_engine_torque = 420.0
+	test_specs.redline_rpm = 6500.0
+	test_specs.vehicle_mass = 1500.0
+	test_specs.max_forward_speed = 55.0
 	var variant_options: Array[CarVariantMenuOption] = [
-		CarVariantMenuOption.new(&"test_variant", "Wariant testowy"),
+		CarVariantMenuOption.new(
+			&"test_variant",
+			"Wariant testowy",
+			1000,
+			null,
+			test_specs,
+			"Silnik testowy",
+			"RWD"
+		),
 	]
 	var model_options: Array[CarModelMenuOption] = [
 		CarModelMenuOption.new(&"test_model", "Model testowy", variant_options),
@@ -63,17 +76,27 @@ func _run() -> void:
 	track_buttons[0].pressed.emit()
 	await get_tree().process_frame
 
-	var model_buttons: Array[Button] = _get_option_buttons(menu)
-	_expect(model_buttons.size() == 1 and model_buttons[0].text == "Model testowy", "model step renders typed model data")
-	model_buttons[0].pressed.emit()
-	await get_tree().process_frame
+	_expect(not _get_selection_panel(menu).visible, "flat car browser replaces the grouped model step")
+	_expect(_get_car_selection_panel(menu).visible, "car browser becomes visible after track selection")
+	var car_buttons: Array[Button] = _get_car_thumbnail_buttons(menu)
+	_expect(car_buttons.size() == 1, "all available variants are exposed in one flat thumbnail strip")
+	_expect(car_buttons[0].text == "Wariant testowy", "thumbnail preserves the variant name for accessibility and lookup")
+	_expect(car_buttons[0].has_focus(), "first car thumbnail receives keyboard/gamepad focus")
+	_expect(_get_current_model_label(menu).text == "Model testowy", "selected model is shown above the preview")
+	_expect(_get_current_variant_label(menu).text == "Wariant testowy", "selected variant is shown below the model")
+	var dpi_label: Label = car_buttons[0].get_node_or_null("Content/Footer/PerformanceIndex") as Label
+	_expect(dpi_label != null and dpi_label.text == "DPI 1000", "every thumbnail exposes its own DPI")
+	_expect(_get_engine_value(menu).text == "Silnik testowy", "left details panel exposes engine metadata")
+	_expect(_get_drivetrain_value(menu).text == "RWD", "right details panel exposes drivetrain metadata")
 
-	var variant_buttons: Array[Button] = _get_option_buttons(menu)
-	_expect(variant_buttons.size() == 1 and variant_buttons[0].text == "Wariant testowy", "variant step renders typed variant data")
-	variant_buttons[0].pressed.emit()
-	_expect(menu.is_loading_screen_visible(), "valid selection immediately opens the blocking loading screen")
-	_expect(not _get_selection_panel(menu).visible, "selection controls are hidden while loading")
+	car_buttons[0].pressed.emit()
+	await get_tree().process_frame
+	_expect(_selection_count == 0, "browsing a thumbnail does not start the session")
+	_get_choose_button(menu).pressed.emit()
+	_expect(menu.is_loading_screen_visible(), "explicit car confirmation opens the blocking loading screen")
+	_expect(not _get_car_selection_panel(menu).visible, "car browser is hidden while loading")
 	_expect(_get_loading_details(menu).text.contains("Tor testowy"), "loading screen identifies the selected track")
+	_expect(_get_loading_details(menu).text.contains("Model testowy"), "loading screen identifies the selected model")
 	_expect(_get_loading_details(menu).text.contains("Wariant testowy"), "loading screen identifies the selected car variant")
 	_expect(menu.get_loading_progress() == MainMenu.LOADING_PROGRESS_INITIAL, "loading screen begins at the explicit initial progress")
 	await get_tree().process_frame
@@ -122,8 +145,23 @@ func _get_option_buttons(menu: MainMenu) -> Array[Button]:
 	return result
 
 
+func _get_car_thumbnail_buttons(menu: MainMenu) -> Array[Button]:
+	var result: Array[Button] = []
+	var container: Node = menu.get_node(
+		"Root/CarSelectionPanelContainer/MarginContainer/VBoxContainer/ThumbnailScroll/ThumbnailStrip"
+	)
+	for child: Node in container.get_children():
+		if child is Button:
+			result.append(child as Button)
+	return result
+
+
 func _get_selection_panel(menu: MainMenu) -> PanelContainer:
 	return menu.get_node("Root/CenterContainer/PanelContainer") as PanelContainer
+
+
+func _get_car_selection_panel(menu: MainMenu) -> PanelContainer:
+	return menu.get_node("Root/CarSelectionPanelContainer") as PanelContainer
 
 
 func _get_loading_details(menu: MainMenu) -> Label:
@@ -140,6 +178,36 @@ func _get_loading_subtitle(menu: MainMenu) -> Label:
 
 func _get_subtitle(menu: MainMenu) -> Label:
 	return menu.get_node("Root/CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SubtitleLabel") as Label
+
+
+func _get_current_model_label(menu: MainMenu) -> Label:
+	return menu.get_node(
+		"Root/CarSelectionPanelContainer/MarginContainer/VBoxContainer/Header/CurrentModelLabel"
+	) as Label
+
+
+func _get_current_variant_label(menu: MainMenu) -> Label:
+	return menu.get_node(
+		"Root/CarSelectionPanelContainer/MarginContainer/VBoxContainer/Header/CurrentVariantLabel"
+	) as Label
+
+
+func _get_engine_value(menu: MainMenu) -> Label:
+	return menu.get_node(
+		"Root/CarSelectionPanelContainer/MarginContainer/VBoxContainer/Content/LeftDetails/MarginContainer/Details/EngineValue"
+	) as Label
+
+
+func _get_drivetrain_value(menu: MainMenu) -> Label:
+	return menu.get_node(
+		"Root/CarSelectionPanelContainer/MarginContainer/VBoxContainer/Content/RightDetails/MarginContainer/Details/DrivetrainValue"
+	) as Label
+
+
+func _get_choose_button(menu: MainMenu) -> Button:
+	return menu.get_node(
+		"Root/CarSelectionPanelContainer/MarginContainer/VBoxContainer/Actions/ChooseButton"
+	) as Button
 
 
 func _find_button(buttons: Array[Button], text: String) -> Button:
