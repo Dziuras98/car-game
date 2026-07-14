@@ -18,7 +18,7 @@ func _run() -> void:
 	root.add_child(main)
 	await _frames(8)
 
-	for label: String in ["Jazda swobodna", "Prosty owal", "Nissan 370Z"]:
+	for label: String in ["Jazda swobodna", "Prosty owal"]:
 		var button: Button = _find_visible_button(main, label)
 		_expect(button != null, "menu exposes %s" % label)
 		if button == null:
@@ -30,18 +30,27 @@ func _run() -> void:
 		await _frames(3)
 
 	var automatic_button: Button = _find_visible_button(main, "370Z automat")
-	_expect(automatic_button != null, "menu exposes 370Z automat")
+	_expect(automatic_button != null, "flat car browser exposes 370Z automat without a model step")
 	if automatic_button == null:
 		main.queue_free()
 		await process_frame
 		_finish()
 		return
-	var dpi_label: Label = automatic_button.get_node_or_null("PerformanceIndex") as Label
+	var dpi_label: Label = automatic_button.get_node_or_null("Content/Footer/PerformanceIndex") as Label
 	_expect(
 		dpi_label != null and dpi_label.visible and dpi_label.text.begins_with("DPI "),
-		"automatic variant button visibly exposes its DPI"
+		"automatic car thumbnail visibly exposes its DPI"
 	)
 	automatic_button.emit_signal("pressed")
+	await _frames(2)
+	var choose_button: Button = _find_visible_button(main, "Wybierz")
+	_expect(choose_button != null, "flat car browser exposes an explicit selection action")
+	if choose_button == null:
+		main.queue_free()
+		await process_frame
+		_finish()
+		return
+	choose_button.emit_signal("pressed")
 	await _frames(3)
 	await _frames(8)
 
