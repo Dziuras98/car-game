@@ -18,6 +18,10 @@ func _run() -> void:
 	_expect(localization_errors.is_empty(), "localization catalogs load for the speedometer car display test")
 	TranslationServer.set_locale("pl")
 
+	var automatic_dpi: int = CarPerformanceIndexCalculator.calculate(AUTOMATIC_SPECS)
+	var manual_dpi: int = CarPerformanceIndexCalculator.calculate(MANUAL_SPECS)
+	_expect(automatic_dpi > 0 and manual_dpi > 0, "speedometer test cars receive positive performance indices")
+
 	var speedometer: Speedometer = SPEEDOMETER_SCENE.instantiate() as Speedometer
 	root.add_child(speedometer)
 	await process_frame
@@ -29,21 +33,21 @@ func _run() -> void:
 
 	speedometer.set_target_node(automatic_car)
 	_expect(
-		speedometer.get_displayed_car_name() == "370Z automat",
-		"speedometer identifies the initially loaded automatic car"
+		speedometer.get_displayed_car_name() == "370Z automat — DPI %d" % automatic_dpi,
+		"speedometer identifies the initially loaded automatic car and its DPI"
 	)
 
 	speedometer.set_target_node(manual_car)
 	_expect(
-		speedometer.get_displayed_car_name() == "370Z manual",
-		"speedometer updates the loaded car name after the target changes"
+		speedometer.get_displayed_car_name() == "370Z manual — DPI %d" % manual_dpi,
+		"speedometer updates the loaded car name and DPI after the target changes"
 	)
 
 	TranslationServer.set_locale("en")
 	speedometer.set_target_node(automatic_car)
 	_expect(
-		speedometer.get_displayed_car_name() == "370Z automatic",
-		"loaded car name uses the active localization"
+		speedometer.get_displayed_car_name() == "370Z automatic — DPI %d" % automatic_dpi,
+		"loaded car name uses the active localization while preserving DPI"
 	)
 
 	speedometer.set_target_node(null)
