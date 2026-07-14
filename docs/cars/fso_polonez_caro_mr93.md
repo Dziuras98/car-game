@@ -101,10 +101,10 @@ This complete provisional set is attached to the FSO-family 1.4, 1.5, 1.6 and
 1.9 candidates. Exact gearbox codes, tooth counts and any Rover/XUD internal
 changes remain unresolved.
 
-## Ford 2.0 Sierra-derived gearbox
+## Ford 2.0 Sierra-derived drivetrain
 
-The Ford candidate uses a separate provisional Ford Type 9 set copied from the
-rear-wheel-drive Sierra family:
+The Ford candidate uses a separate provisional Ford Type 9 set copied from a
+rear-wheel-drive Sierra-derived application:
 
 | Gear | Ratio |
 |---:|---:|
@@ -114,25 +114,31 @@ rear-wheel-drive Sierra family:
 | IV | 1.000 |
 | V | 0.820 |
 | R | 3.660 |
+| Final drive | 3.640 |
 
-This is not the FSO gearbox with different numbers. It is represented as a
-separate Ford Type 9 reconstruction because the Polonez 2.0 used the Sierra
-engine-and-gearbox family. An original Ford/FSO document identifying the exact
-installed suffix has not yet been recovered.
+The Type 9 ratios and 3.64 final drive are retained as one matched Ford-family
+set rather than mixing the gearbox with a bridge selected from another vehicle.
+The documented donor application is the Sierra-derived Merkur XR4Ti, which has
+a different engine calibration from the naturally aspirated Polonez. The value
+is therefore a deliberate cross-application gameplay reconstruction, not proof
+that FSO used the identical differential casing or tooth count.
 
-The Polonez-specific Ford final drive remains unresolved. No new axle value was
-invented for this candidate.
+This is not the FSO gearbox with different numbers. It remains a separate Ford
+candidate because the Polonez 2.0 used the Sierra engine-and-gearbox family. An
+original Ford/FSO document identifying the exact installed gearbox suffix and
+axle hardware has not yet been recovered.
 
 ## Final-drive application map
 
-The bridge distribution remains unchanged:
+The selected bridge distribution is:
 
 | Ratio | Provisional application | Interpretation |
 |---:|---|---|
-| 3.72 | PSA/Citroën diesel, including 1.9 GLD | tallest common axle, lowest cruising rpm |
+| 3.64 | Ford 2.0 Type 9 reconstruction | matched Sierra/Merkur drivetrain proxy |
+| 3.72 | PSA/Citroën diesel, including 1.9 GLD | tallest common FSO axle, lowest cruising rpm |
 | 3.90 | common 1.6 passenger versions | balanced acceleration and cruising rpm |
 | 4.10 | 1.5 and some 1.6 versions | shorter gearing and stronger acceleration |
-| 4.30 | Rover 1.4 16V and some 1.6 versions | shortest common production axle |
+| 4.30 | Rover 1.4 16V and some 1.6 versions | shortest common FSO production axle |
 
 The current candidate defaults are:
 
@@ -144,7 +150,7 @@ The current candidate defaults are:
 | 1.6 GLE | 3.90 | selected table default; 4.10/4.30 alternatives retained only as evidence |
 | 1.6 GLI | 3.90 | selected table default; 4.10/4.30 alternatives retained only as evidence |
 | 1.9 GLD | 3.72 | forum mapping; exact 3.727 possibility retained |
-| 2.0 GLE Ford | unresolved | no bridge value added |
+| 2.0 GLE Ford | 3.64 | copied with the matched Sierra/Merkur Type 9 set |
 
 The 1.6 alternatives are not expanded into extra playable variants until a
 parts catalog, build sheet or owner manual maps them to specific engine codes,
@@ -152,7 +158,7 @@ trims or production periods.
 
 ## Evidence boundary
 
-Independent cross-generation evidence supports the existence of the axle
+Independent cross-generation evidence supports the existence of the FSO axle
 families:
 
 - the older Polonez 2.0 D Turbo VM is reported with a 3.727 axle;
@@ -160,20 +166,20 @@ families:
 - its van counterpart used 4.30;
 - the older Polonez 1500 X is reported with 4.30.
 
-These comparisons support the available hardware families but do not replace
-MR'93-specific tooth-count or build-date evidence.
+The Ford 3.64 value belongs to a separate cross-application reconstruction and
+is not evidence for an FSO-family bridge.
 
-The ordinary FSO ratio set, estimated reverse and axle map are usable for a
-clearly labeled provisional gameplay model. They must not be described as
-manufacturer-verified until matched to service documentation or measured
-factory hardware.
+The ordinary FSO ratio set, estimated reverse, axle map and complete Ford proxy
+are usable for clearly labeled provisional gameplay models. They must not be
+described as manufacturer-verified Polonez specifications until matched to
+service documentation or measured factory hardware.
 
 ## Remaining uncertainty
 
 - exact FSO gearbox codes and tooth-count mapping;
 - whether Rover and XUD installations retained every internal ratio;
 - exact 1.6 assignment of 3.90, 4.10 and 4.30;
-- exact Ford Type 9 suffix and Polonez final drive;
+- exact Ford Type 9 suffix and whether the Polonez used the same 3.64 tooth count;
 - month-level production windows and market differences.
 
 ## Suggested implementation order
@@ -182,7 +188,7 @@ factory hardware.
 2. `caro_mr93_14_gli_16v_5mt` with axle 4.30;
 3. `caro_mr93_19_gld_5mt` with axle 3.72;
 4. the 1.5 variants with axle 4.10;
-5. `caro_mr93_20_gle_ford_5mt` using Type 9 ratios and no invented axle;
+5. `caro_mr93_20_gle_ford_5mt` using Type 9 ratios and axle 3.64;
 6. alternate 1.6 final-drive variants only after application mapping.
 
 Each playable variant also requires mass, tire package, torque curve, redline,
@@ -194,5 +200,5 @@ braking target and longitudinal/lateral handling calibration.
 2. MR'91/MR'93 and Caro Plus workshop or owner manuals;
 3. FSO gearbox and rear-axle parts catalogs with tooth counts;
 4. original Ford Sierra workshop data tied to the exact Type 9 suffix;
-5. Ford/FSO parts records for the Polonez 2.0 final drive;
+5. Ford/FSO parts records confirming the Polonez 2.0 differential tooth count;
 6. original forum threads behind the provisional ratio and axle map.
