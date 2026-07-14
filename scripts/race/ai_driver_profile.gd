@@ -14,7 +14,10 @@ var stuck_detection_seconds: float = 1.5
 var recovery_stop_speed_kmh: float = 1.0
 var reverse_engage_timeout_seconds: float = 1.5
 var reverse_recovery_distance: float = 3.0
-var reverse_recovery_seconds: float = 2.5
+# The timer starts after reverse is confirmed. A 4.5-second bound preserves the
+# required clearance distance while allowing heavier, lower-powered manual cars
+# to engage the clutch and build reverse speed without faulting the whole race.
+var reverse_recovery_seconds: float = 4.5
 
 
 func duplicate_profile() -> AiDriverProfile:
