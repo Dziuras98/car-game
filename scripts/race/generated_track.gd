@@ -27,6 +27,7 @@ var _decoration_builder: TrackDecorationBuilder
 var _checkpoint_builder: TrackCheckpointBuilder
 var _geometry: TrackGeometryData
 var _checkpoint_gates: Array[TrackCheckpointGate] = []
+var _committed_track_layout: TrackLayoutResource
 var _rebuild_pending: bool = false
 var _runtime_rebuild_locked: bool = false
 var _queued_rebuild_while_locked: bool = false
@@ -118,6 +119,7 @@ func _rebuild_track(force: bool = false) -> bool:
 
 	_geometry = next_geometry
 	_checkpoint_gates = next_checkpoint_gates
+	_committed_track_layout = track_layout.duplicate(true) as TrackLayoutResource
 	_last_generation_signature = generation_signature
 	_has_generation_signature = true
 	_has_committed_generation = true
@@ -131,11 +133,11 @@ func get_racing_line_points() -> Array[Vector3]:
 
 
 func get_track_layout() -> TrackLayoutResource:
-	return track_layout
+	return _committed_track_layout
 
 
 func get_checkpoint_count() -> int:
-	return track_layout.get_checkpoint_count() if track_layout != null else 0
+	return _committed_track_layout.get_checkpoint_count() if _committed_track_layout != null else 0
 
 
 func get_geometry_revision() -> int:
