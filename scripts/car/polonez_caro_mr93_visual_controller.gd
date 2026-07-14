@@ -2,12 +2,12 @@ extends CarVisualController
 class_name PolonezCaroMr93VisualController
 
 const TARGET_BODY_LENGTH: float = 4.318
-const DETAILED_ROOT_PATH: NodePath = ^"SketchfabModel"
-const LOW_DETAIL_ROOT_PATH: NodePath = ^"LowDetail"
+const DETAILED_ROOT_NAME: StringName = &"SketchfabModel"
+const LOW_DETAIL_ROOT_NAME: StringName = &"LowDetail"
 
 
 func _ready() -> void:
-	_resolve_polonez_visual_roots()
+	_resolve_visual_roots()
 	_normalize_detailed_model()
 	super._ready()
 	_configure_wheel_visuals()
@@ -33,32 +33,30 @@ func update_vehicle_visuals(
 	)
 
 
-func _resolve_polonez_visual_roots() -> void:
-	_detailed_root = get_node_or_null(DETAILED_ROOT_PATH) as Node3D
-	_low_detail_root = get_node_or_null(LOW_DETAIL_ROOT_PATH) as Node3D
+func _resolve_visual_roots() -> void:
+	# Resolve the two wrapper-owned roots by direct child identity. This avoids
+	# inherited exported NodePath state becoming stale when the visual scene is
+	# instanced and renamed to VisualRoot by the vehicle scene.
+	_detailed_root = _find_direct_node3d(self, DETAILED_ROOT_NAME)
+	_low_detail_root = _find_direct_node3d(self, LOW_DETAIL_ROOT_NAME)
 
 
 func _configure_wheel_visuals() -> void:
-	if not is_inside_tree():
+	if _wheel_visuals_configured and _low_detail_wheel_nodes.size() == LOW_DETAIL_WHEEL_NAMES.size():
 		return
-	if _wheel_visuals_configured and _low_detail_wheel_nodes.size() == 4:
-		return
-	_resolve_polonez_visual_roots()
-	# The imported Sketchfab hierarchy is not a stable wheel-animation contract.
-	# Preserve its authored hierarchy and animate the explicit low-detail wheels.
+	_resolve_visual_roots()
 	_collect_low_detail_wheel_nodes()
-	_wheel_visuals_configured = _low_detail_wheel_nodes.size() == 4
+	_wheel_visuals_configured = _low_detail_wheel_nodes.size() == LOW_DETAIL_WHEEL_NAMES.size()
 
 
 func _collect_low_detail_wheel_nodes() -> void:
 	_low_detail_wheel_nodes.clear()
 	_low_detail_base_rotations.clear()
 	_low_detail_front_flags.clear()
-	var search_root: Node = _low_detail_root if _low_detail_root != null else self
+	if _low_detail_root == null:
+		return
 	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
-		var wheel: Node3D = _find_node3d_by_name(search_root, wheel_name)
-		if wheel == null and search_root != self:
-			wheel = _find_node3d_by_name(self, wheel_name)
+		var wheel: Node3D = _find_direct_node3d(_low_detail_root, wheel_name)
 		if wheel == null:
 			continue
 		_low_detail_wheel_nodes.append(wheel)
@@ -68,13 +66,12 @@ func _collect_low_detail_wheel_nodes() -> void:
 		)
 
 
-func _find_node3d_by_name(root: Node, target_name: StringName) -> Node3D:
-	if root.name == target_name and root is Node3D:
-		return root as Node3D
-	for child: Node in root.get_children():
-		var match_node: Node3D = _find_node3d_by_name(child, target_name)
-		if match_node != null:
-			return match_node
+func _find_direct_node3d(parent: Node, target_name: StringName) -> Node3D:
+	if parent == null:
+		return null
+	for child: Node in parent.get_children():
+		if child.name == target_name and child is Node3D:
+			return child as Node3D
 	return null
 
 
