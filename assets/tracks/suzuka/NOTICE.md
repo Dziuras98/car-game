@@ -17,4 +17,4 @@ The project owner reports that AssettoWorld's operators permitted files distribu
 
 Project-authored Godot scripts and configuration outside the source-derived asset content remain governed separately by the repository root license unless stated otherwise.
 
-See `docs/suzuka_asset_permission.md` and `THIRD_PARTY_NOTICES.md` for the complete permission record and conversion description.
+See `docs/suzuka_asset_permission.md` and `THIRD_PARTY_NOTICES.md` in the repository for the complete permission record and conversion description.

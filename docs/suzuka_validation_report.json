@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "errors": [],
+  "warnings": [],
+  "stats": {
+    "collision.gltf": {
+      "nodes": 8,
+      "meshes": 8,
+      "accessors": 16,
+      "materials": 1,
+      "bytes": 9266373
+    },
+    "visual_00.gltf": {
+      "nodes": 349,
+      "meshes": 349,
+      "accessors": 1396,
+      "materials": 108,
+      "bytes": 46367477
+    },
+    "visual_01.gltf": {
+      "nodes": 258,
+      "meshes": 258,
+      "accessors": 1032,
+      "materials": 53,
+      "bytes": 46257148
+    },
+    "visual_02.gltf": {
+      "nodes": 31,
+      "meshes": 31,
+      "accessors": 124,
+      "materials": 1,
+      "bytes": 34210525
+    },
+    "racing_line_points": 2308,
+    "texture_count": 167,
+    "total_bytes": 216576899,
+    "max_file_bytes": 46001880
+  }
+}

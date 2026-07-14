@@ -1,0 +1,1748 @@
+{
+  "kn5_version": 5,
+  "texture_count": 167,
+  "material_count": 164,
+  "visual_mesh_count": 638,
+  "skipped_marker_mesh_count": 70,
+  "visual_chunks": [
+    {
+      "stem": "visual_00",
+      "gltf_bytes": 365597,
+      "bin_bytes": 46001880,
+      "mesh_count": 349,
+      "vertex_count": 1330678,
+      "index_count": 1710033,
+      "material_count": 108,
+      "texture_count": 106
+    },
+    {
+      "stem": "visual_01",
+      "gltf_bytes": 258840,
+      "bin_bytes": 45998308,
+      "mesh_count": 258,
+      "vertex_count": 1314585,
+      "index_count": 1965723,
+      "material_count": 53,
+      "texture_count": 50
+    },
+    {
+      "stem": "visual_02",
+      "gltf_bytes": 29805,
+      "bin_bytes": 34180720,
+      "mesh_count": 31,
+      "vertex_count": 976592,
+      "index_count": 1464888,
+      "material_count": 1,
+      "texture_count": 1
+    }
+  ],
+  "collision": {
+    "stem": "collision",
+    "gltf_bytes": 5217,
+    "bin_bytes": 9261156,
+    "mesh_count": 8,
+    "vertex_count": 303479,
+    "index_count": 1404852,
+    "material_count": 1,
+    "texture_count": 0
+  },
+  "textures": [
+    {
+      "source_name": "a_tarmac_diff_a_02_d.dds",
+      "output_name": "a_tarmac_diff_a_02_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 64,
+      "alpha_max": 255,
+      "size_bytes": 722720
+    },
+    {
+      "source_name": "ac_board.dds",
+      "output_name": "ac_board.png",
+      "width": 1024,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 176797
+    },
+    {
+      "source_name": "allianz_decal_a.dds",
+      "output_name": "allianz_decal_a.png",
+      "width": 1024,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 23031
+    },
+    {
+      "source_name": "allianz_dsafe_decal_a.dds",
+      "output_name": "allianz_dsafe_decal_a.png",
+      "width": 2048,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 45601
+    },
+    {
+      "source_name": "allianz_parc_ferme_colour_d.dds",
+      "output_name": "allianz_parc_ferme_colour_d.png",
+      "width": 128,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 543
+    },
+    {
+      "source_name": "armco_white_main_a_01_d.dds",
+      "output_name": "armco_white_main_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 267979
+    },
+    {
+      "source_name": "armco_white_orange_a_01_d.dds",
+      "output_name": "armco_white_orange_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 333082
+    },
+    {
+      "source_name": "armco_white_orange_left_a_01_d.dds",
+      "output_name": "armco_white_orange_left_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 320437
+    },
+    {
+      "source_name": "armco_whitegreen_left_c_01_d.dds",
+      "output_name": "armco_whitegreen_left_c_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 309352
+    },
+    {
+      "source_name": "bah_corner_bollard_a_d.dds",
+      "output_name": "bah_corner_bollard_a_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 72144
+    },
+    {
+      "source_name": "bbgrass.dds",
+      "output_name": "bbgrass.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 415542
+    },
+    {
+      "source_name": "brake_white_100_a.dds",
+      "output_name": "brake_white_100_a.png",
+      "width": 128,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 16845
+    },
+    {
+      "source_name": "brake_white_50_a.dds",
+      "output_name": "brake_white_50_a.png",
+      "width": 128,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 17134
+    },
+    {
+      "source_name": "camera_scaffold_a_01_d.dds",
+      "output_name": "camera_scaffold_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 282424
+    },
+    {
+      "source_name": "carpet-detail.dds",
+      "output_name": "carpet-detail.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 691596
+    },
+    {
+      "source_name": "cat_landscape_d.dds",
+      "output_name": "cat_landscape_d.png",
+      "width": 2048,
+      "height": 128,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 307940
+    },
+    {
+      "source_name": "conc_bollard_filler_a_01_d.dds",
+      "output_name": "conc_bollard_filler_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 398712
+    },
+    {
+      "source_name": "concrete-detail5.dds",
+      "output_name": "concrete-detail5.png",
+      "width": 1024,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 2881532
+    },
+    {
+      "source_name": "concrete_wall_01_d.dds",
+      "output_name": "concrete_wall_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 366175
+    },
+    {
+      "source_name": "core_start_lights_a_01_d.dds",
+      "output_name": "core_start_lights_a_01_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 178816
+    },
+    {
+      "source_name": "cracks.dds",
+      "output_name": "cracks.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 536727
+    },
+    {
+      "source_name": "distance_assets_outfield_d.dds",
+      "output_name": "distance_assets_outfield_d.png",
+      "width": 1024,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 533161
+    },
+    {
+      "source_name": "distance_assets_paddock_d.dds",
+      "output_name": "distance_assets_paddock_d.png",
+      "width": 1024,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 299015
+    },
+    {
+      "source_name": "drs_white_b.dds",
+      "output_name": "drs_white_b.png",
+      "width": 256,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 41308
+    },
+    {
+      "source_name": "f1_jumbotron_logo_a_01_d.dds",
+      "output_name": "f1_jumbotron_logo_a_01_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 32943
+    },
+    {
+      "source_name": "fence_armco_base_a_01_d.dds",
+      "output_name": "fence_armco_base_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 335468
+    },
+    {
+      "source_name": "fence_barbed_main_a_mesh_01_d.dds",
+      "output_name": "fence_barbed_main_a_mesh_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 32957
+    },
+    {
+      "source_name": "fence_concrete_base_a_01_d.dds",
+      "output_name": "fence_concrete_base_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 216120
+    },
+    {
+      "source_name": "fence_construction_main_b_01_d.dds",
+      "output_name": "fence_construction_main_b_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 371902
+    },
+    {
+      "source_name": "fence_pit_railing_a_01_d.dds",
+      "output_name": "fence_pit_railing_a_01_d.png",
+      "width": 512,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 105533
+    },
+    {
+      "source_name": "fence_wire_chain_d.dds",
+      "output_name": "fence_wire_chain_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 34459
+    },
+    {
+      "source_name": "fencekit_a_01_d.dds",
+      "output_name": "fencekit_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 273101
+    },
+    {
+      "source_name": "flagsheet_01_d.dds",
+      "output_name": "flagsheet_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 271726
+    },
+    {
+      "source_name": "forklift_d_01.dds",
+      "output_name": "forklift_d_01.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 333395
+    },
+    {
+      "source_name": "garage_pit_decal_a_01_d.dds",
+      "output_name": "garage_pit_decal_a_01_d.png",
+      "width": 512,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 97216
+    },
+    {
+      "source_name": "generic_glass_a_01_d.dds",
+      "output_name": "generic_glass_a_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 116,
+      "alpha_max": 255,
+      "size_bytes": 101073
+    },
+    {
+      "source_name": "grass-08.dds",
+      "output_name": "grass-08.png",
+      "width": 1024,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 2829915
+    },
+    {
+      "source_name": "grass-detail18.dds",
+      "output_name": "grass-detail18.png",
+      "width": 1024,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 2420635
+    },
+    {
+      "source_name": "grass-detail26b.dds",
+      "output_name": "grass-detail26b.png",
+      "width": 2048,
+      "height": 2048,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 11597975
+    },
+    {
+      "source_name": "grass-mask.dds",
+      "output_name": "grass-mask.png",
+      "width": 1024,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 864574
+    },
+    {
+      "source_name": "grass.dds",
+      "output_name": "grass.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 1673
+    },
+    {
+      "source_name": "grass_var5.dds",
+      "output_name": "grass_var5.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 199,
+      "alpha_max": 255,
+      "size_bytes": 455473
+    },
+    {
+      "source_name": "grey.dds",
+      "output_name": "grey.png",
+      "width": 64,
+      "height": 64,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 196
+    },
+    {
+      "source_name": "groove01.dds",
+      "output_name": "groove01.png",
+      "width": 512,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 71,
+      "size_bytes": 12961
+    },
+    {
+      "source_name": "helicopter_a_01_d.dds",
+      "output_name": "helicopter_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 255146
+    },
+    {
+      "source_name": "hoarding_green_lrg_a_d.dds",
+      "output_name": "hoarding_green_lrg_a_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 374394
+    },
+    {
+      "source_name": "hun_cnc_gnd_wsm_a_d.dds",
+      "output_name": "hun_cnc_gnd_wsm_a_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 614651
+    },
+    {
+      "source_name": "lg_board_a.dds",
+      "output_name": "lg_board_a.png",
+      "width": 1024,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 100410
+    },
+    {
+      "source_name": "lg_marshal_light_a_01_d.dds",
+      "output_name": "lg_marshal_light_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 195462
+    },
+    {
+      "source_name": "lg_pit_exit_light_a_01_d.dds",
+      "output_name": "lg_pit_exit_light_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 233799
+    },
+    {
+      "source_name": "light_auxrace_a_01_d.dds",
+      "output_name": "light_auxrace_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 331885
+    },
+    {
+      "source_name": "mtr_prefab_podium_a_d.dds",
+      "output_name": "mtr_prefab_podium_a_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 143386
+    },
+    {
+      "source_name": "mza_grandstand_small_a_01_d.dds",
+      "output_name": "mza_grandstand_small_a_01_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 214,
+      "alpha_max": 255,
+      "size_bytes": 157927
+    },
+    {
+      "source_name": "mza_grandstand_small_a_02_d.dds",
+      "output_name": "mza_grandstand_small_a_02_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 213041
+    },
+    {
+      "source_name": "privacy_fence_a_01_d.dds",
+      "output_name": "privacy_fence_a_01_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 154447
+    },
+    {
+      "source_name": "recovery_crane_a_01_d.dds",
+      "output_name": "recovery_crane_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 289133
+    },
+    {
+      "source_name": "rolex_board_a.dds",
+      "output_name": "rolex_board_a.png",
+      "width": 1024,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 23165
+    },
+    {
+      "source_name": "rolex_clock_a_d.dds",
+      "output_name": "rolex_clock_a_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 80094
+    },
+    {
+      "source_name": "rolex_terrain_a.dds",
+      "output_name": "rolex_terrain_a.png",
+      "width": 1024,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 21563
+    },
+    {
+      "source_name": "sand-detail3.dds",
+      "output_name": "sand-detail3.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 578262
+    },
+    {
+      "source_name": "scaffolding_b_01_d.dds",
+      "output_name": "scaffolding_b_01_d.png",
+      "width": 128,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 54543
+    },
+    {
+      "source_name": "shared_sea_a_01_n.dds",
+      "output_name": "shared_sea_a_01_n.png",
+      "width": 1024,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 69,
+      "alpha_max": 191,
+      "size_bytes": 1200869
+    },
+    {
+      "source_name": "sign_60mphmarker_a_01_d.dds",
+      "output_name": "sign_60mphmarker_a_01_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 219544
+    },
+    {
+      "source_name": "sign_brakevertical_a_01_d.dds",
+      "output_name": "sign_brakevertical_a_01_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 177081
+    },
+    {
+      "source_name": "sign_verticalarrow_a_d.dds",
+      "output_name": "sign_verticalarrow_a_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 80159
+    },
+    {
+      "source_name": "speed_marker_01_d.dds",
+      "output_name": "speed_marker_01_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 165839
+    },
+    {
+      "source_name": "sponsor_board_01_d.dds",
+      "output_name": "sponsor_board_01_d.png",
+      "width": 1024,
+      "height": 1024,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 451111
+    },
+    {
+      "source_name": "sponsor_board_02_d.dds",
+      "output_name": "sponsor_board_02_d.png",
+      "width": 1024,
+      "height": 1024,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 930119
+    },
+    {
+      "source_name": "sponsor_temp_d.dds",
+      "output_name": "sponsor_temp_d.png",
+      "width": 256,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 31814
+    },
+    {
+      "source_name": "suv_safety_a_d.dds",
+      "output_name": "suv_safety_a_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 223472
+    },
+    {
+      "source_name": "suz_ad_tower_a_01_d.dds",
+      "output_name": "suz_ad_tower_a_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 103479
+    },
+    {
+      "source_name": "suz_baseball_fence_a_01_d.dds",
+      "output_name": "suz_baseball_fence_a_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 150021
+    },
+    {
+      "source_name": "suz_bnk_wall_a_d.dds",
+      "output_name": "suz_bnk_wall_a_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 455109
+    },
+    {
+      "source_name": "suz_bridge_large_a_01_1_d.dds",
+      "output_name": "suz_bridge_large_a_01_1_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 89088
+    },
+    {
+      "source_name": "suz_bridge_large_a_01_d.dds",
+      "output_name": "suz_bridge_large_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 380475
+    },
+    {
+      "source_name": "suz_brn_bank_c_d.dds",
+      "output_name": "suz_brn_bank_c_d.png",
+      "width": 128,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 133689
+    },
+    {
+      "source_name": "suz_building_brown_a_01_01_d.dds",
+      "output_name": "suz_building_brown_a_01_01_d.png",
+      "width": 256,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 6662
+    },
+    {
+      "source_name": "suz_building_brown_a_01_02_d.dds",
+      "output_name": "suz_building_brown_a_01_02_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 46547
+    },
+    {
+      "source_name": "suz_building_brown_a_01_03_d.dds",
+      "output_name": "suz_building_brown_a_01_03_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 115633
+    },
+    {
+      "source_name": "suz_building_brown_a_02_01_d.dds",
+      "output_name": "suz_building_brown_a_02_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 312895
+    },
+    {
+      "source_name": "suz_building_centerhouse_a_01_01_d.dds",
+      "output_name": "suz_building_centerhouse_a_01_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 212765
+    },
+    {
+      "source_name": "suz_building_centerhouse_a_01_02_d.dds",
+      "output_name": "suz_building_centerhouse_a_01_02_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 58053
+    },
+    {
+      "source_name": "suz_building_distance_a_01_01_d.dds",
+      "output_name": "suz_building_distance_a_01_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 27544
+    },
+    {
+      "source_name": "suz_building_fire_rescue_a_01_d.dds",
+      "output_name": "suz_building_fire_rescue_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 198607
+    },
+    {
+      "source_name": "suz_building_pit_a_01_01_d.dds",
+      "output_name": "suz_building_pit_a_01_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 212262
+    },
+    {
+      "source_name": "suz_building_pit_a_01_02_d.dds",
+      "output_name": "suz_building_pit_a_01_02_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 280118
+    },
+    {
+      "source_name": "suz_building_pit_a_01_03_d.dds",
+      "output_name": "suz_building_pit_a_01_03_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 135116
+    },
+    {
+      "source_name": "suz_building_pit_a_01_06_s.dds",
+      "output_name": "suz_building_pit_a_01_06_s.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 55759
+    },
+    {
+      "source_name": "suz_building_suzuka_club_1_d.dds",
+      "output_name": "suz_building_suzuka_club_1_d.png",
+      "width": 256,
+      "height": 128,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 10789
+    },
+    {
+      "source_name": "suz_building_suzuka_club_d.dds",
+      "output_name": "suz_building_suzuka_club_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 277355
+    },
+    {
+      "source_name": "suz_building_white_a_01_d.dds",
+      "output_name": "suz_building_white_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 244025
+    },
+    {
+      "source_name": "suz_building_white_a_06_d.dds",
+      "output_name": "suz_building_white_a_06_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 322487
+    },
+    {
+      "source_name": "suz_building_white_a_07_d.dds",
+      "output_name": "suz_building_white_a_07_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 83667
+    },
+    {
+      "source_name": "suz_building_white_a_08_01_d.dds",
+      "output_name": "suz_building_white_a_08_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 248033
+    },
+    {
+      "source_name": "suz_building_white_a_08_02_d.dds",
+      "output_name": "suz_building_white_a_08_02_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 79923
+    },
+    {
+      "source_name": "suz_building_white_a_09_01_d.dds",
+      "output_name": "suz_building_white_a_09_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 112,
+      "alpha_max": 255,
+      "size_bytes": 86558
+    },
+    {
+      "source_name": "suz_building_white_a_11_01_d.dds",
+      "output_name": "suz_building_white_a_11_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 39897
+    },
+    {
+      "source_name": "suz_building_white_a_12b_01_d.dds",
+      "output_name": "suz_building_white_a_12b_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 278743
+    },
+    {
+      "source_name": "suz_building_white_a_2_d.dds",
+      "output_name": "suz_building_white_a_2_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 250466
+    },
+    {
+      "source_name": "suz_cnc_wall_c_d.dds",
+      "output_name": "suz_cnc_wall_c_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 72271
+    },
+    {
+      "source_name": "suz_corner_marker_a_01_d.dds",
+      "output_name": "suz_corner_marker_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 257850
+    },
+    {
+      "source_name": "suz_details_c_01_d.dds",
+      "output_name": "suz_details_c_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 425118
+    },
+    {
+      "source_name": "suz_digital_tower_a_01_d.dds",
+      "output_name": "suz_digital_tower_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 283454
+    },
+    {
+      "source_name": "suz_edgestrips_b_01_d.dds",
+      "output_name": "suz_edgestrips_b_01_d.png",
+      "width": 256,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 611896
+    },
+    {
+      "source_name": "suz_ferris_wheel_a_01_d.dds",
+      "output_name": "suz_ferris_wheel_a_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 83797
+    },
+    {
+      "source_name": "suz_grandstand_large_a_01_01_d.dds",
+      "output_name": "suz_grandstand_large_a_01_01_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 123567
+    },
+    {
+      "source_name": "suz_grandstand_large_a_01_02_d.dds",
+      "output_name": "suz_grandstand_large_a_01_02_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 169067
+    },
+    {
+      "source_name": "suz_grandstand_large_a_01_03_d.dds",
+      "output_name": "suz_grandstand_large_a_01_03_d.png",
+      "width": 128,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 37540
+    },
+    {
+      "source_name": "suz_grandstand_large_a_01_04_d.dds",
+      "output_name": "suz_grandstand_large_a_01_04_d.png",
+      "width": 256,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 19879
+    },
+    {
+      "source_name": "suz_grandstand_large_a_01_05_d.dds",
+      "output_name": "suz_grandstand_large_a_01_05_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 59427
+    },
+    {
+      "source_name": "suz_grandstand_large_a_04_01_d.dds",
+      "output_name": "suz_grandstand_large_a_04_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 92923
+    },
+    {
+      "source_name": "suz_grandstand_large_a_05_01_d.dds",
+      "output_name": "suz_grandstand_large_a_05_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 370029
+    },
+    {
+      "source_name": "suz_grandstand_large_a_06_d.dds",
+      "output_name": "suz_grandstand_large_a_06_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 420337
+    },
+    {
+      "source_name": "suz_grandstand_large_a_d.dds",
+      "output_name": "suz_grandstand_large_a_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 207556
+    },
+    {
+      "source_name": "suz_grandstand_large_b_01_01_d.dds",
+      "output_name": "suz_grandstand_large_b_01_01_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 104266
+    },
+    {
+      "source_name": "suz_grandstand_large_b_01_02_d.dds",
+      "output_name": "suz_grandstand_large_b_01_02_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 220469
+    },
+    {
+      "source_name": "suz_grandstand_large_c_01_01_d.dds",
+      "output_name": "suz_grandstand_large_c_01_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 336094
+    },
+    {
+      "source_name": "suz_grandstand_large_d_01_d.dds",
+      "output_name": "suz_grandstand_large_d_01_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 214,
+      "alpha_max": 255,
+      "size_bytes": 149955
+    },
+    {
+      "source_name": "suz_grandstand_large_d_02_d.dds",
+      "output_name": "suz_grandstand_large_d_02_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 220652
+    },
+    {
+      "source_name": "suz_grandstand_med_a_01_01_d.dds",
+      "output_name": "suz_grandstand_med_a_01_01_d.png",
+      "width": 256,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 144975
+    },
+    {
+      "source_name": "suz_grandstand_med_a_02_01_d.dds",
+      "output_name": "suz_grandstand_med_a_02_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 333163
+    },
+    {
+      "source_name": "suz_grandstand_med_a_03_d .dds",
+      "output_name": "suz_grandstand_med_a_03_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 354407
+    },
+    {
+      "source_name": "suz_grandstand_med_a_06_01_d.dds",
+      "output_name": "suz_grandstand_med_a_06_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 315337
+    },
+    {
+      "source_name": "suz_grn_shape_b_d.dds",
+      "output_name": "suz_grn_shape_b_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 371856
+    },
+    {
+      "source_name": "suz_gvl_a_d.dds",
+      "output_name": "suz_gvl_a_d.png",
+      "width": 512,
+      "height": 1024,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 1192854
+    },
+    {
+      "source_name": "suz_hex_tile_a_d.dds",
+      "output_name": "suz_hex_tile_a_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 346528
+    },
+    {
+      "source_name": "suz_hex_tile_a_n.dds",
+      "output_name": "suz_hex_tile_a_n.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 472982
+    },
+    {
+      "source_name": "suz_hoarding_frame_a_01_d.dds",
+      "output_name": "suz_hoarding_frame_a_01_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 151931
+    },
+    {
+      "source_name": "suz_lamp_c_d.dds",
+      "output_name": "suz_lamp_c_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 105990
+    },
+    {
+      "source_name": "suz_lamp_pole_01_d.dds",
+      "output_name": "suz_lamp_pole_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 75612
+    },
+    {
+      "source_name": "suz_line_sf_b_d.dds",
+      "output_name": "suz_line_sf_b_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 459517
+    },
+    {
+      "source_name": "suz_line_wht_thin_a_d.dds",
+      "output_name": "suz_line_wht_thin_a_d.png",
+      "width": 128,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 180,
+      "size_bytes": 148896
+    },
+    {
+      "source_name": "suz_marshall_stand_a_01_d.dds",
+      "output_name": "suz_marshall_stand_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 161747
+    },
+    {
+      "source_name": "suz_marshall_stand_a_01_glass_d.dds",
+      "output_name": "suz_marshall_stand_a_01_glass_d.png",
+      "width": 128,
+      "height": 128,
+      "has_alpha": true,
+      "alpha_min": 127,
+      "alpha_max": 127,
+      "size_bytes": 16639
+    },
+    {
+      "source_name": "suz_marshall_stand_a_02_d.dds",
+      "output_name": "suz_marshall_stand_a_02_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 338343
+    },
+    {
+      "source_name": "suz_marshall_stand_a_04_d.dds",
+      "output_name": "suz_marshall_stand_a_04_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 339281
+    },
+    {
+      "source_name": "suz_marshall_stand_a_05_d.dds",
+      "output_name": "suz_marshall_stand_a_05_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 283966
+    },
+    {
+      "source_name": "suz_pit_wall_a_01_d.dds",
+      "output_name": "suz_pit_wall_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 324366
+    },
+    {
+      "source_name": "suz_privacy_fence_a_01_d.dds",
+      "output_name": "suz_privacy_fence_a_01_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 160187
+    },
+    {
+      "source_name": "suz_pylon_a_01_d.dds",
+      "output_name": "suz_pylon_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 462631
+    },
+    {
+      "source_name": "suz_red_post_a_d.dds",
+      "output_name": "suz_red_post_a_d.png",
+      "width": 128,
+      "height": 128,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 22768
+    },
+    {
+      "source_name": "suz_redline_a_01_d.dds",
+      "output_name": "suz_redline_a_01_d.png",
+      "width": 512,
+      "height": 128,
+      "has_alpha": true,
+      "alpha_min": 6,
+      "alpha_max": 253,
+      "size_bytes": 142480
+    },
+    {
+      "source_name": "suz_rnf_cpt_02_c_d.dds",
+      "output_name": "suz_rnf_cpt_02_c_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 432375
+    },
+    {
+      "source_name": "suz_rnf_cpt_c_d.dds",
+      "output_name": "suz_rnf_cpt_c_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 129,
+      "size_bytes": 642371
+    },
+    {
+      "source_name": "suz_rnf_cpt_end_c_d.dds",
+      "output_name": "suz_rnf_cpt_end_c_d.png",
+      "width": 512,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 193,
+      "size_bytes": 316298
+    },
+    {
+      "source_name": "suz_rnf_grn_strip_b_d.dds",
+      "output_name": "suz_rnf_grn_strip_b_d.png",
+      "width": 512,
+      "height": 1024,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 717201
+    },
+    {
+      "source_name": "suz_rum_smooth_a_d.dds",
+      "output_name": "suz_rum_smooth_a_d.png",
+      "width": 256,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 631124
+    },
+    {
+      "source_name": "suz_rum_smooth_a_n.dds",
+      "output_name": "suz_rum_smooth_a_n.png",
+      "width": 256,
+      "height": 1024,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 407809
+    },
+    {
+      "source_name": "suz_service_house_a_01_01_d.dds",
+      "output_name": "suz_service_house_a_01_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 225841
+    },
+    {
+      "source_name": "suz_service_house_a_02_01_d.dds",
+      "output_name": "suz_service_house_a_02_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 216532
+    },
+    {
+      "source_name": "suz_service_house_a_02_02_d.dds",
+      "output_name": "suz_service_house_a_02_02_d.png",
+      "width": 128,
+      "height": 128,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 31353
+    },
+    {
+      "source_name": "suz_service_house_a_03_01_d.dds",
+      "output_name": "suz_service_house_a_03_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 313877
+    },
+    {
+      "source_name": "suz_sponsor_overhang_a_d.dds",
+      "output_name": "suz_sponsor_overhang_a_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 96828
+    },
+    {
+      "source_name": "suz_start_gantry_overhang_a_01_d.dds",
+      "output_name": "suz_start_gantry_overhang_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 341299
+    },
+    {
+      "source_name": "suz_tower_a_01_01_d.dds",
+      "output_name": "suz_tower_a_01_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 257848
+    },
+    {
+      "source_name": "suz_track_lights_a_01_d.dds",
+      "output_name": "suz_track_lights_a_01_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 53775
+    },
+    {
+      "source_name": "tarmac-detail2.dds",
+      "output_name": "tarmac-detail2.png",
+      "width": 1024,
+      "height": 1024,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 2805699
+    },
+    {
+      "source_name": "tarmac-sha.dds",
+      "output_name": "tarmac-sha.png",
+      "width": 1024,
+      "height": 4096,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 10661594
+    },
+    {
+      "source_name": "tarmac-shamask2.dds",
+      "output_name": "tarmac-shamask2.png",
+      "width": 1024,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 1,
+      "alpha_max": 1,
+      "size_bytes": 5452
+    },
+    {
+      "source_name": "tower_radiomast_a_01_d.dds",
+      "output_name": "tower_radiomast_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 408785
+    },
+    {
+      "source_name": "trees.dds",
+      "output_name": "trees.png",
+      "width": 2048,
+      "height": 2048,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 6413474
+    },
+    {
+      "source_name": "tv_van_a_01_d.dds",
+      "output_name": "tv_van_a_01_d.png",
+      "width": 512,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 304685
+    },
+    {
+      "source_name": "tv_van_a_02_d.dds",
+      "output_name": "tv_van_a_02_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 165,
+      "alpha_max": 165,
+      "size_bytes": 41975
+    },
+    {
+      "source_name": "tyres_add2.dds",
+      "output_name": "tyres_add2.png",
+      "width": 1024,
+      "height": 2048,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "size_bytes": 1452738
+    },
+    {
+      "source_name": "tyrewall_red_white_green_a_01_d.dds",
+      "output_name": "tyrewall_red_white_green_a_01_d.png",
+      "width": 1024,
+      "height": 512,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 405066
+    },
+    {
+      "source_name": "ubs_terrain_a.dds",
+      "output_name": "ubs_terrain_a.png",
+      "width": 1024,
+      "height": 256,
+      "has_alpha": false,
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "size_bytes": 37868
+    },
+    {
+      "source_name": "yellow_paint_d.dds",
+      "output_name": "yellow_paint_d.png",
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "alpha_min": 0,
+      "alpha_max": 224,
+      "size_bytes": 135753
+    }
+  ],
+  "source_archive": "ac_suzuka_v.1.0.rar",
+  "source_kn5_bytes": 242348524,
+  "source_license_found": false,
+  "ai_original_point_count": 3851,
+  "ai_resampled_point_count": 2308,
+  "alignment_origin_ac": [
+    538.4804077148438,
+    1.1005984544754028,
+    -171.757568359375
+  ],
+  "alignment_rotation": [
+    [
+      -0.7467332751225912,
+      0.0,
+      0.665123609432629
+    ],
+    [
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      -0.665123609432629,
+      0.0,
+      -0.7467332751225912
+    ]
+  ]
+}
