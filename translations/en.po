@@ -150,6 +150,27 @@ msgstr "Punto D 5-speed manual"
 msgid "Punto TD 70 5MT"
 msgstr "Punto TD 70 5-speed manual"
 
+msgid "Polonez Caro 1.4 GLI 16V 5MT"
+msgstr "Polonez Caro 1.4 GLI 16V 5-speed manual"
+
+msgid "Polonez Caro 1.5 GLE 5MT"
+msgstr "Polonez Caro 1.5 GLE 5-speed manual"
+
+msgid "Polonez Caro 1.5 GLI 5MT"
+msgstr "Polonez Caro 1.5 GLI 5-speed manual"
+
+msgid "Polonez Caro 1.6 GLE 5MT"
+msgstr "Polonez Caro 1.6 GLE 5-speed manual"
+
+msgid "Polonez Caro 1.6 GLI 5MT"
+msgstr "Polonez Caro 1.6 GLI 5-speed manual"
+
+msgid "Polonez Caro 2.0 GLE Ford 5MT"
+msgstr "Polonez Caro 2.0 GLE Ford 5-speed manual"
+
+msgid "Polonez Caro 1.9 GLD 5MT"
+msgstr "Polonez Caro 1.9 GLD 5-speed manual"
+
 msgid "Pauza"
 msgstr "Paused"
 
