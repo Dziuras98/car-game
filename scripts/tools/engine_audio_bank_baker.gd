@@ -62,6 +62,8 @@ func bake(preset: EngineAudioBakePreset) -> Dictionary:
 		"idle_volume_db": float(preset.profile.get("idle_volume_db")),
 		"load_volume_db": float(preset.profile.get("load_volume_db")),
 		"output_volume_boost_db": float(preset.profile.get("output_volume_boost_db")),
+		"startup_duration": float(preset.profile.get("starter_duration")),
+		"shutdown_duration": float(preset.profile.get("shutdown_duration")),
 		"layers": layer_files,
 	}
 	var success: bool = (
@@ -95,8 +97,31 @@ func _render_loop(
 	loop_samples.resize(loop_frame_count)
 	for frame_index: int in range(loop_frame_count):
 		loop_samples[frame_index] = generated[warmup_frame_count + frame_index]
+	_rotate_to_best_seam(loop_samples)
 	_close_loop_boundary(loop_samples, preset)
 	return loop_samples
+
+
+func _rotate_to_best_seam(samples: PackedFloat32Array) -> void:
+	if samples.size() < 8:
+		return
+	var best_index: int = 1
+	var best_score: float = INF
+	for index: int in range(1, samples.size() - 1):
+		var incoming_slope: float = samples[index] - samples[index - 1]
+		var outgoing_slope: float = samples[index + 1] - samples[index]
+		var score: float = absf(incoming_slope) + absf(outgoing_slope - incoming_slope) * 0.35
+		if score < best_score:
+			best_score = score
+			best_index = index
+	if best_index <= 0:
+		return
+	var rotated := PackedFloat32Array()
+	rotated.resize(samples.size())
+	for index: int in samples.size():
+		rotated[index] = samples[(best_index + index) % samples.size()]
+	for index: int in samples.size():
+		samples[index] = rotated[index]
 
 
 func _close_loop_boundary(samples: PackedFloat32Array, preset: EngineAudioBakePreset) -> void:
@@ -107,12 +132,15 @@ func _close_loop_boundary(samples: PackedFloat32Array, preset: EngineAudioBakePr
 		2,
 		maxi(samples.size() / 4, 2)
 	)
-	var endpoint_offset: float = samples[0] - samples[samples.size() - 1]
 	for offset_index: int in range(correction_frame_count):
-		var ratio: float = float(offset_index + 1) / float(correction_frame_count)
-		var smooth_ratio: float = ratio * ratio * (3.0 - 2.0 * ratio)
+		var ratio: float = float(offset_index + 1) / float(correction_frame_count + 1)
+		var tail_weight: float = cos(ratio * PI * 0.5)
+		var head_weight: float = sin(ratio * PI * 0.5)
 		var sample_index: int = samples.size() - correction_frame_count + offset_index
-		samples[sample_index] += endpoint_offset * smooth_ratio
+		samples[sample_index] = (
+			samples[sample_index] * tail_weight
+			+ samples[offset_index] * head_weight
+		)
 
 
 func _write_pcm16_mono_wav(
@@ -175,6 +203,8 @@ func _write_bank_resource(preset: EngineAudioBakePreset, manifest: Dictionary) -
 		"idle_volume_db = %s" % float(manifest["idle_volume_db"]),
 		"load_volume_db = %s" % float(manifest["load_volume_db"]),
 		"output_volume_boost_db = %s" % float(manifest["output_volume_boost_db"]),
+		"startup_duration = %s" % float(manifest["startup_duration"]),
+		"shutdown_duration = %s" % float(manifest["shutdown_duration"]),
 		"",
 	])
 	var path: String = preset.output_directory.path_join("bank.tres")
@@ -198,12 +228,17 @@ func _remove_previous_generated_files(output_directory: String) -> void:
 	if directory == null:
 		return
 	for file_name: String in directory.get_files():
-		if (
-			file_name.ends_with(".wav")
-			or file_name == "bank.tres"
-			or file_name == "bank_manifest.json"
-		):
+		if _is_generated_bank_file(file_name):
 			directory.remove(file_name)
+
+
+func _is_generated_bank_file(file_name: String) -> bool:
+	return (
+		(file_name.begins_with("coast_") and file_name.ends_with(".wav"))
+		or (file_name.begins_with("load_") and file_name.ends_with(".wav"))
+		or file_name == "bank.tres"
+		or file_name == "bank_manifest.json"
+	)
 
 
 func _has_property(target: Object, property_name: StringName) -> bool:

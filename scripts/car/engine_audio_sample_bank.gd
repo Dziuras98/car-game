@@ -12,6 +12,8 @@ const LAYER_NAMES: Array[String] = ["coast", "load"]
 @export_range(-80.0, 12.0, 0.5) var idle_volume_db: float = -10.0
 @export_range(-80.0, 12.0, 0.5) var load_volume_db: float = 0.0
 @export_range(0.0, 16.0, 0.5) var output_volume_boost_db: float = 0.0
+@export_range(0.05, 3.0, 0.05) var startup_duration: float = 0.80
+@export_range(0.05, 3.0, 0.05) var shutdown_duration: float = 1.10
 
 var _coast_streams: Array[AudioStream] = []
 var _load_streams: Array[AudioStream] = []
@@ -137,6 +139,10 @@ func _validate_definition() -> PackedStringArray:
 	_append_volume_error(errors, "idle_volume_db", idle_volume_db)
 	_append_volume_error(errors, "load_volume_db", load_volume_db)
 	_append_volume_error(errors, "output_volume_boost_db", output_volume_boost_db)
+	if not is_finite(startup_duration) or startup_duration <= 0.0:
+		errors.append("startup_duration must be finite and positive")
+	if not is_finite(shutdown_duration) or shutdown_duration <= 0.0:
+		errors.append("shutdown_duration must be finite and positive")
 	return errors
 
 

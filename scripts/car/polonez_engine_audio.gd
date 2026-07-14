@@ -46,7 +46,6 @@ var _pnz_dc_output: float = 0.0
 
 func _ready() -> void:
 	cylinders = 4
-	force_full_runtime_generation = true
 	super._ready()
 
 
@@ -64,8 +63,8 @@ func _generate_sample() -> float:
 	var high_blend: float = _smoothstep((rpm_ratio - 0.50) / 0.42)
 
 	var white_noise: float = _rng.randf_range(-1.0, 1.0)
-	_pnz_slow_noise = lerpf(_pnz_slow_noise, white_noise, 0.014)
-	_pnz_mid_noise = lerpf(_pnz_mid_noise, white_noise, 0.105)
+	_pnz_slow_noise = lerpf(_pnz_slow_noise, white_noise, EngineAudioSynthesizer.sample_rate_invariant_alpha(0.014, sample_rate))
+	_pnz_mid_noise = lerpf(_pnz_mid_noise, white_noise, EngineAudioSynthesizer.sample_rate_invariant_alpha(0.105, sample_rate))
 	var high_noise: float = white_noise - _pnz_mid_noise
 	var differentiated_noise: float = white_noise - _pnz_previous_noise
 	_pnz_previous_noise = white_noise
@@ -76,9 +75,9 @@ func _generate_sample() -> float:
 	) * idle_irregularity * idle_blend
 	var firing_hz: float = maxf(
 		EngineAudioSynthesizer.firing_frequency_hz(rpm, 4) * (1.0 + idle_wander),
-		1.0
+		0.0
 	)
-	var crank_hz: float = maxf(rpm / 60.0, 1.0)
+	var crank_hz: float = maxf(rpm / 60.0, 0.0)
 	_pnz_phase_firing = fposmod(_pnz_phase_firing + TAU * firing_hz * delta, TAU)
 	_pnz_phase_crank = fposmod(_pnz_phase_crank + TAU * crank_hz * delta, TAU)
 	_pnz_phase_valvetrain = fposmod(_pnz_phase_valvetrain + TAU * crank_hz * 4.0 * delta, TAU)
@@ -100,11 +99,7 @@ func _generate_sample() -> float:
 	var startup_gate: float = 1.0
 	var starter_motor: float = 0.0
 	if _startup_remaining > 0.0:
-		var startup_progress: float = 1.0 - clampf(
-			_startup_remaining / maxf(starter_duration, 0.01),
-			0.0,
-			1.0
-		)
+		var startup_progress: float = _startup_progress
 		startup_gate = _smoothstep((startup_progress - 0.20) / 0.52)
 		_starter_phase = fposmod(
 			_starter_phase + TAU * (78.0 + startup_progress * 86.0) * delta,
@@ -115,20 +110,6 @@ func _generate_sample() -> float:
 			+ sin(_starter_phase * 2.0) * 0.22
 			+ _pnz_mid_noise * 0.11
 		) * sin(startup_progress * PI) * starter_motor_level
-		_startup_remaining = maxf(_startup_remaining - delta, 0.0)
-
-	var shutdown_gate: float = 1.0
-	if _shutdown_remaining > 0.0:
-		var shutdown_progress: float = 1.0 - clampf(
-			_shutdown_remaining / maxf(shutdown_duration, 0.01),
-			0.0,
-			1.0
-		)
-		shutdown_gate = 1.0 - _smoothstep(shutdown_progress)
-		_shutdown_remaining = maxf(_shutdown_remaining - delta, 0.0)
-		if _shutdown_remaining <= 0.0:
-			_engine_running = false
-	var running_gate: float = 1.0 if _engine_running or _shutdown_remaining > 0.0 else 0.0
 
 	var normalized_phase: float = fposmod(_pnz_phase_firing, TAU) / TAU
 	var spark_spike: float = exp(-normalized_phase * lerpf(13.0, 31.0, combustion_sharpness))
@@ -145,7 +126,7 @@ func _generate_sample() -> float:
 	var diesel_tail: float = exp(-normalized_phase * 6.0) * 0.30
 	var diesel_pulse: float = diesel_spike + diesel_ring - diesel_tail
 	var pulse: float = lerpf(spark_pulse, diesel_pulse, diesel_combustion)
-	pulse *= ignition_gate * startup_gate * shutdown_gate * running_gate
+	pulse *= ignition_gate * startup_gate
 	var pulse_derivative: float = pulse - _pnz_previous_pulse
 	_pnz_previous_pulse = pulse
 
@@ -252,7 +233,7 @@ func _generate_sample() -> float:
 	var crackle: float = _next_overrun_crackle(delta, white_noise) * overrun_crackle
 	var load_gain: float = lerpf(0.39 + idle_blend * 0.16, 1.10, load)
 	var rpm_gain: float = lerpf(0.58, 1.02, mid_blend)
-	var sample: float = (
+	var engine_sample: float = (
 		exhaust_body * (0.58 + exhaust_resonance * 0.98 + exhaust_boom_gain * 0.46)
 		+ exhaust_mid * (0.14 + exhaust_roughness * 0.62)
 		+ intake_tone * intake_presence * intake_bark_gain * (
@@ -263,9 +244,11 @@ func _generate_sample() -> float:
 		+ mechanical_tone * (mechanical_noise + diesel_mechanical_clatter * 0.70 + 0.15)
 		+ pulse_derivative * high_rpm_rasp * high_blend * 0.20
 		+ crackle
-	) * load_gain * rpm_gain * 0.34 + starter_motor * 0.42
+	) * load_gain * rpm_gain * 0.34
+	var sample: float = engine_sample * _engine_state_gain + starter_motor * 0.42
 
-	var dc_blocked: float = sample - _pnz_dc_input + 0.995 * _pnz_dc_output
+	var dc_decay: float = EngineAudioSynthesizer.sample_rate_invariant_decay(0.995, sample_rate)
+	var dc_blocked: float = sample - _pnz_dc_input + dc_decay * _pnz_dc_output
 	_pnz_dc_input = sample
 	_pnz_dc_output = dc_blocked
 	return tanh(dc_blocked * db_to_linear(synthesis_gain_db) * 1.10) * 0.96
@@ -314,6 +297,21 @@ func _process_polonez_resonator(
 			_pnz_mechanical_low = low
 			_pnz_mechanical_band = band
 	return band
+
+
+func _clear_audio_tail_state() -> void:
+	super._clear_audio_tail_state()
+	_pnz_previous_pulse = 0.0
+	_pnz_exhaust_low = 0.0
+	_pnz_exhaust_band = 0.0
+	_pnz_exhaust_mid_low = 0.0
+	_pnz_exhaust_mid_band = 0.0
+	_pnz_intake_low = 0.0
+	_pnz_intake_band = 0.0
+	_pnz_mechanical_low = 0.0
+	_pnz_mechanical_band = 0.0
+	_pnz_dc_input = 0.0
+	_pnz_dc_output = 0.0
 
 
 func _update_debug_state() -> void:

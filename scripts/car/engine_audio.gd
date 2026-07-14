@@ -1,6 +1,8 @@
 extends "res://scripts/car/procedural_audio_player_3d.gd"
 class_name EngineAudioSynthesizer
 
+const VQ_CYLINDER_COUNT: int = 6
+const REFERENCE_SAMPLE_RATE: float = 32000.0
 const CYLINDER_GAINS := [1.000, 0.982, 1.012, 0.991, 1.006, 0.976]
 const BANK_BALANCE := [1.000, 0.972, 1.000, 0.972, 1.000, 0.972]
 
@@ -13,6 +15,7 @@ const BANK_BALANCE := [1.000, 0.972, 1.000, 0.972, 1.000, 0.972]
 @export_range(-6.0, 12.0, 0.5) var synthesis_gain_db: float = 3.5
 @export_range(1.0, 40.0, 0.5) var rpm_smoothing: float = 14.0
 @export_range(1.0, 40.0, 0.5) var throttle_smoothing: float = 18.0
+@export_range(0.08, 0.30, 0.01) var generator_buffer_length: float = 0.15
 
 @export_category("Stock VQ37VHR character")
 @export_range(0.0, 1.0, 0.01) var exhaust_roughness: float = 0.17
@@ -99,6 +102,9 @@ var _shutdown_remaining: float = 0.0
 var _shutdown_start_rpm: float = 0.0
 var _starter_phase: float = 0.0
 var _engine_running: bool = true
+var _engine_state_gain: float = 1.0
+var _startup_progress: float = 1.0
+var _buffer_underrun_count: int = 0
 
 var _dc_previous_input: float = 0.0
 var _dc_previous_output: float = 0.0
@@ -111,10 +117,11 @@ func _ready() -> void:
 	_rng.seed = int(get_instance_id()) ^ 0x37037
 	procedural_voice_group = &"engine"
 	max_procedural_voices = mini(max_procedural_voices, 6)
+	procedural_voice_cost = 3
 
 	var generator := AudioStreamGenerator.new()
 	generator.mix_rate = maxi(mix_rate, 16000)
-	generator.buffer_length = 0.09
+	generator.buffer_length = clampf(generator_buffer_length, 0.08, 0.30)
 	stream = generator
 	unit_size = 6.0
 	max_distance = 70.0
@@ -129,8 +136,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not debug_override_enabled and _car == null:
 		return
-	if not should_generate_procedural_audio(delta):
-		return
+	var safe_delta: float = maxf(delta, 0.0)
+	_advance_engine_state(safe_delta)
 
 	var target_rpm: float = debug_rpm if debug_override_enabled else _car.get_engine_rpm()
 	var target_load: float = debug_load if debug_override_enabled else _car.get_engine_load()
@@ -152,10 +159,10 @@ func _process(delta: float) -> void:
 		_get_rev_limit_rpm()
 	)
 
-	_smoothed_rpm = lerpf(_smoothed_rpm, float(point.rpm), 1.0 - exp(-rpm_smoothing * delta))
-	_smoothed_load = lerpf(_smoothed_load, float(point.load), 1.0 - exp(-throttle_smoothing * delta))
-	_smoothed_throttle = lerpf(_smoothed_throttle, float(point.throttle), 1.0 - exp(-throttle_smoothing * delta))
-	_update_transient_envelopes(float(point.throttle), delta)
+	_smoothed_rpm = lerpf(_smoothed_rpm, float(point.rpm), 1.0 - exp(-rpm_smoothing * safe_delta))
+	_smoothed_load = lerpf(_smoothed_load, float(point.load), 1.0 - exp(-throttle_smoothing * safe_delta))
+	_smoothed_throttle = lerpf(_smoothed_throttle, float(point.throttle), 1.0 - exp(-throttle_smoothing * safe_delta))
+	_update_transient_envelopes(float(point.throttle), safe_delta)
 
 	var loudness: float = clampf(
 		_smoothed_load * 0.90
@@ -166,7 +173,8 @@ func _process(delta: float) -> void:
 		1.0
 	)
 	volume_db = lerpf(idle_volume_db, load_volume_db, loudness) + output_volume_boost_db
-	_fill_audio_buffer()
+	if should_generate_procedural_audio(safe_delta):
+		_fill_audio_buffer()
 	_update_debug_state()
 
 
@@ -183,8 +191,10 @@ func get_debug_state() -> Dictionary:
 
 func trigger_engine_start() -> void:
 	_engine_running = true
+	_engine_state_gain = 1.0
 	_shutdown_remaining = 0.0
 	_startup_remaining = maxf(starter_duration, 0.0)
+	_startup_progress = 0.0 if _startup_remaining > 0.0 else 1.0
 	_smoothed_rpm = minf(_smoothed_rpm, 230.0)
 	_smoothed_load = 0.0
 	_smoothed_throttle = 0.0
@@ -192,8 +202,13 @@ func trigger_engine_start() -> void:
 
 func trigger_engine_shutdown() -> void:
 	_startup_remaining = 0.0
+	_startup_progress = 1.0
 	_shutdown_remaining = maxf(shutdown_duration, 0.0)
 	_shutdown_start_rpm = maxf(_smoothed_rpm, _get_idle_rpm())
+	if _shutdown_remaining <= 0.0:
+		_engine_running = false
+		_engine_state_gain = 0.0
+		_clear_audio_tail_state()
 
 
 func generate_test_frames(frame_count: int, rpm: float, load: float, throttle: float) -> PackedFloat32Array:
@@ -209,6 +224,37 @@ func generate_test_frames(frame_count: int, rpm: float, load: float, throttle: f
 	for index: int in frames.size():
 		frames[index] = _generate_sample()
 	return frames
+
+
+func generate_stateful_frames(frame_count: int) -> PackedFloat32Array:
+	var frames := PackedFloat32Array()
+	frames.resize(maxi(frame_count, 0))
+	for index: int in frames.size():
+		frames[index] = _generate_sample()
+	return frames
+
+
+func advance_engine_state(delta: float) -> void:
+	_advance_engine_state(maxf(delta, 0.0))
+
+
+func get_buffer_underrun_count() -> int:
+	return _buffer_underrun_count
+
+
+static func sample_rate_invariant_alpha(alpha_at_32k: float, sample_rate: float) -> float:
+	var safe_alpha: float = clampf(alpha_at_32k, 0.0, 1.0)
+	var safe_rate: float = maxf(sample_rate, 1.0)
+	return 1.0 - pow(1.0 - safe_alpha, REFERENCE_SAMPLE_RATE / safe_rate)
+
+
+static func sample_rate_invariant_decay(decay_at_32k: float, sample_rate: float) -> float:
+	var safe_decay: float = clampf(decay_at_32k, 0.0, 1.0)
+	return pow(safe_decay, REFERENCE_SAMPLE_RATE / maxf(sample_rate, 1.0))
+
+
+static func bandlimited_frequency(frequency: float, sample_rate: float, nyquist_ratio: float = 0.42) -> float:
+	return clampf(frequency, 0.0, maxf(sample_rate, 1.0) * clampf(nyquist_ratio, 0.05, 0.49))
 
 
 static func sanitize_operating_point(
@@ -262,9 +308,40 @@ static func combustion_pulse(phase: float) -> float:
 	return pressure_spike * 1.38 - exhaust_tail * 0.35 + rarefaction * 0.17 + chamber_ring * 0.055
 
 
+func _advance_engine_state(delta: float) -> void:
+	var safe_delta: float = maxf(delta, 0.0)
+	if _startup_remaining > 0.0:
+		_startup_remaining = maxf(_startup_remaining - safe_delta, 0.0)
+		_startup_progress = 1.0 - clampf(
+			_startup_remaining / maxf(starter_duration, 0.01),
+			0.0,
+			1.0
+		)
+	else:
+		_startup_progress = 1.0
+
+	if _shutdown_remaining > 0.0:
+		_shutdown_remaining = maxf(_shutdown_remaining - safe_delta, 0.0)
+		var shutdown_progress: float = 1.0 - clampf(
+			_shutdown_remaining / maxf(shutdown_duration, 0.01),
+			0.0,
+			1.0
+		)
+		_engine_state_gain = 1.0 - _smoothstep(shutdown_progress)
+		if _shutdown_remaining <= 0.0:
+			_engine_running = false
+			_engine_state_gain = 0.0
+			_clear_audio_tail_state()
+	elif _engine_running:
+		_engine_state_gain = 1.0
+	else:
+		_engine_state_gain = 0.0
+
+
 func _fill_audio_buffer() -> void:
 	if _playback == null:
 		return
+	_buffer_underrun_count = _playback.get_skips()
 	var frames_available: int = _playback.get_frames_available()
 	for frame_index: int in frames_available:
 		var sample: float = _generate_sample()
@@ -286,19 +363,19 @@ func _generate_sample() -> float:
 	var very_high_rpm_blend: float = _smoothstep((rpm_ratio - 0.68) / 0.28)
 
 	_phase_idle_modulation = fposmod(_phase_idle_modulation + TAU * 7.2 * delta, TAU)
-	_idle_noise = lerpf(_idle_noise, _rng.randf_range(-1.0, 1.0), 0.0028)
+	_idle_noise = lerpf(_idle_noise, _rng.randf_range(-1.0, 1.0), sample_rate_invariant_alpha(0.0028, sample_rate))
 	var idle_speed_modulation: float = (
 		sin(_phase_idle_modulation) * 0.45 + _idle_noise * 0.55
 	) * idle_irregularity * idle_blend
-	var firing_frequency: float = maxf(firing_frequency_hz(rpm, cylinders) * (1.0 + idle_speed_modulation), 1.0)
-	var crank_frequency: float = maxf(rpm / 60.0, 1.0)
+	var firing_frequency: float = maxf(firing_frequency_hz(rpm, VQ_CYLINDER_COUNT) * (1.0 + idle_speed_modulation), 0.0)
+	var crank_frequency: float = maxf(rpm / 60.0, 0.0)
 	var previous_firing_phase: float = _phase_firing
 	_phase_firing = fposmod(_phase_firing + TAU * firing_frequency * delta, TAU)
 	_phase_crank = fposmod(_phase_crank + TAU * crank_frequency * delta, TAU)
 	_phase_valvetrain = fposmod(_phase_valvetrain + TAU * crank_frequency * 6.0 * delta, TAU)
 	_phase_cam_chain = fposmod(_phase_cam_chain + TAU * crank_frequency * 0.5 * delta, TAU)
 	if _phase_firing < previous_firing_phase:
-		_firing_index = (_firing_index + 1) % 6
+		_firing_index = (_firing_index + 1) % VQ_CYLINDER_COUNT
 
 	var limiter_cycle: float = maxf(limiter_period, 0.02)
 	_limiter_active = rpm >= rev_limit_rpm * 0.985 and throttle > 0.65
@@ -312,12 +389,10 @@ func _generate_sample() -> float:
 		limiter_residual_combustion
 	)
 
-	var startup_progress: float = 1.0
+	var startup_progress: float = _startup_progress
 	var startup_combustion_gate: float = 1.0
 	var starter_motor: float = 0.0
 	if _startup_remaining > 0.0:
-		var safe_starter_duration: float = maxf(starter_duration, 0.01)
-		startup_progress = 1.0 - clampf(_startup_remaining / safe_starter_duration, 0.0, 1.0)
 		startup_combustion_gate = _smoothstep((startup_progress - 0.24) / 0.46)
 		var starter_frequency: float = 115.0 + startup_progress * 95.0
 		_starter_phase = fposmod(_starter_phase + TAU * starter_frequency * delta, TAU)
@@ -328,31 +403,21 @@ func _generate_sample() -> float:
 			+ sin(_starter_phase * 3.0) * 0.07
 			+ _noise_medium * 0.09
 		) * starter_envelope * starter_motor_level
-		_startup_remaining = maxf(_startup_remaining - delta, 0.0)
 
-	var shutdown_gate: float = 1.0
-	if _shutdown_remaining > 0.0:
-		var safe_shutdown_duration: float = maxf(shutdown_duration, 0.01)
-		var shutdown_progress: float = 1.0 - clampf(_shutdown_remaining / safe_shutdown_duration, 0.0, 1.0)
-		shutdown_gate = 1.0 - _smoothstep(shutdown_progress)
-		_shutdown_remaining = maxf(_shutdown_remaining - delta, 0.0)
-		if _shutdown_remaining <= 0.0:
-			_engine_running = false
-
-	var combustion_state_gate: float = 1.0 if _engine_running or _shutdown_remaining > 0.0 else 0.0
+	var combustion_state_gate: float = 1.0
 	var cylinder_gain: float = float(CYLINDER_GAINS[_firing_index])
 	var bank_mix: float = clampf(bank_asymmetry / 0.035, 0.0, 2.0) if bank_asymmetry > 0.0 else 0.0
 	var bank_gain: float = lerpf(1.0, float(BANK_BALANCE[_firing_index]), bank_mix)
-	var pulse: float = combustion_pulse(_phase_firing) * cylinder_gain * bank_gain * ignition_gate * startup_combustion_gate * shutdown_gate * combustion_state_gate
+	var pulse: float = combustion_pulse(_phase_firing) * cylinder_gain * bank_gain * ignition_gate * startup_combustion_gate * combustion_state_gate
 	var pulse_derivative: float = pulse - _previous_combustion
 	var pulse_acceleration: float = pulse_derivative - _previous_pulse_derivative
 	_previous_combustion = pulse
 	_previous_pulse_derivative = pulse_derivative
 
 	var white_noise: float = _rng.randf_range(-1.0, 1.0)
-	_noise_slow = lerpf(_noise_slow, white_noise, 0.030)
-	_noise_medium = lerpf(_noise_medium, white_noise, 0.14)
-	_noise_fast = lerpf(_noise_fast, white_noise, 0.38)
+	_noise_slow = lerpf(_noise_slow, white_noise, sample_rate_invariant_alpha(0.030, sample_rate))
+	_noise_medium = lerpf(_noise_medium, white_noise, sample_rate_invariant_alpha(0.14, sample_rate))
+	_noise_fast = lerpf(_noise_fast, white_noise, sample_rate_invariant_alpha(0.38, sample_rate))
 	var highpassed_noise: float = white_noise - _noise_medium
 	var upper_noise: float = white_noise - _noise_fast
 	var differentiated_noise: float = white_noise - _previous_white_noise
@@ -464,15 +529,17 @@ func _generate_sample() -> float:
 	var rasp_mix: float = rasp * high_rpm_rasp * very_high_rpm_blend * (0.34 + load * 1.12)
 	var mechanical_mix: float = valvetrain * mechanical_noise * (0.24 + high_rpm_blend * 1.02)
 	var overrun_mix: float = crackle * overrun_crackle
-	var sample: float = (
+	var engine_sample: float = (
 		exhaust_mix
 		+ intake_mix
 		+ rasp_mix
 		+ mechanical_mix
 		+ overrun_mix
-	) * load_gain * rpm_gain * 0.31 + starter_motor * 0.38
+	) * load_gain * rpm_gain * 0.31
+	var sample: float = engine_sample * _engine_state_gain + starter_motor * 0.38
 
-	var dc_blocked: float = sample - _dc_previous_input + 0.996 * _dc_previous_output
+	var dc_decay: float = sample_rate_invariant_decay(0.996, sample_rate)
+	var dc_blocked: float = sample - _dc_previous_input + dc_decay * _dc_previous_output
 	_dc_previous_input = sample
 	_dc_previous_output = dc_blocked
 	var driven: float = dc_blocked * db_to_linear(synthesis_gain_db)
@@ -594,7 +661,7 @@ func _update_debug_state() -> void:
 		"rpm": _smoothed_rpm,
 		"load": _smoothed_load,
 		"throttle": _smoothed_throttle,
-		"firing_frequency_hz": firing_frequency_hz(_smoothed_rpm, cylinders),
+		"firing_frequency_hz": firing_frequency_hz(_smoothed_rpm, VQ_CYLINDER_COUNT),
 		"limiter_active": _limiter_active,
 		"overrun": _overrun_amount,
 		"induction_transient": _throttle_transient,
@@ -602,9 +669,37 @@ func _update_debug_state() -> void:
 		"startup_active": _startup_remaining > 0.0,
 		"shutdown_active": _shutdown_remaining > 0.0,
 		"engine_running": _engine_running,
+		"engine_state_gain": _engine_state_gain,
+		"buffer_underruns": _buffer_underrun_count,
 		"synthesis_gain_db": synthesis_gain_db,
 		"output_volume_boost_db": output_volume_boost_db,
 	}
+
+
+func _clear_audio_tail_state() -> void:
+	_previous_combustion = 0.0
+	_previous_pulse_derivative = 0.0
+	_bank_a_low = 0.0
+	_bank_a_band = 0.0
+	_bank_b_low = 0.0
+	_bank_b_band = 0.0
+	_exhaust_body_low = 0.0
+	_exhaust_body_band = 0.0
+	_exhaust_mid_low = 0.0
+	_exhaust_mid_band = 0.0
+	_exhaust_reflection_low = 0.0
+	_exhaust_reflection_band = 0.0
+	_intake_low = 0.0
+	_intake_band = 0.0
+	_intake_plenum_low = 0.0
+	_intake_plenum_band = 0.0
+	_rasp_low = 0.0
+	_rasp_band = 0.0
+	_mechanical_low = 0.0
+	_mechanical_band = 0.0
+	_crackle_envelope = 0.0
+	_dc_previous_input = 0.0
+	_dc_previous_output = 0.0
 
 
 func _reset_synthesis_state() -> void:
@@ -648,6 +743,9 @@ func _reset_synthesis_state() -> void:
 	_shutdown_start_rpm = 0.0
 	_starter_phase = 0.0
 	_engine_running = true
+	_engine_state_gain = 1.0
+	_startup_progress = 1.0
+	_buffer_underrun_count = 0
 	_dc_previous_input = 0.0
 	_dc_previous_output = 0.0
 

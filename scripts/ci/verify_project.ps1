@@ -8,86 +8,222 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $diagnosticDirectory = Join-Path $projectRoot "build/test-logs"
-$patcherPath = Join-Path $projectRoot "tools/apply_engine_audio_realism_patch.py"
-$originalVerifier = Join-Path $PSScriptRoot "verify_project_original.ps1"
-$packageRoot = Join-Path $env:RUNNER_TEMP "engine-audio-patched-source"
-$packagePath = Join-Path $diagnosticDirectory "engine-audio-patched-source.zip"
-$preprocessorPath = Join-Path $env:RUNNER_TEMP "prepare-engine-audio-patcher.py"
+$localizationLogPath = Join-Path $diagnosticDirectory "localization-validation.log"
+$preflightReportPath = Join-Path $projectRoot "build/verification-preflight-junit.xml"
+$junitReportPath = Join-Path $diagnosticDirectory "junit.xml"
+$mergedReportPath = Join-Path $diagnosticDirectory "junit.merged.xml"
+$preflightResults = [System.Collections.Generic.List[object]]::new()
+. (Join-Path $PSScriptRoot "junit_report.ps1")
 
 New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
+Remove-Item -LiteralPath $preflightReportPath -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $junitReportPath -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $mergedReportPath -Force -ErrorAction SilentlyContinue
 
+function Invoke-RecordedPreflightCheck {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][scriptblock]$Action
+    )
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $capturedOutput = @()
+    try {
+        $capturedOutput = @(& $Action 2>&1)
+        $stopwatch.Stop()
+        foreach ($line in $capturedOutput) {
+            Write-Host ([string]$line)
+        }
+        [void]$script:preflightResults.Add((New-JUnitTestResult `
+            -Name $Name `
+            -ClassName "repository.preflight" `
+            -DurationSeconds $stopwatch.Elapsed.TotalSeconds `
+            -Status "passed" `
+            -Output (($capturedOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+        ))
+        return $capturedOutput
+    }
+    catch {
+        $stopwatch.Stop()
+        foreach ($line in $capturedOutput) {
+            Write-Host ([string]$line)
+        }
+        $failureText = ($_ | Out-String).Trim()
+        [void]$script:preflightResults.Add((New-JUnitTestResult `
+            -Name $Name `
+            -ClassName "repository.preflight" `
+            -DurationSeconds $stopwatch.Elapsed.TotalSeconds `
+            -Status "failed" `
+            -Message $failureText `
+            -Output (($capturedOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+        ))
+        throw
+    }
+}
+
+function Invoke-LocalizationContract {
+    try {
+        $localizationOutput = @(& (Join-Path $PSScriptRoot "validate_localization.ps1") 2>&1)
+        Set-Content -LiteralPath $localizationLogPath -Value @(
+            $localizationOutput | ForEach-Object { [string]$_ }
+        ) -Encoding utf8
+        return $localizationOutput
+    }
+    catch {
+        $failureText = $_ | Out-String
+        $capturedOutput = @()
+        if (Test-Path variable:localizationOutput) {
+            $capturedOutput = @($localizationOutput | ForEach-Object { [string]$_ })
+        }
+        Set-Content -LiteralPath $localizationLogPath -Value (
+            $capturedOutput + @("", $failureText)
+        ) -Encoding utf8
+        throw
+    }
+}
+
+$verificationFailed = $false
 try {
-    if (-not (Test-Path -LiteralPath $patcherPath -PathType Leaf)) {
-        throw "Engine-audio patcher was not found: $patcherPath"
-    }
-    if (-not (Test-Path -LiteralPath $originalVerifier -PathType Leaf)) {
-        throw "Original verification entrypoint was not found: $originalVerifier"
-    }
+    Write-Host ""
+    Write-Host "=== Export output directory safety ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Export output directory safety" `
+        -Action { & (Join-Path $PSScriptRoot "test_output_directory_safety.ps1") }
 
-    @'
-from pathlib import Path
-import sys
+    Write-Host ""
+    Write-Host "=== Public repository safety validator regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Public repository safety validator regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_public_repository_safety.ps1") }
 
-path = Path(sys.argv[1])
-text = path.read_text(encoding="utf-8")
-text = text.replace(
-    '\t\tpush_warning(\n\t\t\t"EngineAudioProfile ignored',
-    '\t\tprint_verbose(\n\t\t\t"EngineAudioProfile ignored',
-)
-old = '''    replace_all(path, "pulse *= ignition_gate * startup_gate * shutdown_gate * running_gate", "pulse *= ignition_gate * startup_gate", minimum=1)
-'''
-new = '''    content = read(path)
-    direct_gate = "pulse *= ignition_gate * startup_gate * shutdown_gate * running_gate"
-    if direct_gate in content:
-        write(path, content.replace(direct_gate, "pulse *= ignition_gate * startup_gate", 1))
-    elif " * combustion_gate" in content:
-        write(path, content.replace(" * combustion_gate", " * ignition_gate * startup_gate"))
-    else:
-        raise RuntimeError(f"{path}: no supported combustion-state gate was found")
-'''
-if old not in text:
-    raise RuntimeError("Could not locate backend combustion-gate patch block")
-text = text.replace(old, new, 1)
-path.write_text(text, encoding="utf-8", newline="\n")
-'@ | Set-Content -LiteralPath $preprocessorPath -Encoding utf8
+    Write-Host ""
+    Write-Host "=== Public repository current snapshot ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Public repository current snapshot" `
+        -Action { & (Join-Path $PSScriptRoot "validate_public_repository_safety.ps1") }
 
-    & python $preprocessorPath $patcherPath
-    if ($LASTEXITCODE -ne 0) {
-        throw "Engine-audio patch preprocessor failed with exit code $LASTEXITCODE."
-    }
+    Write-Host ""
+    Write-Host "=== Git history safety validator regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Git history safety validator regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_git_history_safety.ps1") }
 
-    & python $patcherPath
-    if ($LASTEXITCODE -ne 0) {
-        throw "Engine-audio patcher failed with exit code $LASTEXITCODE."
-    }
+    Write-Host ""
+    Write-Host "=== Complete Git history safety ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Complete Git history safety" `
+        -Action { & (Join-Path $PSScriptRoot "validate_git_history_safety.ps1") }
 
-    & $originalVerifier -GodotBinary $GodotBinary
+    Write-Host ""
+    Write-Host "=== Windows platform contract regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Windows platform contract regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_windows_platform_contract.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Windows-only platform contract ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Windows-only platform contract" `
+        -Action { & (Join-Path $PSScriptRoot "validate_windows_platform_contract.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Pinned Godot checksum manifest ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Pinned Godot checksum manifest" `
+        -Action { & (Join-Path $PSScriptRoot "test_godot_checksum_manifest.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Windows export versioning ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Windows export versioning" `
+        -Action { & (Join-Path $PSScriptRoot "test_export_version.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Godot runtime log validation ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Godot runtime log validation" `
+        -Action { & (Join-Path $PSScriptRoot "test_godot_runtime_log_validation.ps1") }
+
+    Write-Host ""
+    Write-Host "=== JUnit report serialization ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "JUnit report serialization" `
+        -Action { & (Join-Path $PSScriptRoot "test_junit_report.ps1") }
+
+    Write-Host ""
+    Write-Host "=== JUnit job summary rendering ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "JUnit job summary rendering" `
+        -Action { & (Join-Path $PSScriptRoot "test_junit_step_summary.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Test script ownership regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Test script ownership regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_test_script_ownership.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Recursive test script ownership ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Recursive test script ownership" `
+        -Action { & (Join-Path $PSScriptRoot "validate_test_script_ownership.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Input action literal validation regression ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Input action literal validation regression" `
+        -Action { & (Join-Path $PSScriptRoot "test_input_action_literal_validation.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Input action contract ownership ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Input action contract ownership" `
+        -Action { & (Join-Path $PSScriptRoot "validate_input_action_literals.ps1") }
+
+    Write-Host ""
+    Write-Host "=== Localization contract ==="
+    $null = Invoke-RecordedPreflightCheck `
+        -Name "Localization contract" `
+        -Action { Invoke-LocalizationContract }
+
+    Write-JUnitReport `
+        -Results @($preflightResults) `
+        -Path $preflightReportPath `
+        -SuiteName "car-game verification preflight"
+
+    & (Join-Path $PSScriptRoot "run_tests.ps1") -GodotBinary $GodotBinary
+}
+catch {
+    $verificationFailed = $true
+    throw
 }
 finally {
-    Remove-Item -LiteralPath $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue
-    New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
+    try {
+        Write-JUnitReport `
+            -Results @($preflightResults) `
+            -Path $preflightReportPath `
+            -SuiteName "car-game verification preflight"
 
-    $modifiedPaths = @(
-        & git -C $projectRoot diff --name-only HEAD
-        & git -C $projectRoot ls-files --others --exclude-standard
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique
-
-    foreach ($relativePath in $modifiedPaths) {
-        $sourcePath = Join-Path $projectRoot $relativePath
-        if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
-            continue
+        $sourceReports = @($preflightReportPath)
+        if (Test-Path -LiteralPath $junitReportPath -PathType Leaf) {
+            $sourceReports += $junitReportPath
         }
-        $destinationPath = Join-Path $packageRoot $relativePath
-        $destinationDirectory = Split-Path -Parent $destinationPath
-        New-Item -ItemType Directory -Path $destinationDirectory -Force | Out-Null
-        Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force
+
+        Merge-JUnitReports `
+            -SourcePaths $sourceReports `
+            -Path $mergedReportPath `
+            -SuiteName "car-game complete Windows verification"
+        Move-Item -LiteralPath $mergedReportPath -Destination $junitReportPath -Force
+        Remove-Item -LiteralPath $preflightReportPath -Force -ErrorAction SilentlyContinue
+        Write-Host "Complete JUnit report: $junitReportPath"
     }
-
-    $deletedPaths = @(& git -C $projectRoot diff --name-only --diff-filter=D HEAD)
-    Set-Content -LiteralPath (Join-Path $packageRoot "deleted-files.txt") -Value $deletedPaths -Encoding utf8
-    Set-Content -LiteralPath (Join-Path $packageRoot "source-head.txt") -Value $env:GITHUB_SHA -Encoding ascii
-
-    Compress-Archive -Path (Join-Path $packageRoot "*") -DestinationPath $packagePath -CompressionLevel Optimal -Force
-    Write-Host "Patched source artifact: $packagePath"
+    catch {
+        Write-Host "Failed to finalize complete JUnit report: $($_.Exception.Message)"
+        if (-not $verificationFailed) {
+            throw
+        }
+    }
 }
+
+Write-Host ""
+Write-Host "Project verification completed successfully."
