@@ -121,7 +121,7 @@ function Get-ProductionPackPaths {
                 [void]$paths.Add($normalizedPath)
             }
 
-            return @($paths)
+            return $paths.ToArray()
         }
         finally {
             $reader.Dispose()
@@ -163,8 +163,21 @@ function Get-ProductionPackContentFailures {
     }
 
     foreach ($requiredMarker in $script:RequiredProductionPackMarkers) {
-        if (-not $pathSet.Contains($requiredMarker)) {
-            [void]$failures.Add("Production pack does not expose the required path marker: $requiredMarker")
+        $requiredCandidates = @(
+            $requiredMarker
+            "$requiredMarker.remap"
+        )
+        $requiredMarkerFound = $false
+        foreach ($candidate in $requiredCandidates) {
+            if ($pathSet.Contains($candidate)) {
+                $requiredMarkerFound = $true
+                break
+            }
+        }
+        if (-not $requiredMarkerFound) {
+            [void]$failures.Add(
+                "Production pack does not expose the required resource or remap path: $requiredMarker"
+            )
         }
     }
 
