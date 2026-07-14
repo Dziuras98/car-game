@@ -102,19 +102,29 @@ func get_transmission_label() -> String:
 func _scene_has_player_car_root(scene: PackedScene) -> bool:
 	if scene == null or not scene.can_instantiate():
 		return false
-	var root_script: Script = _get_scene_root_script(scene.get_state())
+	var root_script: Script = _get_scene_root_script(scene.get_state(), {})
 	return _script_inherits(root_script, PLAYER_CAR_CONTROLLER_SCRIPT)
 
 
-func _get_scene_root_script(scene_state: SceneState) -> Script:
-	var current_state: SceneState = scene_state
-	while current_state != null:
-		if current_state.get_node_count() > 0:
-			for property_index: int in range(current_state.get_node_property_count(0)):
-				if current_state.get_node_property_name(0, property_index) == &"script":
-					return current_state.get_node_property_value(0, property_index) as Script
-		current_state = current_state.get_base_scene_state()
-	return null
+func _get_scene_root_script(scene_state: SceneState, visited_states: Dictionary) -> Script:
+	if scene_state == null:
+		return null
+	var state_id: int = scene_state.get_instance_id()
+	if visited_states.has(state_id):
+		return null
+	visited_states[state_id] = true
+
+	if scene_state.get_node_count() > 0:
+		for property_index: int in range(scene_state.get_node_property_count(0)):
+			if scene_state.get_node_property_name(0, property_index) == &"script":
+				return scene_state.get_node_property_value(0, property_index) as Script
+		var root_instance: PackedScene = scene_state.get_node_instance(0)
+		if root_instance != null:
+			var instance_script: Script = _get_scene_root_script(root_instance.get_state(), visited_states)
+			if instance_script != null:
+				return instance_script
+
+	return _get_scene_root_script(scene_state.get_base_scene_state(), visited_states)
 
 
 func _script_inherits(script: Script, expected_base: Script) -> bool:
