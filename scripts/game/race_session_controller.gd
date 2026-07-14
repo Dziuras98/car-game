@@ -30,7 +30,9 @@ func configure(
 	race_lap_count: int,
 	opponent_count: int
 ) -> bool:
-	_configured = false
+	if _configured and _race_manager != null and _race_manager.get_state() != RaceManager.State.IDLE:
+		push_error("RaceSessionController cannot be reconfigured while a race is active.")
+		return false
 	if car_spawner == null or not car_spawner.is_configured():
 		push_error("RaceSessionController requires a configured CarSpawner.")
 		return false
@@ -57,6 +59,24 @@ func configure(
 		)
 		return false
 
+	var next_lap_tracker: LapTracker = LapTracker.new()
+	next_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
+	next_lap_tracker.runtime_contract_failed.connect(_on_lap_tracker_runtime_contract_failed)
+
+	var next_race_manager: RaceManager = RaceManager.new()
+	next_race_manager.countdown_changed.connect(_show_countdown)
+	next_race_manager.countdown_hidden.connect(hide_countdown)
+	next_race_manager.player_input_enabled_changed.connect(_set_player_input_enabled)
+	next_race_manager.ai_enabled_changed.connect(_set_ai_enabled)
+	next_race_manager.opponent_should_stop.connect(_stop_participant_car)
+	next_race_manager.race_finished.connect(_on_race_finished)
+
+	if _configured:
+		_reset_runtime_state(true)
+	var fault_callback: Callable = Callable(self, "_on_ai_driver_fault")
+	if _car_spawner != null and _car_spawner.driver_fault.is_connected(fault_callback):
+		_car_spawner.driver_fault.disconnect(fault_callback)
+
 	_car_spawner = car_spawner
 	_race_hud = race_hud
 	_track = track
@@ -64,19 +84,10 @@ func configure(
 	_race_lap_count = race_lap_count
 	_opponent_count = opponent_count
 	_runtime_fault_active = false
-
-	_lap_tracker = LapTracker.new()
-	_lap_tracker.participant_finished.connect(_on_lap_tracker_participant_finished)
-	_lap_tracker.runtime_contract_failed.connect(_on_lap_tracker_runtime_contract_failed)
-
-	_race_manager = RaceManager.new()
-	_race_manager.countdown_changed.connect(_show_countdown)
-	_race_manager.countdown_hidden.connect(hide_countdown)
-	_race_manager.player_input_enabled_changed.connect(_set_player_input_enabled)
-	_race_manager.ai_enabled_changed.connect(_set_ai_enabled)
-	_race_manager.opponent_should_stop.connect(_stop_participant_car)
-	_race_manager.race_finished.connect(_on_race_finished)
-	_car_spawner.driver_fault.connect(_on_ai_driver_fault)
+	_lap_tracker = next_lap_tracker
+	_race_manager = next_race_manager
+	if not _car_spawner.driver_fault.is_connected(fault_callback):
+		_car_spawner.driver_fault.connect(fault_callback)
 	_configured = true
 	return true
 
