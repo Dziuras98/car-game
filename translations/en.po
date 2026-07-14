@@ -27,6 +27,39 @@ msgstr "Choose car"
 msgid "Wybierz wariant"
 msgstr "Choose variant"
 
+msgid "Wybierz"
+msgstr "Select"
+
+msgid "Silnik"
+msgstr "Engine"
+
+msgid "Moment obrotowy"
+msgstr "Torque"
+
+msgid "Czerwone pole"
+msgstr "Redline"
+
+msgid "Masa"
+msgstr "Mass"
+
+msgid "Napęd"
+msgstr "Drivetrain"
+
+msgid "Skrzynia biegów"
+msgstr "Transmission"
+
+msgid "Prędkość maksymalna"
+msgstr "Top speed"
+
+msgid "Podgląd niedostępny"
+msgstr "Preview unavailable"
+
+msgid "Napęd bezpośredni"
+msgstr "Direct drive"
+
+msgid "DPI"
+msgstr "DPI"
+
 msgid "Wstecz"
 msgstr "Back"
 

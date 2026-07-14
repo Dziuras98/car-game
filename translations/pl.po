@@ -27,6 +27,39 @@ msgstr "Wybierz samochód"
 msgid "Wybierz wariant"
 msgstr "Wybierz wariant"
 
+msgid "Wybierz"
+msgstr "Wybierz"
+
+msgid "Silnik"
+msgstr "Silnik"
+
+msgid "Moment obrotowy"
+msgstr "Moment obrotowy"
+
+msgid "Czerwone pole"
+msgstr "Czerwone pole"
+
+msgid "Masa"
+msgstr "Masa"
+
+msgid "Napęd"
+msgstr "Napęd"
+
+msgid "Skrzynia biegów"
+msgstr "Skrzynia biegów"
+
+msgid "Prędkość maksymalna"
+msgstr "Prędkość maksymalna"
+
+msgid "Podgląd niedostępny"
+msgstr "Podgląd niedostępny"
+
+msgid "Napęd bezpośredni"
+msgstr "Napęd bezpośredni"
+
+msgid "DPI"
+msgstr "DPI"
+
 msgid "Wstecz"
 msgstr "Wstecz"
 
