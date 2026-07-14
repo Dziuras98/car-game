@@ -26,10 +26,11 @@ func _collect_low_detail_wheel_nodes() -> void:
 	_low_detail_wheel_nodes.clear()
 	_low_detail_base_rotations.clear()
 	_low_detail_front_flags.clear()
-	if _low_detail_root == null:
-		return
+	var search_root: Node = _low_detail_root if _low_detail_root != null else self
 	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
-		var wheel: Node3D = _find_node3d_by_name(_low_detail_root, wheel_name)
+		var wheel: Node3D = _find_node3d_by_name(search_root, wheel_name)
+		if wheel == null and search_root != self:
+			wheel = _find_node3d_by_name(self, wheel_name)
 		if wheel == null:
 			continue
 		_low_detail_wheel_nodes.append(wheel)
