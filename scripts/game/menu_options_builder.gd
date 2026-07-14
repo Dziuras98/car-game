@@ -33,9 +33,15 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 			var specs: CarSpecs = variant.get_specs()
 			if specs == null or not specs.is_valid():
 				continue
+			var performance_index: int = variant.get_performance_index()
+			if performance_index <= 0:
+				continue
 			variants.append(CarVariantMenuOption.new(
 				variant.variant_id,
-				TranslationServer.translate(variant.get_menu_name())
+				"%s — DPI %d" % [
+					TranslationServer.translate(variant.get_menu_name()),
+					performance_index,
+				]
 			))
 		if not variants.is_empty():
 			menu_models.append(CarModelMenuOption.new(
