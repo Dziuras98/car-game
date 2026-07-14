@@ -1,8 +1,8 @@
 # Third-Party Names and Assets
 
-This project is unofficial and is not sponsored, endorsed by or affiliated with BMW AG, Nissan Motor Co., Ltd., Fiat S.p.A./Stellantis, Ford Motor Company, Shelby American, Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher, studio or asset author named below.
+This project is unofficial and is not sponsored, endorsed by or affiliated with BMW AG, Nissan Motor Co., Ltd., Fiat S.p.A./Stellantis, Ford Motor Company, Shelby American, Fabryka Samochodów Osobowych, Rover Group, PSA, Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher, studio or asset author named below.
 
-Names such as "BMW", "3 Series", "E46", "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "Need for Speed" and "Real Racing" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
+Names such as "BMW", "3 Series", "E46", "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "FSO", "Polonez", "Caro", "Rover", "Pinto", "XUD", "Need for Speed" and "Real Racing" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
 
 ## Sketchfab BMW E46 visual model
 
@@ -59,11 +59,11 @@ The owner has explicitly accepted this known Nissan limitation for the current p
 
 This accepted-risk record does not claim full rights clearance. It means ordinary technical audits should not report the unchanged Nissan provenance limitation as a new remediation item unless a documented review trigger occurs.
 
-## Additional Sketchfab models with incomplete repository provenance records
+## Additional Sketchfab models with incomplete or restrictive repository provenance
 
-The repository also contains two external GLB assets whose source pages are documented in model-specific integration notes, but whose author attribution and license terms are not currently recorded in this repository.
+The repository also contains external GLB assets whose source pages are documented in model-specific integration notes, but which are not covered by the BMW or Nissan Creative Commons statements above.
 
-These entries are **not** covered by the Nissan CC BY-NC-SA statement above and are **not** recorded as accepted risks in `docs/accepted_risks.md`.
+These entries are **not** recorded as accepted risks in `docs/accepted_risks.md`.
 
 ### 1967 Ford Mustang Shelby G.T. 500
 
@@ -83,17 +83,28 @@ These entries are **not** covered by the Nissan CC BY-NC-SA statement above and 
 - license: not recorded in the repository;
 - current use: source visual model shared by the playable and AI-eligible Fiat Punto Type 176 variants.
 
-### Distribution status of incomplete records
+### 1993 FSO Polonez Caro MR'93
 
-Until the repository records the uploader/author, exact license, required attribution and any provenance limitations for each asset:
+- included GLB: `1993_fso_polonez_caro_mr93_lp_new.glb`;
+- source page: https://sketchfab.com/3d-models/1993-fso-polonez-caro-mr93-lp-new-f67c26c7db354b10b203c7e2f157467d;
+- author/uploader: Krzysztof Stolorz (`KrStolorz`);
+- displayed source license: Sketchfab **Free Standard**, not Creative Commons;
+- integration records: `docs/cars/fso_polonez_caro_mr93_runtime.md` and `docs/cars/fso_polonez_caro_mr93_asset_notice.md`;
+- current use: detailed visual body shared by seven playable and AI-eligible Polonez Caro MR'93 variants.
 
-- no contributor should describe either model as rights-cleared, freely reusable or covered by the repository's root `LICENSE`;
+Sketchfab's standard terms restrict standalone or extractable redistribution. The raw Polonez GLB is therefore not treated as cleared for public source or binary redistribution. The project needs separate written permission covering redistribution, another applicable license, or replacement/removal of the asset. Its technical integration does not broaden the underlying rights.
+
+### Distribution status of incomplete or restrictive records
+
+Until the repository records an applicable license or written permission covering each asset and its intended distribution:
+
+- no contributor should describe these models as rights-cleared, freely reusable or covered by the repository's root `LICENSE`;
 - no public binary/source redistribution should assume permission to include these files;
 - no commercialization or external distribution decision should rely on the fact that the assets were downloadable from Sketchfab;
 - the assets should be relocated into a clearly identified third-party asset directory only together with complete path updates and a verified provenance record;
 - removal or replacement remains the safe option if acceptable permission cannot be demonstrated.
 
-This section records a documentation and rights-verification gap. It does not infer license terms from a model title, page availability or the word "free" in a filename.
+This section records documentation and rights-verification gaps. It does not infer license terms from a model title, page availability or the word "free" in a filename.
 
 ## AssettoWorld Suzuka circuit assets
 
