@@ -1,6 +1,8 @@
 extends Resource
 class_name CarVariantDefinition
 
+const PLAYER_CAR_CONTROLLER_SCRIPT: Script = preload("res://scripts/car/car_controller.gd")
+
 @export_group("Identity")
 @export var variant_id: StringName = &""
 @export var display_name: String = ""
@@ -100,8 +102,25 @@ func get_transmission_label() -> String:
 func _scene_has_player_car_root(scene: PackedScene) -> bool:
 	if scene == null or not scene.can_instantiate():
 		return false
-	var instance: Node = scene.instantiate()
-	var is_valid_root: bool = instance is PlayerCarController
-	if instance != null:
-		instance.free()
-	return is_valid_root
+	var root_script: Script = _get_scene_root_script(scene.get_state())
+	return _script_inherits(root_script, PLAYER_CAR_CONTROLLER_SCRIPT)
+
+
+func _get_scene_root_script(scene_state: SceneState) -> Script:
+	var current_state: SceneState = scene_state
+	while current_state != null:
+		if current_state.get_node_count() > 0:
+			for property_index: int in range(current_state.get_node_property_count(0)):
+				if current_state.get_node_property_name(0, property_index) == &"script":
+					return current_state.get_node_property_value(0, property_index) as Script
+		current_state = current_state.get_base_scene_state()
+	return null
+
+
+func _script_inherits(script: Script, expected_base: Script) -> bool:
+	var current_script: Script = script
+	while current_script != null:
+		if current_script == expected_base:
+			return true
+		current_script = current_script.get_base_script()
+	return false
