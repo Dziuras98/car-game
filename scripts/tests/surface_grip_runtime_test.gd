@@ -12,6 +12,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	_test_longitudinal_grip_budget()
+	_test_engine_braking_uses_tire_budget()
 	_test_longitudinal_slip_curve()
 	_test_contact_capacity_scaling()
 	_test_lateral_grip_budget()
@@ -50,6 +51,32 @@ func _test_longitudinal_grip_budget() -> void:
 	_expect(dry_brake_state.forward_speed < grass_brake_state.forward_speed, "lower surface grip increases braking distance")
 	_expect(dry_brake_state.longitudinal_slip_ratio < -config.longitudinal_peak_slip_ratio, "excess brake demand creates negative longitudinal slip")
 	_expect(dry_brake_state.forward_speed > 12.0 - config.brake_deceleration * 0.1, "locked-wheel braking is limited below raw brake demand")
+
+
+func _test_engine_braking_uses_tire_budget() -> void:
+	var config: CarDriveConfig = _build_direct_drive_config()
+	config.engine_brake_force = 20.0
+	config.coast_deceleration = 0.0
+	var dry_state: CarRuntimeState = _make_state(config)
+	dry_state.forward_speed = 12.0
+	var grass_state: CarRuntimeState = _make_state(config)
+	grass_state.forward_speed = 12.0
+	grass_state.surface_grip_multiplier = 0.5
+	var sliding_state: CarRuntimeState = _make_state(config)
+	sliding_state.forward_speed = 12.0
+	sliding_state.lateral_slip_intensity = 0.8
+
+	var dry_powertrain: CarPowertrainController = _make_powertrain(config, dry_state)
+	var grass_powertrain: CarPowertrainController = _make_powertrain(config, grass_state)
+	var sliding_powertrain: CarPowertrainController = _make_powertrain(config, sliding_state)
+	dry_powertrain.update(dry_state, 0.0, 0.0, false, false, false, 0.1)
+	grass_powertrain.update(grass_state, 0.0, 0.0, false, false, false, 0.1)
+	sliding_powertrain.update(sliding_state, 0.0, 0.0, false, false, false, 0.1)
+
+	_expect(dry_state.forward_speed < grass_state.forward_speed, "low-grip surfaces reduce engine-braking deceleration")
+	_expect(dry_state.forward_speed < sliding_state.forward_speed, "lateral tire load reduces engine-braking capacity")
+	_expect(dry_state.longitudinal_slip_ratio < -config.longitudinal_peak_slip_ratio, "excess engine braking records negative longitudinal slip")
+	_expect(dry_state.longitudinal_slip_intensity > 0.0, "engine-braking slip contributes to the tire signal")
 
 
 func _test_longitudinal_slip_curve() -> void:
