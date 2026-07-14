@@ -8,7 +8,8 @@ Source visual asset:
 
 - repository path: `res://free_1995_fiat_punto_gt.glb`;
 - source page: https://sketchfab.com/3d-models/free-1995-fiat-punto-gt-48db6facb4b64e99b60f36b8c01185e1;
-- advertised trim: 1995 Fiat Punto GT.
+- advertised trim: 1995 Fiat Punto GT;
+- author and license: not currently recorded in the repository; see `THIRD_PARTY_NOTICES.md` before any redistribution decision.
 
 The selected scope deliberately excludes body-code-dependent long-ratio five-speeds, Punto 55 ED, the late `176B4.000` 1.2 calibration and the catalyst-equipped `176A3.000` TD calibration.
 
@@ -32,7 +33,7 @@ Default variant:
 fiat_punto_176_1995_gt_5mt
 ```
 
-All nine variants are registered in `resources/cars/catalog.tres` and are eligible for both player and AI use.
+All nine variants are registered in `resources/cars/catalog.tres` and are eligible for both player and AI use. Each variant intentionally uses the same variant scene for `car_scene` and `ai_car_scene`; therefore Punto opponents currently retain full live procedural audio and the same visual wrapper rather than using a separate baked-audio AI scene.
 
 ## Implemented variants
 
@@ -48,21 +49,7 @@ All nine variants are registered in `resources/cars/catalog.tres` and are eligib
 | `fiat_punto_176_1995_d_5mt` | `176B3.000`, 1.7 diesel | reconstructed 5MT | 20.0 s | 150 km/h |
 | `fiat_punto_176_1995_td70_5mt` | `176A5.000`, 1.7 turbo-diesel | TD 5MT | 14.8 s | 163 km/h |
 
-The deterministic integration test currently measures approximately:
-
-| Variant | Simulated 0–100 km/h |
-|---|---:|
-| Punto 55 5MT | 17.78 s |
-| Punto 55 6-Speed | 17.37 s |
-| Punto 60 5MT | 15.93 s |
-| Punto 60 Selecta CVT | 16.39 s |
-| Punto 75 5MT | 13.09 s |
-| Punto 90 5MT | 11.87 s |
-| Punto GT 5MT | 8.73 s |
-| Punto D 5MT | 19.80 s |
-| Punto TD 70 5MT | 14.71 s |
-
-The regression tolerance is ±1.5 seconds because the project drivetrain is a deterministic gameplay model rather than a tyre-temperature, launch-technique and atmospheric-condition simulation.
+`scripts/tests/fiat_punto_content_test.gd` executes the current `CarPowertrainController`, including longitudinal tire limits, and requires every 0–100 km/h result to remain within ±1.5 seconds of the target above. The measured result is produced by the test run rather than frozen in this document, because changes to shared tire/transmission integration may alter the exact value while preserving the accepted target band.
 
 ## Engine calibrations and torque curves
 
@@ -144,6 +131,8 @@ final drive: 3.733
 
 It is authoritative only as user-supplied provisional TD data. The naturally aspirated Punto D lacked an independently identified gear set, so its runtime resource uses the TD ratios as an explicit gameplay reconstruction and is calibrated against the known acceleration and top-speed targets. This must be replaced if original D gearbox documentation becomes available.
 
+All manual variants use the shared manual shift assistance: applied throttle is cut during upshifts and raised toward the wheel-coupled target RPM during downshifts.
+
 ## Dedicated CVT type
 
 `CarSpecs.TransmissionType.CVT` is a fourth transmission type. It is not represented as a conventional automatic and does not contain fake forward gears.
@@ -154,7 +143,7 @@ Runtime implementation:
 res://scripts/car/cvt_transmission_model.gd
 ```
 
-The simplified model stores only:
+The simplified model stores:
 
 - the shortest/highest numerical variator ratio (`cvt_max_ratio`);
 - final drive and reverse ratio;
@@ -162,7 +151,7 @@ The simplified model stores only:
 - ratio response rate;
 - centrifugal-clutch engagement range.
 
-There is intentionally no configurable longest/lowest numerical ratio. At increasing road speed the calculated ratio may continue toward zero, with only a small internal epsilon preventing division by zero.
+There is intentionally no configurable longest/lowest numerical ratio. At increasing road speed the calculated ratio may continue toward a small internal epsilon.
 
 The Selecta calibration uses:
 
@@ -181,6 +170,22 @@ The controller supports:
 - AI eligibility without manual shift requests.
 
 `scripts/tests/cvt_transmission_model_test.gd` verifies the absence of a configured longest-ratio floor, partial-load RPM control and sufficient reverse launch force for the AI recovery contract.
+
+## Longitudinal tire calibration
+
+Every Punto variant has an explicit car-level longitudinal tire curve. The catalog regression owns the current values:
+
+| Variants | Grip coefficient | Peak slip ratio | Sliding grip multiplier | Full brake demand |
+|---|---:|---:|---:|---:|
+| 55 5MT / 55 6MT / D 5MT | 0.80 | 0.14 | 0.72 | 9.5 m/s² |
+| 60 5MT / 60 CVT / TD 70 | 0.82 | 0.14 | 0.73 | 9.7 m/s² |
+| 75 5MT | 0.84 | 0.135 | 0.74 | 9.9 m/s² |
+| 90 5MT | 0.86 | 0.13 | 0.75 | 10.1 m/s² |
+| GT 5MT | 0.90 | 0.12 | 0.77 | 10.5 m/s² |
+
+The runtime limits acceleration, reverse and braking by surface grip, active-contact fraction and remaining friction-circle capacity after lateral use. Demand beyond peak grip generates longitudinal slip and moves toward the sliding-grip multiplier. Therefore engine/drivetrain output and `brake_deceleration` are requests, not unlimited applied acceleration.
+
+`scripts/tests/catalog_longitudinal_tire_calibration_test.gd` requires every production variant to retain its explicit calibration and keeps full brake demand near the tire peak instead of requesting several g.
 
 ## Engine audio
 
@@ -206,25 +211,13 @@ The FIRE SPI, FIRE MPI, 1.6 and GT profiles use different combustion sharpness, 
 
 ### Diesel engines
 
-The naturally aspirated D and TD use a separate compression-ignition pulse shape plus independent layers for:
-
-- injection rattle;
-- mechanical clatter;
-- low-frequency exhaust roughness;
-- slower engine response;
-- longer starter and shutdown behavior.
-
-The naturally aspirated diesel has no turbo layer.
+The naturally aspirated D and TD use a separate compression-ignition pulse shape plus independent layers for injection rattle, mechanical clatter, low-frequency exhaust roughness, slower response and longer starter/shutdown behavior. The naturally aspirated diesel has no turbo layer.
 
 ### Turbochargers
 
-Punto GT and TD 70 include separate turbo synthesis:
+Punto GT and TD 70 include separate turbo synthesis. The GT uses a more prominent petrol spool, release and compressor-flutter character; the TD uses a lower-pitched restrained whistle without a petrol-style blow-off response.
 
-- spool-dependent rotor whistle;
-- engine-speed and load-dependent pitch;
-- throttle-lift release envelope;
-- GT compressor flutter and blow-off character;
-- lower-pitched, restrained TD whistle without a petrol-style blow-off valve.
+The base Punto scene sets `force_full_runtime_generation = true`. Because AI variants currently reference the same scenes, this applies to Punto opponents as well as the player. The current Nissan baked-AI benchmark does not establish a performance budget for a full live Punto opponent fleet.
 
 ## Visual integration
 
@@ -234,19 +227,13 @@ The detailed GLB is wrapped by:
 res://scenes/cars/fiat_punto_176_visuals.tscn
 ```
 
-`FiatPunto176VisualController` calculates imported mesh bounds at runtime, normalizes the source to the 3.76 m body length, centers it, places the tyres at the ground plane and corrects project-forward orientation.
+`FiatPunto176VisualController` calculates imported mesh bounds at runtime, normalizes the source to the 3.76 m body length, centers it, places the tires at the ground plane and corrects project-forward orientation.
 
-The gameplay body uses three collision volumes for front, cabin and rear sections.
+The gameplay body uses three collision volumes for front, cabin and rear sections. A six-mesh low-detail fallback is provided for screen-visibility LOD: body, cabin and four wheels.
 
-A six-mesh low-detail fallback is provided for visual LOD and AI performance:
+The source mesh is a GT. Ordinary versions currently share this detailed visual and therefore retain GT-specific exterior details. Runtime data, physics, audio and catalog variants are distinct, but trim-correct non-GT mesh substitutions remain a future visual refinement.
 
-- body;
-- cabin;
-- four wheels.
-
-The source mesh is a GT. Ordinary versions currently share this detailed visual and therefore retain GT-specific exterior details. The runtime data, physics, audio and catalog variants are distinct, but trim-correct non-GT mesh substitutions remain a future visual refinement.
-
-The source materials use the older specular/glossiness workflow. Godot converts them to metallic/roughness during import; CI permits only this exact known importer warning.
+The source materials use the older specular/glossiness workflow. Godot converts them to metallic/roughness during import; CI permits only the exact known importer warning associated with this asset.
 
 ## Validation
 
@@ -255,12 +242,14 @@ The integration is covered by:
 - `scripts/tests/fiat_punto_engine_curves_test.gd`;
 - `scripts/tests/cvt_transmission_model_test.gd`;
 - `scripts/tests/fiat_punto_content_test.gd`;
+- `scripts/tests/catalog_longitudinal_tire_calibration_test.gd`;
 - general CarSpecs, drive-config, catalog and variant tests;
 - visual mesh-budget tests;
-- full-program race smoke tests;
+- manual/CVT AI recovery tests;
+- full-program catalog/race smoke coverage;
 - Windows export and exported-build smoke tests.
 
-The complete Windows Godot pipeline imports the GLB, validates all resources, executes the full test suite, exports the game and launches the exported build.
+The complete Windows Godot pipeline imports the GLB, validates all resources, executes the automatically discovered test suite, exports the game and launches the exported builds.
 
 ## Evidence boundaries
 
@@ -271,8 +260,9 @@ The following values remain calibrated or provisional rather than primary-source
 - the selected GT third and fifth ratios;
 - the naturally aspirated D gearbox ratios;
 - the simplified Selecta variator and clutch calibration;
-- some masses, resistance and tyre parameters used to match performance targets;
-- non-GT visual presentation.
+- masses, resistance, lateral and longitudinal tire parameters used to match behavior/performance targets;
+- non-GT visual presentation;
+- source asset author/license/provenance record.
 
 No reconstructed value should be relabelled as a measured Fiat factory value.
 

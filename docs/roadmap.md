@@ -1,32 +1,40 @@
 # Roadmap
 
-This roadmap prioritizes correctness, maintainability and reproducible Windows exports before visible feature expansion.
+This roadmap prioritizes correctness, maintainability and reproducible Windows exports before uncontrolled feature expansion.
 
 ## Current baseline
 
-The following remediation stages are complete for the present prototype:
+The following remediation and expansion stages are complete for the present prototype:
 
 - catalog-driven car models, variants and specs with typed exported arrays;
-- standard 2016 Nissan 370Z and 2016 Nissan 370Z NISMO models with 6MT/7AT variants;
+- four car models and fifteen playable variants:
+  - standard Nissan 370Z 6MT/7AT;
+  - Nissan 370Z NISMO 6MT/7AT;
+  - 1967 Shelby G.T. 500 four-speed/C6;
+  - nine 1995 Fiat Punto Type 176 variants, including Selecta CVT, petrol, turbo and diesel engines;
 - catalog-driven track selection with an explicit default track ID;
+- two production track resources: the simple oval and calibrated Tor Poznań reconstruction;
 - modular game, spawning, race and vehicle coordinators;
-- scene-driven menu, race, pause, HUD and minimap UI;
+- scene-driven menu, loading, race, pause, HUD and minimap UI;
 - Resource-backed generated-track layout and typed builder pipeline;
+- progress-based width, shoulder, barrier, racing-line and banking profiles;
 - atomic track rebuilds and geometry revision notifications;
 - plane-crossing checkpoints and ordered lap validation;
 - continuous participant progress and race positions;
-- manual clutch abstraction and automatic transmission/torque converter;
+- manual clutch abstraction, conventional automatic/torque converter and native CVT transmission type;
 - `TransmissionType` as the sole transmission-mode state;
-- bounded powertrain substeps;
-- four-point ground contact, surface grip and friction-circle coupling;
-- collision-resolved velocity synchronization;
-- validated stock/NISMO procedural-audio profiles, bounded live voices, headless playback suppression and bounded skid marks;
+- built-in manual upshift throttle cut and downshift RPM blip;
+- bounded vehicle substeps;
+- four-point ground contact, typed surface grip, lateral slip and longitudinal slip-ratio traction/braking limits;
+- combined-slip steering/effect coupling and collision-resolved velocity synchronization;
+- explicit AI eligibility with support for manual, conventional automatic and CVT variants;
+- model-specific live engine synthesis plus Nissan baked AI banks;
 - Polish/English localization and global UI theme;
 - keyboard/gamepad player input and a separate external AI channel;
 - automatic test discovery, per-test timeouts, runtime-error detection and exact warning allowlists;
 - Windows production/test export plus packaged startup validation and retained export-smoke logs.
 
-The branch should remain regression-first: every behavior or ownership change needs focused coverage and compatibility with the canonical full-program smoke test.
+The repository remains regression-first: every behavior or ownership change needs focused coverage and compatibility with the canonical full-program smoke test.
 
 ## Phase 0 — Baseline documentation
 
@@ -36,8 +44,11 @@ Status: complete; documentation must be maintained incrementally.
 - [x] architecture baseline;
 - [x] vehicle-model baseline;
 - [x] catalog documentation;
+- [x] model-specific Nissan, Shelby and Fiat integration documents;
+- [x] Tor Poznań reconstruction document;
+- [x] engine-audio backend/baking documentation;
 - [x] Windows CI documentation;
-- [x] standard/NISMO procedural-audio documentation;
+- [x] accepted-risk register and third-party notices;
 - [x] roadmap.
 
 ## Phase 1 — High-level coordination split
@@ -46,11 +57,12 @@ Status: complete.
 
 - [x] `GameManager` reduced to high-level coordination;
 - [x] menu option and selection state helpers;
+- [x] transactional session-start helper with staged loading progress;
 - [x] active-track lifecycle helper;
 - [x] player and opponent spawn helpers;
 - [x] race-session facade;
 - [x] race state separated from lap tracking;
-- [x] AI limited to drive-input production.
+- [x] AI limited to drive-input and manual-shift production.
 
 ## Phase 2 — Data ownership
 
@@ -62,12 +74,15 @@ Status: complete for current content.
 - [x] typed `CarModelDefinition` and `CarVariantDefinition` catalog arrays;
 - [x] standard 370Z 6MT and 7AT variants;
 - [x] 370Z NISMO 6MT and 7AT variants;
+- [x] Shelby G.T. 500 four-speed and C6 variants;
+- [x] nine selected 1995 Fiat Punto variants;
 - [x] `CarSpecs -> CarDriveConfig` as the only active tuning path;
-- [x] `TransmissionType` enum as the only transmission-mode source;
+- [x] direct-drive/manual/automatic/CVT `TransmissionType` enum as the only transmission-mode source;
 - [x] variant specs assigned before scene-tree entry;
 - [x] catalog/scene/spec consistency validation;
-- [x] standard and NISMO base scenes contain visual and structural data only;
-- [x] typed and validated standard/NISMO engine-audio profiles;
+- [x] explicit per-variant AI eligibility and AI scene ownership;
+- [x] explicit tire calibration for every production variant;
+- [x] typed and validated engine-audio profiles for all current live synthesizers;
 - [x] removed-property interception deleted from `PlayerCarController`.
 
 ### Tracks
@@ -76,6 +91,8 @@ Status: complete for current content.
 - [x] typed `TrackDefinition` catalog array;
 - [x] `default_track_id` as the sole default declaration;
 - [x] `TrackLayoutResource` for geometry and decoration parameters;
+- [x] simple oval catalog entry;
+- [x] calibrated Tor Poznań geometry and catalog entry;
 - [x] menu options and recommended laps sourced from track metadata.
 
 ## Phase 3 — Vehicle runtime
@@ -84,28 +101,34 @@ Status: complete for the current arcade model.
 
 - [x] runtime state and sanitized config;
 - [x] engine, drivetrain, resistance and torque-converter models;
-- [x] manual and automatic transmission models;
+- [x] manual and conventional automatic transmission models;
+- [x] dedicated CVT model with continuous ratio and centrifugal clutch;
 - [x] clutch engagement abstraction;
+- [x] manual shift throttle assistance;
 - [x] bounded physics substeps;
-- [x] tire/slip model and steering coupling;
+- [x] lateral tire/slip model and steering coupling;
+- [x] car-level longitudinal slip ratio and peak/sliding grip response;
 - [x] four-point ground probes and suspension support;
 - [x] surface-dependent grip;
-- [x] friction-circle longitudinal-force budget;
+- [x] lateral/longitudinal combined-slip effects;
 - [x] collision-resolved velocity feedback;
 - [x] runtime specs reconfiguration;
-- [x] focused stability and mapping tests.
+- [x] catalog-wide tire and performance regression coverage.
 
 Possible later work:
 
 - wheel-load transfer;
-- per-wheel tire state;
+- per-wheel slip angle, wheel speed and tire force state;
+- differential and driven-axle torque distribution;
+- ABS and traction-control assists;
+- tire temperature, pressure and wear;
 - damage and mechanical failures;
 - analog clutch support for suitable controllers;
-- more realistic automatic transmission control.
+- more realistic automatic and CVT control.
 
-## Phase 4 — Generated track and race correctness
+## Phase 4 — Generated tracks and race correctness
 
-Status: complete for the current oval.
+Status: complete for the current two-track catalog.
 
 - [x] typed generation configuration and mesh outputs;
 - [x] modular layout/surface/collision/marker/barrier/checkpoint/decoration builders;
@@ -115,13 +138,18 @@ Status: complete for the current oval.
 - [x] ordered checkpoint gates with segment-plane crossing;
 - [x] reverse and out-of-order crossing rejection;
 - [x] racing-line progress used only for position ordering;
-- [x] active-track replacement and dependent-system refresh tests.
+- [x] active-track replacement and dependent-system refresh tests;
+- [x] progress-based road, shoulder, barrier, racing-line and banking profiles;
+- [x] traced and length-calibrated Tor Poznań centerline;
+- [x] Tor Poznań pit complex, paddock, curbs, gantry, grandstands, buildings and trackside forest;
+- [x] loop-profile continuity and race-grid validation.
 
 Possible later work:
 
-- more track resources;
-- banking and elevation;
-- pit lane and sector timing;
+- additional circuits beyond the current catalog;
+- elevation reconstructed from surveyed or licensed source data;
+- separate drivable pit lane and pit rules;
+- sector timing and lap records;
 - configurable checkpoint visualization;
 - track editor tooling.
 
@@ -129,8 +157,10 @@ Possible later work:
 
 Status: complete for current screens and input sources.
 
-- [x] menu, countdown, lap/position, results and pause scenes;
+- [x] menu, blocking loading step, countdown, lap/position, results and pause scenes;
 - [x] speedometer/tachometer and minimap scenes;
+- [x] active-car label in the driving HUD;
+- [x] uniformly random different-car switching in free drive;
 - [x] global theme;
 - [x] Polish and English catalogs loaded before main-scene routing;
 - [x] keyboard and gamepad action mappings;
@@ -144,11 +174,34 @@ Possible later work:
 - gamepad calibration and dead-zone UI;
 - steering-wheel and pedal profiles;
 - accessibility settings;
-- garage presentation.
+- garage/car-selection presentation;
+- explicit assist settings for manual shift assistance, ABS or traction control if those become configurable.
 
-## Phase 6 — Performance and export quality
+## Phase 6 — AI and race participation
 
-Status: complete for the current content scale.
+Status: complete for current basic racing behavior.
+
+- [x] explicit `ai_eligible` ownership per variant;
+- [x] all-or-nothing opponent preparation and deterministic seeded selection;
+- [x] typed AI driver profiles;
+- [x] bounded racing-line target search;
+- [x] manual upshift/downshift requests with hysteresis;
+- [x] forward/neutral/reverse recovery for manual cars;
+- [x] conventional automatic and CVT direction recovery;
+- [x] controlled braking and session teardown on AI contract faults;
+- [x] finished opponents stop receiving active drive commands.
+
+Possible later work:
+
+- overtaking and opponent awareness;
+- collision avoidance and defensive lines;
+- per-car AI performance envelopes;
+- wet/low-grip strategy adaptation;
+- difficulty presets and qualifying behavior.
+
+## Phase 7 — Performance and audio quality
+
+Status: complete for the current content scale, with backend-specific follow-up still available.
 
 - [x] bounded racing-line lookup;
 - [x] update-rate limits for dynamic HUD/minimap work;
@@ -156,24 +209,35 @@ Status: complete for the current content scale.
 - [x] change-driven race HUD updates;
 - [x] thresholded tachometer redraws;
 - [x] coalesced generated-track rebuilds;
+- [x] screen-visibility vehicle LOD with model-specific wheel bindings;
 - [x] bounded skid-mark storage;
-- [x] bounded procedural-audio voices and listener-distance gating;
+- [x] full live procedural player audio;
+- [x] Nissan baked AI audio banks;
+- [x] dedicated VQ37VHR, Ford FE cross-plane and Fiat petrol/diesel/turbo synthesis paths;
 - [x] live procedural playback disabled on the headless display server while offline synthesis remains testable;
-- [x] profile loudness ranges aligned with the approved standard/NISMO resources;
+- [x] production Nissan race audio benchmark;
 - [x] batched edge markers and barriers;
-- [x] bounded stadium `MultiMesh` groups;
+- [x] bounded stadium/trackside `MultiMesh` groups;
 - [x] deterministic performance regression budgets;
 - [x] Windows production/test export and packaged smoke tests;
 - [x] export startup logs retained in pull-request diagnostic artifacts.
+
+Possible later work:
+
+- dedicated baked AI banks for Fiat variants if race profiling shows the shared live backend is too costly;
+- AI scenes and an explicit audio/performance backend for the Shelby;
+- broader production benchmarks covering mixed-model opponent fleets;
+- native/DSP implementation of live synthesis if GDScript cost becomes limiting.
 
 Distribution work remains deferred until required:
 
 - executable signing;
 - installer or store packaging;
 - tagged release workflow and retention policy;
-- automatic update delivery.
+- automatic update delivery;
+- complete rights/provenance clearance for every redistributed third-party asset.
 
-## Phase 7 — Test and repository hygiene
+## Phase 8 — Test and repository hygiene
 
 Status: complete for the current remediation baseline; maintained continuously afterward.
 
@@ -183,15 +247,15 @@ Completed:
 - [x] timeout and current-command diagnostics;
 - [x] runtime-error and unexpected-warning detector self-checks;
 - [x] exact per-test warning allowlists for deliberate negative-path coverage;
-- [x] failure on invalid resource UIDs, importer warnings and `ObjectDB` leak warnings;
+- [x] failure on invalid resource UIDs, unexpected importer warnings and `ObjectDB` leak warnings;
 - [x] static architecture assertions;
 - [x] canonical full-program smoke scene;
 - [x] orphaned test-script detection;
-- [x] removal of the duplicate smoke-test implementation;
 - [x] explicit default-track regression coverage;
 - [x] no test-only suffixes in production GDScript APIs;
 - [x] no test simulation facades in production coordinators;
 - [x] static guards for completed scene, catalog and transmission migrations;
+- [x] current-tree and complete-history public-repository safety checks;
 - [x] one Windows platform workflow and two Windows export presets.
 
 Ongoing rules:
@@ -200,16 +264,17 @@ Ongoing rules:
 - no second implementation of an existing end-to-end scenario;
 - update fixtures when a compatibility field is intentionally removed;
 - add an anchored warning allowlist only when a warning is the behavior under test;
-- keep CI logs useful enough to identify the first failing command.
+- keep CI logs useful enough to identify the first failing command;
+- update catalog-wide tests whenever a model, variant, transmission type, track or audio backend is added.
 
-## Phase 8 — Feature expansion
+## Phase 9 — Further feature expansion
 
 Status: ready for separate prioritization.
 
 Candidates:
 
-- additional cars and higher-quality imported models;
-- additional tracks;
+- additional vehicle generations and trim-correct visual models;
+- additional circuits beyond the oval and Tor Poznań;
 - improved AI overtaking and avoidance;
 - lap timer, sectors and best-lap persistence;
 - ghost laps and replay data;

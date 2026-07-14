@@ -6,22 +6,30 @@ The game model represents the facelifted Z34 NISMO V2 body introduced for model 
 
 The default variant represents the European-market 2016 NISMO with the six-speed manual transmission. The seven-speed automatic is explicitly labelled as a contemporary global-market configuration: it is based on North American and Japanese availability and is not presented as a European 2016 homologation.
 
+The current catalog also contains the standard Z34 370Z as a separate model with six-speed manual and seven-speed automatic variants.
+
+## Source assets and rights boundary
+
+The standard and NISMO visuals use separate Sketchfab GLBs stored under `assets/third_party/sketchfab/`. Their uploader-stated CC BY-NC-SA 4.0 terms, attribution wording and unresolved upstream game-asset provenance risk are documented in `THIRD_PARTY_NOTICES.md` and `assets/third_party/sketchfab/README.md`.
+
+The project owner's current noncommercial-prototype decision is recorded in `docs/accepted_risks.md`. It does not assert full upstream rights clearance and must be reviewed before public redistribution or commercialization.
+
 ## Reference hierarchy and market scope
 
 The implementation separates published vehicle data from gameplay tuning:
 
-1. published engine output, dimensions, axle tracks and tyre sizes are treated as physical reference targets;
+1. published engine output, dimensions, axle tracks and tire sizes are physical reference targets;
 2. transmission availability is recorded per market rather than merged into one fictional specification;
-3. mass, grip coefficients, suspension constants, shift interruption and torque-converter behaviour are gameplay values calibrated against the existing standard 370Z implementation;
+3. mass, resistance, lateral/longitudinal tire coefficients, suspension constants, shift interruption and torque-converter behavior are gameplay calibration values;
 4. procedural-audio parameters describe the synthesizer, not measured acoustic data from a production car.
 
 Reference cross-checks used for this model:
 
-- Nissan 370Z model and NISMO overview, including the VQ37VHR output and market history: https://en.wikipedia.org/wiki/Nissan_370Z
+- Nissan 370Z model and NISMO overview, including VQ37VHR output and market history: https://en.wikipedia.org/wiki/Nissan_370Z
 - European technical-data cross-check for 253 kW / 344 PS at 7,400 RPM, 371 Nm at 5,200 RPM, 1,550/1,595 mm axle tracks and manual-only NISMO presentation: https://de.wikipedia.org/wiki/Nissan_370Z
 - VQ37VHR displacement, bore/stroke and 7,500 RPM redline cross-check: https://en.wikipedia.org/wiki/Nissan_VQ_engine
 
-These secondary references are retained in the repository because stable official 2016 regional press-kit URLs were not available during implementation. Any future replacement should preserve the market distinctions above and record the exact Nissan document edition.
+These secondary references are retained because stable official 2016 regional press-kit URLs were not available during implementation. Any future replacement should preserve the market distinctions above and record the exact Nissan document edition.
 
 ## Published reference targets
 
@@ -29,20 +37,26 @@ These secondary references are retained in the repository because stable officia
 - maximum power: 253 kW / 344 PS at 7,400 RPM;
 - maximum torque: 371 Nm at 5,200 RPM;
 - driven wheels: rear;
-- governed maximum speed target: 250 km/h;
+- governed maximum-speed target: 250 km/h;
 - wheelbase: 2,550 mm;
 - front axle track: 1,550 mm;
 - rear axle track: 1,595 mm;
-- approximate NISMO V2 exterior length: 4.41-4.43 m depending on market measurement convention;
+- approximate NISMO V2 exterior length: 4.41–4.43 m depending on market measurement convention;
 - approximate width excluding mirrors: 1,870 mm;
 - approximate height: 1,310 mm;
-- tyre reference: 245/40 R19 front and 285/35 R19 rear.
+- tire reference: 245/40 R19 front and 285/35 R19 rear.
 
 The in-game mass is normalized against the existing 1,495 kg standard-370Z tuning rather than copied from one market's type-approval convention. The manual NISMO is set to 1,560 kg and the automatic to 1,580 kg.
 
 ## Engine curve
 
-The runtime uses the sampled `EngineTorqueCurve` resource at `resources/cars/nissan/370z_nismo/specs/370z_nismo_torque_curve.tres`. This keeps the published torque peak, power peak, redline and limiter as separate concepts:
+The runtime uses the sampled resource:
+
+```text
+resources/cars/nissan/370z_nismo/specs/370z_nismo_torque_curve.tres
+```
+
+This keeps the published torque peak, power peak, redline and limiter as separate concepts:
 
 - idle: 850 RPM;
 - maximum torque: 371 Nm at 5,200 RPM;
@@ -76,7 +90,7 @@ The limiter is placed 100 RPM above the published redline so the runtime can mod
 - gameplay shift interruption: 0.24 s;
 - presentation: SynchroRev Match-equipped European NISMO.
 
-The shorter 3.916 final drive distinguishes the NISMO V2 manual from the standard 370Z manual's 3.692 final drive.
+The shorter 3.916 final drive distinguishes the NISMO V2 manual from the standard 370Z manual's 3.692 final drive. Runtime downshifts use the shared RPM-targeted throttle blip; upshifts use the shared throttle cut.
 
 ### Global seven-speed automatic
 
@@ -87,24 +101,40 @@ The shorter 3.916 final drive distinguishes the NISMO V2 manual from the standar
 - gameplay automatic shift interruption: 0.17 s;
 - more aggressive kickdown threshold than the standard 370Z automatic.
 
-This variant exists to model a contemporary non-European NISMO automatic and to provide an AI-compatible NISMO opponent.
+This variant models a contemporary non-European NISMO automatic. Both NISMO variants are explicitly AI-eligible and use dedicated AI scenes.
 
-## Chassis tuning
+## Chassis and tire tuning
 
-The runtime now represents front and rear geometry independently:
+The runtime represents front and rear geometry independently:
 
 - front/rear axle tracks: 1.550/1.595 m;
-- front/rear tyre widths: 0.245/0.285 m;
+- front/rear tire widths: 0.245/0.285 m;
 - front/rear lateral-grip inputs: 11.0/11.6;
 - the four ground probes follow their respective axle tracks;
-- tyre-width and axle-grip balance affect lateral recovery and yaw response;
+- tire width and axle-grip balance affect lateral recovery and yaw response;
 - suspension stiffness, damping and travel remain NISMO-specific gameplay calibration.
 
-The numeric grip values are dimensionless simulation coefficients. They are not tyre test measurements.
+Longitudinal calibration is explicit and catalog-tested:
 
-## Procedural audio
+| Model family | Grip coefficient | Peak slip ratio | Sliding grip multiplier | Full brake demand |
+|---|---:|---:|---:|---:|
+| standard 370Z variants | 1.02 | 0.11 | 0.82 | 10.0 m/s² |
+| NISMO variants | 1.08 | 0.10 | 0.84 | 10.5 m/s² |
 
-Audio configuration is stored as typed `EngineAudioProfile` resources and applied before `EngineAudioSynthesizer._ready()` starts playback. There is no helper node that searches for an `EngineAudio` child and mutates it after initialization.
+Drive, reverse, service-brake and handbrake requests pass through the shared tire model. Surface grip, active contacts and lateral friction use constrain applied longitudinal acceleration. Demand beyond peak grip generates signed longitudinal slip and approaches the sliding-grip multiplier.
+
+The numeric grip values are dimensionless simulation coefficients, not tire test measurements.
+
+## Player and AI audio backends
+
+Nissan player scenes use live `ProfiledEngineAudioSynthesizer` generation with `force_full_runtime_generation = true`. Dedicated Nissan AI scenes use committed coast/load WAV banks through `BakedEngineAudioPlayer`.
+
+Profiles:
+
+```text
+resources/audio/370z_stock_audio_profile.tres
+resources/audio/370z_nismo_audio_profile.tres
+```
 
 | Parameter | Standard 370Z | 370Z NISMO | Intended result |
 |---|---:|---:|---|
@@ -120,12 +150,14 @@ Audio configuration is stored as typed `EngineAudioProfile` resources and applie
 | Overrun crackle | 0.10 | 0.13 | Slightly stronger lift-off signature |
 | Limiter residual combustion | 0.20 | 0.24 | Audible but non-digital limiter cut |
 
-Decibel values at different processing stages are not added and presented as a loudness equivalence. Regression tests instead generate deterministic audio at idle, part load, high load, overrun and limiter operation, then check sample bounds, RMS, crest factor, firing-frequency energy and upper-harmonic differentiation.
+Decibel values at different processing stages are not added and presented as a loudness equivalence. Regression tests generate deterministic live audio, validate the committed AI banks and protect the Nissan production race fixture of one live player plus three baked opponents.
+
+See `docs/audio/vq37vhr_procedural_model.md` and `docs/baked_engine_audio.md`.
 
 ## Visual construction and collision
 
 The NISMO scene uses the imported 2015 Sketchfab GLB through `370z_nismo_visuals.tscn`; it does not reuse the standard 370Z body package. The wrapper applies only source scale, forward-axis correction and ground alignment, while gameplay collision remains independently authored.
 
-`Nismo370ZVisualController` binds exactly four logical wheel assemblies to explicit imported node paths. Front calipers follow steering without spinning, rear calipers remain fixed, and each tyre/rim pair rotates around one axle pivot. This avoids name-based matching of unrelated brake-light and interior steering-wheel nodes.
+`Nismo370ZVisualController` binds exactly four logical wheel assemblies to explicit imported node paths. Front calipers follow steering without spinning, rear calipers remain fixed, and each tire/rim pair rotates around one axle pivot. This avoids name-based matching of unrelated brake-light and interior steering-wheel nodes.
 
-The NISMO collision uses three simple boxes for the cabin, front aero and rear body. This covers the extended body without enclosing the complete wing volume or a large amount of empty space.
+The NISMO collision uses three simple boxes for the cabin, front aero and rear body. This covers the extended body without enclosing the complete wing volume or a large amount of empty space. Screen-visibility LOD swaps the detailed imported root and the model-specific low-detail fallback while retaining both in memory.
