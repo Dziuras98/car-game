@@ -3,6 +3,11 @@ class_name BmwE46EngineAudioSynthesizer
 
 var _requested_full_runtime_generation: bool = true
 var _bmw_phase_secondary: float = 0.0
+var _bmw_previous_collector_pulse: float = 0.0
+
+
+static func inline_six_collector_frequency_hz(rpm: float) -> float:
+	return maxf(rpm, 0.0) / 60.0 * 1.5
 
 
 func _ready() -> void:
@@ -42,11 +47,15 @@ func _generate_sample() -> float:
 		1.0
 	)
 	var crank_hz: float = maxf(rpm / 60.0, 1.0)
+	var collector_hz: float = maxf(
+		inline_six_collector_frequency_hz(rpm) * (1.0 + idle_wander * 0.45),
+		1.0
+	)
 	_punto_phase_firing = fposmod(_punto_phase_firing + TAU * firing_hz * delta, TAU)
 	_punto_phase_crank = fposmod(_punto_phase_crank + TAU * crank_hz * delta, TAU)
 	_punto_phase_valvetrain = fposmod(_punto_phase_valvetrain + TAU * crank_hz * 4.0 * delta, TAU)
 	_punto_phase_injection = fposmod(_punto_phase_injection + TAU * firing_hz * 2.0 * delta, TAU)
-	_bmw_phase_secondary = fposmod(_bmw_phase_secondary + TAU * firing_hz * 0.5 * delta, TAU)
+	_bmw_phase_secondary = fposmod(_bmw_phase_secondary + TAU * collector_hz * delta, TAU)
 
 	var limiter_cycle: float = maxf(limiter_period, 0.02)
 	_limiter_active = rpm >= limit_rpm * 0.985 and throttle > 0.65
@@ -81,6 +90,7 @@ func _generate_sample() -> float:
 		if _shutdown_remaining <= 0.0:
 			_engine_running = false
 	var running_gate: float = 1.0 if _engine_running or _shutdown_remaining > 0.0 else 0.0
+	var combustion_gate: float = ignition_gate * startup_gate * shutdown_gate * running_gate
 
 	var normalized_phase: float = fposmod(_punto_phase_firing, TAU) / TAU
 	var spark_spike: float = exp(-normalized_phase * lerpf(15.0, 31.0, combustion_sharpness))
@@ -94,16 +104,43 @@ func _generate_sample() -> float:
 	var diesel_knock: float = sin(_punto_phase_firing * 6.0 + 0.25) * exp(-normalized_phase * 18.0) * 0.26
 	var diesel_tail: float = exp(-normalized_phase * 5.8) * 0.29
 	var diesel_pulse: float = diesel_spike + diesel_knock - diesel_tail
-	var pulse: float = lerpf(spark_pulse, diesel_pulse, diesel_combustion)
-	pulse *= ignition_gate * startup_gate * shutdown_gate * running_gate
+	var pulse: float = lerpf(spark_pulse, diesel_pulse, diesel_combustion) * combustion_gate
 	var pulse_derivative: float = pulse - _punto_previous_pulse
 	_punto_previous_pulse = pulse
 
+	# An inline six uses two interleaved three-cylinder collector groups. Their
+	# 1.5-order cadence and its strong second harmonic are what separate the
+	# smooth BMW six-cylinder note from the two-firing-events-per-revolution R4.
+	var collector_phase: float = fposmod(_bmw_phase_secondary, TAU) / TAU
+	var collector_spark_spike: float = exp(-collector_phase * lerpf(8.0, 16.0, combustion_sharpness))
+	var collector_spark_tail: float = exp(-collector_phase * 2.6)
+	var collector_spark_pulse: float = (
+		collector_spark_spike * 0.92
+		- collector_spark_tail * 0.20
+		+ sin(_bmw_phase_secondary) * exp(-collector_phase * 1.8) * 0.20
+	)
+	var collector_diesel_spike: float = exp(-collector_phase * 25.0) * 1.12
+	var collector_diesel_knock: float = sin(_bmw_phase_secondary * 4.0 + 0.20) * exp(-collector_phase * 11.0) * 0.15
+	var collector_diesel_tail: float = exp(-collector_phase * 3.6) * 0.22
+	var collector_diesel_pulse: float = collector_diesel_spike + collector_diesel_knock - collector_diesel_tail
+	var collector_pulse: float = lerpf(
+		collector_spark_pulse,
+		collector_diesel_pulse,
+		diesel_combustion
+	) * combustion_gate * six_cylinder_blend
+	var collector_derivative: float = collector_pulse - _bmw_previous_collector_pulse
+	_bmw_previous_collector_pulse = collector_pulse
+
 	var displacement_pitch: float = exhaust_pitch_scale
-	var exhaust_frequency: float = (104.0 + rpm_ratio * 160.0) * displacement_pitch
+	var exhaust_frequency: float = (
+		lerpf(108.0, 88.0, six_cylinder_blend)
+		+ rpm_ratio * lerpf(168.0, 145.0, six_cylinder_blend)
+	) * displacement_pitch
 	var exhaust_input: float = (
 		pulse * (0.85 + load * 0.65)
-		+ pulse_derivative * (0.17 + exhaust_roughness * 0.38)
+		+ pulse_derivative * lerpf(0.17 + exhaust_roughness * 0.38, 0.12 + exhaust_roughness * 0.24, six_cylinder_blend)
+		+ collector_pulse * (0.18 + load * 0.34)
+		+ collector_derivative * 0.10
 	)
 	var exhaust_body: float = _process_punto_resonator(
 		exhaust_input,
@@ -112,21 +149,42 @@ func _generate_sample() -> float:
 		sample_rate,
 		0
 	)
-	var inline_six_order: float = (
-		sin(_punto_phase_firing) * 0.16
-		+ sin(_punto_phase_firing * 2.0 + 0.10) * 0.09
-		+ sin(_punto_phase_firing * 3.0 - 0.12) * 0.045
-		+ sin(_bmw_phase_secondary * 3.0 + 0.18) * six_cylinder_blend * 0.055
+	var four_cylinder_order: float = (
+		sin(_punto_phase_firing) * 0.18
+		+ sin(_punto_phase_firing * 2.0 + 0.10) * 0.10
+		+ sin(_punto_phase_firing * 3.0 - 0.12) * 0.05
 	) * (0.25 + load * 0.75)
+	var inline_six_order: float = (
+		sin(_bmw_phase_secondary) * 0.30
+		+ sin(_bmw_phase_secondary * 2.0 + 0.08) * 0.24
+		+ sin(_bmw_phase_secondary * 3.0 - 0.14) * 0.09
+		+ sin(_bmw_phase_secondary * 4.0 + 0.03) * 0.045
+	) * (0.22 + load * 0.78)
+	var engine_order: float = lerpf(four_cylinder_order, inline_six_order, six_cylinder_blend)
 
 	var intake_frequency: float = (
-		500.0 + rpm_ratio * lerpf(1260.0, 1510.0, six_cylinder_blend) + throttle * 190.0
+		500.0 + rpm_ratio * lerpf(1260.0, 1380.0, six_cylinder_blend) + throttle * 190.0
 	) * intake_pitch_scale
-	var intake_input: float = pulse_derivative * 0.36 + high_noise * (0.08 + throttle * 0.20)
+	var intake_impulse: float = lerpf(
+		pulse_derivative * 0.36,
+		pulse_derivative * 0.24 + collector_derivative * 0.18,
+		six_cylinder_blend
+	)
+	var intake_input: float = intake_impulse + high_noise * (0.08 + throttle * 0.20)
 	var intake_tone: float = _process_punto_resonator(intake_input, intake_frequency, 0.62, sample_rate, 1)
-	var plenum_harmonic: float = (
+	var four_plenum_harmonic: float = (
 		sin(_punto_phase_firing * 0.5 + 0.17) * 0.55
 		+ sin(_punto_phase_firing * 1.5 - 0.11) * 0.24
+	)
+	var six_plenum_harmonic: float = (
+		sin(_bmw_phase_secondary + 0.14) * 0.42
+		+ sin(_bmw_phase_secondary * 2.0 - 0.11) * 0.38
+		+ sin(_bmw_phase_secondary * 4.0 + 0.05) * 0.12
+	)
+	var plenum_harmonic: float = lerpf(
+		four_plenum_harmonic,
+		six_plenum_harmonic,
+		six_cylinder_blend
 	) * intake_plenum_detail * throttle * (0.20 + high_blend * 0.80)
 	var intake_air: float = (
 		high_noise * 0.70 + differentiated_noise * 0.18 + _punto_slow_noise * 0.12
@@ -182,20 +240,30 @@ func _generate_sample() -> float:
 	var turbo_mix: float = turbo_tone * turbo_whistle * _punto_turbo_spool + flutter + blowoff
 
 	var crackle: float = _next_overrun_crackle(delta, white_noise) * overrun_crackle
-	var low_rpm_weight: float = lerpf(1.10, 0.78, high_blend)
+	var low_rpm_weight: float = lerpf(1.10, 0.80, high_blend)
 	var load_gain: float = lerpf(0.38 + idle_blend * 0.15, 1.10, load)
+	var engine_order_gain: float = lerpf(
+		0.18 + exhaust_roughness * 0.42,
+		0.42 + exhaust_resonance * 0.14,
+		six_cylinder_blend
+	)
+	var rasp_impulse: float = lerpf(
+		pulse_derivative,
+		pulse_derivative * 0.45 + collector_derivative * 0.55,
+		six_cylinder_blend
+	)
 	var sample: float = (
 		exhaust_body * (0.68 + exhaust_resonance * 1.08) * low_rpm_weight
-		+ inline_six_order * (0.18 + exhaust_roughness * 0.42)
+		+ engine_order * engine_order_gain
 		+ intake_tone * intake_presence * (0.22 + throttle * 1.38 + _throttle_transient * induction_transient)
 		+ plenum_harmonic
 		+ intake_air
 		+ mechanical_tone * (mechanical_noise + diesel_mechanical_clatter * 0.72)
 		+ diesel_rattle * 0.30
-		+ pulse_derivative * high_rpm_rasp * high_blend * 0.24
+		+ rasp_impulse * high_rpm_rasp * high_blend * 0.24
 		+ turbo_mix
 		+ crackle
-	) * load_gain * lerpf(0.33, 0.30, six_cylinder_blend) + starter_motor * 0.42
+	) * load_gain * lerpf(0.33, 0.29, six_cylinder_blend) + starter_motor * 0.42
 
 	var dc_blocked: float = sample - _punto_dc_input + 0.995 * _punto_dc_output
 	_punto_dc_input = sample
@@ -211,6 +279,7 @@ func _update_debug_state() -> void:
 		"throttle": _smoothed_throttle,
 		"cylinders": cylinders,
 		"firing_frequency_hz": EngineAudioSynthesizer.firing_frequency_hz(_smoothed_rpm, cylinders),
+		"inline_six_collector_frequency_hz": inline_six_collector_frequency_hz(_smoothed_rpm),
 		"diesel_combustion": diesel_combustion,
 		"turbo_spool": _punto_turbo_spool,
 		"turbo_release": _punto_turbo_release,
@@ -223,3 +292,4 @@ func _update_debug_state() -> void:
 func _reset_synthesis_state() -> void:
 	super._reset_synthesis_state()
 	_bmw_phase_secondary = 0.0
+	_bmw_previous_collector_pulse = 0.0
