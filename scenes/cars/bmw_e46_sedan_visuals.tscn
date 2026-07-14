@@ -12,6 +12,7 @@ visibility_aabb = AABB(-0.95, -0.05, -2.35, 1.9, 1.65, 4.7)
 visual_wheel_radius = 0.317
 
 [node name="SketchfabModel" parent="." instance=ExtResource("2_model")]
+rotation = Vector3(0, 3.1415927, 0)
 
 [node name="DetailedWheelProxyFrontLeft" type="Node3D" parent="."]
 visible = false
