@@ -34,7 +34,6 @@ func _generate_sample() -> float:
 	var white_noise: float = _rng.randf_range(-1.0, 1.0)
 	_punto_slow_noise = lerpf(_punto_slow_noise, white_noise, EngineAudioSynthesizer.sample_rate_invariant_alpha(0.018, sample_rate))
 	_punto_mid_noise = lerpf(_punto_mid_noise, white_noise, EngineAudioSynthesizer.sample_rate_invariant_alpha(0.12, sample_rate))
-	_punto_fast_noise = lerpf(_punto_fast_noise, white_noise, EngineAudioSynthesizer.sample_rate_invariant_alpha(0.42, sample_rate))
 	var high_noise: float = white_noise - _punto_mid_noise
 	var differentiated_noise: float = white_noise - _punto_previous_noise
 	_punto_previous_noise = white_noise
