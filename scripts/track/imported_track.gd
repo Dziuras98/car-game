@@ -17,8 +17,8 @@ const SURFACE_GRIP: Dictionary = {
 }
 
 var _racing_points: Array[Vector3] = []
-var _checkpoint_gates: Array[TrackCheckpointGate] = []
-var _collision_bodies: Array[StaticBody3D] = []
+var _imported_checkpoint_gates: Array[TrackCheckpointGate] = []
+var _collision_bodies: Array[TrackSurfaceBody] = []
 var _committed: bool = false
 var _revision: int = 0
 var _runtime_locked: bool = false
@@ -39,7 +39,11 @@ func _rebuild_imported_track() -> bool:
 		push_error("ImportedTrack could not build collision bodies.")
 		return false
 	_build_checkpoint_gates()
-	_committed = _racing_points.size() >= 3 and not _collision_bodies.is_empty() and not _checkpoint_gates.is_empty()
+	_committed = (
+		_racing_points.size() >= 3
+		and not _collision_bodies.is_empty()
+		and not _imported_checkpoint_gates.is_empty()
+	)
 	if not _committed:
 		return false
 	_revision += 1
@@ -61,7 +65,7 @@ func get_checkpoint_count() -> int:
 
 func get_checkpoint_gate_count() -> int:
 	var count: int = 0
-	for gate: TrackCheckpointGate in _checkpoint_gates:
+	for gate: TrackCheckpointGate in _imported_checkpoint_gates:
 		if is_instance_valid(gate):
 			count += 1
 	return count
@@ -129,12 +133,12 @@ func _build_collision_bodies() -> bool:
 		if shape == null:
 			continue
 		var surface_key: String = mesh_instance.name.trim_prefix("COLLISION_").to_upper()
-		var body: StaticBody3D = StaticBody3D.new()
+		var body: TrackSurfaceBody = TrackSurfaceBody.new()
 		body.name = "Surface_%s" % surface_key
 		body.collision_layer = 1
 		body.collision_mask = 0
+		body.grip_multiplier = float(SURFACE_GRIP.get(surface_key, SURFACE_GRIP["DEFAULT"]))
 		body.set_meta("surface_key", surface_key)
-		body.set_meta("surface_grip_multiplier", float(SURFACE_GRIP.get(surface_key, 1.0)))
 		add_child(body)
 		body.global_transform = mesh_instance.global_transform
 		var collision_shape: CollisionShape3D = CollisionShape3D.new()
@@ -187,7 +191,7 @@ func _append_checkpoint_gate(sequence_index: int, progress: float) -> void:
 	)
 	gate.crossed.connect(_on_imported_gate_crossed)
 	add_child(gate)
-	_checkpoint_gates.append(gate)
+	_imported_checkpoint_gates.append(gate)
 
 
 func _on_imported_gate_crossed(car: PlayerCarController, checkpoint_index: int, is_forward: bool) -> void:
@@ -196,11 +200,11 @@ func _on_imported_gate_crossed(car: PlayerCarController, checkpoint_index: int, 
 
 func _clear_runtime_content() -> void:
 	_committed = false
-	for gate: TrackCheckpointGate in _checkpoint_gates:
+	for gate: TrackCheckpointGate in _imported_checkpoint_gates:
 		if is_instance_valid(gate):
 			gate.queue_free()
-	_checkpoint_gates.clear()
-	for body: StaticBody3D in _collision_bodies:
+	_imported_checkpoint_gates.clear()
+	for body: TrackSurfaceBody in _collision_bodies:
 		if is_instance_valid(body):
 			body.queue_free()
 	_collision_bodies.clear()
