@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_model_definition.gd" id="1_model"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/variants/14_gli_16v_5mt.tres" id="2_14_gli_16v"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/variants/15_gle_5mt.tres" id="3_15_gle"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/variants/15_gli_5mt.tres" id="4_15_gli"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/variants/16_gle_5mt.tres" id="5_16_gle"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/variants/16_gli_5mt.tres" id="6_16_gli"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/variants/20_gle_ford_5mt.tres" id="7_20_gle_ford"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/variants/19_gld_5mt.tres" id="8_19_gld"]
+
+[resource]
+script = ExtResource("1_model")
+manufacturer = "FSO"
+model_id = &"fso_polonez_caro_mr93"
+display_name = "Polonez Caro"
+generation = "MR'93"
+production_year_start = 1993
+production_year_end = 1997
+variants = Array[Resource]([ExtResource("2_14_gli_16v"), ExtResource("3_15_gle"), ExtResource("4_15_gli"), ExtResource("5_16_gle"), ExtResource("6_16_gli"), ExtResource("7_20_gle_ford"), ExtResource("8_19_gld")])
+default_variant_id = &"fso_polonez_caro_mr93_14_gli_16v_5mt"

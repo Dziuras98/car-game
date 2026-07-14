@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_variant_definition.gd" id="1_variant"]
+[ext_resource type="PackedScene" path="res://scenes/cars/fso_polonez_caro_mr93_15_gli_5mt.tscn" id="2_scene"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/specs/15_gli_5mt_specs.tres" id="3_specs"]
+
+[resource]
+script = ExtResource("1_variant")
+variant_id = &"fso_polonez_caro_mr93_15_gli_5mt"
+display_name = "Polonez Caro 1.5 GLI 5MT"
+sort_order = 2
+car_scene = ExtResource("2_scene")
+ai_car_scene = ExtResource("2_scene")
+specs = ExtResource("3_specs")
+ai_eligible = true
+engine_label = "FSO AE/AF 1.5 OHV ABIMEX SPI"
+drivetrain_label = "RWD"
