@@ -11,13 +11,15 @@ func _ready() -> void:
 
 
 func _configure_wheel_visuals() -> void:
-	if _wheel_visuals_configured or not is_inside_tree():
+	if not is_inside_tree():
+		return
+	if _wheel_visuals_configured and _low_detail_wheel_nodes.size() == 4:
 		return
 	_resolve_visual_roots()
 	# The imported Sketchfab hierarchy is not a stable wheel-animation contract.
 	# Preserve its authored hierarchy and animate the explicit low-detail wheels.
 	_collect_low_detail_wheel_nodes()
-	_wheel_visuals_configured = true
+	_wheel_visuals_configured = _low_detail_wheel_nodes.size() == 4
 
 
 func _collect_low_detail_wheel_nodes() -> void:
@@ -27,11 +29,7 @@ func _collect_low_detail_wheel_nodes() -> void:
 	if _low_detail_root == null:
 		return
 	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
-		var wheel: Node3D = _low_detail_root.find_child(
-			str(wheel_name),
-			true,
-			false
-		) as Node3D
+		var wheel: Node3D = _find_node3d_by_name(_low_detail_root, wheel_name)
 		if wheel == null:
 			continue
 		_low_detail_wheel_nodes.append(wheel)
@@ -39,6 +37,16 @@ func _collect_low_detail_wheel_nodes() -> void:
 		_low_detail_front_flags.append(
 			wheel_name == &"WheelFrontLeft" or wheel_name == &"WheelFrontRight"
 		)
+
+
+func _find_node3d_by_name(root: Node, target_name: StringName) -> Node3D:
+	if root.name == target_name and root is Node3D:
+		return root as Node3D
+	for child: Node in root.get_children():
+		var match_node: Node3D = _find_node3d_by_name(child, target_name)
+		if match_node != null:
+			return match_node
+	return null
 
 
 func _normalize_detailed_model() -> void:
