@@ -61,23 +61,23 @@ static func _configure_petrol_six(profile: BmwE46EngineAudioProfile, key: String
 	var m54: bool = key.begins_with("m54") or key.begins_with("m56")
 	var sport: bool = key.contains("zhp") or power_kw >= 165.0
 	var size_factor: float = clampf((displacement - 2000.0) / 1000.0, 0.0, 1.0)
-	profile.high_rpm_rasp = 0.08 + (0.07 if sport else 0.03)
-	profile.intake_presence = 0.19 + size_factor * 0.08 + (0.04 if sport else 0.0)
-	profile.intake_plenum_detail = 0.15 + (0.04 if m54 else 0.0)
-	profile.airflow_noise = 0.06 + size_factor * 0.05
-	profile.induction_transient = 0.30 + (0.07 if sport else 0.02)
-	profile.mechanical_noise = 0.045 if m54 else 0.06
-	profile.rotating_assembly_detail = 0.045
-	profile.exhaust_resonance = 0.57 + size_factor * 0.12 + (0.05 if sport else 0.0)
-	profile.exhaust_roughness = 0.09 + (0.04 if sport else 0.0)
+	profile.high_rpm_rasp = 0.055 + (0.055 if sport else 0.015)
+	profile.intake_presence = 0.22 + size_factor * 0.09 + (0.04 if sport else 0.0)
+	profile.intake_plenum_detail = 0.20 + (0.04 if m54 else 0.0)
+	profile.airflow_noise = 0.045 + size_factor * 0.035
+	profile.induction_transient = 0.28 + (0.07 if sport else 0.02)
+	profile.mechanical_noise = 0.035 if m54 else 0.05
+	profile.rotating_assembly_detail = 0.035
+	profile.exhaust_resonance = 0.64 + size_factor * 0.14 + (0.04 if sport else 0.0)
+	profile.exhaust_roughness = 0.045 + (0.025 if sport else 0.0)
 	profile.exhaust_bank_separation = 0.01
-	profile.exhaust_reflection = 0.12 + size_factor * 0.04
-	profile.overrun_crackle = 0.06 + (0.05 if sport else 0.0)
-	profile.bank_asymmetry = 0.005
-	profile.idle_irregularity = 0.012 if m54 else 0.018
-	profile.combustion_sharpness = 0.26 + (0.06 if sport else 0.0)
-	profile.exhaust_pitch_scale = lerpf(1.04, 0.93, size_factor)
-	profile.intake_pitch_scale = 1.0 + (0.03 if redline >= 6800.0 else 0.0)
+	profile.exhaust_reflection = 0.18 + size_factor * 0.05
+	profile.overrun_crackle = 0.05 + (0.04 if sport else 0.0)
+	profile.bank_asymmetry = 0.004
+	profile.idle_irregularity = 0.008 if m54 else 0.012
+	profile.combustion_sharpness = 0.18 + (0.04 if sport else 0.0)
+	profile.exhaust_pitch_scale = lerpf(0.98, 0.90, size_factor)
+	profile.intake_pitch_scale = 0.96 + (0.02 if redline >= 6800.0 else 0.0)
 	if key.contains("sulev"):
 		profile.exhaust_resonance *= 0.82
 		profile.load_volume_db -= 1.5
@@ -91,32 +91,32 @@ static func _configure_diesel(profile: BmwE46EngineAudioProfile, key: String, cy
 	profile.load_volume_db = -0.5
 	profile.output_volume_boost_db = 9.5
 	profile.synthesis_gain_db = 0.0
-	profile.high_rpm_rasp = 0.015
-	profile.intake_presence = 0.08 + power_factor * 0.05
-	profile.intake_plenum_detail = 0.035
-	profile.airflow_noise = 0.16 + power_factor * 0.08
-	profile.induction_transient = 0.12
-	profile.mechanical_noise = 0.18 if six else 0.24
-	profile.rotating_assembly_detail = 0.14 if six else 0.18
-	profile.exhaust_resonance = 0.48 + clampf((displacement - 1900.0) / 1100.0, 0.0, 1.0) * 0.16
-	profile.exhaust_roughness = 0.17 if six else 0.26
+	profile.high_rpm_rasp = 0.008 if six else 0.015
+	profile.intake_presence = (0.10 if six else 0.08) + power_factor * 0.05
+	profile.intake_plenum_detail = 0.08 if six else 0.035
+	profile.airflow_noise = 0.14 + power_factor * 0.08 if six else 0.16 + power_factor * 0.08
+	profile.induction_transient = 0.10 if six else 0.12
+	profile.mechanical_noise = 0.14 if six else 0.24
+	profile.rotating_assembly_detail = 0.10 if six else 0.18
+	profile.exhaust_resonance = 0.62 + clampf((displacement - 1900.0) / 1100.0, 0.0, 1.0) * 0.16 if six else 0.48 + clampf((displacement - 1900.0) / 1100.0, 0.0, 1.0) * 0.16
+	profile.exhaust_roughness = 0.11 if six else 0.26
 	profile.exhaust_bank_separation = 0.01
-	profile.exhaust_reflection = 0.08
+	profile.exhaust_reflection = 0.12 if six else 0.08
 	profile.overrun_crackle = 0.005
-	profile.bank_asymmetry = 0.008
-	profile.idle_irregularity = 0.055 if six else 0.085
-	profile.combustion_sharpness = 0.66 if tu else 0.72
-	profile.diesel_combustion = 0.72 if six else 0.82
-	profile.diesel_injection_rattle = 0.50 if tu else 0.64
-	profile.diesel_mechanical_clatter = 0.46 if six else 0.62
+	profile.bank_asymmetry = 0.006 if six else 0.008
+	profile.idle_irregularity = 0.035 if six else 0.085
+	profile.combustion_sharpness = 0.58 if six else (0.66 if tu else 0.72)
+	profile.diesel_combustion = 0.64 if six else 0.82
+	profile.diesel_injection_rattle = (0.40 if tu else 0.50) if six else (0.50 if tu else 0.64)
+	profile.diesel_mechanical_clatter = 0.34 if six else 0.62
 	profile.turbo_whistle = 0.34 + power_factor * 0.16
 	profile.turbo_flutter = 0.025
 	profile.turbo_blowoff = 0.0
 	profile.turbo_spool_start_rpm = 1250.0 if six else 1450.0
 	profile.turbo_full_spool_rpm = 1900.0 if six else 2200.0
-	profile.turbo_pitch_scale = 0.90 if six else 1.08
-	profile.exhaust_pitch_scale = 0.83 if six else 0.94
-	profile.intake_pitch_scale = 0.90 if six else 1.0
+	profile.turbo_pitch_scale = 0.84 if six else 1.08
+	profile.exhaust_pitch_scale = 0.80 if six else 0.94
+	profile.intake_pitch_scale = 0.86 if six else 1.0
 
 static func _firing_order(cylinders: int, fuel: String) -> String:
 	if cylinders == 6: return "1-5-3-6-2-4"
