@@ -7,19 +7,21 @@ rear-wheel-drive, five-speed-manual variants:
 
 | Variant | Engine | Power | Torque | Gearbox | Final drive | 0–100 calibration | Top speed |
 |---|---|---:|---:|---|---:|---:|---:|
-| 1.4 GLI 16V | Rover K16 1398 cc DOHC MPI | 103 PS at 6000 rpm | 127 Nm at 5000 rpm | FSO 5MT | 4.30 | 13.3 s | 176 km/h |
-| 1.5 GLE | FSO AB 1481 cc OHV carburettor | 82 PS at 5200 rpm | 114 Nm at 3400 rpm | FSO 5MT | 4.10 | 15.6 s | 155 km/h |
-| 1.5 GLI | FSO AE/AF 1481 cc OHV ABIMEX SPI | 77 PS at 5400 rpm | 115 Nm at 2800 rpm | FSO 5MT | 4.10 | 15.2 s | 158 km/h |
-| 1.6 GLE | FSO CB 1598 cc OHV carburettor | 87 PS at 5200 rpm | 132 Nm at 3800 rpm | FSO 5MT | 3.90 | 14.2 s | 160 km/h |
-| 1.6 GLI | FSO CE/CF 1598 cc OHV ABIMEX SPI | 81 PS at 5200 rpm | 125 Nm at 3200 rpm | FSO 5MT | 3.90 | 14.4 s | 163 km/h |
-| 2.0 GLE Ford | Ford Pinto 1993 cc SOHC carburettor | 105 PS at 5200 rpm | 157 Nm at 4000 rpm | Ford Type 9 proxy | 3.64 | 11.8 s | 179 km/h |
-| 1.9 GLD | PSA XUD9A 1905 cc IDI diesel | 70 PS at 4600 rpm | 120 Nm at 2000 rpm | FSO 5MT | 3.72 | 17.3 s | 153 km/h |
+| 1.4 GLI 16V | Rover K16 1398 cc DOHC MPI | 103 PS at 6000 rpm | 127 Nm at 5000 rpm | FSO 5MT | 4.30 | 15.1 s | 176 km/h |
+| 1.5 GLE | FSO AB 1481 cc OHV carburettor | 82 PS at 5200 rpm | 114 Nm at 3400 rpm | FSO 5MT | 4.10 | 17.6 s | 155 km/h |
+| 1.5 GLI | FSO AE/AF 1481 cc OHV ABIMEX SPI | 77 PS at 5400 rpm | 115 Nm at 2800 rpm | FSO 5MT | 4.10 | 17.1 s | 158 km/h |
+| 1.6 GLE | FSO CB 1598 cc OHV carburettor | 87 PS at 5200 rpm | 132 Nm at 3800 rpm | FSO 5MT | 3.90 | 16.1 s | 160 km/h |
+| 1.6 GLI | FSO CE/CF 1598 cc OHV ABIMEX SPI | 81 PS at 5200 rpm | 125 Nm at 3200 rpm | FSO 5MT | 3.90 | 16.2 s | 163 km/h |
+| 2.0 GLE Ford | Ford Pinto 1993 cc SOHC carburettor | 105 PS at 5200 rpm | 157 Nm at 4000 rpm | Ford Type 9 proxy | 3.64 | 13.4 s | 179 km/h |
+| 1.9 GLD | PSA XUD9A 1905 cc IDI diesel | 70 PS at 4600 rpm | 120 Nm at 2000 rpm | FSO 5MT | 3.72 | 19.6 s | 153 km/h |
 
 The FSO gearbox uses the project-approved provisional ratios
 `3.753 / 2.132 / 1.378 / 1.000 / 0.860` and estimated reverse `3.870`.
 The Ford proxy uses `3.650 / 1.970 / 1.370 / 1.000 / 0.820`, reverse
 `3.660` and Sierra-derived final drive `3.640`. The 0–100 figures above are
-deterministic runtime calibration targets, not claimed period road-test values.
+measured by the deterministic Godot drivetrain test using the stored torque
+curves, masses, tire model and shift timing. They are not claimed period
+road-test values.
 
 ## Chassis calibration
 
@@ -90,8 +92,9 @@ forward-axis convention.
 The source hierarchy is preserved because it does not expose a stable documented
 wheel-node contract. An independently authored low-detail fallback contains four
 explicit wheel pivots at the 2.509 m wheelbase and is used for wheel rotation and
-screen-distance LOD. Three collision volumes cover the front structure, cabin
-and rear body.
+screen-distance LOD. Its two body meshes plus four wheels stay within the
+six-mesh-per-car AI fleet budget. Three collision volumes cover the front
+structure, cabin and rear body.
 
 ## Validation
 
