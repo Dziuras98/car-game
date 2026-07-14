@@ -14,7 +14,8 @@ const DEFAULT_TRACK_LAYOUT: TrackLayoutResource = preload("res://resources/track
 		_disconnect_layout_changed()
 		track_layout = value
 		_connect_layout_changed()
-		_request_rebuild()
+		if not _restoring_committed_layout:
+			_request_rebuild()
 
 var _content_root: TrackGeneratedContentRoot
 var _layout_builder: TrackLayoutBuilder
@@ -28,6 +29,7 @@ var _checkpoint_builder: TrackCheckpointBuilder
 var _geometry: TrackGeometryData
 var _checkpoint_gates: Array[TrackCheckpointGate] = []
 var _committed_track_layout: TrackLayoutResource
+var _restoring_committed_layout: bool = false
 var _rebuild_pending: bool = false
 var _runtime_rebuild_locked: bool = false
 var _queued_rebuild_while_locked: bool = false
@@ -68,7 +70,10 @@ func _perform_pending_rebuild() -> void:
 
 
 func _rebuild_track(force: bool = false) -> bool:
-	if not is_inside_tree() or track_layout == null or not track_layout.is_valid():
+	if not is_inside_tree():
+		return false
+	if track_layout == null or not track_layout.is_valid():
+		_restore_committed_layout_after_failure()
 		return false
 	if _runtime_rebuild_locked and not force:
 		_queued_rebuild_while_locked = true
@@ -83,6 +88,7 @@ func _rebuild_track(force: bool = false) -> bool:
 	var next_geometry: TrackGeometryData = _layout_builder.build(config)
 	if not _is_geometry_valid(next_geometry):
 		push_warning("GeneratedTrack layout generation failed; keeping the previous generated content.")
+		_restore_committed_layout_after_failure()
 		return false
 
 	var staged_content: Node3D = _content_root.create_staging_container()
@@ -95,6 +101,7 @@ func _rebuild_track(force: bool = false) -> bool:
 	if not _are_generated_meshes_valid(generated_meshes):
 		_discard_staged_content(staged_content)
 		push_warning("GeneratedTrack surface generation failed; keeping the previous generated content.")
+		_restore_committed_layout_after_failure()
 		return false
 
 	_collision_builder.build_collisions(staged_content, next_geometry, config, generated_meshes)
@@ -110,11 +117,13 @@ func _rebuild_track(force: bool = false) -> bool:
 	if next_checkpoint_gates.size() != track_layout.get_checkpoint_gate_count():
 		_discard_staged_content(staged_content)
 		push_warning("GeneratedTrack checkpoint generation failed; keeping the previous generated content.")
+		_restore_committed_layout_after_failure()
 		return false
 
 	if _content_root.commit(self, staged_content) == null:
 		_discard_staged_content(staged_content)
 		push_warning("GeneratedTrack could not commit generated content; keeping the previous generated content.")
+		_restore_committed_layout_after_failure()
 		return false
 
 	_geometry = next_geometry
@@ -133,11 +142,11 @@ func get_racing_line_points() -> Array[Vector3]:
 
 
 func get_track_layout() -> TrackLayoutResource:
-	return _committed_track_layout
+	return track_layout
 
 
 func get_checkpoint_count() -> int:
-	return _committed_track_layout.get_checkpoint_count() if _committed_track_layout != null else 0
+	return track_layout.get_checkpoint_count() if track_layout != null else 0
 
 
 func get_geometry_revision() -> int:
@@ -229,6 +238,31 @@ func _get_generation_signature() -> int:
 	])
 
 
+func _restore_committed_layout_after_failure() -> void:
+	if _committed_track_layout == null:
+		return
+	_restoring_committed_layout = true
+	if track_layout == null:
+		track_layout = _committed_track_layout.duplicate(true) as TrackLayoutResource
+	else:
+		for property: Dictionary in _committed_track_layout.get_property_list():
+			var usage: int = int(property.get("usage", 0))
+			if usage & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
+				continue
+			var property_name: StringName = property.get("name", &"")
+			if property_name == &"":
+				continue
+			var value: Variant = _committed_track_layout.get(property_name)
+			if value is Array:
+				value = value.duplicate(true)
+			elif value is Dictionary:
+				value = value.duplicate(true)
+			elif value is Resource:
+				value = value.duplicate(true)
+			track_layout.set(property_name, value)
+	_restoring_committed_layout = false
+
+
 func _is_geometry_valid(geometry: TrackGeometryData) -> bool:
 	return geometry != null and geometry.is_valid()
 
@@ -265,6 +299,8 @@ func _disconnect_layout_changed() -> void:
 
 
 func _on_track_layout_changed() -> void:
+	if _restoring_committed_layout:
+		return
 	_request_rebuild()
 
 
