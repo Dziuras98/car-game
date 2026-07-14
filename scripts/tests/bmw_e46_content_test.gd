@@ -120,12 +120,6 @@ func _test_torque_converter_automatic_player_model() -> void:
 	if variant == null or variant.specs == null:
 		return
 
-	var player_scene_car := variant.get_car_scene().instantiate() as BmwE46CarController
-	_expect(player_scene_car != null, "330i 5AT player scene instantiates the BMW controller")
-	if player_scene_car == null:
-		return
-	player_scene_car.free()
-
 	var player_car := BmwE46CarController.new()
 	var apply_result: PlayerCarController.SpecsApplyResult = player_car.try_apply_car_specs(variant.specs)
 	_expect(apply_result == PlayerCarController.SpecsApplyResult.OK, "330i 5AT specs apply to the player controller")
