@@ -65,6 +65,10 @@ func get_specs() -> CarSpecs:
 	return specs
 
 
+func get_performance_index() -> int:
+	return CarPerformanceIndexCalculator.calculate(specs)
+
+
 func get_car_scene() -> PackedScene:
 	return car_scene
 

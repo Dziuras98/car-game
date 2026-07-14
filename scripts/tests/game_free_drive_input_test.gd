@@ -18,7 +18,7 @@ func _run() -> void:
 	root.add_child(main)
 	await _frames(8)
 
-	for label: String in ["Jazda swobodna", "Prosty owal", "Nissan 370Z", "370Z automat"]:
+	for label: String in ["Jazda swobodna", "Prosty owal", "Nissan 370Z"]:
 		var button: Button = _find_visible_button(main, label)
 		_expect(button != null, "menu exposes %s" % label)
 		if button == null:
@@ -28,6 +28,21 @@ func _run() -> void:
 			return
 		button.emit_signal("pressed")
 		await _frames(3)
+
+	var automatic_button: Button = _find_visible_button(main, "370Z automat")
+	_expect(automatic_button != null, "menu exposes 370Z automat")
+	if automatic_button == null:
+		main.queue_free()
+		await process_frame
+		_finish()
+		return
+	var dpi_label: Label = automatic_button.get_node_or_null("PerformanceIndex") as Label
+	_expect(
+		dpi_label != null and dpi_label.visible and dpi_label.text.begins_with("DPI "),
+		"automatic variant button visibly exposes its DPI"
+	)
+	automatic_button.emit_signal("pressed")
+	await _frames(3)
 	await _frames(8)
 
 	var car: PlayerCarController = main.call("get_current_car") as PlayerCarController

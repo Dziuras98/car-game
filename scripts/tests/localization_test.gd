@@ -60,8 +60,8 @@ func _initialize() -> void:
 	_expect(
 		not polish_models.is_empty()
 		and not polish_models[0].variants.is_empty()
-		and polish_models[0].variants[0].label == "370Z automat",
-		"Polish menu uses the localized automatic variant name"
+		and polish_models[0].variants[0].label.begins_with("370Z automat — DPI "),
+		"Polish menu uses the localized automatic variant name and exposes DPI"
 	)
 
 	TranslationServer.set_locale("en")
@@ -108,9 +108,9 @@ func _initialize() -> void:
 	_expect(
 		not english_models.is_empty()
 		and english_models[0].variants.size() >= 2
-		and english_models[0].variants[0].label == "370Z automatic"
-		and english_models[0].variants[1].label == "370Z manual",
-		"English menu translates both car variant names"
+		and english_models[0].variants[0].label.begins_with("370Z automatic — DPI ")
+		and english_models[0].variants[1].label.begins_with("370Z manual — DPI "),
+		"English menu translates both car variant names and exposes DPI"
 	)
 
 	TranslationServer.set_locale(original_locale)

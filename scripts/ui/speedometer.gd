@@ -85,7 +85,12 @@ func _update_display(speed_kmh: float, engine_rpm: float = 0.0, gear_text: Strin
 func _update_car_display_name() -> void:
 	var display_name: String = ""
 	if is_instance_valid(_car) and _car.car_specs != null:
-		display_name = tr(_car.car_specs.display_name)
+		var performance_index: int = CarPerformanceIndexCalculator.calculate(_car.car_specs)
+		if performance_index > 0:
+			display_name = "%s — DPI %d" % [
+				tr(_car.car_specs.display_name),
+				performance_index,
+			]
 	if _car_value != null and display_name != _last_car_display_name:
 		_car_value.text = display_name
 		_last_car_display_name = display_name

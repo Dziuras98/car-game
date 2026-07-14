@@ -9,6 +9,7 @@ const STEP_MODEL: int = 2
 const STEP_VARIANT: int = 3
 const STEP_LOADING: int = 4
 const LOADING_PROGRESS_INITIAL: float = 4.0
+const DPI_LABEL_SEPARATOR: String = " — DPI "
 
 var _selected_mode_id: StringName = &""
 var _selected_track_id: StringName = &""
@@ -224,7 +225,22 @@ func _clear_options() -> void:
 
 func _add_option_button(text: String, pressed_callback: Callable) -> void:
 	var button: Button = Button.new()
-	button.text = text
+	var dpi_separator_index: int = text.rfind(DPI_LABEL_SEPARATOR)
+	if dpi_separator_index >= 0:
+		button.text = text.left(dpi_separator_index)
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var dpi_label: Label = Label.new()
+		dpi_label.name = "PerformanceIndex"
+		dpi_label.text = text.substr(dpi_separator_index + DPI_LABEL_SEPARATOR.length() - 4)
+		dpi_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		dpi_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		dpi_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dpi_label.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+		dpi_label.offset_left = -120.0
+		dpi_label.offset_right = -14.0
+		button.add_child(dpi_label)
+	else:
+		button.text = text
 	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(pressed_callback)
