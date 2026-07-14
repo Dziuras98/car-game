@@ -29,13 +29,18 @@ func _run() -> void:
 		button.emit_signal("pressed")
 		await _frames(3)
 
-	var automatic_button: Button = _find_visible_button_with_prefix(main, "370Z automat — DPI ")
-	_expect(automatic_button != null, "menu exposes 370Z automat with its DPI")
+	var automatic_button: Button = _find_visible_button(main, "370Z automat")
+	_expect(automatic_button != null, "menu exposes 370Z automat")
 	if automatic_button == null:
 		main.queue_free()
 		await process_frame
 		_finish()
 		return
+	var dpi_label: Label = automatic_button.get_node_or_null("PerformanceIndex") as Label
+	_expect(
+		dpi_label != null and dpi_label.visible and dpi_label.text.begins_with("DPI "),
+		"automatic variant button visibly exposes its DPI"
+	)
 	automatic_button.emit_signal("pressed")
 	await _frames(3)
 	await _frames(8)
@@ -86,18 +91,6 @@ func _find_visible_button(node: Node, label: String) -> Button:
 			return button
 	for child: Node in node.get_children():
 		var found: Button = _find_visible_button(child, label)
-		if found != null:
-			return found
-	return null
-
-
-func _find_visible_button_with_prefix(node: Node, label_prefix: String) -> Button:
-	if node is Button:
-		var button: Button = node as Button
-		if button.is_visible_in_tree() and button.text.begins_with(label_prefix):
-			return button
-	for child: Node in node.get_children():
-		var found: Button = _find_visible_button_with_prefix(child, label_prefix)
 		if found != null:
 			return found
 	return null
