@@ -93,7 +93,7 @@ is now filled as an explicit estimate:
 | R | 3.870 | gameplay estimate |
 
 The reverse estimate is 3.1% shorter than first gear and matches the documented
-3.87 reverse ratio of the predecessor 125p transmission family. It is a
+3.870 reverse ratio of the predecessor 125p transmission family. It is a
 reasonable simulation value, but it is not presented as an FSO factory
 specification.
 
@@ -178,7 +178,7 @@ factory hardware.
 
 ## Suggested implementation order
 
-1. `caro_mr93_16_gli_5mt` using FSO 3.753–0.860, reverse 3.87 and axle 3.90;
+1. `caro_mr93_16_gli_5mt` using FSO 3.753–0.860, reverse 3.870 and axle 3.90;
 2. `caro_mr93_14_gli_16v_5mt` with axle 4.30;
 3. `caro_mr93_19_gld_5mt` with axle 3.72;
 4. the 1.5 variants with axle 4.10;
