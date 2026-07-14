@@ -57,6 +57,9 @@ msgstr "Preview unavailable"
 msgid "Napęd bezpośredni"
 msgstr "Direct drive"
 
+msgid "DPI"
+msgstr "DPI"
+
 msgid "Wstecz"
 msgstr "Back"
 
