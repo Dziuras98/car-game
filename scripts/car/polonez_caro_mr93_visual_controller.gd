@@ -8,6 +8,27 @@ func _ready() -> void:
 	_resolve_visual_roots()
 	_normalize_detailed_model()
 	super._ready()
+	_configure_wheel_visuals()
+
+
+func get_registered_wheel_count() -> int:
+	_configure_wheel_visuals()
+	return _low_detail_wheel_nodes.size()
+
+
+func update_vehicle_visuals(
+	delta: float,
+	forward_speed: float,
+	steering_input: float,
+	wheel_radius_override: float = -1.0
+) -> void:
+	_configure_wheel_visuals()
+	super.update_vehicle_visuals(
+		delta,
+		forward_speed,
+		steering_input,
+		wheel_radius_override
+	)
 
 
 func _configure_wheel_visuals() -> void:
