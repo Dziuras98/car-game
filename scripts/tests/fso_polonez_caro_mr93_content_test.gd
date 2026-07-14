@@ -14,15 +14,15 @@ const TOP_SPEEDS_KMH: Dictionary = {
 	&"fso_polonez_caro_mr93_19_gld_5mt": 153,
 }
 const ZERO_TO_100_SECONDS: Dictionary = {
-	&"fso_polonez_caro_mr93_14_gli_16v_5mt": 13.3,
-	&"fso_polonez_caro_mr93_15_gle_5mt": 15.6,
-	&"fso_polonez_caro_mr93_15_gli_5mt": 15.2,
-	&"fso_polonez_caro_mr93_16_gle_5mt": 14.2,
-	&"fso_polonez_caro_mr93_16_gli_5mt": 14.4,
-	&"fso_polonez_caro_mr93_20_gle_ford_5mt": 11.8,
-	&"fso_polonez_caro_mr93_19_gld_5mt": 17.3,
+	&"fso_polonez_caro_mr93_14_gli_16v_5mt": 15.1,
+	&"fso_polonez_caro_mr93_15_gle_5mt": 17.6,
+	&"fso_polonez_caro_mr93_15_gli_5mt": 17.1,
+	&"fso_polonez_caro_mr93_16_gle_5mt": 16.1,
+	&"fso_polonez_caro_mr93_16_gli_5mt": 16.2,
+	&"fso_polonez_caro_mr93_20_gle_ford_5mt": 13.4,
+	&"fso_polonez_caro_mr93_19_gld_5mt": 19.6,
 }
-const PERFORMANCE_TOLERANCE_SECONDS: float = 1.0
+const PERFORMANCE_TOLERANCE_SECONDS: float = 0.5
 const SIMULATION_STEP: float = 1.0 / 120.0
 const MAX_ACCELERATION_TEST_SECONDS: float = 30.0
 const POWER_PEAK_UPSHIFT_MULTIPLIER: float = 1.04
