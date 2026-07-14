@@ -1,0 +1,7 @@
+engine_key,badges,engine_code,fuel,displacement_cc,cylinders,power_kw,power_ps,power_rpm,torque_nm,torque_rpm,production_years,market_scope,catalog_status,notes
+k16_1398_mpi_76,1.4 GLI 16V,K16,petrol,1398,4,76,103,6000,127,5000,1993-12–1997,Europe / Poland,core,"Rover K-series DOHC 16V multipoint-injection engine; introduced to the MR'93 range in December 1993. Exact market and catalyst coverage requires primary documentation."
+ab_1481_carb_60,1.5 GLE,AB,petrol,1481,4,60,82,5200,114,3400,1993-08–1994,Europe / Poland,core,"Carburetted OHV engine; date range records only its overlap with the wide-track MR'93 body."
+ae_af_1481_spi_57,1.5 GLI,AE / AF,petrol,1481,4,57,77,5400,115,2800,1993-08–1995,Europe / Poland,core,"ABIMEX single-point injection; AE/AF catalyst distinction and exact build-date transition remain pending."
+cb_1598_carb_64,1.6 GLE,CB,petrol,1598,4,64,87,5200,132,3800,1993-08–1994,Europe / Poland,core,"Carburetted OHV engine; date range records only its overlap with the wide-track MR'93 body."
+ce_cf_1598_spi_60,1.6 GLI,CE / CF,petrol,1598,4,60,81,5200,125,3200,1993-08–1997,Europe / Poland,core,"ABIMEX single-point injection; CE/CF catalyst distinction and exact build-date transition remain pending."
+xud9a_1905_idi_51,1.9 GLD,XUD9A,diesel,1905,4,51,70,4600,120,2000,1993-08–1996,Europe / Poland,core,"Naturally aspirated PSA indirect-injection diesel. The 1996 end date is retained as the reported MR'93 production boundary pending a primary FSO source."
