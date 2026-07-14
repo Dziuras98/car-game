@@ -12,6 +12,7 @@ $patcherPath = Join-Path $projectRoot "tools/apply_engine_audio_realism_patch.py
 $originalVerifier = Join-Path $PSScriptRoot "verify_project_original.ps1"
 $packageRoot = Join-Path $env:RUNNER_TEMP "engine-audio-patched-source"
 $packagePath = Join-Path $diagnosticDirectory "engine-audio-patched-source.zip"
+$preprocessorPath = Join-Path $env:RUNNER_TEMP "prepare-engine-audio-patcher.py"
 
 New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
 
@@ -23,12 +24,37 @@ try {
         throw "Original verification entrypoint was not found: $originalVerifier"
     }
 
-    $patcherContent = Get-Content -LiteralPath $patcherPath -Raw
-    $patcherContent = $patcherContent.Replace(
-        "`t`tpush_warning(`n`t`t`t`"EngineAudioProfile ignored",
-        "`t`tprint_verbose(`n`t`t`t`"EngineAudioProfile ignored"
-    )
-    Set-Content -LiteralPath $patcherPath -Value $patcherContent -Encoding utf8 -NoNewline
+    @'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+text = text.replace(
+    '\t\tpush_warning(\n\t\t\t"EngineAudioProfile ignored',
+    '\t\tprint_verbose(\n\t\t\t"EngineAudioProfile ignored',
+)
+old = '''    replace_all(path, "pulse *= ignition_gate * startup_gate * shutdown_gate * running_gate", "pulse *= ignition_gate * startup_gate", minimum=1)
+'''
+new = '''    content = read(path)
+    direct_gate = "pulse *= ignition_gate * startup_gate * shutdown_gate * running_gate"
+    if direct_gate in content:
+        write(path, content.replace(direct_gate, "pulse *= ignition_gate * startup_gate", 1))
+    elif " * combustion_gate" in content:
+        write(path, content.replace(" * combustion_gate", " * ignition_gate * startup_gate"))
+    else:
+        raise RuntimeError(f"{path}: no supported combustion-state gate was found")
+'''
+if old not in text:
+    raise RuntimeError("Could not locate backend combustion-gate patch block")
+text = text.replace(old, new, 1)
+path.write_text(text, encoding="utf-8", newline="\n")
+'@ | Set-Content -LiteralPath $preprocessorPath -Encoding utf8
+
+    & python $preprocessorPath $patcherPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Engine-audio patch preprocessor failed with exit code $LASTEXITCODE."
+    }
 
     & python $patcherPath
     if ($LASTEXITCODE -ne 0) {
