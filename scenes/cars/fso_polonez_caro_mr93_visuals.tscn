@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/polonez_caro_mr93_visual_controller.gd" id="1_controller"]
+[ext_resource type="PackedScene" path="res://1993_fso_polonez_caro_mr93_lp_new.glb" id="2_model"]
+[ext_resource type="PackedScene" path="res://scenes/cars/fso_polonez_caro_mr93_low_detail_visuals.tscn" id="3_low"]
+
+[node name="FsoPolonezCaroMr93Visuals" type="Node3D"]
+script = ExtResource("1_controller")
+detailed_root_path = NodePath("SketchfabModel")
+low_detail_root_path = NodePath("LowDetail")
+visibility_aabb = AABB(-0.94, -0.05, -2.18, 1.88, 1.52, 4.36)
+visual_wheel_radius = 0.298
+
+[node name="SketchfabModel" parent="." instance=ExtResource("2_model")]
+
+[node name="LowDetail" parent="." instance=ExtResource("3_low")]
+visible = false

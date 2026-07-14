@@ -1,0 +1,42 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/car/polonez_engine_audio.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
+[ext_resource type="PackedScene" path="res://scenes/cars/fso_polonez_caro_mr93_visuals.tscn" id="4_visuals"]
+
+[sub_resource type="BoxShape3D" id="CabinCollision"]
+size = Vector3(1.52, 1.24, 1.98)
+
+[sub_resource type="BoxShape3D" id="FrontCollision"]
+size = Vector3(1.60, 0.66, 1.28)
+
+[sub_resource type="BoxShape3D" id="RearCollision"]
+size = Vector3(1.60, 0.72, 1.24)
+
+[node name="FsoPolonezCaroMr93" type="CharacterBody3D"]
+floor_snap_length = 0.0
+script = ExtResource("1_controller")
+
+[node name="CollisionCabin" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.76, 0.22)
+shape = SubResource("CabinCollision")
+
+[node name="CollisionFront" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.42, -1.51)
+shape = SubResource("FrontCollision")
+
+[node name="CollisionRear" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.44, 1.53)
+shape = SubResource("RearCollision")
+
+[node name="VisualRoot" parent="." instance=ExtResource("4_visuals")]
+
+[node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("2_engine_audio")
+cylinders = 4
+force_full_runtime_generation = true
+
+[node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("3_tire_squeal")
+loud_volume_db = -8.0
