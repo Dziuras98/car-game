@@ -343,7 +343,7 @@ func _build_car_thumbnails() -> void:
 
 		var dpi_label := Label.new()
 		dpi_label.name = "PerformanceIndex"
-		dpi_label.text = "DPI %d" % variant.performance_index if variant.performance_index > 0 else "DPI —"
+		dpi_label.text = _format_dpi(variant.performance_index)
 		dpi_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		dpi_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		dpi_label.add_theme_font_size_override("font_size", 12)
@@ -397,11 +397,11 @@ func _update_selected_car_content() -> void:
 		_transmission_value.text = EMPTY_VALUE
 		_top_speed_value.text = EMPTY_VALUE
 	else:
-		_torque_value.text = "%d Nm" % roundi(specs.peak_engine_torque)
-		_redline_value.text = "%d rpm" % roundi(specs.redline_rpm)
-		_mass_value.text = "%d kg" % roundi(specs.vehicle_mass)
+		_torque_value.text = _format_integer_measurement(roundi(specs.peak_engine_torque), "Nm")
+		_redline_value.text = _format_integer_measurement(roundi(specs.redline_rpm), "rpm")
+		_mass_value.text = _format_integer_measurement(roundi(specs.vehicle_mass), "kg")
 		_transmission_value.text = _format_transmission(specs)
-		_top_speed_value.text = "%d km/h" % roundi(specs.max_forward_speed * 3.6)
+		_top_speed_value.text = _format_integer_measurement(roundi(specs.max_forward_speed * 3.6), "km/h")
 
 	_update_center_preview(variant)
 
@@ -469,6 +469,16 @@ func _clear_previews() -> void:
 		_thumbnail_renderer.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	if _preview_unavailable_label != null:
 		_preview_unavailable_label.visible = false
+
+
+func _format_dpi(performance_index: int) -> String:
+	if performance_index <= 0:
+		return "%s %s" % [tr("DPI"), EMPTY_VALUE]
+	return "%s %d" % [tr("DPI"), performance_index]
+
+
+func _format_integer_measurement(value: int, unit: String) -> String:
+	return "%d %s" % [value, unit]
 
 
 func _format_transmission(specs: CarSpecs) -> String:
