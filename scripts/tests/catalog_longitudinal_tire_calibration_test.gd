@@ -22,6 +22,15 @@ const EXPECTED_LEGACY_CALIBRATIONS: Dictionary = {
 	&"fiat_punto_176_1995_d_5mt": Vector4(0.80, 0.14, 0.72, 9.5),
 	&"fiat_punto_176_1995_td70_5mt": Vector4(0.82, 0.14, 0.73, 9.7),
 }
+const EXPECTED_POLONEZ_CALIBRATIONS: Dictionary = {
+	&"fso_polonez_caro_mr93_14_gli_16v_5mt": Vector4(0.76, 0.15, 0.67, 8.8),
+	&"fso_polonez_caro_mr93_15_gle_5mt": Vector4(0.72, 0.15, 0.67, 8.2),
+	&"fso_polonez_caro_mr93_15_gli_5mt": Vector4(0.72, 0.15, 0.67, 8.4),
+	&"fso_polonez_caro_mr93_16_gle_5mt": Vector4(0.73, 0.15, 0.67, 8.2),
+	&"fso_polonez_caro_mr93_16_gli_5mt": Vector4(0.73, 0.15, 0.67, 8.5),
+	&"fso_polonez_caro_mr93_20_gle_ford_5mt": Vector4(0.76, 0.15, 0.67, 8.8),
+	&"fso_polonez_caro_mr93_19_gld_5mt": Vector4(0.72, 0.15, 0.67, 8.5),
+}
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -66,6 +75,8 @@ func _run() -> void:
 
 func _build_expected_calibrations() -> Dictionary:
 	var result: Dictionary = EXPECTED_LEGACY_CALIBRATIONS.duplicate(true)
+	for variant_id: StringName in EXPECTED_POLONEZ_CALIBRATIONS:
+		result[variant_id] = EXPECTED_POLONEZ_CALIBRATIONS[variant_id]
 	for path: String in BMW_DYNAMICS_PATHS:
 		var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 		_expect(file != null, "BMW tire calibration source loads: %s" % path)
