@@ -1,1 +1,0 @@
-Run full verification after removing obsolete BMW fast-noise state references.
