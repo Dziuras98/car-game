@@ -102,6 +102,9 @@ msgstr "Prosty owal"
 msgid "Tor Poznań"
 msgstr "Tor Poznań"
 
+msgid "Suzuka"
+msgstr "Suzuka"
+
 msgid "370Z automat"
 msgstr "370Z automat"
 
