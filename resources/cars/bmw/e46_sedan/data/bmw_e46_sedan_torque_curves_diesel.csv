@@ -1,0 +1,61 @@
+engine_key,engine_code,rpm,torque_nm,power_kw,point_class,reconstruction_confidence,note
+m47_d20_85_265,M47D20 85 kW,800,92.8,7.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_85_265,M47D20 85 kW,1000,119.2,12.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_85_265,M47D20 85 kW,1250,172.2,22.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_85_265,M47D20 85 kW,1750,265,48.6,published_anchor,high,maximum torque anchor
+m47_d20_85_265,M47D20 85 kW,2500,265,69.4,published_anchor,high,maximum torque anchor
+m47_d20_85_265,M47D20 85 kW,3000,249.1,78.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_85_265,M47D20 85 kW,3500,238.5,87.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_85_265,M47D20 85 kW,4000,202.9,85,published_anchor,high,maximum power anchor converted to torque
+m47_d20_85_265,M47D20 85 kW,4500,147.9,69.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_85_265,M47D20 85 kW,4750,103.5,51.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_85_280,M47TU D20 85 kW,800,98,8.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_85_280,M47TU D20 85 kW,1000,126,13.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_85_280,M47TU D20 85 kW,1250,182,23.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_85_280,M47TU D20 85 kW,1750,280,51.3,published_anchor,high,maximum torque anchor
+m47tu_d20_85_280,M47TU D20 85 kW,2200,280,64.5,published_anchor,high,maximum torque anchor
+m47tu_d20_85_280,M47TU D20 85 kW,3000,263.2,82.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_85_280,M47TU D20 85 kW,3500,252,92.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_85_280,M47TU D20 85 kW,4000,202.9,85,published_anchor,high,maximum power anchor converted to torque
+m47tu_d20_85_280,M47TU D20 85 kW,4500,147.9,69.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_85_280,M47TU D20 85 kW,4750,103.5,51.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_100_280,M47D20 100 kW,800,98,8.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_100_280,M47D20 100 kW,1000,126,13.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_100_280,M47D20 100 kW,1250,182,23.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_100_280,M47D20 100 kW,1750,280,51.3,published_anchor,high,maximum torque anchor
+m47_d20_100_280,M47D20 100 kW,2500,280,73.3,published_anchor,high,maximum torque anchor
+m47_d20_100_280,M47D20 100 kW,3000,263.2,82.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_100_280,M47D20 100 kW,3500,252,92.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_100_280,M47D20 100 kW,4000,238.7,100,published_anchor,high,maximum power anchor converted to torque
+m47_d20_100_280,M47D20 100 kW,4500,174,82,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47_d20_100_280,M47D20 100 kW,4750,121.8,60.6,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_110_330,M47TU D20 110 kW,800,115.5,9.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_110_330,M47TU D20 110 kW,1000,148.5,15.6,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_110_330,M47TU D20 110 kW,1250,214.5,28.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_110_330,M47TU D20 110 kW,2000,330,69.1,published_anchor,high,maximum torque anchor
+m47tu_d20_110_330,M47TU D20 110 kW,2500,330,86.4,published_anchor,high,maximum torque anchor
+m47tu_d20_110_330,M47TU D20 110 kW,3000,310.2,97.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_110_330,M47TU D20 110 kW,3500,297,108.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_110_330,M47TU D20 110 kW,4000,262.6,110,published_anchor,high,maximum power anchor converted to torque
+m47tu_d20_110_330,M47TU D20 110 kW,4500,191.4,90.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m47tu_d20_110_330,M47TU D20 110 kW,4750,134,66.6,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57_d30_135,M57D30 135 kW,750,136.5,10.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57_d30_135,M57D30 135 kW,1000,175.5,18.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57_d30_135,M57D30 135 kW,1250,253.5,33.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57_d30_135,M57D30 135 kW,1750,390,71.5,published_anchor,high,maximum torque anchor
+m57_d30_135,M57D30 135 kW,3000,378.3,118.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57_d30_135,M57D30 135 kW,3250,390,132.7,published_anchor,high,maximum torque anchor
+m57_d30_135,M57D30 135 kW,3500,351,128.6,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57_d30_135,M57D30 135 kW,4000,322.3,135,published_anchor,high,maximum power anchor converted to torque
+m57_d30_135,M57D30 135 kW,4500,234.9,110.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57_d30_135,M57D30 135 kW,4750,164.4,81.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57tu_d30_150,M57TU D30 150 kW,750,143.5,11.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57tu_d30_150,M57TU D30 150 kW,1000,184.5,19.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57tu_d30_150,M57TU D30 150 kW,1250,266.5,34.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57tu_d30_150,M57TU D30 150 kW,1500,410,64.4,published_anchor,high,maximum torque anchor
+m57tu_d30_150,M57TU D30 150 kW,3000,397.7,124.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57tu_d30_150,M57TU D30 150 kW,3250,410,139.5,published_anchor,high,maximum torque anchor
+m57tu_d30_150,M57TU D30 150 kW,3500,369,135.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57tu_d30_150,M57TU D30 150 kW,4000,358.1,150,published_anchor,high,maximum power anchor converted to torque
+m57tu_d30_150,M57TU D30 150 kW,4500,261,123,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m57tu_d30_150,M57TU D30 150 kW,4750,182.7,90.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors

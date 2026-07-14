@@ -3,8 +3,8 @@ class_name CarDriveConfigBuilder
 
 const NON_RUNTIME_PROPERTIES: Array[StringName] = [
 	&"display_name",
+	&"engine_audio_profile",
 ]
-
 
 static func build_from_specs(car_specs: CarSpecs, report_errors: bool = true) -> CarDriveConfig:
 	if car_specs == null:
@@ -16,7 +16,6 @@ static func build_from_specs(car_specs: CarSpecs, report_errors: bool = true) ->
 		if report_errors:
 			push_error("CarDriveConfigBuilder received invalid specs: %s" % "; ".join(validation_errors))
 		return null
-
 	var config: CarDriveConfig = CarDriveConfig.new()
 	for property: Dictionary in car_specs.get_property_list():
 		var property_name: StringName = property.get("name", &"")
@@ -34,7 +33,6 @@ static func build_from_specs(car_specs: CarSpecs, report_errors: bool = true) ->
 	config.sanitize()
 	return config
 
-
 static func get_unmapped_specs_properties(car_specs: CarSpecs) -> PackedStringArray:
 	var result: PackedStringArray = PackedStringArray()
 	if car_specs == null:
@@ -50,7 +48,6 @@ static func get_unmapped_specs_properties(car_specs: CarSpecs) -> PackedStringAr
 		if not _config_has_property(config, property_name):
 			result.append(str(property_name))
 	return result
-
 
 static func _config_has_property(config: CarDriveConfig, property_name: StringName) -> bool:
 	for property: Dictionary in config.get_property_list():

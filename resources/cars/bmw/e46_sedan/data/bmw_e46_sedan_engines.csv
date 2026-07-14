@@ -1,1 +1,25 @@
 engine_key,badges,engine_code,fuel,displacement_cc,cylinders,power_kw,power_ps,power_rpm,torque_nm,torque_rpm,production_years,market_scope,catalog_status,notes
+m43tu_b19_77,316i,M43TU B19 UL,petrol,1895,4,77,105,5300,165,2500,1998–2001,Europe,core,
+m43tu_b19_87,318i,M43TU B19 OL,petrol,1895,4,87,118,5500,180,3900,1998–2001,Europe,core,
+n42_b18_85,316i,N42B18,petrol,1796,4,85,116,5500,175,3750,2001–2004,Europe,core,
+n46_b18_85,316i,N46B18,petrol,1796,4,85,116,5500,175,3750,2004–2005,Europe,core,Sedan production ends in 2005.
+n42_b20_105,318i,N42B20,petrol,1995,4,105,143,6000,200,3750,2001–2004,Europe,core,
+n46_b20_105,318i,N46B20A,petrol,1995,4,105,143,6000,200,3750,2003–2005,Europe,core,Sedan production ends in 2005.
+m52tu_b20_110,320i,M52TU B20,petrol,1991,6,110,150,5900,190,3500,1998–2000,Europe,core,
+m54_b22_125,320i,M54B22,petrol,2171,6,125,170,6100,210,3500,2000–2005,Europe,core,
+m52tu_b25_125,323i,M52TU B25,petrol,2494,6,125,170,5500,245,3500,1998–2000,Europe,core,
+m54_b25_eu_141,325i / 325xi,M54B25,petrol,2494,6,141,192,6000,245,3500,2000–2005,Europe,core,RWD and AWD applications.
+m52tu_b28_142,328i,M52TU B28,petrol,2793,6,142,193,5500,280,3500,1998–2000,Europe,core,
+m54_b30_eu_170,330i / 330xi,M54B30,petrol,2979,6,170,231,5900,300,3500,2000–2005,Europe,core,RWD and AWD applications.
+m47_d20_85_265,318d,M47D20,diesel,1951,4,85,116,4000,265,1750–2500,2001–2003,Europe,core,
+m47tu_d20_85_280,318d,M47TU D20,diesel,1995,4,85,116,4000,280,1750,2003–2005,Europe,core,
+m47_d20_100_280,320d,M47D20,diesel,1951,4,100,136,4000,280,1750,1998–2001,Europe,core,
+m47tu_d20_110_330,320d,M47TU D20,diesel,1995,4,110,150,4000,330,2000–2500,2001–2005,Europe,core,
+m57_d30_135,330d / 330xd,M57D30,diesel,2926,6,135,184,4000,390,1750–3250,1999–2003,Europe,core,RWD and AWD applications; 330xd introduced in 2000.
+m57tu_d30_150,330d / 330xd,M57TU D30,diesel,2993,6,150,204,4000,410,1500–3250,2003–2005,Europe,core,RWD and AWD applications; sedan production ends in 2005.
+n40_b16_85,316i,N40B16,petrol,1596,4,85,116,6100,150,4300,2001–2004,selected tax markets,deferred,Not sold on the German market; exact sedan market/build coverage requires ETK verification.
+n45_b16_85,316i,N45B16O1,petrol,1596,4,85,116,6000,150,4300,2003–2005,selected tax markets,deferred,Exact sedan market/build coverage and gearbox mapping require ETK verification.
+m54_b25_us_137,325i,M54B25,petrol,2494,6,137,186,,237,,2001–2005,United States,deferred,US calibration; keep separate from the European 141 kW tune.
+m56_b25_sulev_135,325i SULEV,M56B25,petrol,2494,6,135,184,,234,,2003–2005,selected US states,deferred,SULEV/PZEV application; source indicates automatic-transmission availability.
+m54_b30_us_168,330i,M54B30,petrol,2979,6,168,228,,290,,2001–2005,United States,deferred,US calibration; keep separate from the European 170 kW tune.
+m54_b30_zhp_175,330i ZHP,M54B30 ZHP,petrol,2979,6,175,238,,301,,2003–2005,United States / Canada,deferred,Performance Package; different redline/final drive/tuning from standard 330i.

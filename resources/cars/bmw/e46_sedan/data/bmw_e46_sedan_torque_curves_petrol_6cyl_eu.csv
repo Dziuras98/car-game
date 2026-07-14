@@ -1,0 +1,79 @@
+engine_key,engine_code,rpm,torque_nm,power_kw,point_class,reconstruction_confidence,note
+m52tu_b20_110,M52TU B20,700,98.8,7.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,1000,115.9,12.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,1500,138.7,21.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,2000,159.6,33.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,2500,174.8,45.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,3000,184.3,57.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,3500,190,69.6,published_anchor,high,maximum torque anchor
+m52tu_b20_110,M52TU B20,4000,189.1,79.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,4500,186.2,87.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,5000,180.5,94.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,5900,178,110,published_anchor,high,maximum power anchor converted to torque
+m52tu_b20_110,M52TU B20,6500,150.3,102.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b20_110,M52TU B20,6700,117.2,82.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,700,109.2,8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,1000,128.1,13.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,1500,153.3,24.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,2000,176.4,36.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,2500,193.2,50.6,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,3000,203.7,64,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,3500,210,77,published_anchor,high,maximum torque anchor
+m54_b22_125,M54B22,4000,208.9,87.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,4500,205.8,97,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,5000,199.5,104.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,6100,195.7,125,published_anchor,high,maximum power anchor converted to torque
+m54_b22_125,M54B22,6500,170.8,116.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b22_125,M54B22,6700,133.2,93.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,700,127.4,9.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,1000,149.4,15.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,1500,178.8,28.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,2000,205.8,43.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,2500,225.4,59,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,3000,237.7,74.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,3500,245,89.8,published_anchor,high,maximum torque anchor
+m52tu_b25_125,M52TU B25,4000,243.8,102.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,4500,240.1,113.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,5000,232.8,121.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,5500,217,125,published_anchor,high,maximum power anchor converted to torque
+m52tu_b25_125,M52TU B25,6500,170.8,116.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b25_125,M52TU B25,6700,133.2,93.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,700,127.4,9.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,1000,149.4,15.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,1500,178.8,28.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,2000,205.8,43.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,2500,225.4,59,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,3000,237.7,74.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,3500,245,89.8,published_anchor,high,maximum torque anchor
+m54_b25_eu_141,M54B25 EU compromise,4000,243.8,102.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,4500,240.1,113.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,5000,232.8,121.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,6050,222.6,141,published_anchor,high,maximum power anchor converted to torque
+m54_b25_eu_141,M54B25 EU compromise,6500,192.6,131.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b25_eu_141,M54B25 EU compromise,6700,150.3,105.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,700,145.6,10.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,1000,170.8,17.9,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,1500,204.4,32.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,2000,235.2,49.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,2500,257.6,67.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,3000,271.6,85.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,3500,280,102.6,published_anchor,high,maximum torque anchor
+m52tu_b28_142,M52TU B28,4000,278.6,116.7,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,4500,274.4,129.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,5000,266,139.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,5500,246.5,142,published_anchor,high,maximum power anchor converted to torque
+m52tu_b28_142,M52TU B28,6500,194,132.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m52tu_b28_142,M52TU B28,6700,151.3,106.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,700,156,11.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,1000,183,19.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,1500,219,34.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,2000,252,52.8,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,2500,276,72.3,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,3000,291,91.4,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,3500,300,110,published_anchor,high,maximum torque anchor
+m54_b30_eu_170,M54B30 EU,4000,298.5,125,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,4500,294,138.5,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,5000,285,149.2,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,5900,275.1,170,published_anchor,high,maximum power anchor converted to torque
+m54_b30_eu_170,M54B30 EU,6500,232.3,158.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors
+m54_b30_eu_170,M54B30 EU,6700,181.2,127.1,reconstructed,medium,shape reconstructed from engine family and adjacent anchors

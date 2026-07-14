@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/bmw_e46_visual_controller.gd" id="1_controller"]
+[ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/bmw_e46_1998/low_poly_car_bmw_e46_1998.glb" id="2_model"]
+[ext_resource type="PackedScene" path="res://scenes/cars/bmw_e46_sedan_low_detail_visuals.tscn" id="3_low"]
+
+[node name="BmwE46SedanVisuals" type="Node3D"]
+script = ExtResource("1_controller")
+detailed_root_path = NodePath("SketchfabModel")
+low_detail_root_path = NodePath("LowDetail")
+visibility_aabb = AABB(-0.95, -0.05, -2.35, 1.9, 1.65, 4.7)
+visual_wheel_radius = 0.317
+
+[node name="SketchfabModel" parent="." instance=ExtResource("2_model")]
+
+[node name="DetailedWheelProxyFrontLeft" type="Node3D" parent="."]
+visible = false
+[node name="DetailedWheelProxyFrontRight" type="Node3D" parent="."]
+visible = false
+[node name="DetailedWheelProxyRearLeft" type="Node3D" parent="."]
+visible = false
+[node name="DetailedWheelProxyRearRight" type="Node3D" parent="."]
+visible = false
+
+[node name="LowDetail" parent="." instance=ExtResource("3_low")]
+visible = false

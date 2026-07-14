@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/cars/bmw_e46_sedan_base.tscn" id="1_base"]
+
+[node name="BmwE46SedanAI" instance=ExtResource("1_base")]
+
+[node name="EngineAudio" parent="." index="4"]
+force_full_runtime_generation = false
+
+[editable path="EngineAudio"]
