@@ -18,7 +18,7 @@ func _run() -> void:
 	root.add_child(main)
 	await _frames(8)
 
-	for label: String in ["Jazda swobodna", "Prosty owal", "Nissan 370Z", "370Z automat"]:
+	for label: String in ["Jazda swobodna", "Prosty owal", "Nissan 370Z"]:
 		var button: Button = _find_visible_button(main, label)
 		_expect(button != null, "menu exposes %s" % label)
 		if button == null:
@@ -28,6 +28,16 @@ func _run() -> void:
 			return
 		button.emit_signal("pressed")
 		await _frames(3)
+
+	var automatic_button: Button = _find_visible_button_with_prefix(main, "370Z automat — DPI ")
+	_expect(automatic_button != null, "menu exposes 370Z automat with its DPI")
+	if automatic_button == null:
+		main.queue_free()
+		await process_frame
+		_finish()
+		return
+	automatic_button.emit_signal("pressed")
+	await _frames(3)
 	await _frames(8)
 
 	var car: PlayerCarController = main.call("get_current_car") as PlayerCarController
@@ -76,6 +86,18 @@ func _find_visible_button(node: Node, label: String) -> Button:
 			return button
 	for child: Node in node.get_children():
 		var found: Button = _find_visible_button(child, label)
+		if found != null:
+			return found
+	return null
+
+
+func _find_visible_button_with_prefix(node: Node, label_prefix: String) -> Button:
+	if node is Button:
+		var button: Button = node as Button
+		if button.is_visible_in_tree() and button.text.begins_with(label_prefix):
+			return button
+	for child: Node in node.get_children():
+		var found: Button = _find_visible_button_with_prefix(child, label_prefix)
 		if found != null:
 			return found
 	return null
