@@ -3,17 +3,17 @@ class_name BmwE46ModelDefinition
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/cars/bmw_e46_sedan.tscn")
 const AI_SCENE: PackedScene = preload("res://scenes/cars/bmw_e46_sedan_ai.tscn")
-const ENGINE_CATALOG_PATH := "res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_engines.csv"
-const ENGINE_RUNTIME_PATH := "res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_engine_runtime_targets.csv"
+const ENGINE_CATALOG_PATH := "res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_engines.data"
+const ENGINE_RUNTIME_PATH := "res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_engine_runtime_targets.data"
 const DYNAMICS_PATHS: Array[String] = [
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_petrol.csv",
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_diesel.csv",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_petrol.data",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_diesel.data",
 ]
 const CURVE_PATHS: Array[String] = [
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_petrol_4cyl.csv",
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_petrol_6cyl_eu.csv",
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_petrol_6cyl_regional.csv",
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_diesel.csv",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_petrol_4cyl.data",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_petrol_6cyl_eu.data",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_petrol_6cyl_regional.data",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_torque_curves_diesel.data",
 ]
 
 var _audio_profiles: Dictionary = {}
@@ -218,7 +218,7 @@ func _read_csv(path: String) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		push_error("BMW E46 could not open CSV: %s" % path)
+		push_error("BMW E46 could not open calibration data: %s" % path)
 		return result
 	var headers: PackedStringArray = file.get_csv_line()
 	while not file.eof_reached():

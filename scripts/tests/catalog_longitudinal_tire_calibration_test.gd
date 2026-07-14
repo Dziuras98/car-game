@@ -2,8 +2,8 @@ extends SceneTree
 
 const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
 const BMW_DYNAMICS_PATHS: Array[String] = [
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_petrol.csv",
-	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_diesel.csv",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_petrol.data",
+	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_diesel.data",
 ]
 const EXPECTED_LEGACY_CALIBRATIONS: Dictionary = {
 	&"nissan_370z_7at": Vector4(1.02, 0.11, 0.82, 10.0),
@@ -26,11 +26,9 @@ const EXPECTED_LEGACY_CALIBRATIONS: Dictionary = {
 var _checks: int = 0
 var _failures: Array[String] = []
 
-
 func _initialize() -> void:
 	_run()
 	_finish()
-
 
 func _run() -> void:
 	_expect(CATALOG != null, "production car catalog loads")
@@ -66,7 +64,6 @@ func _run() -> void:
 		)
 	_expect(seen_ids.size() == expected_calibrations.size(), "no calibrated production variant is missing from the catalog")
 
-
 func _build_expected_calibrations() -> Dictionary:
 	var result: Dictionary = EXPECTED_LEGACY_CALIBRATIONS.duplicate(true)
 	for path: String in BMW_DYNAMICS_PATHS:
@@ -100,7 +97,6 @@ func _build_expected_calibrations() -> Dictionary:
 			)
 	return result
 
-
 func _expect(condition: bool, message: String) -> void:
 	_checks += 1
 	if condition:
@@ -108,7 +104,6 @@ func _expect(condition: bool, message: String) -> void:
 		return
 	_failures.append(message)
 	push_error("[CATALOG_LONGITUDINAL_TIRE_CALIBRATION_TEST][FAIL] %s" % message)
-
 
 func _finish() -> void:
 	if _failures.is_empty():

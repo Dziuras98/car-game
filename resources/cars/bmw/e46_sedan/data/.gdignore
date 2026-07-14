@@ -1,2 +1,0 @@
-# Raw calibration CSVs are read through FileAccess and explicitly included by export_presets.cfg.
-# Prevent Godot from importing them as translation resources.
