@@ -44,7 +44,7 @@ func _generate_sample() -> float:
 	) * idle_irregularity * idle_blend * lerpf(1.0, 0.58, six_cylinder_blend)
 	var firing_hz: float = maxf(
 		EngineAudioSynthesizer.firing_frequency_hz(rpm, cylinders) * (1.0 + idle_wander),
-		1.0
+		0.0
 	)
 	var crank_hz: float = maxf(rpm / 60.0, 0.0)
 	var collector_hz: float = maxf(

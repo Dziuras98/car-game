@@ -245,12 +245,17 @@ func get_buffer_underrun_count() -> int:
 static func sample_rate_invariant_alpha(alpha_at_32k: float, sample_rate: float) -> float:
 	var safe_alpha: float = clampf(alpha_at_32k, 0.0, 1.0)
 	var safe_rate: float = maxf(sample_rate, 1.0)
+	if is_equal_approx(safe_rate, REFERENCE_SAMPLE_RATE):
+		return safe_alpha
 	return 1.0 - pow(1.0 - safe_alpha, REFERENCE_SAMPLE_RATE / safe_rate)
 
 
 static func sample_rate_invariant_decay(decay_at_32k: float, sample_rate: float) -> float:
 	var safe_decay: float = clampf(decay_at_32k, 0.0, 1.0)
-	return pow(safe_decay, REFERENCE_SAMPLE_RATE / maxf(sample_rate, 1.0))
+	var safe_rate: float = maxf(sample_rate, 1.0)
+	if is_equal_approx(safe_rate, REFERENCE_SAMPLE_RATE):
+		return safe_decay
+	return pow(safe_decay, REFERENCE_SAMPLE_RATE / safe_rate)
 
 
 static func bandlimited_frequency(frequency: float, sample_rate: float, nyquist_ratio: float = 0.42) -> float:
@@ -430,7 +435,7 @@ func _generate_sample() -> float:
 		+ sin(_phase_firing * 4.0) * 0.046 * mid_rpm_blend
 		+ sin(_phase_firing * 5.0 + 0.18) * 0.031 * high_rpm_blend
 		+ sin(_phase_firing * 7.0 - 0.23) * 0.020 * very_high_rpm_blend
-	) * startup_combustion_gate * shutdown_gate * combustion_state_gate
+	) * startup_combustion_gate * combustion_state_gate
 	var crank_body: float = (
 		sin(_phase_crank) * 0.070
 		+ sin(_phase_crank * 2.0) * 0.052
