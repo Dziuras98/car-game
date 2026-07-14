@@ -20,6 +20,27 @@ func _configure_wheel_visuals() -> void:
 	_wheel_visuals_configured = true
 
 
+func _collect_low_detail_wheel_nodes() -> void:
+	_low_detail_wheel_nodes.clear()
+	_low_detail_base_rotations.clear()
+	_low_detail_front_flags.clear()
+	if _low_detail_root == null:
+		return
+	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
+		var wheel: Node3D = _low_detail_root.find_child(
+			str(wheel_name),
+			true,
+			false
+		) as Node3D
+		if wheel == null:
+			continue
+		_low_detail_wheel_nodes.append(wheel)
+		_low_detail_base_rotations.append(wheel.rotation)
+		_low_detail_front_flags.append(
+			wheel_name == &"WheelFrontLeft" or wheel_name == &"WheelFrontRight"
+		)
+
+
 func _normalize_detailed_model() -> void:
 	if _detailed_root == null:
 		return
