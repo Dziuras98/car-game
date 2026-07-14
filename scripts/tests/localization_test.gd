@@ -40,6 +40,8 @@ func _initialize() -> void:
 	TranslationServer.set_locale("pl")
 	_expect(tr("Wyścig") == "Wyścig", "Polish locale preserves the race mode label")
 	_expect(tr("Ładowanie...") == "Ładowanie...", "Polish locale preserves the loading title")
+	_expect(tr("Wybierz") == "Wybierz", "Polish locale preserves the car confirmation action")
+	_expect(tr("Moment obrotowy") == "Moment obrotowy", "Polish locale preserves the torque detail label")
 	_expect(
 		tr("Przygotowywanie toru i samochodów") == "Przygotowywanie toru i samochodów",
 		"Polish locale preserves the loading description"
@@ -60,8 +62,9 @@ func _initialize() -> void:
 	_expect(
 		not polish_models.is_empty()
 		and not polish_models[0].variants.is_empty()
-		and polish_models[0].variants[0].label.begins_with("370Z automat — DPI "),
-		"Polish menu uses the localized automatic variant name and exposes DPI"
+		and polish_models[0].variants[0].label == "370Z automat"
+		and polish_models[0].variants[0].performance_index > 0,
+		"Polish menu keeps the variant label separate from its DPI metadata"
 	)
 
 	TranslationServer.set_locale("en")
@@ -69,6 +72,10 @@ func _initialize() -> void:
 	_expect(tr("Jazda swobodna") == "Free drive", "English locale translates free drive")
 	_expect(tr("Tryb") == "Mode", "English locale translates the menu context label")
 	_expect(tr("Ładowanie...") == "Loading...", "English locale translates the loading title")
+	_expect(tr("Wybierz") == "Select", "English locale translates the car confirmation action")
+	_expect(tr("Silnik") == "Engine", "English locale translates the engine detail label")
+	_expect(tr("Moment obrotowy") == "Torque", "English locale translates the torque detail label")
+	_expect(tr("Napęd bezpośredni") == "Direct drive", "English locale translates direct-drive metadata")
 	_expect(
 		tr("Przygotowywanie toru i samochodów") == "Preparing the track and cars",
 		"English locale translates the loading description"
@@ -108,9 +115,11 @@ func _initialize() -> void:
 	_expect(
 		not english_models.is_empty()
 		and english_models[0].variants.size() >= 2
-		and english_models[0].variants[0].label.begins_with("370Z automatic — DPI ")
-		and english_models[0].variants[1].label.begins_with("370Z manual — DPI "),
-		"English menu translates both car variant names and exposes DPI"
+		and english_models[0].variants[0].label == "370Z automatic"
+		and english_models[0].variants[1].label == "370Z manual"
+		and english_models[0].variants[0].performance_index > 0
+		and english_models[0].variants[1].performance_index > 0,
+		"English menu translates variant labels and keeps DPI as structured metadata"
 	)
 
 	TranslationServer.set_locale(original_locale)
