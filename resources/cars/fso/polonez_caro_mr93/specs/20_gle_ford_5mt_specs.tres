@@ -1,0 +1,73 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_specs.gd" id="1_specs"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/specs/ford_pinto_1993_torque_curve.tres" id="2_curve"]
+[ext_resource type="Resource" path="res://resources/audio/fso_polonez_ford_pinto_audio_profile.tres" id="3_profile"]
+
+[resource]
+script = ExtResource("1_specs")
+display_name = "Polonez Caro 2.0 GLE Ford 5MT"
+brake_deceleration = 8.8
+reverse_acceleration = 8.0
+coast_deceleration = 4.1
+handbrake_deceleration = 15.0
+max_forward_speed = 49.722222222
+max_reverse_speed = 9.0
+steering_speed = 2.65
+wheel_base = 2.509
+front_axle_track_width = 1.38
+rear_axle_track_width = 1.36
+max_steering_angle_degrees = 34.0
+idle_rpm = 850
+peak_torque_rpm = 4000
+power_peak_rpm = 5200
+redline_rpm = 5800
+rev_limiter_rpm = 6050
+torque_curve = ExtResource("2_curve")
+low_rpm_torque_multiplier = 0.59
+mid_rpm_torque_multiplier = 0.96
+redline_torque_multiplier = 0.78
+engine_force = 0.0
+engine_brake_force = 3.4
+rpm_response = 6.8
+engine_audio_profile = ExtResource("3_profile")
+transmission_type = 1
+gear_ratios = Array[float]([3.65, 1.97, 1.37, 1, 0.82])
+reverse_gear_ratio = 3.66
+final_drive_ratio = 3.64
+peak_engine_torque = 157
+wheel_radius = 0.298
+drivetrain_efficiency = 0.82
+shift_delay = 0.36
+max_drive_acceleration = 15.0
+vehicle_mass = 1115
+drag_coefficient = 0.38
+frontal_area = 1.86
+air_density = 1.225
+rolling_resistance_coefficient = 0.015
+front_lateral_grip = 7.8
+rear_lateral_grip = 7.35
+front_tire_width_m = 0.185
+rear_tire_width_m = 0.185
+longitudinal_grip_coefficient = 0.76
+longitudinal_peak_slip_ratio = 0.15
+longitudinal_slide_grip_multiplier = 0.67
+handbrake_lateral_grip_multiplier = 0.24
+steering_slip_gain = 0.90
+slip_speed_threshold = 1.85
+slip_steering_lock_threshold = 0.50
+slip_steering_same_direction_multiplier = 0.12
+skid_mark_min_slip = 0.42
+skid_mark_interval = 0.058
+skid_mark_lifetime = 10.0
+skid_mark_width = 0.185
+skid_mark_length = 0.82
+gravity = 30.0
+floor_stick_force = 0.48
+suspension_probe_height = 0.39
+suspension_rest_length = 0.27
+suspension_travel = 0.18
+suspension_stiffness = 25.5
+suspension_damping = 4.5
+ground_probe_collision_mask = 1
+minimum_ground_normal_dot = 0.35

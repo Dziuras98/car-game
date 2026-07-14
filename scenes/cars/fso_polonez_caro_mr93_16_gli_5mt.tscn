@@ -1,0 +1,15 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/cars/fso_polonez_caro_mr93_base.tscn" id="1_base"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/specs/16_gli_5mt_specs.tres" id="2_specs"]
+[ext_resource type="Resource" path="res://resources/audio/fso_polonez_ce_cf_16_audio_profile.tres" id="3_profile"]
+[ext_resource type="Script" path="res://scripts/car/polonez_ce_cf_16_engine_audio.gd" id="4_synth"]
+
+[node name="FsoPolonezCaroMr93_16Gli5mt" instance=ExtResource("1_base")]
+car_specs = ExtResource("2_specs")
+
+[node name="EngineAudio" parent="." index="4"]
+script = ExtResource("4_synth")
+profile = ExtResource("3_profile")
+
+[editable path="EngineAudio"]

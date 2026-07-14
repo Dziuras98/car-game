@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/car_variant_definition.gd" id="1_variant"]
+[ext_resource type="PackedScene" path="res://scenes/cars/fso_polonez_caro_mr93_15_gle_5mt.tscn" id="2_scene"]
+[ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/specs/15_gle_5mt_specs.tres" id="3_specs"]
+
+[resource]
+script = ExtResource("1_variant")
+variant_id = &"fso_polonez_caro_mr93_15_gle_5mt"
+display_name = "Polonez Caro 1.5 GLE 5MT"
+sort_order = 1
+car_scene = ExtResource("2_scene")
+ai_car_scene = ExtResource("2_scene")
+specs = ExtResource("3_specs")
+ai_eligible = true
+engine_label = "FSO AB 1.5 OHV carburettor"
+drivetrain_label = "RWD"
