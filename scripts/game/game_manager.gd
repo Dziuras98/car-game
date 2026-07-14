@@ -199,7 +199,7 @@ func _validate_content_catalogs() -> bool:
 				has_ai_variant = true
 				break
 		if not has_ai_variant:
-			push_error("GameManager requires at least one explicit AI-eligible automatic car variant.")
+			push_error("GameManager requires at least one explicit AI-eligible geared car variant.")
 			return false
 	if track_catalog == null:
 		push_error("GameManager requires a TrackCatalog.")
