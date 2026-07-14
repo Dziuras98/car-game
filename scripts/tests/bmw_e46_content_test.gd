@@ -2,6 +2,7 @@ extends SceneTree
 
 const MODEL: CarModelDefinition = preload("res://resources/cars/bmw/e46_sedan/model.tres")
 const CATALOG: CarCatalog = preload("res://resources/cars/catalog.tres")
+const VISUAL_SCENE: PackedScene = preload("res://scenes/cars/bmw_e46_sedan_visuals.tscn")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -16,7 +17,9 @@ func _initialize() -> void:
 		_expect(errors.is_empty(), "BMW E46 model validates: %s" % "; ".join(errors))
 		_test_variants()
 		_test_all_engine_audio_profiles()
+		_test_inline_six_audio_identity()
 	_expect(CATALOG != null and CATALOG.get_model_by_id(&"bmw_e46_sedan") == MODEL, "main catalog registers BMW E46")
+	_test_visual_scale()
 	_test_smg_model()
 	_finish()
 
@@ -75,6 +78,37 @@ func _test_all_engine_audio_profiles() -> void:
 				peak = maxf(peak, absf(sample))
 			_expect(finite and peak > 0.0001, "%s synthesizer generates finite non-silent audio" % str(engine_key))
 			synthesizer.free()
+
+
+func _test_inline_six_audio_identity() -> void:
+	var definition := MODEL as BmwE46ModelDefinition
+	var petrol_four: BmwE46EngineAudioProfile = definition.get_audio_profile(&"n46_b20_105")
+	var petrol_six: BmwE46EngineAudioProfile = definition.get_audio_profile(&"m54_b30_eu_170")
+	var diesel_four: BmwE46EngineAudioProfile = definition.get_audio_profile(&"m47tu_d20_110_330")
+	var diesel_six: BmwE46EngineAudioProfile = definition.get_audio_profile(&"m57tu_d30_150")
+	_expect(is_equal_approx(BmwE46EngineAudioSynthesizer.inline_six_collector_frequency_hz(3600.0), 90.0), "inline-six collector cadence is 1.5 crank orders")
+	_expect(petrol_six != null and petrol_four != null and petrol_six.cylinders == 6 and petrol_four.cylinders == 4, "petrol BMW profiles preserve cylinder architecture")
+	if petrol_six != null and petrol_four != null:
+		_expect(petrol_six.exhaust_resonance > petrol_four.exhaust_resonance + 0.15, "petrol inline six has a stronger exhaust body than the inline four")
+		_expect(petrol_six.exhaust_roughness < petrol_four.exhaust_roughness * 0.55, "petrol inline six is materially smoother than the inline four")
+		_expect(petrol_six.combustion_sharpness < petrol_four.combustion_sharpness, "petrol inline six avoids four-cylinder combustion harshness")
+	_expect(diesel_six != null and diesel_four != null and diesel_six.cylinders == 6 and diesel_four.cylinders == 4, "diesel BMW profiles preserve cylinder architecture")
+	if diesel_six != null and diesel_four != null:
+		_expect(diesel_six.diesel_combustion < diesel_four.diesel_combustion, "M57 combustion is smoother than M47 combustion")
+		_expect(diesel_six.diesel_mechanical_clatter < diesel_four.diesel_mechanical_clatter, "M57 mechanical clatter does not mask its six-cylinder cadence")
+
+
+func _test_visual_scale() -> void:
+	var visuals := VISUAL_SCENE.instantiate() as BmwE46VisualController
+	_expect(visuals != null, "BMW E46 visual scene instantiates")
+	if visuals == null:
+		return
+	root.add_child(visuals)
+	var detailed_size: Vector3 = visuals.get_detailed_model_size_m()
+	_expect(absf(detailed_size.z - BmwE46VisualController.TARGET_BODY_LENGTH_M) <= 0.01, "detailed BMW E46 model is normalized to the 4.47 m production length")
+	_expect(visuals.get_detailed_scale_correction() < 1.0, "oversized source GLB is scaled down")
+	visuals.free()
+
 
 func _test_smg_model() -> void:
 	var variant: CarVariantDefinition = MODEL.get_variant_by_id(&"bmw_e46_sedan_330i_smg6")
