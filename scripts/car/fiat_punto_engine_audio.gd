@@ -18,6 +18,8 @@ class_name FiatPuntoEngineAudioSynthesizer
 @export_range(500.0, 6000.0, 50.0) var turbo_spool_start_rpm: float = 1800.0
 @export_range(750.0, 7500.0, 50.0) var turbo_full_spool_rpm: float = 3500.0
 @export_range(0.5, 2.0, 0.01) var turbo_pitch_scale: float = 1.0
+@export_range(0.0, 1.0, 0.01) var turbo_output_scale: float = 0.50
+@export_range(0.0, 1.0, 0.01) var turbo_limiter_load_floor: float = 0.55
 
 var _punto_phase_firing: float = 0.0
 var _punto_phase_crank: float = 0.0
@@ -41,23 +43,48 @@ var _punto_turbo_release: float = 0.0
 var _punto_previous_throttle: float = 0.0
 var _punto_dc_input: float = 0.0
 var _punto_dc_output: float = 0.0
+var _turbo_levels_scaled: bool = false
 
 
 func _ready() -> void:
 	cylinders = 4
 	super._ready()
+	_apply_turbo_output_scale()
 
 
 func _update_transient_envelopes(target_throttle: float, delta: float) -> void:
-	super._update_transient_envelopes(target_throttle, delta)
-	var throttle_drop: float = maxf(_punto_previous_throttle - target_throttle, 0.0)
+	var safe_target_throttle: float = clampf(target_throttle, 0.0, 1.0)
+	var limiter_torque_cut: bool = (
+		_smoothed_rpm >= _get_rev_limit_rpm() * 0.965
+		and _punto_previous_throttle > 0.65
+		and safe_target_throttle < 0.65
+	)
+	var effective_target_throttle: float = (
+		_punto_previous_throttle if limiter_torque_cut else safe_target_throttle
+	)
+	if limiter_torque_cut:
+		_smoothed_throttle = maxf(_smoothed_throttle, effective_target_throttle)
+		_smoothed_load = maxf(_smoothed_load, clampf(turbo_limiter_load_floor, 0.0, 1.0))
+
+	super._update_transient_envelopes(effective_target_throttle, delta)
+	var throttle_drop: float = maxf(_punto_previous_throttle - effective_target_throttle, 0.0)
 	if throttle_drop > 0.08 and _punto_turbo_spool > 0.18:
 		_punto_turbo_release = maxf(
 			_punto_turbo_release,
 			clampf(throttle_drop * 2.8 * _punto_turbo_spool, 0.0, 1.0)
 		)
 	_punto_turbo_release *= exp(-7.5 * maxf(delta, 0.0))
-	_punto_previous_throttle = target_throttle
+	_punto_previous_throttle = effective_target_throttle
+
+
+func _apply_turbo_output_scale() -> void:
+	if _turbo_levels_scaled:
+		return
+	var safe_scale: float = clampf(turbo_output_scale, 0.0, 1.0)
+	turbo_whistle *= safe_scale
+	turbo_flutter *= safe_scale
+	turbo_blowoff *= safe_scale
+	_turbo_levels_scaled = true
 
 
 func _generate_sample() -> float:
@@ -278,6 +305,7 @@ func _update_debug_state() -> void:
 		"diesel_combustion": diesel_combustion,
 		"turbo_spool": _punto_turbo_spool,
 		"turbo_release": _punto_turbo_release,
+		"turbo_output_scale": turbo_output_scale,
 		"limiter_active": _limiter_active,
 		"synthesis_gain_db": synthesis_gain_db,
 		"output_volume_boost_db": output_volume_boost_db,

@@ -13,6 +13,8 @@ func _initialize() -> void:
 	_test_shutdown_reaches_digital_silence()
 	_test_vq_backend_is_explicitly_six_cylinder()
 	_test_sample_rate_helpers()
+	_test_turbo_levels_are_attenuated()
+	_test_limiter_torque_cut_preserves_turbo_drive()
 	_test_weighted_voice_budget()
 	_finish()
 
@@ -58,6 +60,44 @@ func _test_sample_rate_helpers() -> void:
 	_expect(alpha_16k > alpha_32k and alpha_32k > alpha_48k, "per-sample smoothing scales with sample rate")
 	_expect(is_equal_approx(alpha_32k, 0.03), "32 kHz remains the calibrated reference response")
 	_expect(EngineAudioSynthesizer.bandlimited_frequency(20000.0, 32000.0) <= 13440.001, "oscillator frequency stays below the configured anti-alias ceiling")
+
+
+func _test_turbo_levels_are_attenuated() -> void:
+	var synthesizer := FiatPuntoEngineAudioSynthesizer.new()
+	synthesizer.turbo_whistle = 1.0
+	synthesizer.turbo_flutter = 0.8
+	synthesizer.turbo_blowoff = 0.6
+	synthesizer.turbo_output_scale = 0.5
+	synthesizer._apply_turbo_output_scale()
+	_expect(is_equal_approx(synthesizer.turbo_whistle, 0.5), "turbo whistle is attenuated by the shared output scale")
+	_expect(is_equal_approx(synthesizer.turbo_flutter, 0.4), "turbo flutter is attenuated by the shared output scale")
+	_expect(is_equal_approx(synthesizer.turbo_blowoff, 0.3), "turbo blow-off is attenuated by the shared output scale")
+	synthesizer._apply_turbo_output_scale()
+	_expect(is_equal_approx(synthesizer.turbo_whistle, 0.5), "turbo output scaling is idempotent")
+	synthesizer.free()
+
+
+func _test_limiter_torque_cut_preserves_turbo_drive() -> void:
+	var synthesizer := FiatPuntoEngineAudioSynthesizer.new()
+	var limiter_rpm: float = synthesizer._get_rev_limit_rpm()
+	synthesizer._smoothed_rpm = limiter_rpm * 0.99
+	synthesizer._smoothed_load = 0.0
+	synthesizer._smoothed_throttle = 0.0
+	synthesizer._punto_previous_throttle = 1.0
+	synthesizer._punto_turbo_spool = 0.8
+	synthesizer._update_transient_envelopes(0.0, 1.0 / 60.0)
+	_expect(synthesizer._smoothed_throttle >= 0.99, "limiter torque cut retains the driver's turbo throttle command")
+	_expect(synthesizer._smoothed_load >= synthesizer.turbo_limiter_load_floor, "limiter torque cut retains a turbo load floor")
+	_expect(synthesizer._punto_turbo_release <= 0.000001, "limiter torque cut does not trigger a false blow-off event")
+
+	synthesizer._smoothed_rpm = limiter_rpm * 0.80
+	synthesizer._smoothed_load = 0.0
+	synthesizer._smoothed_throttle = 0.0
+	synthesizer._punto_turbo_spool = 0.8
+	synthesizer._update_transient_envelopes(0.0, 1.0 / 60.0)
+	_expect(synthesizer._punto_previous_throttle <= 0.000001, "real pedal lift is accepted below the limiter window")
+	_expect(synthesizer._punto_turbo_release > 0.0, "real pedal lift still triggers turbo release audio")
+	synthesizer.free()
 
 
 func _test_weighted_voice_budget() -> void:
