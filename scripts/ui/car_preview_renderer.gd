@@ -209,7 +209,7 @@ func _fit_model_to_view(bounds: AABB) -> void:
 	var height: float = maxf(bounds.size.y, 0.5)
 	var length: float = maxf(bounds.size.z, 0.5)
 	var horizontal_span: float = maxf(width, length)
-	var distance: float = maxf(horizontal_span * 1.35, height * 2.4, 3.0)
+	var distance: float = maxf(maxf(horizontal_span * 1.35, height * 2.4), 3.0)
 	var target := Vector3(0.0, height * 0.04, 0.0)
 	_camera.position = Vector3(distance * 0.72, maxf(height * 0.62, 1.0), -distance)
 	_camera.look_at(target, Vector3.UP)
