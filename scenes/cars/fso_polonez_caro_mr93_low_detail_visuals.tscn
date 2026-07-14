@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=7 format=3]
 
 [sub_resource type="StandardMaterial3D" id="BodyMaterial"]
 albedo_color = Color(0.63, 0.12, 0.085, 1)
@@ -15,32 +15,13 @@ albedo_color = Color(0.035, 0.035, 0.038, 1)
 metallic = 0.02
 roughness = 0.78
 
-[sub_resource type="StandardMaterial3D" id="LampMaterial"]
-albedo_color = Color(0.82, 0.78, 0.62, 1)
-emission_enabled = true
-emission = Color(0.28, 0.25, 0.16, 1)
-emission_energy_multiplier = 0.35
-roughness = 0.28
-
 [sub_resource type="BoxMesh" id="BodyMesh"]
 material = SubResource("BodyMaterial")
-size = Vector3(1.65, 0.58, 4.318)
+size = Vector3(1.65, 0.64, 4.318)
 
 [sub_resource type="BoxMesh" id="CabinMesh"]
 material = SubResource("GlassMaterial")
 size = Vector3(1.45, 0.70, 2.02)
-
-[sub_resource type="BoxMesh" id="HoodMesh"]
-material = SubResource("BodyMaterial")
-size = Vector3(1.56, 0.15, 1.18)
-
-[sub_resource type="BoxMesh" id="BumperMesh"]
-material = SubResource("TrimMaterial")
-size = Vector3(1.68, 0.18, 0.16)
-
-[sub_resource type="BoxMesh" id="LampMesh"]
-material = SubResource("LampMaterial")
-size = Vector3(0.48, 0.20, 0.06)
 
 [sub_resource type="CylinderMesh" id="WheelMesh"]
 material = SubResource("TrimMaterial")
@@ -53,38 +34,13 @@ rings = 1
 [node name="LowDetail" type="Node3D"]
 
 [node name="Body" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.56, 0)
+position = Vector3(0, 0.57, 0)
 mesh = SubResource("BodyMesh")
 cast_shadow = 0
 
 [node name="Cabin" type="MeshInstance3D" parent="."]
 position = Vector3(0, 1.02, 0.22)
 mesh = SubResource("CabinMesh")
-cast_shadow = 0
-
-[node name="Hood" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.87, -1.48)
-mesh = SubResource("HoodMesh")
-cast_shadow = 0
-
-[node name="FrontBumper" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.40, -2.12)
-mesh = SubResource("BumperMesh")
-cast_shadow = 0
-
-[node name="RearBumper" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.41, 2.12)
-mesh = SubResource("BumperMesh")
-cast_shadow = 0
-
-[node name="FrontLampLeft" type="MeshInstance3D" parent="."]
-position = Vector3(-0.51, 0.74, -2.16)
-mesh = SubResource("LampMesh")
-cast_shadow = 0
-
-[node name="FrontLampRight" type="MeshInstance3D" parent="."]
-position = Vector3(0.51, 0.74, -2.16)
-mesh = SubResource("LampMesh")
 cast_shadow = 0
 
 [node name="WheelFrontLeft" type="Node3D" parent="."]
