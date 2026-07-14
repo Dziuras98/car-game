@@ -158,6 +158,8 @@ func _extract_preview_root(scene_root: Node, specs: CarSpecs) -> Node3D:
 
 
 func _prepare_preview_tree(preview_root: Node3D) -> void:
+	if preview_root.has_method(&"prepare_for_preview"):
+		preview_root.call(&"prepare_for_preview")
 	if preview_root is CarVisualController:
 		var visual_controller: CarVisualController = preview_root as CarVisualController
 		var detailed_root: Node3D = preview_root.get_node_or_null(visual_controller.detailed_root_path) as Node3D
