@@ -5,7 +5,6 @@ const MAX_FRAME_DELTA: float = 0.10
 const MAX_SIMULATION_SUBSTEP: float = 1.0 / 120.0
 const PER_WHEEL_LOAD_SHARE: float = 1.0 / 4.0
 
-
 enum ManualShiftAssistMode {
 	NONE,
 	UPSHIFT_CUT,
@@ -22,6 +21,7 @@ var _resistance_model: ResistanceModel = ResistanceModel.new()
 var _drivetrain_model: DrivetrainModel = DrivetrainModel.new()
 var _torque_converter_model: TorqueConverterModel = TorqueConverterModel.new()
 var _tire_model: TireModel = TireModel.new()
+var _wheel_rotational_dynamics_model: WheelRotationalDynamicsModel = WheelRotationalDynamicsModel.new()
 var _config: CarDriveConfig
 var _runtime_state: CarRuntimeState
 var _manual_shift_assist_mode: int = ManualShiftAssistMode.NONE
@@ -87,6 +87,7 @@ func configure(config: CarDriveConfig) -> void:
 	)
 
 	if _runtime_state != null:
+		_runtime_state.configure_wheel_rotation(_config, true)
 		_runtime_state.engine_rpm = _engine_model.set_rpm(preserved_engine_rpm)
 		if _config.is_manual_transmission():
 			_runtime_state.clutch_engagement = clampf(_runtime_state.clutch_engagement, 0.0, 1.0)
@@ -100,6 +101,7 @@ func reset(state: CarRuntimeState) -> void:
 	_runtime_state = state
 	_reset_manual_shift_assist()
 	_cvt_transmission_model.reset()
+	state.configure_wheel_rotation(_config, false)
 	state.engine_rpm = _engine_model.reset()
 	if _config != null and _config.is_manual_transmission():
 		state.clutch_engagement = 0.0
@@ -113,6 +115,7 @@ func update(state: CarRuntimeState, throttle: float, brake: float, handbrake_act
 	if _config == null:
 		return
 	_runtime_state = state
+	state.configure_wheel_rotation(_config, true)
 	var safe_delta: float = clampf(delta, 0.0, MAX_FRAME_DELTA)
 	var safe_throttle: float = clampf(throttle, 0.0, 1.0)
 	var safe_brake: float = clampf(brake, 0.0, 1.0)
@@ -311,7 +314,7 @@ func _reset_manual_shift_assist() -> void:
 func _update_cvt_ratio(state: CarRuntimeState, throttle: float, delta: float) -> void:
 	if not _config.is_cvt_transmission() or state.current_gear < 0:
 		return
-	_cvt_transmission_model.update_ratio(state.forward_speed, throttle, delta)
+	_cvt_transmission_model.update_ratio(_get_driven_wheel_surface_speed(state), throttle, delta)
 
 
 func _update_clutch(state: CarRuntimeState, throttle: float, delta: float) -> void:
@@ -330,11 +333,41 @@ func _update_engine(state: CarRuntimeState, throttle: float, delta: float) -> vo
 
 func _update_speed_step(state: CarRuntimeState, throttle: float, brake: float, handbrake_active: bool, delta: float) -> void:
 	_reset_longitudinal_slip(state)
+	var requested_drive_acceleration: float = 0.0
+	var service_brake_deceleration: float = 0.0
+	var engine_brake_deceleration: float = 0.0
+	var handbrake_deceleration: float = _config.handbrake_deceleration if handbrake_active else 0.0
 	var effective_throttle: float = throttle if brake <= 0.0 else 0.0
+
 	if effective_throttle > 0.0:
-		_apply_throttle(state, effective_throttle, delta)
+		if _config.uses_geared_transmission():
+			var direction_threshold: float = AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD
+			if (
+				_config.is_self_shifting_transmission()
+				and (state.current_gear < 1 or state.forward_speed < -direction_threshold)
+			):
+				service_brake_deceleration = _config.brake_deceleration * effective_throttle
+			else:
+				requested_drive_acceleration = _get_transmission_drive_acceleration(state, effective_throttle)
+		else:
+			requested_drive_acceleration = (
+				effective_throttle
+				* _config.engine_force
+				* get_torque_multiplier()
+				* get_rev_limiter_multiplier()
+			)
 	elif brake > 0.0:
-		_apply_brake_or_reverse(state, brake, delta)
+		if _config.is_manual_transmission():
+			service_brake_deceleration = _config.brake_deceleration * brake
+		elif _config.is_self_shifting_transmission():
+			if state.current_gear < 0 and state.forward_speed <= AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
+				requested_drive_acceleration = _get_transmission_drive_acceleration(state, brake)
+			else:
+				service_brake_deceleration = _config.brake_deceleration * brake
+		elif state.forward_speed > 0.25:
+			service_brake_deceleration = _config.brake_deceleration * brake
+		else:
+			requested_drive_acceleration = -_config.reverse_acceleration * brake
 	else:
 		var ground_factor: float = _get_ground_contact_factor(state)
 		state.forward_speed = move_toward(
@@ -343,79 +376,126 @@ func _update_speed_step(state: CarRuntimeState, throttle: float, brake: float, h
 			_config.coast_deceleration * ground_factor * delta
 		)
 		if absf(state.forward_speed) > 0.0 and (not _config.is_manual_transmission() or state.clutch_engagement > 0.1):
-			_apply_braking_acceleration(
-				state,
-				_config.engine_brake_force * state.clutch_engagement,
-				delta
-			)
-	if handbrake_active:
-		_apply_braking_acceleration(state, _config.handbrake_deceleration, delta)
+			engine_brake_deceleration = _config.engine_brake_force * state.clutch_engagement
+
+	_simulate_wheel_dynamics(
+		state,
+		requested_drive_acceleration,
+		service_brake_deceleration,
+		engine_brake_deceleration,
+		handbrake_deceleration,
+		delta
+	)
 	state.forward_speed = _resistance_model.apply(state.forward_speed, delta, state.ground_contact_count > 0)
 	state.forward_speed = clampf(state.forward_speed, -_config.max_reverse_speed, _config.max_forward_speed)
 	_update_combined_slip(state)
 
 
+func _simulate_wheel_dynamics(
+	state: CarRuntimeState,
+	requested_drive_acceleration: float,
+	service_brake_deceleration: float,
+	engine_brake_deceleration: float,
+	handbrake_deceleration: float,
+	delta: float
+) -> void:
+	state.synchronize_wheel_contacts_from_aggregate()
+	state.configure_wheel_rotation(_config, true)
+	var mass: float = maxf(_config.vehicle_mass, 1.0)
+	var radius: float = maxf(_config.wheel_radius, 0.01)
+	var total_drive_torque_nm: float = requested_drive_acceleration * mass * radius
+	var total_service_brake_torque_nm: float = maxf(service_brake_deceleration, 0.0) * mass * radius
+	var total_engine_brake_torque_nm: float = maxf(engine_brake_deceleration, 0.0) * mass * radius
+	var total_handbrake_torque_nm: float = maxf(handbrake_deceleration, 0.0) * mass * radius
+	var vehicle_acceleration: float = 0.0
+	var braking_direction: float = -signf(state.forward_speed)
+	if braking_direction == 0.0:
+		braking_direction = -signf(state.get_average_driven_wheel_angular_velocity(_config))
+
+	for wheel: WheelTireState in state.wheel_states:
+		var drive_fraction: float = _config.get_drive_torque_fraction(wheel.wheel_index)
+		var brake_fraction: float = _config.get_service_brake_fraction(wheel.wheel_index)
+		var handbrake_fraction: float = _config.get_handbrake_fraction(wheel.wheel_index)
+		var drive_torque_nm: float = total_drive_torque_nm * drive_fraction
+		var brake_torque_nm: float = (
+			total_service_brake_torque_nm * brake_fraction
+			+ total_engine_brake_torque_nm * drive_fraction
+			+ total_handbrake_torque_nm * handbrake_fraction
+		)
+		var requested_wheel_acceleration: float = (
+			requested_drive_acceleration * drive_fraction
+			+ braking_direction
+			* (
+				service_brake_deceleration * brake_fraction
+				+ engine_brake_deceleration * drive_fraction
+				+ handbrake_deceleration * handbrake_fraction
+			)
+		)
+		var tire_acceleration: float = 0.0
+		var slip_ratio: float = 0.0
+		if wheel.has_contact:
+			slip_ratio = _wheel_rotational_dynamics_model.calculate_slip_ratio(
+				wheel.angular_velocity_rad_s,
+				wheel.wheel_radius_m,
+				state.forward_speed,
+				_config.wheel_slip_reference_speed_mps
+			)
+			tire_acceleration = _tire_model.resolve_longitudinal_acceleration_from_slip(
+				slip_ratio,
+				wheel.lateral_slip_intensity,
+				wheel.surface_grip_multiplier,
+				PER_WHEEL_LOAD_SHARE,
+				_config.longitudinal_grip_coefficient,
+				_config.longitudinal_peak_slip_ratio,
+				_config.longitudinal_slide_grip_multiplier
+			)
+			vehicle_acceleration += tire_acceleration
+		_record_longitudinal_slip(
+			wheel,
+			requested_wheel_acceleration,
+			tire_acceleration,
+			slip_ratio
+		)
+		_wheel_rotational_dynamics_model.integrate_wheel(
+			wheel,
+			drive_torque_nm,
+			brake_torque_nm,
+			tire_acceleration,
+			mass,
+			_config.wheel_angular_damping_nm_per_rad_s,
+			state.forward_speed,
+			delta
+		)
+
+	state.forward_speed += vehicle_acceleration * delta
+	state.update_slip_aggregates()
+
+
 func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> void:
+	var requested_acceleration: float
 	if _config.uses_geared_transmission():
-		var direction_threshold: float = AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD
-		if (
-			_config.is_self_shifting_transmission()
-			and (
-				state.current_gear < 1
-				or state.forward_speed < -direction_threshold
-			)
-		):
-			_apply_braking_acceleration(state, _config.brake_deceleration * throttle, delta)
-		else:
-			_apply_longitudinal_acceleration(
-				state,
-				_get_transmission_drive_acceleration(state, throttle),
-				delta
-			)
-		return
-	var requested_acceleration: float = (
-		throttle
-		* _config.engine_force
-		* get_torque_multiplier()
-		* get_rev_limiter_multiplier()
-	)
-	_apply_longitudinal_acceleration(state, requested_acceleration, delta)
+		requested_acceleration = _get_transmission_drive_acceleration(state, throttle)
+	else:
+		requested_acceleration = throttle * _config.engine_force * get_torque_multiplier() * get_rev_limiter_multiplier()
+	_simulate_wheel_dynamics(state, requested_acceleration, 0.0, 0.0, 0.0, delta)
 
 
 func _apply_brake_or_reverse(state: CarRuntimeState, brake: float, delta: float) -> void:
-	if _config.is_manual_transmission():
-		_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
+	if _config.is_self_shifting_transmission() and state.current_gear < 0 and state.forward_speed <= AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
+		_simulate_wheel_dynamics(state, _get_transmission_drive_acceleration(state, brake), 0.0, 0.0, 0.0, delta)
 		return
-	if _config.is_self_shifting_transmission():
-		if state.current_gear < 0:
-			if state.forward_speed > AutomaticTransmissionModel.DIRECTION_CHANGE_SPEED_THRESHOLD:
-				_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
-			else:
-				_apply_longitudinal_acceleration(
-					state,
-					_get_transmission_drive_acceleration(state, brake),
-					delta
-				)
-		else:
-			_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
+	if not _config.uses_geared_transmission() and state.forward_speed <= 0.25:
+		_simulate_wheel_dynamics(state, -_config.reverse_acceleration * brake, 0.0, 0.0, 0.0, delta)
 		return
-	if state.forward_speed > 0.25:
-		_apply_braking_acceleration(state, _config.brake_deceleration * brake, delta)
-	else:
-		_apply_longitudinal_acceleration(state, -_config.reverse_acceleration * brake, delta)
+	_simulate_wheel_dynamics(state, 0.0, _config.brake_deceleration * brake, 0.0, 0.0, delta)
 
 
 func _apply_braking_acceleration(state: CarRuntimeState, deceleration: float, delta: float) -> void:
-	if is_zero_approx(state.forward_speed):
-		return
-	var requested_acceleration: float = -signf(state.forward_speed) * maxf(deceleration, 0.0)
-	var applied_acceleration: float = _resolve_longitudinal_acceleration(state, requested_acceleration)
-	state.forward_speed = move_toward(state.forward_speed, 0.0, absf(applied_acceleration) * delta)
+	_simulate_wheel_dynamics(state, 0.0, maxf(deceleration, 0.0), 0.0, 0.0, delta)
 
 
 func _apply_longitudinal_acceleration(state: CarRuntimeState, requested_acceleration: float, delta: float) -> void:
-	var applied_acceleration: float = _resolve_longitudinal_acceleration(state, requested_acceleration)
-	state.forward_speed += applied_acceleration * delta
+	_simulate_wheel_dynamics(state, requested_acceleration, 0.0, 0.0, 0.0, delta)
 
 
 func _resolve_longitudinal_acceleration(state: CarRuntimeState, requested_acceleration: float) -> float:
@@ -438,11 +518,7 @@ func _resolve_longitudinal_acceleration(state: CarRuntimeState, requested_accele
 		var wheel_capacity: float = _get_wheel_longitudinal_capacity(wheel)
 		var requested_wheel_acceleration: float
 		if total_peak_capacity > TireModel.MIN_ACCELERATION_CAPACITY:
-			requested_wheel_acceleration = (
-				requested_acceleration
-				* wheel_capacity
-				/ total_peak_capacity
-			)
+			requested_wheel_acceleration = requested_acceleration * wheel_capacity / total_peak_capacity
 		else:
 			requested_wheel_acceleration = requested_acceleration / float(active_wheel_count)
 		var response: Vector2 = _tire_model.resolve_longitudinal_acceleration(
@@ -454,12 +530,7 @@ func _resolve_longitudinal_acceleration(state: CarRuntimeState, requested_accele
 			_config.longitudinal_peak_slip_ratio,
 			_config.longitudinal_slide_grip_multiplier
 		)
-		_record_longitudinal_slip(
-			wheel,
-			requested_wheel_acceleration,
-			response.x,
-			response.y
-		)
+		_record_longitudinal_slip(wheel, requested_wheel_acceleration, response.x, response.y)
 		applied_acceleration += response.x
 	return applied_acceleration
 
@@ -502,7 +573,9 @@ func _reset_longitudinal_slip(state: CarRuntimeState) -> void:
 func _update_combined_slip(state: CarRuntimeState) -> void:
 	for wheel: WheelTireState in state.wheel_states:
 		if not wheel.has_contact:
-			wheel.reset_tire_dynamics()
+			wheel.longitudinal_slip_ratio = 0.0
+			wheel.longitudinal_slip_intensity = 0.0
+			wheel.tire_slip_intensity = 0.0
 			continue
 		wheel.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
 			wheel.lateral_slip_intensity,
@@ -512,13 +585,14 @@ func _update_combined_slip(state: CarRuntimeState) -> void:
 
 
 func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
+	var driven_surface_speed: float = _get_driven_wheel_surface_speed(state)
 	if not _config.uses_geared_transmission():
-		var speed_ratio: float = clampf(absf(state.forward_speed) / _config.max_forward_speed, 0.0, 1.0)
+		var speed_ratio: float = clampf(absf(driven_surface_speed) / _config.max_forward_speed, 0.0, 1.0)
 		return lerpf(_config.idle_rpm, _config.redline_rpm, speed_ratio)
 	if state.current_gear == 0:
 		return _config.idle_rpm
 	if _config.is_cvt_transmission():
-		return _cvt_transmission_model.get_coupled_engine_rpm(state.forward_speed, state.current_gear)
+		return _cvt_transmission_model.get_coupled_engine_rpm(driven_surface_speed, state.current_gear)
 	var coupled_rpm: float = _get_coupled_engine_rpm_for_gear(state, state.current_gear)
 	if _config.is_automatic_transmission():
 		return _get_torque_converter_rpm(state, coupled_rpm)
@@ -528,15 +602,17 @@ func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
 func _get_engine_free_rev_blend(state: CarRuntimeState) -> float:
 	if not _config.uses_geared_transmission() or state.current_gear == 0:
 		return 1.0
-	if state.ground_contact_count <= 0:
-		return 1.0
 	if _config.is_manual_transmission() or _config.is_cvt_transmission():
 		return 1.0 - clampf(state.clutch_engagement, 0.0, 1.0)
 	return 0.0
 
 
 func _get_coupled_engine_rpm_for_gear(state: CarRuntimeState, gear: int) -> float:
-	return _drivetrain_model.get_coupled_engine_rpm_for_gear(gear, state.forward_speed)
+	return _drivetrain_model.get_coupled_engine_rpm_for_gear(gear, _get_driven_wheel_surface_speed(state))
+
+
+func _get_driven_wheel_surface_speed(state: CarRuntimeState) -> float:
+	return state.get_average_driven_wheel_angular_velocity(_config) * _config.wheel_radius
 
 
 func _get_torque_converter_rpm(state: CarRuntimeState, coupled_rpm: float) -> float:
