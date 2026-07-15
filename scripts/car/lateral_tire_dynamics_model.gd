@@ -5,7 +5,6 @@ const MIN_REFERENCE_SPEED_MPS: float = 0.25
 const MAX_STEERING_ANGLE_RAD: float = PI * 0.305555556
 const MAX_SLIP_ANGLE_RAD: float = PI * 0.49
 const FULL_SLIDE_SLIP_RATIO: float = 3.0
-const DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER: float = 0.92
 
 
 func get_ackermann_steering_angles(
@@ -115,9 +114,10 @@ func resolve_lateral_acceleration(
 	load_share: float,
 	lateral_grip_mps2: float,
 	surface_grip_multiplier: float,
-	longitudinal_slip_intensity: float,
+	longitudinal_grip_usage: float,
 	peak_slip_angle_rad: float,
-	handbrake_grip_multiplier: float = 1.0
+	handbrake_grip_multiplier: float = 1.0,
+	lateral_slide_grip_multiplier: float = 0.88
 ) -> float:
 	if is_zero_approx(slip_angle_rad) or load_share <= 0.0:
 		return 0.0
@@ -132,7 +132,7 @@ func resolve_lateral_acceleration(
 	if speed_factor <= 0.0:
 		return 0.0
 	var combined_grip_factor: float = sqrt(
-		maxf(1.0 - pow(clampf(longitudinal_slip_intensity, 0.0, 1.0), 2.0), 0.0)
+		maxf(1.0 - pow(clampf(longitudinal_grip_usage, 0.0, 1.0), 2.0), 0.0)
 	)
 	var maximum_acceleration: float = (
 		maxf(lateral_grip_mps2, 0.01)
@@ -143,18 +143,30 @@ func resolve_lateral_acceleration(
 		* speed_factor
 	)
 	var normalized_slip: float = absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001)
-	var force_multiplier: float = _get_lateral_force_multiplier(normalized_slip)
+	var force_multiplier: float = _get_lateral_force_multiplier(normalized_slip, lateral_slide_grip_multiplier)
 	return -signf(slip_angle_rad) * maximum_acceleration * force_multiplier
+
+
+func calculate_lateral_grip_usage(
+	slip_angle_rad: float,
+	peak_slip_angle_rad: float,
+	lateral_slide_grip_multiplier: float
+) -> float:
+	var normalized_slip: float = absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001)
+	return _get_lateral_force_multiplier(normalized_slip, lateral_slide_grip_multiplier)
 
 
 func calculate_lateral_slip_intensity(
 	slip_angle_rad: float,
 	peak_slip_angle_rad: float
 ) -> float:
-	# Physical friction usage follows the same force curve used by the lateral
-	# solver, including the bounded post-peak drop during a full slide.
-	var normalized_slip: float = absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001)
-	return _get_lateral_force_multiplier(normalized_slip)
+	# Effect severity remains saturated after the force peak instead of decreasing
+	# together with post-peak grip. This keeps smoke/audio and telemetry monotonic.
+	return clampf(
+		absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001),
+		0.0,
+		1.0
+	)
 
 
 func estimate_yaw_inertia_kg_m2(config: CarDriveConfig) -> float:
@@ -172,7 +184,7 @@ func estimate_yaw_inertia_kg_m2(config: CarDriveConfig) -> float:
 	)
 
 
-func _get_lateral_force_multiplier(normalized_slip: float) -> float:
+func _get_lateral_force_multiplier(normalized_slip: float, slide_grip_multiplier: float) -> float:
 	var safe_normalized_slip: float = maxf(normalized_slip, 0.0)
 	if safe_normalized_slip <= 1.0:
 		return safe_normalized_slip
@@ -185,7 +197,7 @@ func _get_lateral_force_multiplier(normalized_slip: float) -> float:
 	)
 	return lerpf(
 		1.0,
-		DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER,
+		clampf(slide_grip_multiplier, 0.0, 1.0),
 		slide_progress
 	)
 

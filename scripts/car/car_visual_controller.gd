@@ -43,13 +43,23 @@ var _wheel_spin: float = 0.0
 var _wheel_spin_positions: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
 var _using_low_detail: bool = false
 var _is_screen_visible: bool = false
+var _base_body_rotation: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
+	_base_body_rotation = rotation
 	_resolve_visual_roots()
 	_configure_wheel_visuals()
 	_ensure_visibility_notifier()
 	_set_low_detail_active(true)
+
+
+func update_body_attitude(pitch_angle_rad: float, roll_angle_rad: float) -> void:
+	rotation = Vector3(
+		_base_body_rotation.x + pitch_angle_rad,
+		_base_body_rotation.y,
+		_base_body_rotation.z + roll_angle_rad
+	)
 
 
 func set_force_low_detail(enabled: bool) -> void:

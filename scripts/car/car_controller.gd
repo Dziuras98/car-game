@@ -232,6 +232,7 @@ func _physics_process(delta: float) -> void:
 		_update_vehicle_visuals(0.0, steering)
 		return
 
+	_chassis_controller.begin_simulation_frame(self)
 	var remaining_delta: float = safe_delta
 	var apply_shift_input: bool = true
 	while remaining_delta > 0.000001:
@@ -252,8 +253,14 @@ func _physics_process(delta: float) -> void:
 			gear_down_pressed if apply_shift_input else false,
 			step
 		)
+		_chassis_controller.correct_combined_tire_forces(
+			_runtime_state,
+			handbrake_active,
+			step
+		)
 		_chassis_controller.update_steering(_runtime_state, steering, self, step)
 		_chassis_controller.integrate_velocity(_runtime_state, self, step)
+		_chassis_controller.advance_simulation_prediction(_runtime_state, self, step)
 		apply_shift_input = false
 		remaining_delta -= step
 
@@ -348,5 +355,9 @@ func _update_vehicle_visuals(_delta: float, steering: float) -> void:
 		return
 	_visual_controller.update_vehicle_wheel_visuals(
 		_runtime_state.get_wheel_angular_positions(),
-		steering
+		_runtime_state.steering_input_state
+	)
+	_visual_controller.update_body_attitude(
+		_runtime_state.body_pitch_angle_rad,
+		_runtime_state.body_roll_angle_rad
 	)

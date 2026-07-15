@@ -6,6 +6,7 @@ const DIRECTION_CHANGE_SPEED_THRESHOLD: float = 0.55
 
 var idle_rpm: float = 900.0
 var max_ratio: float = 2.50
+var min_ratio: float = 0.0
 var reverse_ratio: float = 2.50
 var final_drive_ratio: float = 4.00
 var wheel_radius: float = 0.28
@@ -35,10 +36,14 @@ func configure(
 	target_rpm_ceiling: float,
 	target_ratio_response: float,
 	target_clutch_engagement_rpm: float,
-	target_clutch_full_rpm: float
+	target_clutch_full_rpm: float,
+	target_min_ratio: float = 0.0
 ) -> void:
 	idle_rpm = maxf(target_idle_rpm, 1.0)
 	max_ratio = maxf(target_max_ratio, MIN_DYNAMIC_RATIO)
+	min_ratio = maxf(target_min_ratio, 0.0)
+	if min_ratio > 0.0:
+		min_ratio = minf(min_ratio, max_ratio - MIN_DYNAMIC_RATIO)
 	reverse_ratio = maxf(target_reverse_ratio, MIN_DYNAMIC_RATIO)
 	final_drive_ratio = maxf(target_final_drive_ratio, MIN_DYNAMIC_RATIO)
 	wheel_radius = maxf(target_wheel_radius, 0.01)
@@ -64,12 +69,14 @@ func update_ratio(forward_speed: float, throttle: float, delta: float) -> float:
 	var desired_ratio: float = max_ratio
 	if wheel_rpm > 0.01:
 		desired_ratio = _target_rpm / (wheel_rpm * final_drive_ratio)
-	# There is intentionally no configurable minimum ratio. The epsilon exists only
-	# to keep divisions finite; as speed increases the ratio may continue toward zero.
-	desired_ratio = clampf(desired_ratio, MIN_DYNAMIC_RATIO, max_ratio)
+	# A zero configured minimum means an effectively unbounded overdrive. The
+	# numerical epsilon exists only to keep divisions finite.
+	var effective_min_ratio: float = min_ratio if min_ratio > 0.0 else MIN_DYNAMIC_RATIO
+	desired_ratio = clampf(desired_ratio, effective_min_ratio, max_ratio)
 	var blend: float = 1.0 - exp(-ratio_response * maxf(delta, 0.0))
 	_current_ratio = lerpf(_current_ratio, desired_ratio, blend)
-	_current_ratio = clampf(_current_ratio, MIN_DYNAMIC_RATIO, max_ratio)
+	var effective_min_ratio: float = min_ratio if min_ratio > 0.0 else MIN_DYNAMIC_RATIO
+	_current_ratio = clampf(_current_ratio, effective_min_ratio, max_ratio)
 	return _current_ratio
 
 
@@ -118,6 +125,10 @@ func get_drive_acceleration(
 	var wheel_force: float = wheel_torque / wheel_radius
 	var direction: float = -1.0 if current_gear < 0 else 1.0
 	return wheel_force / vehicle_mass * direction
+
+
+func get_minimum_ratio() -> float:
+	return min_ratio
 
 
 func get_current_ratio() -> float:
