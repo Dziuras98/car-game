@@ -69,20 +69,42 @@ func resolve_longitudinal_acceleration(
 	if demand_ratio <= 1.0:
 		return Vector2(requested_acceleration, signed_slip_ratio)
 
-	var slide_progress: float = _smoothstep(
-		clampf(
-			(demand_ratio - 1.0) / maxf(FULL_SLIDE_DEMAND_RATIO - 1.0, 0.001),
-			0.0,
-			1.0
-		)
-	)
-	var sliding_capacity_multiplier: float = lerpf(
-		1.0,
-		clampf(slide_grip_multiplier, 0.0, 1.0),
-		slide_progress
+	var sliding_capacity_multiplier: float = _get_post_peak_capacity_multiplier(
+		demand_ratio,
+		slide_grip_multiplier
 	)
 	var applied_magnitude: float = minf(requested_magnitude, peak_capacity * sliding_capacity_multiplier)
 	return Vector2(signf(requested_acceleration) * applied_magnitude, signed_slip_ratio)
+
+
+func resolve_longitudinal_acceleration_from_slip(
+	slip_ratio: float,
+	lateral_slip_intensity: float,
+	surface_grip_multiplier: float,
+	contact_factor: float,
+	longitudinal_grip_coefficient: float,
+	peak_slip_ratio: float,
+	slide_grip_multiplier: float
+) -> float:
+	var safe_contact_factor: float = clampf(contact_factor, 0.0, 1.0)
+	if safe_contact_factor <= 0.0 or is_zero_approx(slip_ratio):
+		return 0.0
+	var peak_capacity: float = get_longitudinal_acceleration_capacity(
+		lateral_slip_intensity,
+		surface_grip_multiplier,
+		safe_contact_factor,
+		longitudinal_grip_coefficient
+	)
+	if peak_capacity <= MIN_ACCELERATION_CAPACITY:
+		return 0.0
+	var normalized_slip: float = absf(slip_ratio) / maxf(peak_slip_ratio, 0.001)
+	var capacity_multiplier: float = normalized_slip
+	if normalized_slip > 1.0:
+		capacity_multiplier = _get_post_peak_capacity_multiplier(
+			normalized_slip,
+			slide_grip_multiplier
+		)
+	return signf(slip_ratio) * peak_capacity * clampf(capacity_multiplier, 0.0, 1.0)
 
 
 func get_longitudinal_acceleration_capacity(
@@ -124,6 +146,24 @@ func get_longitudinal_grip_factor(
 	var lateral_usage: float = clampf(slip_intensity, 0.0, 1.0)
 	var friction_circle_factor: float = sqrt(maxf(1.0 - lateral_usage * lateral_usage, 0.0))
 	return friction_circle_factor * clampf(surface_grip_multiplier, 0.05, 2.0)
+
+
+func _get_post_peak_capacity_multiplier(
+	normalized_demand_or_slip: float,
+	slide_grip_multiplier: float
+) -> float:
+	var slide_progress: float = _smoothstep(
+		clampf(
+			(normalized_demand_or_slip - 1.0) / maxf(FULL_SLIDE_DEMAND_RATIO - 1.0, 0.001),
+			0.0,
+			1.0
+		)
+	)
+	return lerpf(
+		1.0,
+		clampf(slide_grip_multiplier, 0.0, 1.0),
+		slide_progress
+	)
 
 
 func _smoothstep(value: float) -> float:
