@@ -38,6 +38,7 @@ wheel_radius = 0.272
 drivetrain_efficiency = 0.74
 shift_delay = 0.0
 max_drive_acceleration = 18.0
+drive_layout = 0
 automatic_shift_delay = 0.16
 cvt_max_ratio = 2.503
 cvt_target_rpm_min = 1700.0
