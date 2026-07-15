@@ -1,6 +1,7 @@
 extends CarPowertrainController
 class_name BmwE46PowertrainController
 
+var _torque_converter_automatic_model: AutomaticTransmissionModel = AutomaticTransmissionModel.new()
 var _smg_transmission_model: SmgTransmissionModel = SmgTransmissionModel.new()
 
 func reset(state: CarRuntimeState) -> void:
@@ -25,7 +26,12 @@ func get_gear_text(state: CarRuntimeState) -> String:
 	return super.get_gear_text(state)
 
 func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: float, gear_up_pressed: bool, gear_down_pressed: bool) -> void:
-	if _config == null or not _config.is_smg_transmission():
+	if _config == null:
+		return
+	if _config.is_torque_converter_automatic():
+		_update_torque_converter_automatic_transmission(state, throttle, brake)
+		return
+	if not _config.is_smg_transmission():
 		super._update_transmission_input(state, throttle, brake, gear_up_pressed, gear_down_pressed)
 		return
 	var lower_gear_rpm: float = _config.idle_rpm
@@ -46,6 +52,28 @@ func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: 
 		_config.smg_auto_mode,
 		gear_up_pressed,
 		gear_down_pressed
+	)
+	if requested_gear != state.current_gear:
+		_set_transmission_gear(state, requested_gear)
+
+func _update_torque_converter_automatic_transmission(state: CarRuntimeState, throttle: float, brake: float) -> void:
+	var lower_gear_rpm: float = _config.idle_rpm
+	if state.current_gear > 1:
+		lower_gear_rpm = _get_coupled_engine_rpm_for_gear(state, state.current_gear - 1)
+	var requested_gear: int = _torque_converter_automatic_model.get_requested_gear(
+		state.current_gear,
+		_config.gear_ratios.size(),
+		state.forward_speed,
+		state.engine_rpm,
+		throttle,
+		brake,
+		state.shift_timer,
+		_config.redline_rpm,
+		_config.automatic_upshift_rpm,
+		_config.automatic_downshift_rpm,
+		_config.automatic_kickdown_throttle,
+		_config.automatic_kickdown_rpm,
+		lower_gear_rpm
 	)
 	if requested_gear != state.current_gear:
 		_set_transmission_gear(state, requested_gear)

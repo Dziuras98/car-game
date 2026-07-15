@@ -20,6 +20,7 @@ func _initialize() -> void:
 		_test_inline_six_audio_identity()
 	_expect(CATALOG != null and CATALOG.get_model_by_id(&"bmw_e46_sedan") == MODEL, "main catalog registers BMW E46")
 	_test_visual_scale()
+	_test_torque_converter_automatic_player_model()
 	_test_smg_model()
 	_finish()
 
@@ -108,6 +109,40 @@ func _test_visual_scale() -> void:
 	_expect(absf(detailed_size.z - BmwE46VisualController.TARGET_BODY_LENGTH_M) <= 0.01, "detailed BMW E46 model is normalized to the 4.47 m production length")
 	_expect(visuals.get_detailed_scale_correction() < 1.0, "oversized source GLB is scaled down")
 	visuals.free()
+
+
+func _test_torque_converter_automatic_player_model() -> void:
+	var variant: CarVariantDefinition = MODEL.get_variant_by_id(&"bmw_e46_sedan_330i_5at")
+	_expect(
+		variant != null and variant.specs != null and variant.specs.is_torque_converter_automatic(),
+		"330i 5AT is configured as a torque-converter automatic"
+	)
+	if variant == null or variant.specs == null:
+		return
+
+	var config: CarDriveConfig = CarDriveConfigBuilder.build_from_specs(variant.specs)
+	_expect(config != null and config.is_torque_converter_automatic(), "330i 5AT player drive config selects the automatic model")
+	_expect(config != null and not config.is_manual_transmission(), "330i 5AT player drive config does not select the manual model")
+	_expect(config != null and config.gear_ratios.size() == 5, "330i 5AT player drive config keeps all five automatic gears")
+	if config == null:
+		return
+
+	var state := CarRuntimeState.new()
+	var controller := BmwE46PowertrainController.new()
+	controller.configure(config)
+	state.reset_drive_state(config.idle_rpm)
+	controller.reset(state)
+	state.ground_contact_count = GroundContactModel.PROBE_COUNT
+	state.current_gear = 1
+	state.forward_speed = 8.0
+	state.engine_rpm = config.idle_rpm + 250.0
+	controller.update(state, 0.45, 0.0, false, true, false, 0.0)
+	_expect(state.current_gear == 1, "330i 5AT ignores a manual gear-up request at low RPM")
+	state.engine_rpm = config.redline_rpm
+	controller.update(state, 0.45, 0.0, false, false, false, 0.0)
+	_expect(state.current_gear == 2 and state.shift_timer > 0.0, "330i 5AT upshifts automatically without player gear input")
+	_expect(controller.get_gear_text(state) == "D2", "330i 5AT reports an automatic drive gear")
+	_expect(is_equal_approx(state.clutch_engagement, 1.0), "330i 5AT keeps the torque converter path fully engaged")
 
 
 func _test_smg_model() -> void:
