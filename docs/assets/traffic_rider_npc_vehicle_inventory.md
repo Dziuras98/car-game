@@ -49,8 +49,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 12 | `12_renault_maxity_2008.glb` | Renault Maxity original-body single-cab short-wheelbase box truck with approved complete six-powertrain scope | light box truck | 2,102 | `approved` |
 | 13 | `13_mazda_2_2011.glb` | North American 2011 Mazda2 Sport five-door facelift source with approved complete global powertrain scope | passenger hatchback | 1,770 | `approved` |
 | 14 | `14_mazda_3_2014.glb` | North American 2014 Mazda3 BM five-door high-grade 2.5-style source with approved global BM/BN/BY scope | passenger hatchback | 1,842 | `approved` |
-| 15 | `15_mercedes_benz_sprinter_2014.glb` | Mercedes-Benz Sprinter W906 facelift long-wheelbase high-roof windowed single-rear-wheel van | full-size van | 1,536 | `awaiting_owner_scope` |
-| 16 | `16_mercedes_benz_unimog_u5023_2013.glb` | Mercedes-Benz Unimog U5023 2013 | utility vehicle | 2,032 | `source_only` |
+| 15 | `15_mercedes_benz_sprinter_2014.glb` | Mercedes-Benz Sprinter W906 facelift long-wheelbase high-roof windowed single-rear-wheel van with approved RWD-only scope | full-size van | 1,536 | `approved` |
+| 16 | `16_mercedes_benz_unimog_u5023_2013.glb` | Mercedes-Benz Unimog U5023 single-cab dropside extreme-off-road source | utility vehicle | 2,032 | `awaiting_owner_scope` |
 | 17 | `17_nissan_atlas_2007.glb` | Nissan Atlas 2007 | light flatbed truck | 1,996 | `source_only` |
 | 18 | `18_nissan_atleon_2004.glb` | Nissan Atleon 2004 | medium box truck | 2,076 | `source_only` |
 | 20 | `20_skoda_octavia_combi_2013.glb` | Skoda Octavia Combi 2013 | passenger estate | 2,010 | `source_only` |
@@ -76,16 +76,17 @@ Total committed source geometry: **40,300 triangles**.
 | 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 | five diesel calibrations (110, 120, 130, 140 and 150 PS) plus Maxity Electric; single-cab short-wheelbase source box body with dual rear wheels; one representative mass/payload state, final drive and differential per row; no alternative cabs, bodies, wheelbases, GVW, emissions subdivisions or conversions |
 | 13 — Mazda2 / Demio DE five-door hatchback | `docs/vehicles/traffic/mazda_2_2011.md` | 16 | all 16 listed global powertrain rows retained separately, including regional 1.3/1.5 calibrations, 5MT, 4AT, CVT, e-4WD, Miller, SKYACTIV-G, both diesels and Demio EV; one source-like five-door facelift body and one standard final drive/differential or rear-assist state per row; no alternate bodies, emissions subdivisions or conversions |
 | 14 — Mazda3 BM / BN / BY | `docs/vehicles/traffic/mazda_3_2014.md` | 19 | all 19 listed petrol, diesel, AWD and hybrid rows retained; provisional regional 1.6/4AT remains evidence-blocked; rows 1–18 use the source-like BM hatchback and the sedan-only hybrid retains its necessary BY sedan body; all transmission architectures separate; one standard final drive/differential or AWD state per row; no emissions or conversion duplicates |
+| 15 — Mercedes-Benz Sprinter W906 facelift RWD | `docs/vehicles/traffic/mercedes_benz_sprinter_2014.md` | 17 | all 17 presented RWD rows retained: OM651 and OM642 diesels, M271 petrol and factory 316 NGT, with 6MT, 5G-TRONIC/NAG1 and 7G-TRONIC PLUS kept separate; four evidence-blocked RWD rows remain confirmation-gated; source-like long high-roof windowed single-rear-wheel body; all Sprinter 4x4 rows, alternative bodies, emissions subdivisions and specialist conversions excluded |
 
-Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13 and 14 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14 and 15 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 15 — Mercedes-Benz Sprinter W906 facelift | `docs/vehicles/traffic/mercedes_benz_sprinter_2014.md` | 21 mechanically consolidated facelift powertrain rows: OM651/OM642 diesel, M271 petrol/NGT, RWD and Sprinter 4x4, with 6MT/5AT/7AT architectures | all rows vs selected groups; evidence-blocked rows; source body vs other bodies; petrol/NGT; North-American 5AT; 4x4; representative mass state; final-drive/differential policy; emissions/low-range metadata; conversions; missing variants |
+| 16 — Mercedes-Benz Unimog U4023 / U5023 | `docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md` | 2 mechanically consolidated extreme-off-road chassis rows sharing OM934/UG100 but using different portal axles, load ratings and final-drive reductions | U4023 plus U5023 vs strict source U5023; common dropside body; one UG100/EPS/EAS state; axle/final-drive/lock policy; payload state; body derivatives; equipment and emissions metadata; missing variants |
 
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 15 is approved, research continues with model 16.
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 16 is approved, research continues with model 17.
 
 ## Source topology
 
