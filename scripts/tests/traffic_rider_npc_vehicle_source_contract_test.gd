@@ -47,6 +47,7 @@ func _initialize() -> void:
 	_test_research_and_owner_gate_contract()
 	_test_powertrain_fidelity_contract()
 	_test_physics_and_audio_contract()
+	_test_inventory_status_contract()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -129,6 +130,21 @@ func _test_physics_and_audio_contract() -> void:
 		"perceptual distinction from unrelated engine layouts",
 	]:
 		_expect(workflow.contains(required_fragment), "physics/audio fidelity preserves: %s" % required_fragment)
+
+
+func _test_inventory_status_contract() -> void:
+	var inventory: String = _read_text(INVENTORY_PATH)
+	for required_fragment: String in [
+		"Mandatory status progression",
+		"source_only",
+		"researching",
+		"awaiting_owner_scope",
+		"approved",
+		"integrating",
+		"integrated",
+		"Integration remains blocked until the owner confirms whether to import all variants or a subset",
+	]:
+		_expect(inventory.contains(required_fragment), "inventory status gate preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
