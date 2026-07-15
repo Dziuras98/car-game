@@ -11,6 +11,9 @@ const LOW_SPEED_YAW_DAMPING_PER_SECOND: float = 3.50
 const LOW_SPEED_YAW_REFERENCE_MPS: float = 5.0
 const YAW_STOP_THRESHOLD_RAD_S: float = 0.0005
 const HORIZONTAL_SPEED_EPSILON_MPS: float = 0.0001
+const LOW_SPEED_LATERAL_FRICTION_REFERENCE_MPS: float = 1.0
+const LATERAL_STOP_THRESHOLD_MPS: float = 0.001
+const RELEASED_STEERING_THRESHOLD: float = 0.05
 
 var _tire_model: TireModel = TireModel.new()
 var _lateral_tire_model: LateralTireDynamicsModel = LateralTireDynamicsModel.new()
@@ -211,6 +214,7 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 			_config.steering_speed
 		)
 		_rotate_local_velocity_for_yaw(state, state.yaw_rate_rad_s * safe_delta)
+		_apply_low_speed_lateral_friction(state, steering, safe_delta)
 	state.update_slip_aggregates()
 
 
@@ -327,6 +331,32 @@ func _rotate_local_velocity_for_yaw(state: CarRuntimeState, yaw_step: float) -> 
 	var sine: float = sin(yaw_step)
 	state.forward_speed = forward_speed * cosine + lateral_speed * sine
 	state.lateral_speed = lateral_speed * cosine - forward_speed * sine
+
+
+func _apply_low_speed_lateral_friction(state: CarRuntimeState, steering: float, delta: float) -> void:
+	if absf(steering) > RELEASED_STEERING_THRESHOLD:
+		return
+	var horizontal_speed: float = Vector2(state.forward_speed, state.lateral_speed).length()
+	var low_speed_factor: float = 1.0 - clampf(
+		horizontal_speed / LOW_SPEED_LATERAL_FRICTION_REFERENCE_MPS,
+		0.0,
+		1.0
+	)
+	if low_speed_factor <= 0.0:
+		return
+	var lateral_deceleration: float = (
+		maxf(_config.front_lateral_grip, _config.rear_lateral_grip)
+		* state.surface_grip_multiplier
+		* _get_ground_contact_factor(state)
+		* low_speed_factor
+	)
+	state.lateral_speed = move_toward(
+		state.lateral_speed,
+		0.0,
+		lateral_deceleration * maxf(delta, 0.0)
+	)
+	if absf(state.lateral_speed) <= LATERAL_STOP_THRESHOLD_MPS:
+		state.lateral_speed = 0.0
 
 
 func _get_previous_longitudinal_acceleration(state: CarRuntimeState) -> float:
