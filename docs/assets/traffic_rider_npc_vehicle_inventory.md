@@ -39,8 +39,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 1500 Crew Cab Standard Box RWD, K2XX pre-facelift | pickup | 2,232 | `approved` |
 | 3 | `03_renault_clio_2013.glb` | Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved` |
-| 5 | `05_ford_e150_2012.glb` | Ford E-150 Commercial Cargo Van, regular length, approved 2008–2014 high-tier exterior scope | full-size van | 1,844 | `approved` |
-| 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 | SUV | 2,180 | `source_only` |
+| 5 | `05_ford_e150_2012.glb` | Ford E-150 Commercial Cargo Van, regular length, merged 2008–2014 engine scope | full-size van | 1,844 | `approved` |
+| 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 pre-facelift XLT, drivetrain unresolved visually | SUV | 2,180 | `awaiting_owner_scope` |
 | 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited 2013 | pickup | 1,758 | `source_only` |
 | 8 | `08_ford_transit_connect_2011.glb` | Ford Transit Connect 2011 | compact van | 1,650 | `source_only` |
 | 9 | `09_land_rover_freelander_2_2012.glb` | Land Rover Freelander 2 2012 | SUV | 2,130 | `source_only` |
@@ -64,29 +64,25 @@ Total committed source geometry: **40,300 triangles**.
 |---|---|---:|---|
 | 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 | all 42 mechanically distinct standard combinations, including regional 418i/418d entries subject to final evidence, plus RWD 6MT and 8AT 435i ZHP; strict pre-LCI body; no mechanically duplicate catalog entries |
 | 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 | all distinct pre-facelift engine/transmission combinations but RWD only: LV3+6L80, L83+6L80, L86+6L80 and L86+8L90; both 2014 and 2015; one verified standard axle ratio per row; gasoline only; no Z71, Max Trailering, SSV, 4WD or duplicate package/fuel entries |
-| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération: D4F 65/75, H4B TCe 75/90, H5F TCe 120 6MT/EDC, K9K dCi 75/90 5MT, dCi 90 EDC and dCi 110 6MT; no GT, LPG, R.S., Estate, emissions-package or duplicate calibration rows; Phase 2 requires an accurate facelift visual |
-| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 | all researched pre-facelift Chevrolet-badged J300 sedan engine/transmission rows: North American 1.8, 1.4T and LUZ diesel; pre-facelift European/export 1.6, 1.8 and 2.0 diesel families; China 1.6T; South American 1.8 manual/automatic on gasoline only; provisional rows included with evidence gates; no facelift-only, LPG, ethanol-state, Eco, hatchback, wagon or later-body entries |
-| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 8 | regular-length E-150 cargo body only; 4.6L and 5.4L V8 across distinct 2008, 2009–2010, 2011–2013 and 2014 eras; one verified standard axle ratio and open differential per row; gasoline only; high-tier year-correct exterior; no E85 state, CNG/LPG, Crew Van, Extended, Wagon, E-250/E-350 or package duplicates |
+| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération; no GT, LPG, R.S., Estate or duplicate calibration rows |
+| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 | all researched pre-facelift Chevrolet-badged J300 sedan rows; no facelift-only, LPG, ethanol-state, Eco, hatchback, wagon or later-body entries |
+| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 | regular-length cargo body only; 4.6L and 5.4L V8; 2008–2014 differences merged into each engine row; one verified standard axle ratio, open differential and gasoline only; no E85, CNG/LPG, Crew Van, Extended, Wagon, E-250/E-350 or package duplicates |
 
 Models 01, 02, 03, 04 and 05 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
-None. The next research target is model 06 — Ford Excursion 2000. Research must be completed and presented before model 07 begins.
+| Model | Research record | Candidate configurations | Blocking decision |
+|---|---|---:|---|
+| 06 — Ford Excursion | `docs/vehicles/traffic/ford_excursion_2000.md` | 12 complete generation rows; 8 if 7.3L calibrations are merged; 6 for exact 2000 source year | source year vs full generation; all engines; 4x2/4x4; 2005 facelift; 7.3 calibration merging; trim derivatives; axle/differential policy; Mexico 2006; missing variants |
+
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 06 is approved, research continues with model 07.
 
 ## Source topology
 
-The included GLBs were extracted without geometry simplification. The normal source hierarchy contains three render meshes:
-
-1. body;
-2. paired front wheels;
-3. paired rear wheels.
-
-The paired wheel meshes are source data, not the final runtime contract. Integration must create four independent, hub-centred wheel nodes as defined in `traffic_rider_npc_vehicle_import_workflow.md`.
+The included GLBs were extracted without geometry simplification. The normal source hierarchy contains three render meshes: body, paired front wheels and paired rear wheels. Integration must create four independent, hub-centred wheel nodes as defined in `traffic_rider_npc_vehicle_import_workflow.md`.
 
 ## Deliberately excluded large trucks
-
-These models existed in the combined source bundle but were not added to the repository:
 
 | Source index | Model | Reason |
 |---:|---|---|
@@ -96,10 +92,6 @@ These models existed in the combined source bundle but were not added to the rep
 
 ## Research and later implementation order
 
-Research and owner approval proceed in this order:
-
 `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 20 → 23`
 
-Only after all 20 scopes are approved does implementation begin, again in ascending order. Geometry-class pilot checks remain mandatory when their numbered model is reached, but they do not alter this order or bypass any research, transmission, physics, audio or validation requirement.
-
-Updating a row to `integrated` requires a model-specific record under `docs/vehicles/traffic/`, the approved variant catalog, corresponding scenes/resources and all automated tests defined by the workflow.
+Only after all 20 scopes are approved does implementation begin, again in ascending order. Updating a row to `integrated` requires its model-specific record, approved catalog, scenes/resources and automated validation.
