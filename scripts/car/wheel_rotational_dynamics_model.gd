@@ -35,19 +35,14 @@ func integrate_wheel(
 	angular_damping_nm_per_rad_s: float,
 	vehicle_forward_speed_mps: float,
 	delta: float,
-	effective_inertia_kg_m2: float = -1.0
+	_effective_inertia_kg_m2: float = -1.0
 ) -> void:
 	if wheel == null:
 		return
 	var safe_delta: float = maxf(delta, 0.0)
 	var safe_mass: float = maxf(vehicle_mass_kg, 1.0)
 	var safe_radius: float = maxf(wheel.wheel_radius_m, 0.01)
-	var selected_inertia: float = (
-		effective_inertia_kg_m2
-		if effective_inertia_kg_m2 > 0.0
-		else wheel.moment_of_inertia_kg_m2
-	)
-	var safe_inertia: float = maxf(selected_inertia, 0.01)
+	var safe_inertia: float = maxf(wheel.moment_of_inertia_kg_m2, 0.01)
 	var tire_force_n: float = tire_acceleration_mps2 * safe_mass
 	var tire_torque_nm: float = -tire_force_n * safe_radius
 	var damping_torque_nm: float = -wheel.angular_velocity_rad_s * maxf(
