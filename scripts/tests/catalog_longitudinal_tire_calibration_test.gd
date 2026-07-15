@@ -23,13 +23,13 @@ const EXPECTED_LEGACY_CALIBRATIONS: Dictionary = {
 	&"fiat_punto_176_1995_td70_5mt": Vector4(0.82, 0.14, 0.73, 9.7),
 }
 const EXPECTED_POLONEZ_CALIBRATIONS: Dictionary = {
-	&"fso_polonez_caro_mr93_14_gli_16v_5mt": Vector4(0.76, 0.15, 0.67, 8.8),
-	&"fso_polonez_caro_mr93_15_gle_5mt": Vector4(0.72, 0.15, 0.67, 8.2),
-	&"fso_polonez_caro_mr93_15_gli_5mt": Vector4(0.72, 0.15, 0.67, 8.4),
-	&"fso_polonez_caro_mr93_16_gle_5mt": Vector4(0.73, 0.15, 0.67, 8.2),
-	&"fso_polonez_caro_mr93_16_gli_5mt": Vector4(0.73, 0.15, 0.67, 8.5),
-	&"fso_polonez_caro_mr93_20_gle_ford_5mt": Vector4(0.76, 0.15, 0.67, 8.8),
-	&"fso_polonez_caro_mr93_19_gld_5mt": Vector4(0.72, 0.15, 0.67, 8.5),
+	&"fso_polonez_caro_mr93_14_gli_16v_5mt": Vector4(0.76, 0.15, 0.78, 8.8),
+	&"fso_polonez_caro_mr93_15_gle_5mt": Vector4(0.72, 0.15, 0.78, 8.2),
+	&"fso_polonez_caro_mr93_15_gli_5mt": Vector4(0.72, 0.15, 0.78, 8.4),
+	&"fso_polonez_caro_mr93_16_gle_5mt": Vector4(0.73, 0.15, 0.78, 8.2),
+	&"fso_polonez_caro_mr93_16_gli_5mt": Vector4(0.73, 0.15, 0.78, 8.5),
+	&"fso_polonez_caro_mr93_20_gle_ford_5mt": Vector4(0.76, 0.15, 0.78, 8.8),
+	&"fso_polonez_caro_mr93_19_gld_5mt": Vector4(0.72, 0.15, 0.78, 8.5),
 }
 
 var _checks: int = 0
