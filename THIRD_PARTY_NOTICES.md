@@ -2,7 +2,7 @@
 
 This project is unofficial and is not sponsored, endorsed by or affiliated with BMW AG, Nissan Motor Co., Ltd., Fiat S.p.A./Stellantis, Ford Motor Company, Shelby American, Fabryka Samochodów Osobowych, Rover Group, PSA, Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher, studio or asset author named below.
 
-Names such as "BMW", "3 Series", "E46", "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "FSO", "Polonez", "Caro", "Rover", "Pinto", "XUD", "Need for Speed" and "Real Racing" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
+Names such as "BMW", "3 Series", "E46", "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "FSO", "Polonez", "Caro", "Rover", "Pinto", "XUD", "Need for Speed", "Real Racing" and "Traffic Rider" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
 
 ## Sketchfab BMW E46 visual model
 
@@ -96,15 +96,41 @@ Sketchfab's standard terms restrict standalone or extractable redistribution. Th
 
 ### Distribution status of incomplete or restrictive records
 
-Until the repository records an applicable license or written permission covering each asset and its intended distribution:
+Until the repository records an applicable license, written permission or an explicit accepted-risk decision covering each asset and its intended distribution:
 
 - no contributor should describe these models as rights-cleared, freely reusable or covered by the repository's root `LICENSE`;
 - no public binary/source redistribution should assume permission to include these files;
 - no commercialization or external distribution decision should rely on the fact that the assets were downloadable from Sketchfab;
 - the assets should be relocated into a clearly identified third-party asset directory only together with complete path updates and a verified provenance record;
-- removal or replacement remains the safe option if acceptable permission cannot be demonstrated.
+- removal or replacement remains the safe option if acceptable permission cannot be demonstrated and no accepted-risk exception applies.
 
 This section records documentation and rights-verification gaps. It does not infer license terms from a model title, page availability or the word "free" in a filename.
+
+## Sketchfab Traffic Rider NPC vehicle bundle
+
+The repository contains 20 individually extracted non-heavy vehicle GLBs from a combined asset identified by embedded metadata as **Traffic Rider NPC Vehicles**.
+
+- uploader shown in embedded metadata: Mason (`ModelzRipper`);
+- source page: https://sketchfab.com/3d-models/traffic-rider-npc-vehicles-61f8508a366d41e3b3a40c4b54f7a03a;
+- uploader-stated embedded license: CC BY-NC 4.0 — https://creativecommons.org/licenses/by-nc/4.0/;
+- included files and model inventory: `docs/assets/traffic_rider_npc_vehicle_inventory.md`;
+- integration procedure: `docs/assets/traffic_rider_npc_vehicle_import_workflow.md`;
+- intended project use: NPC traffic vehicles in the private, noncommercial prototype;
+- excluded source models: Scania heavy truck, generic articulated truck and generic rigid truck.
+
+The source GLBs and any direct geometry derivatives are expressly excluded from the repository's root `LICENSE`. Attribution to Mason / `ModelzRipper`, the Sketchfab source page and the uploader-stated CC BY-NC 4.0 terms must remain with redistributed project copies containing these files.
+
+### Rights-chain limitation
+
+The bundle title and content identify the models as originating from the commercial game *Traffic Rider*. The repository contains no evidence that the uploader owns the upstream game assets or was authorized by the relevant upstream rights holder to license or redistribute them.
+
+The uploader-stated Creative Commons metadata is recorded for traceability but is not treated as proof of a complete upstream rights chain. Noncommercial use does not by itself resolve that limitation. This project does not represent the assets as rights-cleared, project-authored or freely reusable by downstream parties.
+
+### Accepted project decision
+
+The owner has explicitly directed the project to retain and integrate the 20 committed source GLBs for the current personal, private-purpose and noncommercial prototype while preserving this warning and attribution. The owner accepts the unresolved upstream provenance risk for that scope.
+
+The exact accepted scope, audit treatment and review triggers are recorded in `docs/accepted_risks.md`. Inclusion in this repository records the owner's risk decision; it does not grant additional rights to the project or downstream users.
 
 ## AssettoWorld Suzuka circuit assets
 
