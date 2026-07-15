@@ -135,6 +135,9 @@ msgstr "Simple oval"
 msgid "Tor Poznań"
 msgstr "Poznań Circuit"
 
+msgid "Krótki Tor Pustynny"
+msgstr "Short Desert Track"
+
 msgid "Nieskończona siatka"
 msgstr "Infinite grid"
 
