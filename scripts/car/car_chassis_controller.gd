@@ -5,6 +5,12 @@ const PROBE_END_MARGIN: float = 0.05
 const REFERENCE_FRONT_TIRE_WIDTH_M: float = 0.225
 const REFERENCE_REAR_TIRE_WIDTH_M: float = 0.245
 const DEFAULT_SURFACE_GRIP_MULTIPLIER: float = 1.0
+const BASE_YAW_DAMPING_PER_SECOND: float = 0.35
+const RELEASED_STEERING_YAW_DAMPING_PER_SECOND: float = 0.90
+const LOW_SPEED_YAW_DAMPING_PER_SECOND: float = 3.50
+const LOW_SPEED_YAW_REFERENCE_MPS: float = 5.0
+const YAW_STOP_THRESHOLD_RAD_S: float = 0.0005
+const HORIZONTAL_SPEED_EPSILON_MPS: float = 0.0001
 
 var _tire_model: TireModel = TireModel.new()
 var _lateral_tire_model: LateralTireDynamicsModel = LateralTireDynamicsModel.new()
@@ -122,6 +128,7 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 
 	var safe_delta: float = maxf(delta, 0.0)
 	var mass: float = maxf(_config.vehicle_mass, 1.0)
+	var horizontal_speed_before: float = Vector2(state.forward_speed, state.lateral_speed).length()
 	var total_lateral_force_n: float = 0.0
 	var total_yaw_moment_nm: float = 0.0
 	var longitudinal_acceleration: float = _get_previous_longitudinal_acceleration(state)
@@ -191,18 +198,19 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 		total_yaw_moment_nm += wheel.lateral_force_n * forward_offset_m
 
 	state.yaw_moment_nm = total_yaw_moment_nm
-	state.lateral_acceleration_mps2 = (
-		total_lateral_force_n / mass
-		- state.forward_speed * state.yaw_rate_rad_s
-	)
+	state.lateral_acceleration_mps2 = total_lateral_force_n / mass
 	state.yaw_acceleration_rad_s2 = total_yaw_moment_nm / _lateral_tire_model.estimate_yaw_inertia_kg_m2(_config)
 	if safe_delta > 0.0:
 		state.lateral_speed += state.lateral_acceleration_mps2 * safe_delta
+		_limit_lateral_tire_energy(state, horizontal_speed_before)
+		state.yaw_rate_rad_s += state.yaw_acceleration_rad_s2 * safe_delta
+		_apply_yaw_damping(state, steering, safe_delta)
 		state.yaw_rate_rad_s = clampf(
-			state.yaw_rate_rad_s + state.yaw_acceleration_rad_s2 * safe_delta,
+			state.yaw_rate_rad_s,
 			-_config.steering_speed,
 			_config.steering_speed
 		)
+		_rotate_local_velocity_for_yaw(state, state.yaw_rate_rad_s * safe_delta)
 	state.update_slip_aggregates()
 
 
@@ -274,6 +282,51 @@ func _set_wheel_steering_angles(state: CarRuntimeState, steering: float) -> void
 	state.wheel_states[WheelTireState.Position.FRONT_RIGHT].steering_angle_rad = front_angles.y
 	state.wheel_states[WheelTireState.Position.REAR_LEFT].steering_angle_rad = 0.0
 	state.wheel_states[WheelTireState.Position.REAR_RIGHT].steering_angle_rad = 0.0
+
+
+func _limit_lateral_tire_energy(state: CarRuntimeState, maximum_speed: float) -> void:
+	var current_speed: float = Vector2(state.forward_speed, state.lateral_speed).length()
+	if current_speed <= maximum_speed + HORIZONTAL_SPEED_EPSILON_MPS:
+		return
+	if current_speed <= HORIZONTAL_SPEED_EPSILON_MPS or maximum_speed <= HORIZONTAL_SPEED_EPSILON_MPS:
+		state.forward_speed = 0.0
+		state.lateral_speed = 0.0
+		return
+	var scale: float = maximum_speed / current_speed
+	state.forward_speed *= scale
+	state.lateral_speed *= scale
+
+
+func _apply_yaw_damping(state: CarRuntimeState, steering: float, delta: float) -> void:
+	var horizontal_speed: float = Vector2(state.forward_speed, state.lateral_speed).length()
+	var low_speed_factor: float = 1.0 - clampf(
+		horizontal_speed / LOW_SPEED_YAW_REFERENCE_MPS,
+		0.0,
+		1.0
+	)
+	var released_steering_factor: float = 1.0 - absf(clampf(steering, -1.0, 1.0))
+	var damping_rate: float = (
+		BASE_YAW_DAMPING_PER_SECOND
+		+ RELEASED_STEERING_YAW_DAMPING_PER_SECOND * released_steering_factor
+		+ LOW_SPEED_YAW_DAMPING_PER_SECOND * low_speed_factor
+	)
+	state.yaw_rate_rad_s *= exp(-damping_rate * _get_ground_contact_factor(state) * maxf(delta, 0.0))
+	if (
+		absf(state.yaw_rate_rad_s) <= YAW_STOP_THRESHOLD_RAD_S
+		and absf(state.yaw_acceleration_rad_s2) <= YAW_STOP_THRESHOLD_RAD_S
+	):
+		state.yaw_rate_rad_s = 0.0
+
+
+func _rotate_local_velocity_for_yaw(state: CarRuntimeState, yaw_step: float) -> void:
+	if absf(yaw_step) <= 0.000001:
+		return
+	var forward_speed: float = state.forward_speed
+	var lateral_speed: float = state.lateral_speed
+	var cosine: float = cos(yaw_step)
+	var sine: float = sin(yaw_step)
+	state.forward_speed = forward_speed * cosine + lateral_speed * sine
+	state.lateral_speed = lateral_speed * cosine - forward_speed * sine
 
 
 func _get_previous_longitudinal_acceleration(state: CarRuntimeState) -> float:
