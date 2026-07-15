@@ -36,4 +36,4 @@ starter_motor_level = 0.31
 shutdown_duration = 1.00
 limiter_period = 0.056
 limiter_cut_ratio = 0.40
-limiter_residual_combustion = 0.09
+limiter_residual_combustion = 0.30
