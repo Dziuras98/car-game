@@ -38,6 +38,7 @@ wheel_radius = 0.28
 drivetrain_efficiency = 0.86
 shift_delay = 0.31
 max_drive_acceleration = 18.0
+drive_layout = 0
 vehicle_mass = 925.0
 drag_coefficient = 0.33
 frontal_area = 1.9
