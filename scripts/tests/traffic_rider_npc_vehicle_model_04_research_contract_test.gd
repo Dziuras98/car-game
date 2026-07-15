@@ -8,28 +8,24 @@ var _failures: Array[String] = []
 
 
 func _initialize() -> void:
-	_test_inventory_gate()
+	_test_inventory_scope()
 	_test_research_record()
 	_finish()
 
 
-func _test_inventory_gate() -> void:
+func _test_inventory_scope() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect(not inventory.is_empty(), "vehicle inventory is readable")
 	_expect(
-		inventory.contains("Chevrolet Cruze J300 North American LS sedan, pre-facelift source | passenger sedan | 2,444 | `awaiting_owner_scope`"),
-		"model 04 is blocked at its owner-scope gate"
+		inventory.contains("Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved`"),
+		"model 04 has passed its owner-scope gate"
 	)
 	_expect(
-		inventory.contains("docs/vehicles/traffic/chevrolet_cruze_2011.md"),
-		"inventory links the Cruze research record"
+		inventory.contains("| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |"),
+		"inventory records twenty approved Cruze configurations"
 	)
 	_expect(
-		inventory.contains("26 base engine/transmission rows; 2 strict North American LS visual matches"),
-		"inventory records Cruze candidate scopes"
-	)
-	_expect(
-		inventory.contains("After model 04 is approved, research continues with model 05"),
+		inventory.contains("The next research target is model 05 — Ford E-150 2012"),
 		"research order advances without implementation"
 	)
 
@@ -38,33 +34,39 @@ func _test_research_record() -> void:
 	var research: String = _read_text(RESEARCH_PATH)
 	_expect(not research.is_empty(), "Chevrolet Cruze research record is readable")
 	for required_fragment: String in [
-		"Chevrolet Cruze J300 sedan — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Chevrolet Cruze J300 sedan — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **20 mechanically distinct pre-facelift Chevrolet-badged J300 sedan configurations**",
 		"Source SHA-256: `ac6af7b6894a8bbe327f4250b16ab5176ad16743f7141afbe6c0efc9cd61f251`",
 		"2011-model-year North American Chevrolet Cruze LS sedan",
 		"Wheelbase | 2.685 m",
 		"Total triangles | 2,444",
 		"Approximate wheelbase-derived scale | 0.675724",
-		"26 candidate engine/transmission rows",
-		"strict unmodified North American LS source-texture scope: **2 rows**",
+		"Approved total: 20 mechanically distinct pre-facelift Chevrolet J300 sedan configurations",
 		"LUW/LWE 1.8 naturally aspirated I4",
 		"LUJ/LUV 1.4 turbo I4",
-		"A14NET-family 1.4 turbo I4",
-		"A17DTS/1.7 VCDi",
+		"LUZ/Multijet 2.0 turbo-diesel I4",
 		"VM Motori/RA420 2.0 VCDi",
 		"Family Z/LLW 2.0 VCDi",
-		"LUZ/Multijet 2.0 turbo-diesel",
+		"China J300, from late 2011, pre-facelift body",
+		"approved, gasoline only",
 		"Hydra-Matic 6T30",
-		"GM 6T40",
+		"Hydra-Matic 6T40",
 		"GM 6T45",
 		"Aisin AF40-6",
-		"China J300, from late 2011",
-		"Brazil/South America",
-		"Eco variants are not badge-only changes",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"original rows 7–8: facelift-era European A14NET",
+		"original rows 16–17: facelift-era A17DTS",
+		"original row 26: petrol/LPG bi-fuel",
+		"all North American Eco manual/automatic package subdivisions",
+		"Provisional rows are approved for catalog scope immediately",
+		"Missing expected variants: **none identified by the owner**",
+		"Model 04 is **`approved`** with **20** configurations",
+		"Research proceeds to model 05",
 	]:
-		_expect(research.contains(required_fragment), "Chevrolet Cruze research preserves: %s" % required_fragment)
+		_expect(research.contains(required_fragment), "Chevrolet Cruze approval preserves: %s" % required_fragment)
+
+	_expect(not research.contains("Workflow status: **`awaiting_owner_scope`**"), "Cruze owner gate is closed")
+	_expect(not research.contains("A17DTS/1.7 VCDi turbo-diesel I4, approximately 110 PS / 280 Nm | conventional 6MT | **approved"), "facelift-only 1.7 diesel is not approved")
 
 
 func _read_text(path: String) -> String:
