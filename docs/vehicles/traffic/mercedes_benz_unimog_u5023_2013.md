@@ -1,14 +1,16 @@
-# Mercedes-Benz Unimog U4023 / U5023 extreme-off-road truck — research and owner-scope gate
+# Mercedes-Benz Unimog U4023 / U5023 extreme-off-road truck — research and approved scope
 
 - Model number in Traffic Rider bundle: **16**
 - Source GLB: `16_mercedes_benz_unimog_u5023_2013.glb`
 - Source SHA-256: `d935aeb5e9aad2e60f0ffcadc28e14edd9902302fc038cd35ef67f01da4f8966`
 - Research date: 2026-07-15
-- Workflow status: **`awaiting_owner_scope`**
+- Owner decision date: 2026-07-15
+- Workflow status: **`approved`**
+- Approved implementation scope: **2 mechanically distinct Unimog 437.4 chassis configurations**
 - Physics baseline inspected during research: `master` at `56f6ce9ca13f7fc8fb268493bff5d142d353bb53`
 - Global implementation gate: no geometry, catalog, physics, transmission or audio implementation begins until every included model has reached `approved`.
 
-## Visual identity
+## Visual identity and body policy
 
 The source represents a **Mercedes-Benz Unimog U5023 extreme-off-road truck from the initial 2013/2014 U4023/U5023 phase**, with a single cab and open dropside cargo platform.
 
@@ -24,6 +26,8 @@ Visible source evidence includes:
 - white civilian/demo-style finish rather than military camouflage.
 
 The source filename, texture and scaled dimensions agree most strongly with **U5023**, not the lighter U4023. Identity confidence is **high for U5023 single-cab dropside truck and high for the 3,850-mm wheelbase**.
+
+The owner approved the source-like U5023 single-cab dropside visual for both mechanical rows. The U4023 therefore intentionally reuses the same outer body while receiving its own mass, axle, portal reduction, tyre and brake calibration.
 
 ## Reference dimensions and source inspection
 
@@ -49,9 +53,9 @@ The source filename, texture and scaled dimensions agree most strongly with **U5
 
 The scaled wheel track/width and length are consistent with the official 2.48-m-wide, 6.0-m-long chassis family. The committed GLB remains unchanged. Integration must create four independent wheel nodes and project-authored collision, with portal-hub, tyre-pressure and axle-articulation behaviour represented by physics rather than baked into the mesh.
 
-## Research boundary
+## Approved research boundary
 
-The candidate scope covers the **Euro-VI-era extreme-off-road Unimog 437.4 models introduced as U4023 and U5023**, not the earlier U3000/U4000/U5000 OM904/OM924 variants and not the implement-carrier U2xx/U3xx/U4xx/U5xx family.
+The approved scope covers the **Euro-VI-era extreme-off-road Unimog 437.4 models introduced as U4023 and U5023**, not the earlier U3000/U4000/U5000 OM904/OM924 variants and not the implement-carrier U2xx/U3xx/U4xx/U5xx family.
 
 Both U4023 and U5023 use the same core powertrain family:
 
@@ -67,36 +71,28 @@ Both U4023 and U5023 use the same core powertrain family:
 
 The model distinction is mechanically significant. U4023 uses the lighter axle/GVW package and a different overall axle reduction, while U5023 uses heavier portal axles, higher axle ratings and a different final-drive reduction. They therefore remain separate rows even though engine output and gearbox family are shared.
 
-## Mechanically consolidated candidate matrix
+## Owner-directed scope rules
 
-| # | Model / chassis | Engine | Transmission | Drivetrain and axle state | Evidence state |
+- retain both mechanically distinct rows: U4023 and U5023;
+- use the source-like U5023 single-cab dropside body for both rows as an explicit visual homogenization;
+- retain one standard UG100/EPS/EAS transmission state per row;
+- omit optional crawler/work gearing as duplicate equipment;
+- use one evidence-backed standard axle reduction, tyre specification and differential-lock configuration per row;
+- use one representative unladen/light-payload state per row;
+- exclude crew cab, fire, rescue, camper, military, armoured, crane, box and other specialist body derivatives;
+- omit Euro VI/VIe, DPF/SCR, TireControl modes, PTOs, winches, auxiliary tanks and other equipment states as catalog rows or selectable metadata;
+- no additional engine, transmission, axle or factory chassis variant was requested by the owner.
+
+## Approved configuration matrix
+
+| # | Model / chassis | Engine | Transmission | Drivetrain and axle state | Status |
 |---:|---|---|---|---|---|
-| 1 | Unimog U4023, 3,850-mm wheelbase, standard approximately 8.0-t configuration | OM934 LA 5.132L turbo-diesel inline-four, 170 kW / 231 PS, 900 Nm | UG 100E-8-family 8-speed EPS synchronized manual/automated-manual gearbox with off-road group, reversing unit and EAS control | rear axle driven in road state, engageable front drive, portal axles, three differential locks; lighter U4023 axle package and one representative approximately 6.53 total axle reduction | `verified_model_family`; historical 2014 gearbox/clutch-control and axle-code document must be retained |
-| 2 | Unimog U5023, 3,850-mm wheelbase, standard approximately 13.0-t configuration | OM934 LA 5.132L turbo-diesel inline-four, 170 kW / 231 PS, 900 Nm | UG 100E-8-family 8-speed EPS synchronized manual/automated-manual gearbox with off-road group, reversing unit and EAS control | rear axle driven in road state, engageable front drive, portal axles, three differential locks; heavy U5023 axle package and one representative approximately 6.94 total axle reduction | `verified`; strict source model, historical transmission/axle codes still require primary retention |
+| 1 | Unimog U4023, 3,850-mm wheelbase, standard approximately 8.0-t configuration | OM934 LA 5.132L turbo-diesel inline-four, 170 kW / 231 PS, 900 Nm | UG 100E-8-family 8-speed EPS synchronized manual/automated-manual gearbox with off-road group, reversing unit and EAS control | rear axle driven in road state, engageable front drive, portal axles, three differential locks; lighter U4023 axle package and one representative approximately 6.53 total axle reduction | **approved** |
+| 2 | Unimog U5023, 3,850-mm wheelbase, standard approximately 13.0-t configuration | OM934 LA 5.132L turbo-diesel inline-four, 170 kW / 231 PS, 900 Nm | UG 100E-8-family 8-speed EPS synchronized manual/automated-manual gearbox with off-road group, reversing unit and EAS control | rear axle driven in road state, engageable front drive, portal axles, three differential locks; heavy U5023 axle package and one representative approximately 6.94 total axle reduction | **approved** |
 
-**Mechanically consolidated candidate total: 2 configurations.**
+**Approved total: 2 mechanically distinct Unimog 437.4 chassis configurations.**
 
 The current factory technical data shows different standard speeds for U4023 and U5023 in every basic and off-road gear, confirming that the two chassis cannot share one final-drive calibration. Engine-emissions revisions from initial Euro VI to later Euro VIe do not create extra rows unless primary service data proves a materially different engine or transmission architecture.
-
-## Body and equipment policy candidates
-
-### Strict source body
-
-The exact visual anchor is:
-
-- U5023 heavy chassis;
-- single cab;
-- 3,850-mm wheelbase;
-- open dropside cargo platform;
-- four single off-road tyres;
-- white road/demo finish;
-- one representative unladen/light-payload state.
-
-### Other production bodies and options
-
-Factory and body-builder applications include crew cabs, fire engines, rescue vehicles, expedition bodies, cranes, enclosed boxes and military/special-purpose bodies. These alter mass, centre of gravity, drag, articulation and axle loads and should not become duplicate catalog rows unless explicitly requested.
-
-Tyre sizes, central tyre-pressure control, winches, PTOs, additional fuel tanks, crawler/work gearing, body interfaces and differential-lock selections are equipment or operating states. They should use one evidence-backed standard state per approved row rather than duplicate catalog entries.
 
 ## Chassis and drivetrain architecture
 
@@ -119,7 +115,7 @@ The portal hubs must alter effective wheel torque, wheel speed and unsprung rota
 
 The UG100/EPS system is not a planetary automatic and must not use a torque-converter automatic fallback. The underlying transmission is a synchronized stepped manual gearset with electro-pneumatic selection. EAS automates shift and clutch control where fitted, but retains the manual gearset and torque interruption.
 
-The off-road group and reversing unit create multiple forward and reverse speed ranges. Exact source-era available reverse gears, EAS/manual-clutch state, shift sequence, gear ratios, off-road reduction and optional crawler/work group must be taken from the retained 2014 technical information. Optional lower gearing does not create a catalog row unless the owner requests a separate hardware configuration.
+The off-road group and reversing unit create multiple forward and reverse speed ranges. Exact source-era available reverse gears, EAS/manual-clutch state, shift sequence, gear ratios, off-road reduction and optional crawler/work group must be taken from retained 2014 technical information. Optional lower gearing remains excluded as a separate catalog row.
 
 ## Engine and driveline audio architecture
 
@@ -140,19 +136,8 @@ Before implementation retain primary Mercedes-Benz `Technical Information U 4023
 
 Current official Mercedes-Benz technical data confirms the two chassis, common 170-kW/900-Nm engine, 3,850-mm wheelbase, EPS/EAS gearbox family, portal axles and distinct gear-speed tables. Historical 2014 technical information remains mandatory for exact source-era calibration.
 
-## Owner scope decision — required before implementation
+## Owner decision recorded
 
-Status remains **`awaiting_owner_scope`**.
+The owner approved both U4023 and U5023. Both rows retain separate mechanical calibration while sharing the source-like U5023 single-cab dropside visual and the standard equipment/body policy above.
 
-Please decide:
-
-1. Include both mechanically distinct rows — U4023 and U5023 — or only the strict source U5023?
-2. Use the source-like U5023 single-cab dropside body for both rows, accepting visual homogenization of the lighter U4023 chassis?
-3. Keep one standard UG100/EPS/EAS transmission state per row, with optional crawler/work gearing omitted as duplicate equipment?
-4. Use one standard axle reduction, tyre specification and differential-lock configuration per row?
-5. Use one representative unladen/light-payload state per row rather than separate payload catalog entries?
-6. Exclude crew cab, fire, camper, military, crane, box and other specialist body derivatives?
-7. Omit Euro VI/VIe, DPF/SCR, TireControl modes, PTOs, winches and auxiliary tanks as catalog rows or selectable metadata?
-8. Is any expected engine, transmission, axle or factory chassis variant missing?
-
-No implementation begins after this individual decision. Research proceeds to model 17 only after the owner fixes model 16 scope, and implementation begins only after every included model has reached `approved`.
+Model 16 is **`approved`** with **2** configurations. Implementation remains blocked by the global all-model research gate. Research proceeds to model 17.
