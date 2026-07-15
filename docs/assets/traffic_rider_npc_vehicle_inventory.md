@@ -37,7 +37,7 @@ After model 23 receives scope approval, implementation begins in ascending numer
 |---:|---|---|---|---:|---|
 | 1 | `01_bmw_4_series_2014.glb` | BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `approved` |
 | 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 1500 Crew Cab Standard Box RWD, K2XX pre-facelift | pickup | 2,232 | `approved` |
-| 3 | `03_renault_clio_2013.glb` | Renault Clio 2013 | passenger hatchback | 2,118 | `source_only` |
+| 3 | `03_renault_clio_2013.glb` | Renault Clio IV X98 five-door hatchback Phase 1 | passenger hatchback | 2,118 | `awaiting_owner_scope` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze 2011 | passenger sedan | 2,444 | `source_only` |
 | 5 | `05_ford_e150_2012.glb` | Ford E-150 2012 | full-size van | 1,844 | `source_only` |
 | 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 | SUV | 2,180 | `source_only` |
@@ -69,7 +69,13 @@ Models 01 and 02 have passed their individual owner-scope gates, but implementat
 
 ## Active owner-scope gates
 
-None. The next research target is model 03 — Renault Clio 2013. Research must be completed and presented before model 04 begins.
+The next research target is model 03 — Renault Clio 2013. Its research is complete and awaits the owner's scope decision before model 04 begins.
+
+| Model | Research record | Candidate configurations | Blocking decision |
+|---|---|---:|---|
+| 03 — Renault Clio IV X98 Phase 1 | `docs/vehicles/traffic/renault_clio_2013.md` | 12 engine/calibration/transmission rows; 13 physical configurations after R.S. Sport/Cup split | standard-body-only vs GT/R.S.; regional 1.2 65 and LPG; torque-calibration splits; disputed Phase 1 dCi EDC; low-CO2 package policy; strict Phase 1 scope; missing variants |
+
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 03 is approved, research continues with model 04.
 
 ## Source topology
 
