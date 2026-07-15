@@ -13,32 +13,35 @@ func _initialize() -> void:
 	_expect(not inventory.is_empty(), "vehicle inventory is readable")
 	_expect(not research.is_empty(), "Freelander 2 research record is readable")
 	for required_fragment: String in [
-		"Land Rover LR2 HSE 2012, Freelander 2 L359 first-facelift source | SUV | 2,130 | `awaiting_owner_scope`",
-		"8 mechanically consolidated engine/transmission/drivetrain rows; 1 strict source-year LR2 HSE row",
-		"After model 09 is approved, research continues with model 10",
+		"Land Rover LR2 HSE 2012 with approved complete Freelander 2 L359 powertrain scope | SUV | 2,130 | `approved`",
+		"| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 |",
+		"After model 10 is approved, research continues with model 11",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves: %s" % required_fragment)
 	for required_fragment: String in [
-		"Land Rover Freelander 2 / LR2 L359 — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Land Rover Freelander 2 / LR2 L359 — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **8 mechanically distinct Freelander 2 / LR2 engine, transmission and drivetrain configurations**",
 		"Source SHA-256: `ba2cd619b59ff52a0e44ff48e17ea5fc91f89d59cdb4012597dc3b2628a20191`",
 		"North American 2012 Land Rover LR2 HSE",
 		"Wheelbase | approximately 2,660 mm / 2.660 m",
 		"Total triangles | 2,130",
 		"Approximate wheelbase-derived scale | 0.685986",
-		"Mechanically consolidated candidate total: 8 rows",
-		"2.2L TD4 common-rail turbo-diesel",
+		"Approved total: 8 mechanically distinct Land Rover Freelander 2 / LR2 L359 configurations",
 		"Volvo SI6 3.2L naturally aspirated transverse inline-six",
 		"2.2L eD4 turbo-diesel inline-four",
 		"2.2L SD4 turbo-diesel inline-four",
 		"2.0L Si4 direct-injected turbocharged petrol inline-four",
 		"Aisin AWF21 / TF-80SC-family",
 		"front-wheel drive only",
-		"on-demand AWD with Haldex coupling",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"on-demand AWD",
+		"one common HSE-style version without trim duplication",
+		"Exclude LPG and other conversions",
+		"Model 09 is **`approved`** with **8** configurations",
+		"Research proceeds to model 10",
 	]:
 		_expect(research.contains(required_fragment), "Freelander 2 research preserves: %s" % required_fragment)
+	_expect(not research.contains("Workflow status: **`awaiting_owner_scope`**"), "Freelander 2 owner gate is closed")
 	_finish()
 
 
