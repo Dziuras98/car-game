@@ -40,8 +40,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 3 | `03_renault_clio_2013.glb` | Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved` |
 | 5 | `05_ford_e150_2012.glb` | Ford E-150 Commercial Cargo Van, regular length, merged 2008–2014 engine scope | full-size van | 1,844 | `approved` |
-| 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 pre-facelift XLT, drivetrain unresolved visually | SUV | 2,180 | `awaiting_owner_scope` |
-| 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited 2013 | pickup | 1,758 | `source_only` |
+| 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 pre-facelift XLT, approved 4x2 engine scope | SUV | 2,180 | `approved` |
+| 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited SuperCrew 5.5-ft box, 2013 source | pickup | 1,758 | `awaiting_owner_scope` |
 | 8 | `08_ford_transit_connect_2011.glb` | Ford Transit Connect 2011 | compact van | 1,650 | `source_only` |
 | 9 | `09_land_rover_freelander_2_2012.glb` | Land Rover Freelander 2 2012 | SUV | 2,130 | `source_only` |
 | 10 | `10_volkswagen_golf_vii_2013.glb` | Volkswagen Golf VII 2013 | passenger hatchback | 1,982 | `source_only` |
@@ -67,16 +67,17 @@ Total committed source geometry: **40,300 triangles**.
 | 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération; no GT, LPG, R.S., Estate or duplicate calibration rows |
 | 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 | all researched pre-facelift Chevrolet-badged J300 sedan rows; no facelift-only, LPG, ethanol-state, Eco, hatchback, wagon or later-body entries |
 | 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 | regular-length cargo body only; 4.6L and 5.4L V8; 2008–2014 differences merged into each engine row; one verified standard axle ratio, open differential and gasoline only; no E85, CNG/LPG, Crew Van, Extended, Wagon, E-250/E-350 or package duplicates |
+| 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 | 4x2 only: 5.4 V8, 6.8 V10, 7.3 Power Stroke early, 7.3 Power Stroke late and 6.0 Power Stroke; source-like 2000–2004 pre-facelift XLT appearance; one standard axle ratio and differential per row; no 4x4, middle 7.3 calibration, 2005 facelift, Mexico 2006, trim or axle/differential duplicates |
 
-Models 01, 02, 03, 04 and 05 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04, 05 and 06 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 06 — Ford Excursion | `docs/vehicles/traffic/ford_excursion_2000.md` | 12 complete generation rows; 8 if 7.3L calibrations are merged; 6 for exact 2000 source year | source year vs full generation; all engines; 4x2/4x4; 2005 facelift; 7.3 calibration merging; trim derivatives; axle/differential policy; Mexico 2006; missing variants |
+| 07 — Ford F-150 Limited SuperCrew | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 2 base drivetrain rows; up to 4 with separate 3.55/3.73 electronic-locking axle ratios | strict Limited vs broader F-150 range; 4x2/4x4 scope; 2013/2014 merge; axle-ratio policy; Limited appearance, wheel/tyre and suspension package; missing variants |
 
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 06 is approved, research continues with model 07.
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 07 is approved, research continues with model 08.
 
 ## Source topology
 
