@@ -1,10 +1,12 @@
-# Renault Clio IV X98 Phase 1 — research and owner-scope gate
+# Renault Clio IV X98 — research and approved scope
 
 - Model number in Traffic Rider bundle: **03**
 - Source GLB: `03_renault_clio_2013.glb`
 - Source SHA-256: `48081738ea28f0ef1360461c7790dadc4c4acc8547b5ac872dcd3a12606438b4`
 - Research date: 2026-07-15
-- Workflow status: **`awaiting_owner_scope`**
+- Owner decision date: 2026-07-15
+- Workflow status: **`approved`**
+- Approved implementation scope: **11 mechanically distinct non-R.S. hatchback configurations**
 - Physics baseline inspected: `master` at `9d4aa60ec539f6b22211557ebb1ce0659cd7c512`
 - Global implementation gate: no geometry, catalog, physics, transmission or audio implementation begins until every included model has reached `approved`.
 
@@ -19,13 +21,15 @@ It is not:
 - an R.S. body with its front blade, rear diffuser and R.S.-specific chassis details;
 - an exact GT body with GT-specific bumpers and trim.
 
-The hidden rear-door handles, lamp shapes, grille and bumpers identify the launch body sold from late 2012 until the 2016 facelift. The texture represents a normal road Clio rather than a visibly badged GT or R.S. derivative. Exact trim and wheel package remain unresolved.
+The hidden rear-door handles, lamp shapes, grille and bumpers identify the launch body sold from late 2012 until the 2016 facelift. Exact trim and wheel package remain unresolved.
 
 Identity confidence: **high for X98 five-door hatchback and Phase 1; high for standard non-R.S. body; trim unresolved**.
 
+The owner approved mechanically distinct non-R.S. variants from the entire Clio IV generation, including Phase 2 and late Clio Génération production. Phase 2 variants therefore require a separately authored facelift visual derivative or another accurate visual source. The Phase 1 mesh must not be silently reused as a visually exact Phase 2 car.
+
 ## Reference dimensions
 
-Primary Phase 1 hatchback reference:
+Primary five-door hatchback reference:
 
 | Parameter | Reference |
 |---|---:|
@@ -35,7 +39,7 @@ Primary Phase 1 hatchback reference:
 | Height | approximately 1.448 m for the standard hatchback |
 | Wheelbase | 2.589 m |
 
-Final visual scale must use the 2.589 m wheelbase as the primary reference and cross-check length, width, height, tracks, ground clearance and the approved wheel/tyre size.
+Final visual scale must use the 2.589 m wheelbase as the primary reference and cross-check length, width, height, tracks, ground clearance and the approved wheel/tyre size. Phase 2 bumper and lighting changes require separate dimension and visibility cross-checks even though the core wheelbase is retained.
 
 ## Source inspection
 
@@ -58,97 +62,89 @@ The source GLB remains unchanged. A future derivative must split both paired axl
 
 ## Research boundary and deduplication
 
-The research boundary is the **Phase 1 five-door hatchback from launch through the August 2016 facelift**, across European markets. Estate body variants are excluded. GT and R.S. derivatives are listed separately because their visible body details and chassis behaviour differ from the source model.
+The approved boundary is the **five-door Clio IV hatchback across Phase 1, Phase 2 and late Clio Génération production**, excluding Estate and every Renault Sport derivative.
 
-The matrix distinguishes:
+Owner-directed rules:
 
-- genuinely different engine calibrations;
-- conventional five-speed manuals from six-speed EDC dual-clutch transmissions;
-- materially different Sport, Cup and Trophy chassis configurations;
-- standard fuel from factory LPG/bi-fuel variants;
-- low-CO2 packages only when official evidence shows different gearing, tyres, aero or control calibration.
+- include every mechanically distinct non-R.S. engine/transmission combination;
+- include the GT 120 EDC as a separate chassis/visual configuration;
+- exclude all R.S. 200, Cup, Trophy and related Renault Sport configurations;
+- include the regional D4F 1.2 16V 65 subject to final primary-document verification;
+- exclude every factory LPG/bi-fuel variant;
+- merge torque/emissions revisions under one engine/transmission row when architecture and gearbox are unchanged;
+- include dCi 90 EDC;
+- do not create separate `99 g`, `83 g`, Energy, EcoBusiness or Clio Génération duplicates when the underlying mechanics are unchanged;
+- all approved production variants are FWD.
 
-A marketing trim with identical mechanics must not create a duplicate catalog entry.
+A different gearbox behind the same engine remains a separate configuration. A genuinely different chassis calibration, as with GT, remains separate even when the engine and transmission are shared with a standard-body row.
 
-Evidence states:
+## Approved engine and powertrain matrix
 
-- `strongly_supported`: consistent Renault-era material and technical data;
-- `provisional_regional`: documented market occurrence, but an official market price list/order guide still needs to be retained;
-- `disputed_timing`: sources disagree on whether the combination entered before or with the Phase 2 facelift;
-- `rejected/not_factory`: no factory evidence for the Phase 1 hatchback.
-
-## Candidate engine and powertrain matrix
-
-All production road cars below are FWD. No AWD or rear-wheel-drive Clio IV road variant belongs in this matrix.
-
-| # | Phase 1 application | Engine / calibration | Transmission architecture | Visual/chassis relationship | Evidence |
+| # | Generation application | Engine / merged calibration | Transmission architecture | Visual/chassis treatment | Status |
 |---:|---|---|---|---|---|
-| 1 | regional 2014–2015 | D4F 1.2 16V naturally aspirated I4, approximately 65 PS | conventional 5MT; exact JH-family suffix pending | standard source body | `provisional_regional` |
-| 2 | launch–facelift | D4F-740 1.2 16V naturally aspirated I4, 75 PS / approximately 107 Nm | conventional 5MT; exact suffix pending | standard source body | `strongly_supported` |
-| 3 | approximately 2013–mid-2016 | D4F-740 1.2 16V factory petrol/LPG, approximately 72 PS / 107 Nm | conventional 5MT | standard source body; distinct fuel system and mass | `provisional_regional` |
-| 4 | launch–facelift, early calibration | H4Bt/H4B 0.9 Energy TCe turbo I3, 90 PS / approximately 135 Nm | conventional 5MT | standard source body | `strongly_supported`; calibration split needs primary confirmation |
-| 5 | later Phase 1 calibration | H4Bt/H4B 0.9 Energy TCe turbo I3, 90 PS / approximately 140 Nm | conventional 5MT | standard source body | `provisional_regional`; do not merge with row 4 without proof |
-| 6 | launch–facelift | K9K-612 1.5 dCi turbo-diesel I4, 75 PS / approximately 200 Nm | conventional 5MT | standard source body | `strongly_supported` |
-| 7 | launch–facelift | K9K-608 1.5 Energy dCi turbo-diesel I4, 90 PS / approximately 220 Nm | conventional 5MT | standard source body | `strongly_supported` |
-| 8 | reported from 2013 in some markets; other data places it at facelift | K9K 1.5 dCi turbo-diesel I4, 90 PS / approximately 220 Nm | Renault EDC six-speed dry dual-clutch transmission | standard source body | `disputed_timing`; official Phase 1 order guide required |
-| 9 | GT, approximately 2013–2016 | H5Ft/H5F 1.2 TCe direct-injection turbo I4, 120 PS / approximately 190 Nm | Renault EDC six-speed dry DCT | GT-specific body details and chassis | `strongly_supported` |
-| 10 | later Phase 1 market/calibration candidate | H5Ft/H5F 1.2 TCe turbo I4, 120 PS / approximately 205 Nm | Renault EDC six-speed dry DCT | exact standard/GT/Initiale application pending | `provisional_regional`; separate from row 9 if confirmed |
-| 11 | R.S. 200 EDC | M5Mt/MR16DDT 1.6 direct-injection turbo I4, 200 PS / 240 Nm | R.S.-calibrated six-speed EDC DCT | R.S. body; **Sport and Cup chassis are materially separate configurations** | `strongly_supported` |
-| 12 | R.S. 220 EDC Trophy, 2015–pre-facelift 2016 | M5Mt/MR16DDT 1.6 turbo I4, 220 PS; approximately 260 Nm with approximately 280 Nm overboost | faster R.S.-calibrated six-speed EDC DCT | Trophy-specific lowered/stiffer chassis and visual details | `strongly_supported` |
+| 1 | regional Phase 1 | D4F 1.2 16V naturally aspirated I4, approximately 65 PS | conventional 5MT; exact suffix pending | standard Phase 1 body | **approved**, primary regional document still required |
+| 2 | Phase 1 and early Phase 2 | D4F-740 1.2 16V naturally aspirated I4, 75 PS / approximately 107 Nm | conventional 5MT | Phase-appropriate standard body | **approved** |
+| 3 | late Phase 2 and Clio Génération | H4B/H4Bt 0.9 TCe turbo I3, 75 PS | conventional 5MT | Phase 2 visual required | **approved** |
+| 4 | Phase 1, Phase 2 and Clio Génération | H4B/H4Bt 0.9 TCe turbo I3, 90 PS; 135/140 Nm revisions merged | conventional 5MT | Phase-appropriate standard body | **approved** |
+| 5 | Phase 1 and Phase 2 standard hatchback | H5F/H5Ft 1.2 TCe direct-injection turbo I4, 120 PS; 190/205 Nm revisions merged | Renault EDC six-speed dry DCT | standard-body configuration, phase-appropriate visual | **approved** |
+| 6 | Phase 2 | H5F/H5Ft 1.2 TCe direct-injection turbo I4, 120 PS / approximately 205 Nm | conventional 6MT | Phase 2 visual required | **approved** |
+| 7 | Phase 1 GT | H5F/H5Ft 1.2 TCe direct-injection turbo I4, 120 PS; merged GT calibration | GT-calibrated Renault EDC six-speed dry DCT | GT-specific bumpers, trim, steering and chassis | **approved** |
+| 8 | Phase 1 and Phase 2 | K9K 1.5 dCi turbo-diesel I4, 75 PS; torque/emissions revisions merged | conventional 5MT | phase-appropriate standard body | **approved** |
+| 9 | Phase 1, Phase 2 and late production | K9K 1.5 dCi turbo-diesel I4, 90 PS / approximately 220 Nm | conventional 5MT | phase-appropriate standard body | **approved** |
+| 10 | Phase 1/Phase 2 market availability | K9K 1.5 dCi turbo-diesel I4, 90 PS / approximately 220 Nm | Renault EDC six-speed dry DCT | phase-appropriate standard body | **approved**, exact introduction date requires retained official market guide |
+| 11 | Phase 2 | K9K 1.5 dCi turbo-diesel I4, 110 PS / approximately 260 Nm | conventional 6MT | Phase 2 visual required | **approved** |
 
-### Candidate totals
+**Approved total: 11 mechanically distinct non-R.S. configurations.**
 
-- **12 candidate engine/calibration/transmission rows** before owner exclusions;
-- row 11 expands into separate R.S. 200 Sport and Cup chassis configurations;
-- therefore **13 candidate physical catalog configurations** before any low-CO2 package subdivisions;
-- rows 5, 8 and 10 remain provisional/disputed and require retained primary market documentation before implementation parameters can be committed.
+Clio Génération marketing does not add a twelfth row when it repeats the approved H4B TCe 75 or TCe 90 powertrain without a mechanical change.
 
-## Efficiency-package subdivisions
+## Explicit exclusions
 
-Period Clio data lists low-CO2 derivatives such as TCe 90 `99 g`, dCi 90 `83 g` and other Energy/EcoBusiness configurations. They must not become duplicate vehicles solely because of an emissions label.
+The following are outside the approved scope:
 
-A separate physical configuration is justified only when official documentation confirms a material difference such as:
-
-- gearbox or final-drive ratios;
-- tyre size or low-rolling-resistance construction;
-- ride height or aero equipment;
-- ECU torque/control calibration;
-- mass or equipment deletion.
-
-Otherwise one standard engine/transmission row is retained.
+- every R.S. 200 Sport, R.S. 200 Cup, R.S. 220 Trophy, R.S. 18 and R.S.16 concept configuration;
+- D4F 1.2 LPG;
+- H4B 0.9 TCe LPG;
+- Estate / Grandtour / Sport Tourer bodies;
+- separate torque-revision entries for TCe 90 or TCe 120;
+- separate low-emission `99 g`, `83 g`, Energy or EcoBusiness duplicates;
+- duplicate Clio Génération catalog rows when mechanics match an existing approved row;
+- AWD or RWD, because production Clio IV road variants in this scope are FWD.
 
 ## Transmission architecture assessment
 
 ### Conventional five-speed manuals
 
-The D4F, H4B and K9K rows use conventional driver-operated clutch/manual transmissions. Exact JH/JR gearbox family and suffix, forward/reverse ratios and final drive must be established per approved row. A shared generic ratio set is not acceptable.
+The D4F, H4B and lower-output K9K rows use conventional driver-operated clutch/manual transmissions. Exact JH/JR gearbox family and suffix, forward/reverse ratios and final drive must be established per approved row. A shared generic ratio set is not acceptable.
+
+### Conventional six-speed manuals
+
+The Phase 2 H5F TCe 120 and K9K dCi 110 use conventional six-speed manual gearboxes. Their exact family, suffix, ratios, final drive, clutch capacity and rotating inertia must be researched independently from the five-speed units.
 
 ### Renault EDC six-speed dual-clutch transmission
 
-The H5F, disputed dCi EDC and M5Mt rows use a **six-speed dry dual-clutch transmission**, commonly associated with the Renault DC4/Getrag 6DCT250 family. It is not a torque-converter automatic and must not use the existing classic-automatic model.
+The H5F TCe 120, GT 120 and K9K dCi 90 EDC rows use a **six-speed dry dual-clutch transmission**, commonly associated with the Renault DC4/Getrag 6DCT250 family. It is not a torque-converter automatic and must not use the classic-automatic model.
 
 A later implementation requires a dedicated DCT model with:
 
 - two clutch paths for odd and even gears;
 - gear preselection;
 - launch clutch slip and creep strategy;
-- clutch-temperature and protection behaviour where relevant;
+- clutch-temperature and protection behaviour;
 - torque handover during upshifts/downshifts rather than a generic full torque cut;
 - kickdown and multi-gear selection;
 - engine torque intervention and rev matching;
-- distinct normal, GT and R.S./Trophy shift calibrations;
-- launch control for the R.S. variants.
+- distinct standard petrol, diesel and GT shift calibrations.
 
 Exact DC4/Getrag suffix and ratios remain mandatory per approved engine.
 
 ## Chassis and visual subdivisions
 
-- Standard Clio rows use the source body most faithfully.
+- Standard Phase 1 rows use the source body most faithfully.
+- Standard Phase 2 and Clio Génération rows require an accurate facelift visual derivative; the source Phase 1 bumper/lamp set is not sufficient.
 - GT requires GT-specific bumpers, trim, steering/chassis calibration and potentially different wheels; it cannot be represented as a badge-only duplicate.
-- R.S. 200 requires an R.S.-specific visual derivative. Sport and Cup chassis must remain distinct if approved because spring/damper rates, ride height and handling targets differ materially.
-- R.S. 220 Trophy requires its own visual/chassis configuration and faster transmission calibration.
-- Estate/Grandtour is excluded because the body, mass and aero differ materially.
-- The R.S.16 was a concept, not a normal production variant, and is excluded.
+- Estate is excluded because its body, mass and aerodynamics differ materially.
+- All Renault Sport derivatives are excluded by owner decision.
 
 ## Performance and physics requirements
 
@@ -157,53 +153,50 @@ For every approved configuration, later parameter research must establish:
 - sampled full-load torque curve and transient turbo behaviour;
 - exact gearbox ratios and final drive;
 - clutch and DCT control behaviour;
-- exact kerb mass, axle loads and centre of mass;
+- exact kerb mass, axle loads and centre of mass for the relevant phase and trim;
 - tyre dimensions and rolling radius;
 - drag coefficient and frontal area;
 - braking and steering targets;
 - documented 0–100 km/h, in-gear and top-speed targets;
-- Sport/Cup/Trophy suspension and grip differences;
+- GT suspension, steering and grip differences;
 - validation against the current `master` physics baseline at implementation time.
 
-Representative published targets range from approximately 14.5 s to 100 km/h for the 1.2 75 to approximately 6.7 s for R.S. 200 and 6.6 s for R.S. 220 Trophy. These are validation anchors, not direct tuning values, and must be replaced by exact factory values for each approved row.
+Performance may not be matched with false torque, wrong mass, incorrect gearbox architecture or an arbitrary hidden cap.
 
 ## Engine-audio architecture assessment
 
 | Engine family | Required treatment |
 |---|---|
-| D4F | naturally aspirated inline-four with port injection and belt-driven valvetrain; LPG state needs its own combustion/transient profile if approved |
+| D4F | naturally aspirated inline-four with port injection and belt-driven valvetrain |
 | H4B/H4Bt | dedicated turbo inline-three firing cadence, collector, induction and small-turbo transient model |
-| H5F/H5Ft | direct-injection turbo inline-four, distinct from H4B and naturally aspirated D4F |
+| H5F/H5Ft | direct-injection turbo inline-four, distinct from H4B and naturally aspirated D4F; GT receives a separate intake/exhaust/load profile |
 | K9K | common-rail turbo-diesel inline-four with calibration-specific injection, combustion and turbo layers |
-| M5Mt/MR16DDT | high-output direct-injection turbo inline-four with R.S.-specific intake, exhaust, turbo, limiter and overrun behaviour |
 
-The H4B inline-three must not be generated by pitch-shifting an inline-four. The D4F, H5F, K9K and M5Mt must not collapse into one generic four-cylinder waveform.
+The H4B inline-three must not be generated by pitch-shifting an inline-four. The D4F, H5F and K9K must not collapse into one generic four-cylinder waveform.
 
-## Evidence retained and unresolved work
+## Evidence retained and unresolved implementation research
 
-Primary-source references retained for final verification include:
+Primary-source references retained or identified for final verification include:
 
-- Renault, *New Renault Clio: love-at-first-sight styling, and packed with innovations*, 3 July 2012 (archived official Renault media release);
-- official Renault Clio brochures and market price lists for Phase 1;
-- Renault UK official Clio Renault Sport model material;
-- Renault/Renault Sport official R.S. 200, GT 120 EDC and R.S. 220 Trophy press material;
-- market-specific homologation/order data for the 1.2 65, LPG, dCi 90 EDC and torque-revision rows.
+- Renault, *New Renault Clio: love-at-first-sight styling, and packed with innovations*, 3 July 2012, archived official Renault media release;
+- archived official Renault Clio Phase 2 brochure captured on 7 November 2017;
+- official Renault Clio market price lists and homologation material for Phase 1, Phase 2 and Clio Génération;
+- Renault official GT 120 EDC material;
+- market-specific documentation for the 1.2 65 and the exact dCi 90 EDC introduction date.
 
-Before implementation, retain exact primary documentation for every approved row's engine code, torque revision, gearbox suffix/ratios, final drive, mass, tyres and performance.
+Before implementation, retain exact primary documentation for every approved row's engine code, gearbox suffix and ratios, final drive, mass, tyres, emissions-generation changes and performance. These evidence requirements may refine parameters but do not reopen the owner-approved catalog scope.
 
-## Owner scope decision — required before implementation
+## Owner decision recorded
 
-Status remains **`awaiting_owner_scope`**.
+The owner decided:
 
-Please decide:
+1. Include all researched non-R.S. Clio IV hatchback configurations.
+2. Include the regional 1.2 16V 65, but exclude every LPG/bi-fuel variant.
+3. Include GT 120 EDC; exclude every Renault Sport configuration.
+4. Merge TCe 90 135/140 Nm and TCe 120 190/205 Nm revisions into one row per transmission/chassis architecture.
+5. Include dCi 90 EDC.
+6. Do not create separate Energy, EcoBusiness, `99 g` or `83 g` entries.
+7. Expand beyond Phase 1 to Phase 2 and later Clio Génération non-R.S. variants, including TCe 75, TCe 120 6MT and dCi 110 6MT.
+8. Missing expected variants were the non-R.S. later-generation rows now included above; no additional missing configuration was identified.
 
-1. Approve all **13 candidate physical configurations**, or restrict the scope to standard-body variants that closely match the source mesh?
-2. Include the regional 1.2 16V 65 and factory 1.2 LPG variants, subject to final primary-document verification?
-3. Include GT 120 EDC, R.S. 200 Sport, R.S. 200 Cup and R.S. 220 Trophy even though they require distinct visual and chassis derivatives?
-4. Keep the 135/140 Nm TCe 90 and 190/205 Nm TCe 120 revisions separate when final Renault documentation confirms different factory calibrations?
-5. Include the disputed Phase 1 dCi 90 EDC only if an official pre-facelift order guide confirms it?
-6. For 99 g / 83 g Energy or EcoBusiness derivatives, create a separate configuration only when gearing, tyres, aero or calibration materially differ, or always choose one standard configuration per powertrain?
-7. Keep the visual and mechanical scope strictly Phase 1, excluding Phase 2-only dCi 110, TCe 120 6MT, 0.9 TCe LPG and later variants?
-8. Is any expected engine, transmission, chassis or Phase 1 model-year variant missing from this matrix?
-
-No implementation begins after this individual decision. Research proceeds to model 04 only after the owner answers, and implementation begins only after every included model has reached `approved`.
+The individual owner-scope gate is satisfied. Model 03 is **`approved`**, but implementation remains blocked by the global all-model research gate. Research proceeds to model 04.
