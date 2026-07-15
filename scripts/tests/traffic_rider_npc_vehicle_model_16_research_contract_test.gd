@@ -11,30 +11,33 @@ func _initialize() -> void:
 	var inventory := _read_text(INVENTORY_PATH)
 	var research := _read_text(RESEARCH_PATH)
 	for fragment: String in [
-		"Mercedes-Benz Unimog U5023 single-cab dropside extreme-off-road source | utility vehicle | 2,032 | `awaiting_owner_scope`",
-		"2 mechanically consolidated extreme-off-road chassis rows sharing OM934/UG100 but using different portal axles, load ratings and final-drive reductions",
-		"After model 16 is approved, research continues with model 17",
+		"Mercedes-Benz Unimog U5023 single-cab dropside source with approved U4023/U5023 mechanical scope | utility vehicle | 2,032 | `approved`",
+		"| 16 — Mercedes-Benz Unimog U4023 / U5023 | `docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md` | 2 |",
+		"After model 17 is approved, research continues with model 18",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves: %s" % fragment)
 	for fragment: String in [
-		"Mercedes-Benz Unimog U4023 / U5023 extreme-off-road truck — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Mercedes-Benz Unimog U4023 / U5023 extreme-off-road truck — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **2 mechanically distinct Unimog 437.4 chassis configurations**",
 		"Source SHA-256: `d935aeb5e9aad2e60f0ffcadc28e14edd9902302fc038cd35ef67f01da4f8966`",
 		"Mercedes-Benz Unimog U5023 extreme-off-road truck",
 		"Wheelbase | 3,850 mm / 3.850 m",
 		"Total triangles | 2,032",
 		"Source wheelbase | approximately 5.474725 source units",
 		"Approximate 3,850-mm-wheelbase scale | 0.703232",
-		"Mechanically consolidated candidate total: 2 configurations",
+		"Approved total: 2 mechanically distinct Unimog 437.4 chassis configurations",
 		"OM934 LA 5.132L turbo-diesel inline-four",
 		"UG 100E-8",
 		"Unimog U4023",
 		"Unimog U5023",
 		"portal axles",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"Owner decision recorded",
+		"Model 16 is **`approved`** with **2** configurations",
+		"Research proceeds to model 17",
 	]:
 		_expect(research.contains(fragment), "Unimog research preserves: %s" % fragment)
+	_expect(not research.contains("Workflow status: **`awaiting_owner_scope`**"), "Unimog owner gate is closed")
 	_finish()
 
 
