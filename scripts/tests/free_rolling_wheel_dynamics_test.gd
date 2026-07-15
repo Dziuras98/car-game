@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_test_unloaded_contact_stops_with_vehicle()
 	_test_airborne_wheel_is_not_constrained_to_road_speed()
 	_test_rwd_front_wheels_are_prepared_before_slip_resolution()
+	_test_external_speed_discontinuity_does_not_impulse_vehicle()
 	_test_turning_free_wheel_uses_contact_patch_road_speed()
 	_finish()
 
@@ -62,7 +63,7 @@ func _test_rwd_front_wheels_are_prepared_before_slip_resolution() -> void:
 	state.configure_wheel_rotation(config, false)
 	var front_left: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_LEFT)
 	var front_right: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_RIGHT)
-	front_left.set_rolling_speed(10.0)
+	front_left.set_rolling_speed(11.5)
 	front_left.drive_torque_nm = 0.0
 	front_left.brake_torque_nm = 0.0
 
@@ -92,11 +93,38 @@ func _test_rwd_front_wheels_are_prepared_before_slip_resolution() -> void:
 	)
 	_expect(
 		absf(state.forward_speed - expected_coupled_speed) <= 0.0001,
-		"free-wheel synchronization conserves generalized longitudinal momentum"
+		"small free-wheel speed corrections conserve generalized longitudinal momentum"
 	)
 	_expect(
-		state.forward_speed > 10.0 and state.forward_speed < 12.0,
-		"spinning up a lagging free wheel consumes vehicle kinetic momentum instead of creating energy"
+		state.forward_speed > 11.5 and state.forward_speed < 12.0,
+		"spinning up a slightly lagging free wheel consumes vehicle kinetic momentum"
+	)
+
+
+func _test_external_speed_discontinuity_does_not_impulse_vehicle() -> void:
+	var config := CarDriveConfig.new()
+	config.drive_layout = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
+	config.wheel_radius = 0.30
+	config.sanitize()
+	var state := CarRuntimeState.new()
+	state.forward_speed = 0.0
+	state.ground_contact_count = WheelTireState.WHEEL_COUNT
+	state.surface_grip_multiplier = 1.0
+	state.synchronize_wheel_contacts_from_aggregate()
+	state.configure_wheel_rotation(config, false)
+
+	state.forward_speed = 20.0
+	state.configure_wheel_rotation(config, true)
+	var front_left: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_LEFT)
+	var front_right: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_RIGHT)
+	_expect(
+		is_equal_approx(state.forward_speed, 20.0),
+		"an authoritative speed jump does not apply a fictitious chassis impulse"
+	)
+	_expect(
+		is_equal_approx(front_left.get_circumferential_speed_mps(), 20.0)
+		and is_equal_approx(front_right.get_circumferential_speed_mps(), 20.0),
+		"free wheels follow the new authoritative road speed after a discontinuity"
 	)
 
 
