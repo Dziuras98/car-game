@@ -1,30 +1,29 @@
-# Ford Transit Connect first generation — research and owner-scope gate
+# Ford Transit Connect first generation — research and approved scope
 
 - Model number in Traffic Rider bundle: **08**
 - Source GLB: `08_ford_transit_connect_2011.glb`
 - Source SHA-256: `e506579960a582b33c7f91c9b3a6086f99cb9e97158f635c4e614de69d5b862b`
 - Research date: 2026-07-15
-- Workflow status: **`awaiting_owner_scope`**
+- Owner decision date: 2026-07-15
+- Workflow status: **`approved`**
+- Approved implementation scope: **6 mechanically consolidated first-generation powertrain configurations**
 - Physics baseline inspected during research: `master` at `56f6ce9ca13f7fc8fb268493bff5d142d353bb53`
 - Global implementation gate: no geometry, catalog, physics, transmission or audio implementation begins until every included model has reached `approved`.
 
-## Visual identity
+## Visual identity and common body policy
 
 The source represents a **North American 2011 Ford Transit Connect XLT Premium Wagon**, first generation and final 2009-style facelift, with the long 114.6-in wheelbase and high roof.
 
-Visible source evidence includes:
+Visible source evidence includes full side and rear glazing, two sliding side doors, two rear swing doors, five-passenger Wagon construction, `XLT` badging, body-colour grille, front fog-lamp treatment and alloy wheels associated with the XLT Premium Wagon.
 
-- North American front fascia and plate treatment;
-- full side and rear glazing rather than cargo-panel inserts;
-- two sliding side doors and two rear swing doors;
-- five-passenger wagon body;
-- `XLT` side badging;
-- body-colour grille, front fog-lamp treatment and alloy wheels associated with the XLT Premium Wagon;
-- red paint and passenger-oriented exterior finish.
+The owner approved one common source-like body and appearance for every powertrain:
 
-The source is not the short-wheelbase low-roof European van, an unglazed cargo conversion, the pre-2009 front treatment or the second-generation 2014 model.
+- long-wheelbase, high-roof five-passenger Wagon body;
+- final 2009–2013 facelift only;
+- XLT Premium exterior, glazing, doors, wheels and materials;
+- no short-wheelbase, low-roof, cargo, Tourneo, taxi or mobility body derivative.
 
-Identity confidence: **high for North American 2011 XLT Premium Wagon, long wheelbase, high roof and final facelift**.
+This is an explicit owner-directed body homogenization. It is not a claim that every European engine or the Azure electric derivative was factory-sold as a North American XLT Premium Wagon. The catalog must preserve the real engine and model-year availability while using the common source body.
 
 ## Reference dimensions and source inspection
 
@@ -42,158 +41,103 @@ Identity confidence: **high for North American 2011 XLT Premium Wagon, long whee
 | Front wheel-pair triangles | 288 |
 | Rear wheel-pair triangles | 288 |
 | Total triangles | 1,650 |
-| Source scene AABB | approximately 3.047812 × 2.893176 × 6.592365 source units |
-| Source front | positive source Z before canonical conversion |
 | Source wheelbase | approximately 4.155049 source units |
 | Approximate wheelbase-derived scale | 0.700555 |
 
-The wheelbase-derived source length is approximately 4.618 m and is close enough to the official long-body length to support the identification, while final integration must independently validate bumpers, tracks, roof height, tyre radius and ground clearance.
-
 The source GLB remains unchanged. Four independent wheels, collision, catalog, physics, transmission and audio remain deferred by the global research gate.
 
-## Research boundary
+## Owner-directed scope rules
 
-The complete candidate research covers the **first-generation Transit Connect / Tourneo Connect produced from 2002 through 2013**, including European combustion powertrains, the North American gasoline automatic and the Azure Dynamics electric derivative.
+- cover all researched first-generation combustion powertrain families;
+- merge the early and late 75-PS diesel calibrations into one 75-PS row;
+- include the Azure Dynamics electric derivative as a separate complete drivetrain;
+- use the common source-like long-wheelbase high-roof XLT Premium Wagon appearance for every row;
+- exclude all LPG, CNG, taxi, mobility and other conversion/upfit rows except the specifically approved Azure electric derivative;
+- merge DPF and non-DPF emissions hardware into selected-year metadata inside the applicable diesel row;
+- use one verified standard final-drive ratio and one standard differential state per powertrain/transmission row;
+- do not create trim, body, final-drive, differential or emissions-state duplicates.
 
-The generation has three major visual periods:
+The original seven-row research matrix contained two separate 75-PS diesel calibrations. Merging those two rows produces **five combustion rows**; adding Azure Electric produces the final **six-row approved scope**.
 
-1. **2002–2005 original front**;
-2. **2006–2008 first update**;
-3. **2009–2013 final facelift**, represented by the source.
+## Approved configuration matrix
 
-Body families include short-wheelbase low-roof vans, long-wheelbase high-roof vans, cargo bodies, European Tourneo passenger bodies and the North American five-passenger Wagon. Body, seating and roof variants do not automatically duplicate an identical powertrain, but they require distinct mass, centre of gravity, aerodynamics and load calibration when approved.
-
-All first-generation production powertrains are front-engine and front-wheel drive. No factory AWD or rear-wheel-drive row is evidenced.
-
-## Complete candidate powertrain matrix
-
-The table is mechanically consolidated. Exact market and body restrictions must be retained from primary Ford order guides before implementation.
-
-| # | Market / period | Powertrain | Transmission | Drivetrain | Evidence state |
+| # | Market / application | Powertrain | Transmission | Drivetrain and final-drive policy | Status |
 |---:|---|---|---|---|---|
-| 1 | Europe, approximately 2002–2006 | 1.8L Zetec/Duratec 16-valve naturally aspirated petrol inline-four, approximately 116 PS / 160 Nm | Ford 5-speed manual transaxle, working identification MTX-75 | FWD | `provisional_primary_confirmation_required`; some market summaries label a 2.0L 115-PS petrol instead, so exact displacement/application must be resolved before commitment |
-| 2 | Europe, early production | 1.8L Duratorq direct-injection turbo-diesel inline-four, **early 75-PS calibration**, approximately 175 Nm | 5-speed manual transaxle; exact early code pending | FWD | `provisional`; distinct pre-common-rail/direct-injection treatment and changeover need primary Ford evidence |
-| 3 | Europe, approximately 2008–2010 | 1.8L Duratorq 75-PS late diesel calibration, approximately 175 Nm | Ford MTX-75-family 5-speed manual transaxle | FWD | `verified_output_family`; exact injection/emissions naming and body restrictions pending |
-| 4 | Europe, approximately 2002–2013 | 1.8L Duratorq TDCi 90 PS / approximately 220 Nm | 5-speed manual transaxle; MTX-75 used in later production | FWD | `verified_family`; early gearbox and emissions revisions pending |
-| 5 | Europe, approximately 2006–2013 | 1.8L Duratorq TDCi 110 PS / approximately 250 Nm, variable-geometry turbo application | Ford MTX-75-family 5-speed manual transaxle | FWD | `verified_family` |
-| 6 | North America, 2010–2013 | 2.0L Duratec DOHC naturally aspirated petrol inline-four, approximately 136 hp / 128 lb-ft (174 Nm) | Ford/Mazda **4F27E** 4-speed planetary torque-converter automatic | FWD | `verified`; this is the strict source-body powertrain |
-| 7 | North America and limited European fleets, 2011–2012 | Azure Dynamics Transit Connect Electric: AC induction motor, approximately 100 kW peak / 50–52 kW continuous, 235 Nm; 28-kWh lithium-ion battery | BorgWarner single-speed reduction transaxle, reported 8.28:1 | FWD | `verified_upfit`; Azure Dynamics was manufacturer of record and the derivative was cargo/fleet-oriented rather than a normal Ford factory wagon trim |
+| 1 | Europe, approximately 2002–2006 | 1.8L Zetec/Duratec 16-valve naturally aspirated petrol inline-four, approximately 116 PS / 160 Nm; exact displacement/application still requires primary confirmation | Ford five-speed manual transaxle, working identification MTX-75 | FWD; one verified standard final drive and standard differential | **approved provisional** |
+| 2 | Europe, first-generation 75-PS diesel applications | 1.8L Duratorq diesel inline-four, **merged 75-PS early/late row**, approximately 175 Nm; year-selected injection, turbo and emissions metadata | five-speed manual transaxle; exact early/late code pending | FWD; one verified standard final drive and standard differential | **approved provisional** |
+| 3 | Europe, approximately 2002–2013 | 1.8L Duratorq TDCi 90 PS / approximately 220 Nm | five-speed manual transaxle; MTX-75-family in later production | FWD; one verified standard final drive and standard differential | **approved** |
+| 4 | Europe, approximately 2006–2013 | 1.8L Duratorq TDCi 110 PS / approximately 250 Nm with variable-geometry turbo application | Ford MTX-75-family five-speed manual transaxle | FWD; one verified standard final drive and standard differential | **approved** |
+| 5 | North America, 2010–2013 | 2.0L Duratec DOHC naturally aspirated petrol inline-four, approximately 136 hp / 128 lb-ft (174 Nm) | Ford/Mazda 4F27E four-speed planetary torque-converter automatic | FWD; one verified standard final drive and standard differential | **approved** |
+| 6 | Azure Dynamics, 2011–2012 fleet derivative | AC induction motor, approximately 100 kW peak / 50–52 kW continuous and 235 Nm; approximately 28-kWh lithium-ion battery | dedicated BorgWarner single-speed fixed-reduction transaxle; reported reduction approximately 8.28:1 pending retained primary evidence | FWD; one fixed reduction and standard differential | **approved** |
 
-**Core candidate total: 7 mechanically distinct powertrain rows.**
+**Approved total: 6 mechanically consolidated Ford Transit Connect first-generation configurations.**
 
-If the early and late 75-PS diesel calibrations are merged, the total becomes **6 rows**. Excluding the Azure Dynamics upfit leaves **6 combustion rows**, or **5** with the 75-PS diesels merged. Restricting the project strictly to the represented North American XLT Premium Wagon leaves **1 row: 2.0L Duratec + 4F27E + FWD**.
+## Explicit exclusions
 
-## Body and trim applicability
+- separate early and late 75-PS diesel catalog rows;
+- separate DPF and non-DPF vehicles;
+- LPG, CNG and other combustion-fuel conversions;
+- taxi, mobility, crew/combi and camper conversions;
+- short-wheelbase, low-roof, cargo and alternative Tourneo body rows;
+- 2002–2005 and 2006–2008 visual derivatives;
+- trim and seating duplicates;
+- optional final-drive and differential duplicates;
+- AWD and RWD configurations, which were not factory production layouts for the researched first-generation powertrains.
 
-### Strict source body
+## Combustion chassis and transmission requirements
 
-The source-like configuration is:
+Every combustion row must use a transverse front engine, front-wheel drive, unit-body compact-commercial structure, MacPherson-strut front suspension and commercial rear twist/torsion-beam architecture. Mass, centre of gravity, axle loading, damping and aerodynamics must match the owner-approved high-roof passenger body rather than an empty or loaded cargo van.
 
-- long wheelbase and high roof;
-- five-passenger fully glazed Wagon;
-- XLT Premium exterior;
-- two sliding side doors;
-- rear 180-degree swing doors;
-- North American final-facelift materials and lamps.
+The manual rows require a conventional driver-operated dry clutch and real five-speed transaxle with exact forward ratios, reverse, final drive, clutch capacity/inertia, synchronizer behaviour and engine braking.
 
-The 2.0L Duratec automatic is directly evidenced for this body. European diesel/manual rows require a Tourneo or passenger-body availability check before being placed under the same glazed body.
+The North American 2.0L uses a genuine 4F27E planetary automatic with hydrodynamic converter multiplication and slip, creep, progressive lock-up, four exact forward ratios, reverse, torque and inertia shift phases, kickdown, load scheduling and thermal protection.
 
-### Other first-generation bodies
+## Azure electric architecture requirement
 
-- short-wheelbase low-roof Transit Connect cargo van;
-- long-wheelbase high-roof Transit Connect cargo van;
-- European Tourneo Connect passenger variants;
-- crew/combi and market-specific seating layouts;
-- North American XL/XLT cargo conversions;
-- taxi and mobility conversions.
+The Azure row requires a complete dedicated electric drivetrain model rather than a combustion vehicle with zero fuel consumption. Implementation must include:
 
-These should not create catalog duplicates unless the owner wants the physical body, mass, seating or aerodynamic difference represented.
+- AC induction motor torque and speed envelope;
+- inverter current, voltage, power and thermal limits;
+- battery gross and usable energy, state of charge, voltage sag, temperature and power limits;
+- motor and battery cooling behaviour;
+- regenerative braking and friction-brake blending;
+- coast and creep policy appropriate to the original calibration;
+- auxiliary electrical load;
+- the physical single-speed fixed-reduction transaxle, motor-speed limit, final drive and differential;
+- electric motor electromagnetic orders, inverter switching and reduction-gear whine audio instead of a combustion waveform.
 
-## Fuel and conversion subdivisions
+The owner requested a direct single-speed drivetrain. This is represented as a direct motor-to-fixed-reduction transaxle path with no gear changes; it must not be interpreted as an arbitrary 1:1 ratio when the evidenced vehicle uses a reduction gear.
 
-- the European petrol and North American 2.0L rows are gasoline powertrains;
-- the 1.8L diesel rows use diesel fuel and may require year-specific Euro 3/4/5, EGR, oxidation catalyst and DPF treatment;
-- LPG or CNG conversions existed in some markets and taxi/fleet programs, but current evidence treats them as conversion/upfit states rather than automatic core factory rows;
-- the Azure electric derivative is a separate complete drivetrain, not a fuel toggle on the 2.0L vehicle.
+## Diesel emissions metadata
 
-A diesel row with DPF must model regeneration-related exhaust and thermal behaviour. A non-DPF row must not inherit DPF backpressure or regeneration logic.
-
-## Chassis and physics architecture
-
-All combustion rows require:
-
-- transverse front engine and front-wheel drive;
-- unit-body compact-commercial structure;
-- front MacPherson-strut suspension;
-- rear commercial torsion/twist-beam architecture with year/body-correct spring and damper rates;
-- body- and payload-specific mass, centre of gravity and axle loading;
-- high-roof aerodynamic sensitivity and crosswind response;
-- front-drive torque steer, traction limits and load-dependent rear behaviour;
-- year-correct steering, ABS and stability-control availability;
-- disc/drum or disc-brake details verified by exact year and market before parameter commitment.
-
-The passenger Wagon, empty cargo van and loaded cargo van cannot share one mass and centre-of-gravity calibration.
-
-The electric row additionally requires battery mass and placement, reduced payload, regenerative braking blending, inverter/motor limits, temperature-dependent power and state-of-charge behaviour.
-
-## Transmission architecture assessment
-
-### European five-speed manual
-
-The manual rows need a conventional driver-operated dry clutch and a real five-speed transaxle. Required data include exact ratios, reverse, final drive, clutch inertia/capacity, engine braking, synchronizer behaviour and differential type. An automatic or automated-clutch approximation is prohibited.
-
-### 4F27E four-speed automatic
-
-The North American 2.0L row uses a conventional planetary automatic with hydrodynamic torque converter. It requires converter multiplication and slip, creep, lock-up, four exact forward ratios, reverse, torque and inertia shift phases, kickdown, grade/load scheduling and thermal protection.
-
-### Electric single-speed transaxle
-
-The Azure row needs the reported single reduction ratio, motor-speed limits, inverter power envelope, regenerative braking, coast behaviour and battery state. It must not use a combustion automatic with fixed gear selection.
-
-## Engine and driveline audio architecture
-
-| Powertrain | Required treatment |
-|---|---|
-| 1.8/2.0 petrol inline-four | naturally aspirated inline-four firing cadence, intake, exhaust and accessory layers specific to the engine family |
-| early 1.8 diesel 75 | older direct-injection diesel combustion and fixed-geometry turbo/mechanical layers |
-| 1.8 TDCi 75/90 | common architecture may be shared where hardware is proven, but output, turbo, injection and emissions transients remain calibration-specific |
-| 1.8 TDCi 110 | distinct VGT spool, boost and high-output combustion behaviour |
-| Azure electric | motor electromagnetic orders, reduction whine, inverter switching, tyre/road and regenerative-load response; no combustion waveform |
-
-The 110-PS diesel may not be produced only by raising the volume or pitch of the 75/90-PS profile.
+DPF, non-DPF, EGR, catalyst and emissions-standard differences remain mandatory selected-year metadata. They do not create separate catalog vehicles. A DPF-equipped calibration must still model backpressure, regeneration and thermal behaviour, while a non-DPF calibration must not inherit those effects.
 
 ## Evidence still required before parameter commitment
 
-Before implementation retain primary Ford or manufacturer documentation for:
+Before implementation retain primary Ford or manufacturer evidence for:
 
-- the exact European petrol displacement and market years;
-- the early-versus-late 75-PS diesel injection architecture and changeover;
-- exact gearbox code, ratios and final drive for every manual row;
+- exact European petrol displacement, output, years and body availability;
+- early/late 75-PS diesel injection and turbo hardware;
+- exact manual gearbox codes, ratios, clutch and final drives;
 - 4F27E ratios, converter and calibration;
-- engine/body availability across SWB/LWB, cargo and Tourneo bodies;
-- year-specific emissions and DPF status;
-- exact curb mass, axle loads, tyres, brakes, drag and performance targets;
-- Azure motor continuous/peak ratings, reduction ratio, battery usable energy, mass and regenerative limits;
-- LPG/CNG conversion hardware if any such row is approved.
+- one standard final drive and differential state per approved row;
+- selected-year DPF and emissions hardware;
+- body-correct mass, axle loads, tyres, brakes, drag and performance;
+- Azure motor continuous/peak curves, inverter limits, usable battery energy, battery mass, fixed reduction and regenerative limits.
 
-These evidence gates prevent guessed parameters but do not block the owner from selecting the catalog scope.
+These evidence gaps do not reopen the six-row approved catalog scope and do not authorize guessed parameters.
 
-## Owner scope decision — required before implementation
+## Owner decision recorded
 
-Status remains **`awaiting_owner_scope`**.
+The owner decided:
 
-Please decide:
+1. Include every researched combustion powertrain family.
+2. Merge the early and late 75-PS diesels into one row.
+3. Preserve only the source-like final-facelift long-wheelbase high-roof XLT Premium Wagon body and appearance.
+4. Exclude LPG, CNG, taxi, mobility and other conversion rows.
+5. Merge DPF and non-DPF states into selected-year metadata.
+6. Use one standard final drive and one standard differential state per row.
+7. Include Azure Dynamics Electric.
+8. Build the Azure motor, inverter, battery, regenerative braking and single-speed fixed-reduction transaxle as a complete dedicated drivetrain architecture.
 
-1. Keep only the strict **2011–2013 North American XLT Premium Wagon** powertrain, or cover the complete 2002–2013 first generation?
-2. If the generation is covered, include all six combustion rows listed above?
-3. Keep the early and late 75-PS diesels separate, or merge them into one 75-PS diesel row?
-4. Include the Azure Dynamics electric derivative despite Azure being manufacturer of record and the vehicle being a fleet cargo upfit?
-5. Keep only the long-wheelbase high-roof passenger body represented by the source, or add SWB/low-roof, cargo and Tourneo body configurations?
-6. Preserve only the source-like 2009–2013 XLT Premium appearance, or create accurate 2002–2005 and 2006–2008 visual phases?
-7. For European powertrains, use one verified representative body/trim per powertrain rather than duplicating identical mechanics across trims?
-8. Exclude LPG/CNG and taxi/mobility conversions, or include specific fully documented upfits?
-9. For diesel rows, keep separate DPF/non-DPF emissions hardware where physically different, or store it as selected-year metadata inside each engine row?
-10. Use one standard final drive and standard differential state per approved powertrain/transmission row?
-11. Is any expected engine, transmission, body, fuel or model-year variant missing?
-
-No implementation begins after this individual decision. Research proceeds to model 09 only after the owner fixes model 08 scope, and implementation begins only after every included model has reached `approved`.
+Model 08 is **`approved`** with **6** configurations. Implementation remains blocked by the global all-model research gate. Research proceeds to model 09.
