@@ -7,6 +7,7 @@ var _failures: Array[String] = []
 func _initialize() -> void:
 	_test_unloaded_contact_tracks_road_speed()
 	_test_unloaded_contact_stops_with_vehicle()
+	_test_airborne_wheel_is_not_constrained_to_road_speed()
 	_test_effective_drivetrain_inertia_is_applied()
 	_finish()
 
@@ -15,6 +16,7 @@ func _test_unloaded_contact_tracks_road_speed() -> void:
 	var model := WheelRotationalDynamicsModel.new()
 	var wheel := WheelTireState.new(WheelTireState.Position.FRONT_LEFT)
 	wheel.configure_rotation(0.30, 1.5)
+	wheel.set_contact(1.0, Vector3.UP, 9.81)
 	wheel.angular_velocity_rad_s = 0.0
 	model.integrate_wheel(wheel, 0.0, 0.0, 8.0, 1400.0, 0.15, 12.0, 1.0 / 120.0)
 	_expect(
@@ -28,9 +30,22 @@ func _test_unloaded_contact_stops_with_vehicle() -> void:
 	var model := WheelRotationalDynamicsModel.new()
 	var wheel := WheelTireState.new(WheelTireState.Position.FRONT_RIGHT)
 	wheel.configure_rotation(0.32, 1.7)
+	wheel.set_contact(1.0, Vector3.UP, 9.81)
 	wheel.set_rolling_speed(18.0)
 	model.integrate_wheel(wheel, 0.0, 0.0, -5.0, 1500.0, 0.15, 0.0, 1.0 / 120.0)
-	_expect(is_zero_approx(wheel.angular_velocity_rad_s), "an unloaded wheel stops when vehicle road speed reaches zero")
+	_expect(is_zero_approx(wheel.angular_velocity_rad_s), "an unloaded contacted wheel stops when vehicle road speed reaches zero")
+
+
+func _test_airborne_wheel_is_not_constrained_to_road_speed() -> void:
+	var model := WheelRotationalDynamicsModel.new()
+	var wheel := WheelTireState.new(WheelTireState.Position.FRONT_LEFT)
+	wheel.configure_rotation(0.30, 1.5)
+	wheel.angular_velocity_rad_s = 20.0
+	model.integrate_wheel(wheel, 0.0, 0.0, 0.0, 1400.0, 0.0, 12.0, 1.0 / 120.0)
+	_expect(
+		is_equal_approx(wheel.angular_velocity_rad_s, 20.0),
+		"an airborne unloaded wheel retains independent angular velocity"
+	)
 
 
 func _test_effective_drivetrain_inertia_is_applied() -> void:
