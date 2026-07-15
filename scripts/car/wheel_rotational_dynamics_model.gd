@@ -54,7 +54,11 @@ func integrate_wheel(
 	# pure rolling in this deterministic arcade model. Letting numerical wheel
 	# inertia drift away from road speed creates fictitious longitudinal slip,
 	# consumes the entire friction circle and removes steering authority.
-	if absf(drive_torque_nm) <= TORQUE_EPSILON_NM and safe_brake_torque <= TORQUE_EPSILON_NM:
+	if (
+		wheel.has_contact
+		and absf(drive_torque_nm) <= TORQUE_EPSILON_NM
+		and safe_brake_torque <= TORQUE_EPSILON_NM
+	):
 		wheel.set_rolling_speed(vehicle_forward_speed_mps)
 		wheel.drive_torque_nm = 0.0
 		wheel.brake_torque_nm = 0.0
