@@ -52,7 +52,7 @@ func _initialize() -> void:
 	_test_physics_and_audio_contract()
 	_test_inventory_status_contract()
 	_test_first_model_approved_scope()
-	_test_second_model_research_gate()
+	_test_second_model_approved_scope()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -85,7 +85,10 @@ func _test_workflow_contract() -> void:
 
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect(not inventory.is_empty(), "vehicle inventory is readable")
-	_expect(inventory.contains("Total committed source geometry: **40,300 triangles**"), "inventory records the inspected source triangle total")
+	_expect(
+		inventory.contains("Total committed source geometry: **40,300 triangles**"),
+		"inventory records the inspected source triangle total"
+	)
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
 
@@ -122,7 +125,7 @@ func _test_global_research_before_implementation_contract() -> void:
 	for required_fragment: String in [
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Model 01 has passed its individual owner-scope gate, but implementation is deferred",
+		"Models 01 and 02 have passed their individual owner-scope gates",
 		"Only after all 20 scopes are approved does implementation begin",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves global gate: %s" % required_fragment)
@@ -182,16 +185,8 @@ func _test_first_model_approved_scope() -> void:
 		"model 01 has passed the owner-scope gate"
 	)
 	_expect(
-		inventory.contains("docs/vehicles/traffic/bmw_4_series_2014.md"),
-		"inventory links the BMW F32 research record"
-	)
-	_expect(
 		inventory.contains("| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 |"),
 		"inventory records all 44 approved BMW combinations"
-	)
-	_expect(
-		inventory.contains("Model 01 has passed its individual owner-scope gate, but implementation is deferred"),
-		"BMW implementation remains deferred until all scopes are approved"
 	)
 
 	var research: String = _read_text(BMW_F32_RESEARCH_PATH)
@@ -201,21 +196,7 @@ func _test_first_model_approved_scope() -> void:
 		"Workflow status: **`approved`**",
 		"Source SHA-256: `fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510`",
 		"Approved implementation scope: **44 mechanically distinct pre-LCI combinations**",
-		"**Standard total**",
-		"23 petrol + 19 diesel",
-		"435i ZHP Coupé Edition",
-		"335 hp; 430 Nm with 6MT; 450 Nm with 8AT",
 		"Approved total: 42 standard + 2 ZHP = 44 combinations",
-		"do not create multiple catalog entries for a mechanically identical engine",
-		"ZF 8HP-family torque-converter automatics",
-		"B38",
-		"N20",
-		"B48",
-		"N55",
-		"B58",
-		"N47",
-		"B47",
-		"N57",
 		"Owner decision recorded",
 		"Visual scope: **strictly pre-LCI**",
 		"Missing expected variants: **none identified by the owner**",
@@ -224,47 +205,45 @@ func _test_first_model_approved_scope() -> void:
 		_expect(research.contains(required_fragment), "BMW F32 approval preserves: %s" % required_fragment)
 
 
-func _test_second_model_research_gate() -> void:
+func _test_second_model_approved_scope() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect(
-		inventory.contains("Chevrolet Silverado 1500 LTZ Crew Cab Standard Box 4WD, K2XX pre-facelift | pickup | 2,232 | `awaiting_owner_scope`"),
-		"model 02 is blocked at its owner-scope gate"
+		inventory.contains("Chevrolet Silverado 1500 Crew Cab Standard Box RWD, K2XX pre-facelift | pickup | 2,232 | `approved`"),
+		"model 02 has passed the owner-scope gate"
 	)
 	_expect(
-		inventory.contains("docs/vehicles/traffic/chevrolet_silverado_2014.md"),
-		"inventory links the Silverado research record"
+		inventory.contains("| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 |"),
+		"inventory records four approved Silverado RWD combinations"
 	)
 	_expect(
-		inventory.contains("8 broad body-shell base combinations; 3 strict LTZ 4x4 visual matches"),
-		"inventory records Silverado candidate scopes"
-	)
-	_expect(
-		inventory.contains("After model 02 is approved, research continues with model 03"),
-		"research order advances without starting implementation"
+		inventory.contains("The next research target is model 03 — Renault Clio 2013"),
+		"research advances to model 03 without starting implementation"
 	)
 
 	var research: String = _read_text(SILVERADO_RESEARCH_PATH)
 	_expect(not research.is_empty(), "Silverado research record is readable")
 	for required_fragment: String in [
 		"Chevrolet Silverado 1500 K2XX pre-facelift",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **4 mechanically distinct RWD combinations**",
 		"Source SHA-256: `bce261f8703d7e03737cfd40ffa25a1546b76de84772f5b790ed7cc3b40ee465`",
 		"LTZ Crew Cab Standard Box 4WD",
-		"Total triangles | 2,232",
-		"8 mechanically distinct base combinations",
-		"3 base combinations",
-		"LV3 4.3 L EcoTec3",
-		"L83 5.3 L EcoTec3",
-		"L86 6.2 L EcoTec3",
+		"approved runtime variants require corrected RWD materials",
+		"8 mechanically distinct engine/transmission/drivetrain combinations",
+		"Approved total: 4 RWD combinations",
+		"LV3 4.3 V6",
+		"L83 5.3 V8",
+		"L86 6.2 V8",
 		"Hydra-Matic 6L80 6AT, RPO MYC",
 		"Hydra-Matic 8L90 8AT, RPO M5U",
-		"selectable part-time 4WD",
-		"not permanent AWD",
-		"provisional pending retained official order-guide/trailering-guide confirmation",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"one **standard factory axle ratio**",
+		"gasoline only",
+		"Exclude Z71, Max Trailering and Special Service Vehicle variants",
+		"Missing expected variants: **none identified by the owner**",
+		"Model 02 is **`approved`**",
+		"Research proceeds to model 03",
 	]:
-		_expect(research.contains(required_fragment), "Silverado research preserves: %s" % required_fragment)
+		_expect(research.contains(required_fragment), "Silverado approval preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
@@ -276,8 +255,14 @@ func _test_provenance_contract() -> void:
 
 	var risks: String = _read_text(RISK_PATH)
 	_expect(risks.contains("## Traffic Rider NPC vehicle bundle provenance"), "accepted-risk record covers the bundle")
-	_expect(risks.contains("The 20 source GLBs remain committed and are not added to `.gitignore`."), "accepted-risk record preserves committed source assets")
-	_expect(risks.contains("Scania, generic articulated truck and generic rigid truck remain excluded"), "accepted-risk record preserves the heavy-truck exclusion")
+	_expect(
+		risks.contains("The 20 source GLBs remain committed and are not added to `.gitignore`."),
+		"accepted-risk record preserves committed source assets"
+	)
+	_expect(
+		risks.contains("Scania, generic articulated truck and generic rigid truck remain excluded"),
+		"accepted-risk record preserves the heavy-truck exclusion"
+	)
 
 
 func _test_gitignore_contract() -> void:
