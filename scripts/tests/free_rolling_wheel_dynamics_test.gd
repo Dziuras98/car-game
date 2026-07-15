@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_test_unloaded_contact_stops_with_vehicle()
 	_test_airborne_wheel_is_not_constrained_to_road_speed()
 	_test_rwd_front_wheels_are_prepared_before_slip_resolution()
+	_test_turning_free_wheel_uses_contact_patch_road_speed()
 	_finish()
 
 
@@ -96,6 +97,47 @@ func _test_rwd_front_wheels_are_prepared_before_slip_resolution() -> void:
 	_expect(
 		state.forward_speed > 10.0 and state.forward_speed < 12.0,
 		"spinning up a lagging free wheel consumes vehicle kinetic momentum instead of creating energy"
+	)
+
+
+func _test_turning_free_wheel_uses_contact_patch_road_speed() -> void:
+	var config := CarDriveConfig.new()
+	config.drive_layout = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
+	config.wheel_radius = 0.30
+	config.wheel_base = 2.70
+	config.front_axle_track_width = 1.50
+	config.sanitize()
+	var state := CarRuntimeState.new()
+	state.forward_speed = 5.0
+	state.lateral_speed = 2.0
+	state.yaw_rate_rad_s = 1.0
+	state.ground_contact_count = WheelTireState.WHEEL_COUNT
+	state.surface_grip_multiplier = 1.0
+	state.synchronize_wheel_contacts_from_aggregate()
+	state.configure_wheel_rotation(config, false)
+	var wheel: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_LEFT)
+	wheel.steering_angle_rad = 0.45
+	wheel.set_rolling_speed(0.0)
+	var initial_forward_speed: float = state.forward_speed
+	var initial_lateral_speed: float = state.lateral_speed
+	var forward_offset: float = config.wheel_base * (1.0 - config.front_static_load_fraction)
+	var lateral_offset: float = -config.front_axle_track_width * 0.5
+	var wheel_forward_speed: float = state.forward_speed - state.yaw_rate_rad_s * lateral_offset
+	var wheel_lateral_speed: float = state.lateral_speed + state.yaw_rate_rad_s * forward_offset
+	var expected_road_speed: float = (
+		wheel_forward_speed * cos(wheel.steering_angle_rad)
+		+ wheel_lateral_speed * sin(wheel.steering_angle_rad)
+	)
+
+	state.configure_wheel_rotation(config, true)
+	_expect(
+		absf(wheel.get_circumferential_speed_mps() - expected_road_speed) <= 0.0001,
+		"a turning free wheel follows its own contact-patch speed along the steered plane"
+	)
+	_expect(
+		is_equal_approx(state.forward_speed, initial_forward_speed)
+		and is_equal_approx(state.lateral_speed, initial_lateral_speed),
+		"turning wheel synchronization does not apply a fictitious impulse to center motion"
 	)
 
 
