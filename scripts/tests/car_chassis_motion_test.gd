@@ -19,6 +19,8 @@ func _run() -> void:
 	_test_airborne_steering_does_not_create_yaw()
 	_test_lateral_tire_forces_recover_sideways_motion()
 	_test_handbrake_reduces_rear_lateral_force()
+	_test_body_frame_yaw_rotation_preserves_horizontal_speed()
+	_test_released_steering_damps_residual_yaw()
 	_finish()
 
 
@@ -151,6 +153,38 @@ func _test_handbrake_reduces_rear_lateral_force() -> void:
 		handbrake_state.get_wheel_state(WheelTireState.Position.REAR_LEFT).lateral_force_n
 	)
 	_expect(handbrake_rear_force < normal_rear_force, "handbrake reduces rear lateral tire force")
+
+
+func _test_body_frame_yaw_rotation_preserves_horizontal_speed() -> void:
+	var chassis := _configured_chassis()
+	var state := _contact_state(10.0)
+	state.yaw_rate_rad_s = 1.0
+	_saturate_longitudinal_slip(state)
+	var initial_speed: float = Vector2(state.forward_speed, state.lateral_speed).length()
+	for _step_index: int in range(120):
+		chassis.update_tire_dynamics(state, 0.0, false, STEP)
+	var final_speed: float = Vector2(state.forward_speed, state.lateral_speed).length()
+	_expect(
+		absf(final_speed - initial_speed) <= 0.01,
+		"body-frame yaw rotation preserves horizontal center speed when tire forces are unavailable"
+	)
+
+
+func _test_released_steering_damps_residual_yaw() -> void:
+	var chassis := _configured_chassis()
+	var state := _contact_state(0.2)
+	state.yaw_rate_rad_s = 1.0
+	_saturate_longitudinal_slip(state)
+	for _step_index: int in range(240):
+		chassis.update_tire_dynamics(state, 0.0, false, STEP)
+	_expect(absf(state.yaw_rate_rad_s) < 0.01, "released steering damps residual low-speed chassis yaw")
+
+
+func _saturate_longitudinal_slip(state: CarRuntimeState) -> void:
+	for wheel: WheelTireState in state.wheel_states:
+		wheel.longitudinal_slip_intensity = 1.0
+		wheel.tire_slip_intensity = 1.0
+	state.update_slip_aggregates()
 
 
 func _configured_chassis() -> CarChassisController:
