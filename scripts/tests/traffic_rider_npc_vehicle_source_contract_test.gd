@@ -52,7 +52,7 @@ func _initialize() -> void:
 	_test_model_01_scope()
 	_test_model_02_scope()
 	_test_model_03_scope()
-	_test_model_04_gate()
+	_test_model_04_scope()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -89,7 +89,6 @@ func _test_workflow_contract() -> void:
 		"Stage 0 — complete vehicle and powertrain research",
 		"A single row labelled only `automatic` is insufficient",
 		"Mandatory owner decision gate",
-		"Do you want all of them imported, or only a selected subset?",
 		"No model may enter `integrating` until all included models have reached `approved`",
 		"Stage 6 — implement the exact transmission architecture",
 		"A classic automatic must never be represented as an automated manual",
@@ -118,7 +117,8 @@ func _test_inventory_and_global_gate() -> void:
 		"integrated",
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01, 02 and 03 have passed their individual owner-scope gates",
+		"Models 01, 02, 03 and 04 have passed their individual owner-scope gates",
+		"The next research target is model 05 — Ford E-150 2012",
 		"Only after all 20 scopes are approved does implementation begin",
 		"Total committed source geometry: **40,300 triangles**",
 	]:
@@ -181,33 +181,44 @@ func _test_model_03_scope() -> void:
 	_expect(not research.contains("| 7 | Phase 1 GT |"), "Clio GT is absent from the approved matrix")
 
 
-func _test_model_04_gate() -> void:
+func _test_model_04_scope() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect(
-		inventory.contains("Chevrolet Cruze J300 North American LS sedan, pre-facelift source | passenger sedan | 2,444 | `awaiting_owner_scope`"),
-		"model 04 is at the owner-scope gate"
+		inventory.contains("Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved`"),
+		"model 04 has passed the owner-scope gate"
 	)
 	_expect(
-		inventory.contains("26 base engine/transmission rows; 2 strict North American LS visual matches"),
-		"inventory records Cruze candidate totals"
+		inventory.contains("| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |"),
+		"inventory records twenty approved Cruze combinations"
 	)
 	var research: String = _read_text(CRUZE_RESEARCH_PATH)
 	for required_fragment: String in [
-		"Chevrolet Cruze J300 sedan — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Chevrolet Cruze J300 sedan — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **20 mechanically distinct pre-facelift Chevrolet-badged J300 sedan configurations**",
 		"Source SHA-256: `ac6af7b6894a8bbe327f4250b16ab5176ad16743f7141afbe6c0efc9cd61f251`",
-		"2011-model-year North American Chevrolet Cruze LS sedan",
-		"Total triangles | 2,444",
-		"26 candidate engine/transmission rows",
-		"strict unmodified North American LS source-texture scope: **2 rows**",
+		"Approved total: 20 mechanically distinct pre-facelift Chevrolet J300 sedan configurations",
+		"LUW/LWE 1.8 naturally aspirated I4",
+		"LUJ/LUV 1.4 turbo I4",
+		"LUZ/Multijet 2.0 turbo-diesel I4",
+		"VM Motori/RA420 2.0 VCDi",
+		"Family Z/LLW 2.0 VCDi",
+		"China J300, from late 2011, pre-facelift body",
+		"approved, gasoline only",
 		"Hydra-Matic 6T30",
-		"GM 6T40",
+		"Hydra-Matic 6T40",
 		"GM 6T45",
 		"Aisin AF40-6",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"original rows 7–8: facelift-era European A14NET",
+		"original rows 16–17: facelift-era A17DTS",
+		"original row 26: petrol/LPG bi-fuel",
+		"all North American Eco manual/automatic package subdivisions",
+		"Provisional rows are approved for catalog scope immediately",
+		"Missing expected variants: **none identified by the owner**",
+		"Model 04 is **`approved`** with **20** configurations",
+		"Research proceeds to model 05",
 	]:
-		_expect(research.contains(required_fragment), "Cruze gate preserves: %s" % required_fragment)
+		_expect(research.contains(required_fragment), "Cruze scope preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
@@ -219,14 +230,8 @@ func _test_provenance_contract() -> void:
 
 	var risks: String = _read_text(RISK_PATH)
 	_expect(risks.contains("## Traffic Rider NPC vehicle bundle provenance"), "accepted-risk record covers the bundle")
-	_expect(
-		risks.contains("The 20 source GLBs remain committed and are not added to `.gitignore`."),
-		"accepted-risk record preserves committed source assets"
-	)
-	_expect(
-		risks.contains("Scania, generic articulated truck and generic rigid truck remain excluded"),
-		"accepted-risk record preserves heavy-truck exclusions"
-	)
+	_expect(risks.contains("The 20 source GLBs remain committed and are not added to `.gitignore`."), "accepted-risk record preserves committed source assets")
+	_expect(risks.contains("Scania, generic articulated truck and generic rigid truck remain excluded"), "accepted-risk record preserves heavy-truck exclusions")
 
 
 func _test_gitignore_contract() -> void:
