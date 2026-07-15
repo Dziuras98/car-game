@@ -58,19 +58,19 @@ func _test_chassis_projection_helpers() -> void:
 	state.forward_speed = 7.25
 	state.lateral_speed = -2.5
 	var car := CharacterBody3D.new()
-	car.global_transform = Transform3D(
+	car.transform = Transform3D(
 		Basis(Vector3.UP, deg_to_rad(-23.0)),
 		Vector3.ZERO
 	)
 	var horizontal_velocity: Vector3 = chassis.get_horizontal_velocity_vector(
 		state,
-		car.global_transform
+		car.transform
 	)
 	state.forward_speed = 0.0
 	state.lateral_speed = 0.0
 	chassis.set_local_speeds_from_horizontal_velocity(
 		state,
-		car.global_transform,
+		car.transform,
 		horizontal_velocity
 	)
 	_expect(absf(state.forward_speed - 7.25) <= EPSILON, "chassis helper restores forward speed")
