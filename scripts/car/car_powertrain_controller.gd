@@ -474,8 +474,10 @@ func _simulate_wheel_dynamics(
 			mass,
 			_config.wheel_angular_damping_nm_per_rad_s,
 			state.forward_speed,
-			delta
+			delta,
+			_get_effective_wheel_inertia(state, wheel, drive_fraction)
 		)
+		_clamp_driven_wheel_to_engine_limit(state, wheel, drive_fraction)
 
 	state.forward_speed += vehicle_acceleration * delta
 	state.update_slip_aggregates()
@@ -495,6 +497,75 @@ func _initialize_external_motion_wheel_state(state: CarRuntimeState) -> void:
 			return
 	for wheel: WheelTireState in state.wheel_states:
 		wheel.set_rolling_speed(state.forward_speed)
+
+
+func _get_effective_wheel_inertia(
+	state: CarRuntimeState,
+	wheel: WheelTireState,
+	drive_fraction: float
+) -> float:
+	var base_inertia: float = maxf(wheel.moment_of_inertia_kg_m2, 0.01)
+	if drive_fraction <= 0.0 or state.current_gear == 0:
+		return base_inertia
+	var active_ratio: float = _get_active_drivetrain_ratio(state)
+	if active_ratio <= 0.0:
+		return base_inertia
+	var coupling: float = 1.0
+	if _config.is_manual_transmission() or _config.is_cvt_transmission() or _config.is_smg_transmission():
+		coupling = sqrt(clampf(state.clutch_engagement, 0.0, 1.0))
+	elif _config.is_torque_converter_automatic():
+		coupling = 0.65
+	if state.shift_timer > 0.0:
+		coupling = 0.0
+	var engine_side_inertia: float = clampf(
+		0.08 + _config.peak_engine_torque * 0.00028,
+		0.10,
+		0.24
+	)
+	var reflected_inertia: float = (
+		engine_side_inertia
+		* active_ratio
+		* active_ratio
+		* drive_fraction
+		* coupling
+	)
+	return base_inertia + reflected_inertia
+
+
+func _get_active_drivetrain_ratio(state: CarRuntimeState) -> float:
+	if not _config.uses_geared_transmission() or state.current_gear == 0:
+		return 1.0
+	var transmission_ratio: float
+	if _config.is_cvt_transmission():
+		transmission_ratio = _cvt_transmission_model.get_current_ratio()
+	elif state.current_gear < 0:
+		transmission_ratio = _config.reverse_gear_ratio
+	else:
+		var gear_index: int = clampi(state.current_gear - 1, 0, _config.gear_ratios.size() - 1)
+		transmission_ratio = _config.gear_ratios[gear_index]
+	return absf(transmission_ratio * _config.final_drive_ratio)
+
+
+func _clamp_driven_wheel_to_engine_limit(
+	state: CarRuntimeState,
+	wheel: WheelTireState,
+	drive_fraction: float
+) -> void:
+	if drive_fraction <= 0.0 or not _config.uses_geared_transmission() or state.current_gear == 0:
+		return
+	var coupling: float = 1.0
+	if _config.is_manual_transmission() or _config.is_cvt_transmission() or _config.is_smg_transmission():
+		coupling = clampf(state.clutch_engagement, 0.0, 1.0)
+	if coupling < 0.10 or state.shift_timer > 0.0:
+		return
+	var active_ratio: float = _get_active_drivetrain_ratio(state)
+	if active_ratio <= 0.0:
+		return
+	var maximum_wheel_speed: float = _config.rev_limiter_rpm * TAU / 60.0 / active_ratio
+	if state.current_gear < 0:
+		wheel.angular_velocity_rad_s = clampf(wheel.angular_velocity_rad_s, -maximum_wheel_speed, 0.0)
+	else:
+		wheel.angular_velocity_rad_s = clampf(wheel.angular_velocity_rad_s, 0.0, maximum_wheel_speed)
 
 
 func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> void:
