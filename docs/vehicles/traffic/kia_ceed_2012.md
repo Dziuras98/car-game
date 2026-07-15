@@ -1,27 +1,28 @@
-# Kia cee'd JD five-door hatchback — research and owner-scope gate
+# Kia cee'd JD five-door hatchback — research and approved scope
 
 - Model number in Traffic Rider bundle: **11**
 - Source GLB: `11_kia_ceed_2012.glb`
 - Source SHA-256: `bc84bc41e7a4ca000826b38153a64b3f66d0d2532c068da30038046d614ac941`
 - Research date: 2026-07-15
-- Workflow status: **`awaiting_owner_scope`**
+- Owner decision date: 2026-07-15
+- Workflow status: **`approved`**
+- Approved implementation scope: **15 mechanically consolidated Kia cee'd JD five-door configurations**
 - Physics baseline inspected during research: `master` at `56f6ce9ca13f7fc8fb268493bff5d142d353bb53`
 - Global implementation gate: no geometry, catalog, physics, transmission or audio implementation begins until every included model has reached `approved`.
 
-## Visual identity
+## Visual identity and body policy
 
-The source represents a **European/UK-market Kia cee'd JD five-door hatchback from the 2012–2015 pre-facelift phase**, using a standard EcoDynamics-style road-car appearance rather than GT bodywork.
+The source represents a **European/UK-market Kia cee'd JD five-door hatchback from the 2012–2015 pre-facelift phase**, using a standard EcoDynamics-style appearance. Visible evidence includes a UK plate treatment, `cee'd` rear marking, green efficiency badge, original JD grille and lamps, ordinary alloy wheels and a standard single-exhaust presentation.
 
-Visible texture evidence includes:
+The owner retained only the existing five-door source body and appearance for every approved row:
 
-- five-door hatchback body;
-- UK plate treatment;
-- `cee'd` rear marking and an EcoDynamics-style green efficiency badge;
-- original JD grille, bumpers, lamps and tail lamps;
-- ordinary alloy wheels and a single standard exhaust presentation;
-- no GT-specific bumpers, 18-inch wheels, red trim, twin exhaust or pro_cee'd three-door body.
+- source-like standard 2012–2015 pre-facelift exterior;
+- no pro_cee'd three-door body;
+- no cee'd Sportswagon body;
+- no separate facelift exterior;
+- no separate GT exterior, despite retaining the five-door GT powertrain and its required running gear.
 
-The exact source engine and equipment grade are not resolved by the low-resolution badge texture. Identity confidence is **high for a standard pre-facelift five-door JD cee'd and low for the exact engine/trim**.
+This is an explicit project visual homogenization. It is not a claim that facelift engines or the GT were factory-sold with the exact source exterior.
 
 ## Reference dimensions and source inspection
 
@@ -44,95 +45,78 @@ The exact source engine and equipment grade are not resolved by the low-resoluti
 | Source wheelbase | approximately 3.885440 source units |
 | Approximate wheelbase-derived scale | 0.682033 |
 
-The wheelbase-derived dimensions are consistent with the five-door JD hatchback. The committed GLB remains unchanged; wheel separation, collision, catalog, physics, transmission and audio work remain blocked by the global research gate.
+The committed GLB remains unchanged. Four independent wheels, collision, catalog, physics, transmission and audio remain deferred by the global research gate.
 
-## Research boundary
+## Owner-directed scope rules
 
-The complete candidate scope covers the **European second-generation Kia cee'd JD five-door hatchback from 2012 through 2018**, including the 2012–2015 original phase and the 2015–2018 facelift.
+- include every previously listed petrol and diesel engine/transmission row;
+- merge only the pre-facelift and facelift **1.6 CRDi 110 PS six-speed-manual** rows into one mechanically consolidated entry;
+- keep the 1.6 CRDi 128 PS and 136 PS calibrations separate;
+- keep manual, six-speed DCT, six-speed torque-converter automatic and seven-speed DCT architectures separate;
+- retain the five-door cee'd GT 204 PS row;
+- use one verified standard final-drive ratio and one standard differential state per row;
+- do not create optional gearing or differential duplicates;
+- exclude LPG, CNG and all aftermarket or fleet conversions;
+- do not retain DPF, emissions-standard, catalyst, EGR or stop/start subdivisions as catalog rows or selectable metadata; each approved row receives one evidence-backed representative calibration;
+- no expected variant is missing according to the owner.
 
-The body boundary excludes the pro_cee'd three-door hatchback and cee'd Sportswagon. All production rows are transverse-engine, front-wheel-drive configurations; no factory AWD row is evidenced for the European JD cee'd.
+## Approved petrol matrix — 8 configurations
 
-## Mechanically consolidated candidate matrix
+| # | Engine / calibration | Transmission | Drivetrain | Status |
+|---:|---|---|---|---|
+| 1 | 1.4L Gamma CVVT MPI naturally aspirated inline-four, approximately 100 PS / 137 Nm | 5-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 2 | 1.4L Gamma CVVT MPI naturally aspirated inline-four, approximately 100 PS / 137 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 3 | 1.4L Kappa MPI naturally aspirated inline-four, approximately 100 PS / 134 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 4 | 1.6L Gamma GDI naturally aspirated direct-injected inline-four, 135 PS / approximately 165 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 5 | 1.6L Gamma GDI naturally aspirated direct-injected inline-four, 135 PS / approximately 165 Nm | Hyundai-Kia 6-speed dry dual-clutch transaxle | FWD; one standard final drive and differential | **approved** |
+| 6 | 1.0L Kappa T-GDI turbocharged direct-injected inline-three, 100 PS / approximately 172 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 7 | 1.0L Kappa T-GDI turbocharged direct-injected inline-three, 120 PS / approximately 172 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 8 | cee'd GT 1.6L Gamma T-GDI turbocharged direct-injected inline-four, 204 PS / 265 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential; GT running gear required | **approved** |
 
-Rows separate materially different engines, calibrations and transmission architectures. Pure trim, paint, emissions-standard and model-year duplicates are not counted.
+## Approved diesel matrix — 7 configurations
 
-### Petrol rows
+| # | Engine / calibration | Transmission | Drivetrain | Status |
+|---:|---|---|---|---|
+| 9 | 1.4L U2 CRDi common-rail turbo-diesel inline-four, 90 PS / approximately 220 Nm | 5-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 10 | 1.4L U2 CRDi common-rail turbo-diesel inline-four, 90 PS / approximately 220 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 11 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, **merged 110-PS pre-/post-facelift row**; one evidence-backed representative torque calibration selected at implementation | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 12 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 128 PS / 260 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 13 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 128 PS / 260 Nm | Hyundai-Kia 6-speed planetary torque-converter automatic | FWD; one standard final drive and differential | **approved** |
+| 14 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 136 PS / approximately 280 Nm | 6-speed conventional manual transaxle | FWD; one standard final drive and differential | **approved** |
+| 15 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 136 PS / up to approximately 300 Nm in DCT calibration | Hyundai-Kia 7-speed dry dual-clutch transaxle | FWD; one standard final drive and differential | **approved** |
 
-| # | Period | Engine / calibration | Transmission | Drivetrain | Evidence state |
-|---:|---|---|---|---|---|
-| 1 | 2012–early 2013 | 1.4L Gamma CVVT MPI naturally aspirated inline-four, approximately 100 PS / 137 Nm | 5-speed conventional manual transaxle | FWD | `verified_family`; exact market cut-off pending |
-| 2 | 2013–2015 | 1.4L Gamma CVVT MPI naturally aspirated inline-four, approximately 100 PS / 137 Nm | 6-speed conventional manual transaxle | FWD | `verified_family` |
-| 3 | 2015–2018 | 1.4L Kappa MPI naturally aspirated inline-four, approximately 100 PS / 134 Nm | 6-speed conventional manual transaxle | FWD | `verified_family`; mechanically distinct 1,368-cc facelift engine |
-| 4 | 2012–2018 | 1.6L Gamma GDI naturally aspirated direct-injected inline-four, 135 PS / approximately 165 Nm | 6-speed conventional manual transaxle | FWD | `verified_family`; Euro revisions merged |
-| 5 | 2012–2018 | 1.6L Gamma GDI naturally aspirated direct-injected inline-four, 135 PS / approximately 165 Nm | Hyundai-Kia 6-speed dry dual-clutch transaxle | FWD | `verified_family`; exact DCT code/ratios pending |
-| 6 | 2015–2018 | 1.0L Kappa T-GDI turbocharged direct-injected inline-three, 100 PS / approximately 172 Nm | 6-speed conventional manual transaxle | FWD | `verified_facelift_family` |
-| 7 | 2015–2018 | 1.0L Kappa T-GDI turbocharged direct-injected inline-three, 120 PS / approximately 172 Nm | 6-speed conventional manual transaxle | FWD | `verified_facelift_family` |
-| 8 | 2013–2018 | cee'd GT 1.6L Gamma T-GDI turbocharged direct-injected inline-four, 204 PS / 265 Nm | 6-speed conventional manual transaxle | FWD | `verified`; five-door GT existed, but requires GT chassis/visual treatment if factory accuracy is selected |
+**Approved total: 8 petrol + 7 diesel = 15 mechanically consolidated configurations.**
 
-### Diesel rows
+## Explicit exclusions
 
-| # | Period | Engine / calibration | Transmission | Drivetrain | Evidence state |
-|---:|---|---|---|---|---|
-| 9 | 2012–early 2013 | 1.4L U2 CRDi common-rail turbo-diesel inline-four, 90 PS / approximately 220 Nm | 5-speed conventional manual transaxle | FWD | `verified_family`; exact changeover pending |
-| 10 | 2013–2017 | 1.4L U2 CRDi common-rail turbo-diesel inline-four, 90 PS / approximately 220 Nm | 6-speed conventional manual transaxle | FWD | `verified_family`; emissions revisions merged |
-| 11 | 2012–2015 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 110 PS / approximately 260 Nm | 6-speed conventional manual transaxle | FWD | `verified_family` |
-| 12 | 2012–2015 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 128 PS / 260 Nm | 6-speed conventional manual transaxle | FWD | `verified_family` |
-| 13 | 2012–2015 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 128 PS / 260 Nm | Hyundai-Kia 6-speed planetary torque-converter automatic | FWD | `verified_family`; exact automatic code/ratios pending |
-| 14 | 2015–2018 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 110 PS / approximately 280 Nm | 6-speed conventional manual transaxle | FWD | `verified_facelift_family`; higher-torque calibration |
-| 15 | 2015–2018 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 136 PS / approximately 280 Nm | 6-speed conventional manual transaxle | FWD | `verified_facelift_family` |
-| 16 | 2015–2018 | 1.6L U2 CRDi common-rail turbo-diesel inline-four, 136 PS / up to approximately 300 Nm in DCT calibration | Hyundai-Kia 7-speed dry dual-clutch transaxle | FWD | `verified_facelift_family`; exact DCT code/limits pending |
+- a second 1.6 CRDi 110 PS 6MT row for the facelift torque revision;
+- pro_cee'd and Sportswagon bodies;
+- separate facelift and GT exterior derivatives;
+- LPG, CNG and other conversions;
+- optional final-drive and differential duplicates;
+- separate DPF/non-DPF, emissions-standard, catalyst, EGR or stop/start rows or selectable metadata;
+- merging the 1.6 GDI manual and six-speed DCT;
+- merging the 1.6 CRDi 128 manual and torque-converter automatic;
+- merging the 1.6 CRDi 136 manual and seven-speed DCT.
 
-**Mechanically consolidated candidate total: 16 configurations.**
+## Chassis and transmission requirements
 
-The 1.6 GDI manual and six-speed DCT remain separate because the clutch paths and shifting architecture differ. The 1.6 CRDi 128 manual and torque-converter automatic, and the 136 manual and seven-speed DCT, likewise remain separate.
+Every row uses a transverse front engine, front transaxle and FWD, with MacPherson-strut front suspension and a multi-link rear axle. Engine/transmission-specific mass, front-axle load, tyres, brakes, springs, dampers and steering calibration remain mandatory.
 
-## Body and visual policy candidates
+The GT row retains its larger brakes, sport spring/damper calibration, wheel/tyre specification and electronic-control tuning even though the shared source exterior is used.
 
-- **Source 2012–2015 standard five-door:** exact visual anchor.
-- **Facelift 2015–2018:** revised bumpers, grille, lamps and detail trim.
-- **cee'd GT:** dedicated bumpers, grille, lights, 18-inch wheels, larger brakes, twin exhaust and sport suspension.
-- **pro_cee'd:** three-door body and therefore outside the current body boundary.
-- **Sportswagon:** longer estate body and outside the current body boundary.
+The five- and six-speed manuals require a driver-operated dry clutch and exact ratios. The 1.6 GDI six-speed DCT requires two dry clutch paths and preselection. The 1.6 CRDi 128 six-speed automatic requires a real hydrodynamic torque converter, creep, lock-up and planetary shift phases. The 136-PS seven-speed DCT is a separate architecture and may not be represented by adding one gear to the earlier six-speed DCT.
 
-Possible policies are to retain only the source-like standard pre-facelift body for every powertrain, create correct facelift and GT derivatives, or restrict mechanics to source-phase standard versions.
+## Engine-audio architecture
 
-## Chassis and drivetrain architecture
-
-Every row uses a transverse front engine, front transaxle and FWD. The JD platform uses MacPherson-strut front suspension and a multi-link rear axle. Each approved row still requires engine/transmission-correct mass, front axle load, tyres, brakes, spring/damper rates and steering calibration.
-
-The GT row requires its larger brakes, sport spring/damper calibration, wheel/tyre package and electronic-control tuning if it remains in scope. It must not be represented only by increasing engine torque in the standard chassis.
-
-## Transmission architecture assessment
-
-- Five- and six-speed manuals require a driver-operated dry clutch, exact ratios, final drive, engine braking and synchronizer behaviour.
-- The six-speed DCT used with 1.6 GDI requires two dry clutch paths, odd/even preselection, clutch-temperature/wear behaviour, launch and creep without a torque converter.
-- The 1.6 CRDi 128 automatic requires a genuine six-speed planetary torque-converter model with multiplication, slip, creep, lock-up, shift phases, kickdown and thermal protection.
-- The facelift 136-PS diesel seven-speed DCT is a distinct dry dual-clutch architecture with its own ratios, clutch limits and calibration; it must not be approximated by adding a seventh gear to the earlier six-speed DCT.
-
-## Engine and driveline audio architecture
-
-Required families include naturally aspirated MPI inline-four, naturally aspirated GDI inline-four, turbocharged three-cylinder T-GDI, turbocharged four-cylinder GT, 1.4 CRDi and multiple 1.6 CRDi calibrations. The three-cylinder 1.0 T-GDI requires its actual uneven three-cylinder cadence; GT and diesel variants may not be generated only through pitch or volume changes from the standard petrol engine.
+Required families include naturally aspirated MPI inline-four, naturally aspirated GDI inline-four, turbocharged three-cylinder T-GDI, turbocharged four-cylinder GT, 1.4 CRDi and the distinct 1.6 CRDi calibrations. The 1.0 T-GDI requires its actual three-cylinder cadence; GT and diesel rows may not be generated only by pitch or volume changes from the standard petrol engine.
 
 ## Evidence still required before parameter commitment
 
-Before implementation retain primary Kia brochures, technical data or workshop information for exact model-year/market availability, gearbox codes and ratios, clutch/converter limits, one standard final drive and differential state per approved row, body-correct mass and axle loads, tyres, brakes, drag and performance targets, and exact facelift/GT chassis changes.
+Before implementation retain primary Kia documentation for exact market dates, gearbox codes and ratios, clutch/converter limits, the representative merged 110-PS diesel calibration, one standard final drive and differential per row, body-correct mass and axle loads, tyres, brakes, drag, performance targets and exact GT chassis data. These gaps do not reopen the approved 15-row catalog scope and do not authorize guessed hardware.
 
-## Owner scope decision — required before implementation
+## Owner decision recorded
 
-Status remains **`awaiting_owner_scope`**.
+The owner decided to keep every listed configuration, merge the two 1.6 CRDi 110 PS six-speed-manual rows, retain every other engine and transmission separately, use one standard final drive and differential per row, exclude conversions and emissions subdivisions, and proceed with no additional missing variant.
 
-Please decide:
-
-1. Cover all 16 listed configurations or select specific engine/transmission groups?
-2. Keep the five-door hatchback body only, excluding pro_cee'd and Sportswagon?
-3. Include the five-door cee'd GT 204-PS row?
-4. Preserve only the source-like standard 2012–2015 appearance for every row, or create correct facelift and GT visual derivatives?
-5. Keep early 5-speed and later 6-speed 1.4 petrol/diesel manuals as separate configurations?
-6. Keep the 1.6 GDI 6MT and six-speed DCT separate?
-7. Keep 1.6 CRDi manual, torque-converter automatic and seven-speed DCT rows separate?
-8. Use one verified standard final drive and one standard differential state per row?
-9. Exclude LPG/CNG and all aftermarket or fleet conversions?
-10. Omit DPF, emissions-standard and stop/start subdivisions from the catalog, using one representative calibration per row?
-11. Is any expected engine, transmission, body or model-year variant missing?
-
-No implementation begins after this individual decision. Research proceeds to model 12 only after the owner fixes model 11 scope, and implementation begins only after every included model has reached `approved`.
+Model 11 is **`approved`** with **15** configurations. Implementation remains blocked by the global all-model research gate. Research proceeds to model 12.
