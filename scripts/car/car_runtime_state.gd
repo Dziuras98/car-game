@@ -4,6 +4,7 @@ class_name CarRuntimeState
 const FREE_ROLLING_STRAIGHT_YAW_THRESHOLD_RAD_S: float = 0.05
 const FREE_ROLLING_STRAIGHT_LATERAL_THRESHOLD_MPS: float = 0.25
 const FREE_ROLLING_STRAIGHT_STEERING_THRESHOLD_RAD: float = 0.02
+const FREE_ROLLING_DISCONTINUITY_THRESHOLD_MPS: float = 1.0
 
 var start_transform: Transform3D
 var forward_speed: float = 0.0
@@ -104,6 +105,22 @@ func _synchronize_straight_free_rolling_wheels(
 	free_wheels: Array[WheelTireState],
 	config: CarDriveConfig
 ) -> void:
+	var maximum_speed_delta: float = 0.0
+	for wheel: WheelTireState in free_wheels:
+		maximum_speed_delta = maxf(
+			maximum_speed_delta,
+			absf(wheel.get_circumferential_speed_mps() - forward_speed)
+		)
+
+	# A large mismatch indicates an authoritative state jump such as a reset,
+	# teleport, test setup or direction hand-off. It is not a physical acceleration
+	# step, so synchronize wheel state without applying an impulse to the chassis.
+	if maximum_speed_delta > FREE_ROLLING_DISCONTINUITY_THRESHOLD_MPS:
+		for wheel: WheelTireState in free_wheels:
+			wheel.set_rolling_speed(forward_speed)
+			wheel.angular_acceleration_rad_s2 = 0.0
+		return
+
 	var equivalent_mass: float = maxf(config.vehicle_mass, 1.0)
 	var generalized_momentum: float = equivalent_mass * forward_speed
 	for wheel: WheelTireState in free_wheels:
