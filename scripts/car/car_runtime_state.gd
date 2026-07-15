@@ -69,10 +69,41 @@ func configure_wheel_rotation(config: CarDriveConfig, preserve_angular_velocity:
 		)
 		if preserve_angular_velocity:
 			wheel.angular_velocity_rad_s = preserved_velocity
-			if _should_prepare_free_rolling_wheel(wheel, config):
-				wheel.set_rolling_speed(forward_speed)
 		else:
 			wheel.set_rolling_speed(forward_speed)
+	if preserve_angular_velocity:
+		_synchronize_free_rolling_wheels(config)
+
+
+func _synchronize_free_rolling_wheels(config: CarDriveConfig) -> void:
+	var free_wheels: Array[WheelTireState] = []
+	var equivalent_mass: float = maxf(config.vehicle_mass, 1.0)
+	var generalized_momentum: float = equivalent_mass * forward_speed
+	for wheel: WheelTireState in wheel_states:
+		if not _should_prepare_free_rolling_wheel(wheel, config):
+			continue
+		var radius: float = maxf(wheel.wheel_radius_m, 0.01)
+		var rotational_equivalent_mass: float = (
+			maxf(wheel.moment_of_inertia_kg_m2, 0.01)
+			/ (radius * radius)
+		)
+		equivalent_mass += rotational_equivalent_mass
+		generalized_momentum += (
+			rotational_equivalent_mass
+			* wheel.get_circumferential_speed_mps()
+		)
+		free_wheels.append(wheel)
+	if free_wheels.is_empty():
+		return
+
+	# Enforce no-slip rolling without creating rotational energy for free. The
+	# translational vehicle mass and the I/r^2 equivalent masses of all unloaded
+	# wheels share one coupled speed, preserving generalized longitudinal momentum.
+	var coupled_speed: float = generalized_momentum / maxf(equivalent_mass, 0.01)
+	forward_speed = coupled_speed
+	for wheel: WheelTireState in free_wheels:
+		wheel.set_rolling_speed(coupled_speed)
+		wheel.angular_acceleration_rad_s2 = 0.0
 
 
 func _should_prepare_free_rolling_wheel(
