@@ -4,6 +4,10 @@ class_name CarRuntimeState
 var start_transform: Transform3D
 var forward_speed: float = 0.0
 var lateral_speed: float = 0.0
+var yaw_rate_rad_s: float = 0.0
+var yaw_acceleration_rad_s2: float = 0.0
+var lateral_acceleration_mps2: float = 0.0
+var yaw_moment_nm: float = 0.0
 var engine_rpm: float = 900.0
 var current_gear: int = 1
 var shift_timer: float = 0.0
@@ -102,6 +106,14 @@ func get_wheel_angular_positions() -> PackedFloat32Array:
 	return positions
 
 
+func get_wheel_steering_angles() -> PackedFloat32Array:
+	ensure_wheel_states()
+	var angles := PackedFloat32Array()
+	for wheel: WheelTireState in wheel_states:
+		angles.append(wheel.steering_angle_rad)
+	return angles
+
+
 func synchronize_wheel_contacts_from_aggregate() -> void:
 	ensure_wheel_states()
 	var target_contact_count: int = clampi(
@@ -190,6 +202,10 @@ func clear_wheel_tire_dynamics() -> void:
 func reset_drive_state(idle_rpm: float) -> void:
 	forward_speed = 0.0
 	lateral_speed = 0.0
+	yaw_rate_rad_s = 0.0
+	yaw_acceleration_rad_s2 = 0.0
+	lateral_acceleration_mps2 = 0.0
+	yaw_moment_nm = 0.0
 	engine_rpm = idle_rpm
 	current_gear = 1
 	shift_timer = 0.0
