@@ -59,25 +59,43 @@ func _test_rwd_front_wheels_are_prepared_before_slip_resolution() -> void:
 	state.surface_grip_multiplier = 1.0
 	state.synchronize_wheel_contacts_from_aggregate()
 	state.configure_wheel_rotation(config, false)
-	var front_wheel: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_LEFT)
-	front_wheel.set_rolling_speed(10.0)
-	front_wheel.drive_torque_nm = 0.0
-	front_wheel.brake_torque_nm = 0.0
+	var front_left: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_LEFT)
+	var front_right: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_RIGHT)
+	front_left.set_rolling_speed(10.0)
+	front_left.drive_torque_nm = 0.0
+	front_left.brake_torque_nm = 0.0
+
+	var radius: float = front_left.wheel_radius_m
+	var left_equivalent_mass: float = front_left.moment_of_inertia_kg_m2 / (radius * radius)
+	var right_equivalent_mass: float = front_right.moment_of_inertia_kg_m2 / (radius * radius)
+	var expected_coupled_speed: float = (
+		config.vehicle_mass * state.forward_speed
+		+ left_equivalent_mass * front_left.get_circumferential_speed_mps()
+		+ right_equivalent_mass * front_right.get_circumferential_speed_mps()
+	) / (config.vehicle_mass + left_equivalent_mass + right_equivalent_mass)
 
 	state.configure_wheel_rotation(config, true)
 	var slip_ratio: float = WheelRotationalDynamicsModel.new().calculate_slip_ratio(
-		front_wheel.angular_velocity_rad_s,
-		front_wheel.wheel_radius_m,
+		front_left.angular_velocity_rad_s,
+		front_left.wheel_radius_m,
 		state.forward_speed,
 		config.wheel_slip_reference_speed_mps
 	)
 	_expect(
-		is_equal_approx(front_wheel.get_circumferential_speed_mps(), state.forward_speed),
+		is_equal_approx(front_left.get_circumferential_speed_mps(), state.forward_speed),
 		"an RWD front wheel is synchronized before longitudinal tire force is resolved"
 	)
 	_expect(
 		absf(slip_ratio) <= 0.0001,
 		"a free-rolling RWD front wheel enters slip resolution with zero artificial slip"
+	)
+	_expect(
+		absf(state.forward_speed - expected_coupled_speed) <= 0.0001,
+		"free-wheel synchronization conserves generalized longitudinal momentum"
+	)
+	_expect(
+		state.forward_speed > 10.0 and state.forward_speed < 12.0,
+		"spinning up a lagging free wheel consumes vehicle kinetic momentum instead of creating energy"
 	)
 
 
