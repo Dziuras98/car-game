@@ -25,8 +25,16 @@ func get_ackermann_steering_angles(
 	var safe_wheel_base: float = maxf(wheel_base_m, 0.10)
 	var half_track: float = maxf(front_track_width_m, 0.10) * 0.5
 	var turn_radius: float = safe_wheel_base / maxf(tan(absf(center_angle)), 0.0001)
-	var inner_angle: float = atan(safe_wheel_base / maxf(turn_radius - half_track, 0.05))
-	var outer_angle: float = atan(safe_wheel_base / maxf(turn_radius + half_track, 0.05))
+	var inner_angle: float = clampf(
+		atan(safe_wheel_base / maxf(turn_radius - half_track, 0.05)),
+		0.0,
+		MAX_STEERING_ANGLE_RAD
+	)
+	var outer_angle: float = clampf(
+		atan(safe_wheel_base / maxf(turn_radius + half_track, 0.05)),
+		0.0,
+		MAX_STEERING_ANGLE_RAD
+	)
 	if center_angle > 0.0:
 		return Vector2(outer_angle, inner_angle)
 	return Vector2(-inner_angle, -outer_angle)
@@ -135,32 +143,18 @@ func resolve_lateral_acceleration(
 		* speed_factor
 	)
 	var normalized_slip: float = absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001)
-	var force_multiplier: float = normalized_slip
-	if normalized_slip > 1.0:
-		var slide_progress: float = _smoothstep(
-			clampf(
-				(normalized_slip - 1.0) / maxf(FULL_SLIDE_SLIP_RATIO - 1.0, 0.001),
-				0.0,
-				1.0
-			)
-		)
-		force_multiplier = lerpf(
-			1.0,
-			DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER,
-			slide_progress
-		)
-	return -signf(slip_angle_rad) * maximum_acceleration * clampf(force_multiplier, 0.0, 1.0)
+	var force_multiplier: float = _get_lateral_force_multiplier(normalized_slip)
+	return -signf(slip_angle_rad) * maximum_acceleration * force_multiplier
 
 
 func calculate_lateral_slip_intensity(
 	slip_angle_rad: float,
 	peak_slip_angle_rad: float
 ) -> float:
-	return clampf(
-		absf(slip_angle_rad) / maxf(peak_slip_angle_rad * 1.5, 0.001),
-		0.0,
-		1.0
-	)
+	# Physical friction usage follows the same force curve used by the lateral
+	# solver, including the bounded post-peak drop during a full slide.
+	var normalized_slip: float = absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001)
+	return _get_lateral_force_multiplier(normalized_slip)
 
 
 func estimate_yaw_inertia_kg_m2(config: CarDriveConfig) -> float:
@@ -175,6 +169,24 @@ func estimate_yaw_inertia_kg_m2(config: CarDriveConfig) -> float:
 			+ 0.05 * average_track * average_track
 		),
 		1.0
+	)
+
+
+func _get_lateral_force_multiplier(normalized_slip: float) -> float:
+	var safe_normalized_slip: float = maxf(normalized_slip, 0.0)
+	if safe_normalized_slip <= 1.0:
+		return safe_normalized_slip
+	var slide_progress: float = _smoothstep(
+		clampf(
+			(safe_normalized_slip - 1.0) / maxf(FULL_SLIDE_SLIP_RATIO - 1.0, 0.001),
+			0.0,
+			1.0
+		)
+	)
+	return lerpf(
+		1.0,
+		DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER,
+		slide_progress
 	)
 
 
