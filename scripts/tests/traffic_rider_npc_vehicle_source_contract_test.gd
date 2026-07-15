@@ -44,6 +44,9 @@ func _initialize() -> void:
 	_test_committed_source_assets()
 	_test_excluded_large_trucks()
 	_test_workflow_contract()
+	_test_research_and_owner_gate_contract()
+	_test_powertrain_fidelity_contract()
+	_test_physics_and_audio_contract()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -69,7 +72,7 @@ func _test_workflow_contract() -> void:
 		"Use wheelbase as the primary scale reference",
 		"Provide four independent wheel nodes",
 		"Use explicit wheel bindings",
-		"Stage 7 — mandatory validation",
+		"Stage 11 — mandatory validation",
 		"Per-model integration record",
 	]:
 		_expect(workflow.contains(required_fragment), "workflow preserves: %s" % required_fragment)
@@ -79,6 +82,53 @@ func _test_workflow_contract() -> void:
 	_expect(inventory.contains("Total committed source geometry: **40,300 triangles**"), "inventory records the inspected source triangle total")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
+
+
+func _test_research_and_owner_gate_contract() -> void:
+	var workflow: String = _read_text(WORKFLOW_PATH)
+	for required_fragment: String in [
+		"Research the complete factory variant matrix before importing the model",
+		"Stage 0 — complete vehicle and powertrain research",
+		"Enumerate every factory combination",
+		"A single row labelled only `automatic` is insufficient",
+		"Mandatory owner decision gate",
+		"Do you want all of them imported, or only a selected subset?",
+		"Is any engine, transmission, drivetrain or model-year variant missing from this list?",
+		"A model must not skip `awaiting_owner_scope`",
+	]:
+		_expect(workflow.contains(required_fragment), "research/owner gate preserves: %s" % required_fragment)
+
+
+func _test_powertrain_fidelity_contract() -> void:
+	var workflow: String = _read_text(WORKFLOW_PATH)
+	for required_fragment: String in [
+		"Match the real transmission architecture exactly",
+		"Implement missing transmission types faithfully",
+		"Stage 6 — implement the exact transmission architecture",
+		"A classic automatic must never be represented as an automated manual",
+		"A DCT must not be approximated by shortening a conventional automatic shift delay",
+		"create a dedicated transmission model",
+		"Do not force an unsupported transmission through a fallback path",
+		"Reproduce performance from evidence, not from labels",
+		"sampled full-load torque curve",
+		"Do not match acceleration by using a false peak torque",
+	]:
+		_expect(workflow.contains(required_fragment), "powertrain fidelity preserves: %s" % required_fragment)
+
+
+func _test_physics_and_audio_contract() -> void:
+	var workflow: String = _read_text(WORKFLOW_PATH)
+	for required_fragment: String in [
+		"Keep every model compatible with current `master` physics",
+		"Mandatory `master` physics synchronization",
+		"all models and variants added earlier in the PR",
+		"recalibrate every affected model in the PR to the new physics",
+		"Build new engine-sound architectures from first principles",
+		"build a new architecture-specific synthesis model from first principles",
+		"must not use an unrelated cylinder layout as its primary waveform",
+		"perceptual distinction from unrelated engine layouts",
+	]:
+		_expect(workflow.contains(required_fragment), "physics/audio fidelity preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
