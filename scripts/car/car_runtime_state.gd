@@ -4,7 +4,7 @@ class_name CarRuntimeState
 const FREE_ROLLING_STRAIGHT_YAW_THRESHOLD_RAD_S: float = 0.05
 const FREE_ROLLING_STRAIGHT_LATERAL_THRESHOLD_MPS: float = 0.25
 const FREE_ROLLING_STRAIGHT_STEERING_THRESHOLD_RAD: float = 0.02
-const FREE_ROLLING_DISCONTINUITY_THRESHOLD_MPS: float = 1.0
+const FREE_ROLLING_DISCONTINUITY_THRESHOLD_MPS: float = 0.25
 
 var start_transform: Transform3D
 var forward_speed: float = 0.0
@@ -260,6 +260,16 @@ func synchronize_wheel_contacts_from_aggregate() -> void:
 			ground_normal,
 			support_per_wheel
 		)
+		# Aggregate contact is used by deterministic simulations that may seed body
+		# speed directly. Initialize a previously stationary wheel to road speed before
+		# slip is resolved, preventing a one-step fictitious braking impulse.
+		if (
+			absf(wheel.angular_velocity_rad_s)
+			<= WheelRotationalDynamicsModel.ANGULAR_STOP_THRESHOLD_RAD_S
+			and absf(forward_speed)
+			>= WheelRotationalDynamicsModel.MIN_REFERENCE_SPEED_MPS
+		):
+			wheel.set_rolling_speed(forward_speed)
 		wheel.lateral_slip_intensity = lateral_slip_intensity
 		wheel.longitudinal_slip_ratio = longitudinal_slip_ratio
 		wheel.longitudinal_slip_intensity = longitudinal_slip_intensity
