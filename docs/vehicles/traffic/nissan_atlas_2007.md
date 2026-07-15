@@ -1,15 +1,17 @@
-# Nissan Atlas / Cabstar F24 single-cab flatbed — research and owner-scope gate
+# Nissan Atlas / Cabstar F24 single-cab flatbed — research and approved scope
 
 - Model number in Traffic Rider bundle: **17**
 - Source GLB: `17_nissan_atlas_2007.glb`
 - Source Git blob SHA-1: `8dcc240c7b26ec1821d30da11d3cf08e7f9daccf`
 - Source SHA-256: **pending direct binary hash capture before integration**
 - Research date: 2026-07-15
-- Workflow status: **`awaiting_owner_scope`**
+- Owner decision date: 2026-07-15
+- Workflow status: **`approved`**
+- Approved implementation scope: **8 RWD Nissan Atlas / Cabstar F24 configurations**
 - Physics baseline inspected during research: `master` at `56f6ce9ca13f7fc8fb268493bff5d142d353bb53`
 - Global implementation gate: no geometry, catalog, physics, transmission or audio implementation begins until every included model has reached `approved`.
 
-## Visual identity
+## Visual identity and body policy
 
 The source is the low-polygon **2007 Nissan Atlas / Cabstar F24 single-cab flatbed** sold by TAURUS3D/TurboSquid as product 720552 and subsequently included in the Traffic Rider bundle.
 
@@ -24,7 +26,9 @@ The source product and committed inventory agree on:
 - 1,996 rendered triangles and 1,012 source vertices;
 - no box, tipper, crew cab, refrigerated body, camper, crane or specialist equipment.
 
-The visual is therefore closest to a light Japanese Atlas F24 / Atlas 10 flatbed, not the heavier Isuzu-derived H43 Atlas and not the later Mitsubishi-Fuso-derived NT450 Atlas.
+The visual is closest to a light Japanese Atlas F24 / Atlas 10 flatbed, not the heavier Isuzu-derived H43 Atlas and not the later Mitsubishi-Fuso-derived NT450 Atlas.
+
+The owner approved the source-like narrow single-cab dropside flatbed with single rear wheels for every retained row. This is an explicit body homogenization and does not claim that every European Cabstar or heavier-payload drivetrain was sold with the exact source body.
 
 ## Reference dimensions and source inspection
 
@@ -42,85 +46,83 @@ The visual is therefore closest to a light Japanese Atlas F24 / Atlas 10 flatbed
 
 The committed GLB remains unchanged. Before integration, the source must be parsed directly to capture its SHA-256, node hierarchy, hub centres, AABB, front axis and wheelbase-derived scale. Four independent hub-centred wheel nodes and project-authored collision remain mandatory.
 
-## Research boundary
+## Approved research boundary
 
-The represented generation is the **Nissan F24 light-truck platform**, launched as Cabstar in Europe in 2006 and as Atlas in Japan on 14 June 2007.
+The approved generation is the **Nissan F24 light-truck platform**, launched as Cabstar in Europe in 2006 and as Atlas in Japan on 14 June 2007.
 
-Two distinct market scopes exist:
+Two market families remain in scope:
 
-1. **Japanese Atlas F24 / Atlas 10 source scope**
+1. **Japanese Atlas F24 / Atlas 10**
    - QR20DE 1.998L naturally aspirated petrol inline-four;
    - ZD30DDTi 2.953L common-rail turbo-diesel inline-four;
    - five-speed manual, six-speed manual and five-speed torque-converter automatic architectures;
-   - rear-wheel drive, with a documented diesel 4WD branch in the F24 lifecycle;
-   - 1.15-, 1.5-, 1.75- and 2.0-ton-class chassis/body applications.
+   - rear-wheel drive only in the approved project scope;
+   - one representative 1.5-t or heavier 1.75/2.0-t chassis calibration where mechanically required.
 
-2. **European Nissan Cabstar F24 / later NT400 scope**
+2. **European Nissan Cabstar F24 / later NT400 family**
    - YD25DDTi 2.5L turbo-diesel at approximately 110 and 130 PS in the original range;
    - ZD30DDTi 3.0L turbo-diesel at approximately 150 PS;
    - five- and six-speed conventional manual gearboxes;
    - rear-wheel drive;
-   - mechanically close to the Renault Maxity rows already researched for model 12.
+   - mechanical overlap with the Renault Maxity rows already approved for model 12 is accepted because this remains a separate Nissan model and body.
 
-The source visual can represent either badge family externally, but the Japanese and European powertrain matrices may not be mixed into fictional combinations.
+Japanese and European engines, transmissions and gearing may not be mixed into fictional combinations.
 
-## Mechanically consolidated candidate matrix
+## Owner-directed scope rules
 
-### Japanese Atlas F24 source-era candidates
+- retain every researched RWD row: five Japanese Atlas rows and three European Cabstar rows;
+- exclude the ZD30DDTi 4WD row and all transfer-case/front-drive implementation for model 17;
+- retain QR20DE and ZD30DDTi five-speed automatic rows as approved-scope but evidence-blocked configurations;
+- prohibit implementation of an evidence-blocked row until primary Nissan ordering data confirms the gearbox code, ratios, converter and valid engine application;
+- use the source-like narrow single-cab dropside flatbed with single rear wheels for all eight rows;
+- use one representative light/unladen payload state per row and omit body, cab, wheelbase, bed-height and GVW duplicates;
+- retain distinct mass, axle, final-drive and gearing calibration where a row represents a heavier 1.75/2.0-t chassis;
+- use the initial 2007 Japanese calibration by default and create a later calibration only when primary data proves a mechanically distinct torque curve or ratio set;
+- exclude Canter Guts, Ashok Leyland, Dongfeng, UD/Isuzu OEM badges and specialist body conversions;
+- no additional F24 engine, transmission or drivetrain variant was requested by the owner.
 
-| # | Engine | Transmission | Drivetrain / chassis policy | Evidence state |
+## Approved configuration matrix
+
+### Japanese Atlas F24 — 5 RWD configurations
+
+| # | Engine | Transmission | Drivetrain / chassis policy | Status |
 |---:|---|---|---|---|
-| 1 | QR20DE 1.998L naturally aspirated petrol inline-four, source-era truck calibration | 5-speed conventional manual | RWD; one representative light flatbed final drive, differential and approximately 1.5-t payload state | `verified_engine_and_architecture`; exact launch ordering code, ratios and output require primary table |
-| 2 | QR20DE 1.998L petrol | 5-speed Aisin-family torque-converter automatic | RWD; one representative light flatbed final drive, differential and approximately 1.5-t payload state | `candidate`; exact QR20DE/5AT launch application and gearbox code require primary confirmation |
-| 3 | ZD30DDTi 2.953L common-rail turbo-diesel inline-four, initial F24 calibration | 5-speed conventional manual | RWD; one representative 1.5-t flatbed state | `verified_engine_and_architecture`; exact model code, output, ratios and final drive require primary table |
-| 4 | ZD30DDTi 2.953L common-rail turbo-diesel | 5-speed torque-converter automatic | RWD; one representative 1.5-t flatbed state | `candidate`; exact diesel/5AT launch application and gearbox code require primary confirmation |
-| 5 | ZD30DDTi 2.953L common-rail turbo-diesel | 6-speed conventional manual | RWD; one representative heavier 1.75/2.0-t gearing and axle state | `verified_architecture`; contemporary range evidence ties 1.75–2.0-t models to six-speed gearing, exact model code pending |
-| 6 | ZD30DDTi 2.953L common-rail turbo-diesel | 5-speed conventional manual | 4WD; one representative 1.5-t transfer-case/front-drive state | `verified_lifecycle_branch / source-era evidence blocked`; exact introduction date and launch combination require primary confirmation |
+| 1 | QR20DE 1.998L naturally aspirated petrol inline-four, source-era truck calibration | 5-speed conventional manual | RWD; one representative light-flatbed final drive, differential and approximately 1.5-t payload state | **approved** |
+| 2 | QR20DE 1.998L petrol | 5-speed Aisin-family torque-converter automatic | RWD; one representative light-flatbed final drive, differential and approximately 1.5-t payload state | **approved scope / evidence blocked** |
+| 3 | ZD30DDTi 2.953L common-rail turbo-diesel inline-four, initial F24 calibration | 5-speed conventional manual | RWD; one representative 1.5-t flatbed state | **approved** |
+| 4 | ZD30DDTi 2.953L common-rail turbo-diesel | 5-speed torque-converter automatic | RWD; one representative 1.5-t flatbed state | **approved scope / evidence blocked** |
+| 5 | ZD30DDTi 2.953L common-rail turbo-diesel | 6-speed conventional manual | RWD; one representative heavier 1.75/2.0-t gearing and axle state | **approved** |
 
-### European Nissan Cabstar F24 candidates
+### European Nissan Cabstar F24 — 3 RWD configurations
 
-| # | Engine | Transmission | Drivetrain / chassis policy | Evidence state |
+| # | Engine | Transmission | Drivetrain / chassis policy | Status |
 |---:|---|---|---|---|
-| 7 | YD25DDTi 2.5L common-rail turbo-diesel, approximately 110 PS | 5-speed conventional manual | RWD; one standard final drive and differential | `verified_family`; mechanically overlaps Renault Maxity row 1 |
-| 8 | YD25DDTi 2.5L common-rail turbo-diesel, approximately 130 PS | 6-speed conventional manual | RWD; one standard final drive and differential | `verified_family`; mechanically overlaps Renault Maxity row 2 |
-| 9 | ZD30DDTi 3.0L common-rail turbo-diesel, approximately 150 PS / 350-Nm class | 6-speed conventional manual | RWD; one standard final drive and differential | `verified_family`; mechanically overlaps Renault Maxity row 3 |
+| 6 | YD25DDTi 2.5L common-rail turbo-diesel, approximately 110 PS | 5-speed conventional manual | RWD; one standard final drive and differential | **approved** |
+| 7 | YD25DDTi 2.5L common-rail turbo-diesel, approximately 130 PS | 6-speed conventional manual | RWD; one standard final drive and differential | **approved** |
+| 8 | ZD30DDTi 3.0L common-rail turbo-diesel, approximately 150 PS / 350-Nm class | 6-speed conventional manual | RWD; one standard final drive and differential | **approved** |
 
-**Mechanically consolidated candidate total: 9 configurations.**
+**Approved total: 5 Japanese RWD + 3 European RWD = 8 Nissan Atlas / Cabstar F24 configurations.**
 
-Rows 2, 4 and 6 remain evidence-blocked. Approval would retain them in scope only as confirmation-gated rows: implementation may not invent gearbox codes, ratios, launch devices, transfer-case behaviour or final drives if primary Nissan ordering data fails to confirm them.
+## Explicitly excluded 4WD configuration
 
-## Calibration-revision policy candidates
+The previously researched ZD30DDTi plus five-speed-manual 4WD candidate is excluded. Model 17 will not receive a transfer case, driven front axle, front differential, front half-shafts, 4WD engagement state or 4WD-specific mass and steering calibration.
 
-The Japanese F24 received documented engine-output and transmission-ratio revisions in 2009 and further emissions/fuel-economy changes in 2010–2012. These revisions should not automatically create duplicate catalog rows.
+## Calibration-revision policy
 
-Recommended policy:
+The Japanese F24 received documented engine-output and transmission-ratio revisions in 2009 and further emissions/fuel-economy changes in 2010–2012. These revisions do not automatically create duplicate catalog rows.
 
-- use the initial 2007 calibration for the strict source-era rows;
-- treat 2009/2010/2012 emissions, injection, exhaust and ratio changes as metadata unless a revision changes performance or gearing enough to be mechanically distinct;
-- add a separate late calibration only when primary Nissan specifications demonstrate a different output curve or gearbox/final-drive set;
-- exclude 2013 Mitsubishi Fuso Canter Guts rebadges, Ashok Leyland Partner/Garuda, Dongfeng Captain and other OEM derivatives from the Nissan Atlas catalog.
-
-## Body, payload and axle policy candidates
-
-The source is one narrow single-cab flatbed with single rear wheels. Available F24 production bodies also include crew cabs, longer wheelbases, low-floor beds, dual-rear-wheel chassis, boxes, tippers and refrigerated bodies.
-
-Recommended project policy:
-
-- use the source-like narrow single-cab dropside flatbed for all approved rows;
-- use one representative light/unladen state per row rather than payload-selectable duplicates;
-- retain different axle, gearing and mass calibration where the approved mechanical row represents a 1.5-t versus 1.75/2.0-t chassis;
-- do not visually claim that the same single-rear-wheel flatbed was the exact factory body for every Cabstar and heavy-payload combination;
-- exclude body, cab, wheelbase, bed-height, GVW and payload-state duplicates from the catalog.
+- initial 2007 calibration is the strict source-era default;
+- 2009/2010/2012 emissions, injection, exhaust and ratio changes remain metadata unless a revision changes performance or gearing enough to be mechanically distinct;
+- a separate late calibration requires primary Nissan evidence for a different output curve or gearbox/final-drive set;
+- Mitsubishi Fuso Canter Guts, Ashok Leyland Partner/Garuda, Dongfeng Captain and other OEM derivatives remain excluded.
 
 ## Chassis and transmission requirements
 
-Every RWD row requires a cab-over ladder frame, longitudinal engine, dry clutch or hydrodynamic converter, exact gearbox, prop shaft, live driven rear axle, leaf-spring rear suspension and source-body-correct mass, tyre, brake and drag calibration.
+Every row requires a cab-over ladder frame, longitudinal engine, dry clutch or hydrodynamic converter, exact gearbox, prop shaft, live driven rear axle, leaf-spring rear suspension and source-body-correct mass, tyre, brake and drag calibration.
 
 The five-speed automatic must be represented as a conventional torque-converter planetary automatic with converter multiplication, creep, progressive lock-up, hydraulic shift phases and kickdown. It may not reuse a manual or automated-manual model.
 
 The six-speed manual is a separate gearset from the five-speed manual. Heavy-payload gearing may not be reproduced by applying only a speed cap.
-
-The 4WD candidate requires its real transfer case, front differential, front half-shafts, torque split and engagement state. It may not use a generic traction multiplier.
 
 ## Engine and driveline audio architecture
 
@@ -134,32 +136,20 @@ The YD25DDTi Cabstar rows require a separate 2.5L common-rail commercial-diesel 
 
 Before implementation retain primary Nissan Japan and Nissan Europe documentation for:
 
-- exact 2007 Japanese model codes and valid engine/transmission/drivetrain combinations;
+- exact 2007 Japanese model codes and valid engine/transmission combinations;
 - QR20DE truck output, torque curve, idle, rev limit and emissions calibration;
 - ZD30DDTi initial and revised output/torque curves;
 - five-speed manual, six-speed manual and automatic gearbox codes and all ratios;
 - automatic converter stall ratio, lock-up map and shift behaviour;
-- exact 4WD introduction date, transfer-case architecture and permitted engine/gearbox combinations;
 - one standard final drive, differential and tyre size per approved row;
 - source-body wheelbase, kerb mass, payload, axle loads, centre of gravity, steering, brakes and suspension;
 - drag/frontal area and documented performance targets;
 - direct GLB SHA-256, hierarchy, wheel centres, AABB and scale.
 
-Secondary sources establish the platform, engine families, broad transmission architectures and market split, but they do not yet justify guessing the evidence-blocked combinations.
+Secondary sources establish the platform, engine families, broad transmission architectures and market split, but they do not authorize guessed parameters for the evidence-blocked automatic rows.
 
-## Owner scope decision — required before implementation
+## Owner decision recorded
 
-Status remains **`awaiting_owner_scope`**.
+The owner approved all eight researched RWD configurations, including all three European Cabstar rows, and excluded only the 4WD candidate.
 
-Please decide:
-
-1. Include all six Japanese candidates, or only the five RWD rows?
-2. Include the three European Cabstar rows even though they mechanically overlap the already approved Renault Maxity diesel rows?
-3. Retain evidence-blocked rows 2, 4 and 6 pending primary confirmation, or exclude them now?
-4. Use the source-like narrow single-cab dropside flatbed with single rear wheels for every approved row?
-5. Use one representative light/unladen payload state per row and omit body, cab, wheelbase, bed-height and GVW duplicates?
-6. Keep the initial 2007 Japanese calibration as the default and add later revisions only when primary data proves a mechanically distinct curve or ratio set?
-7. Exclude Canter Guts, Ashok Leyland, Dongfeng, UD/Isuzu OEM badges and specialist body conversions?
-8. Is any expected F24 engine, transmission or drivetrain variant missing?
-
-No implementation begins after this individual decision. Research proceeds to model 18 only after the owner fixes model 17 scope, and implementation begins only after every included model has reached `approved`.
+Model 17 is **`approved`** with **8** configurations. Implementation remains blocked by the global all-model research gate. Research proceeds to model 18.
