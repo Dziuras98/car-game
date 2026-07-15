@@ -10,31 +10,28 @@ func _initialize() -> void:
 	var inventory := _read_text(INVENTORY_PATH)
 	var research := _read_text(RESEARCH_PATH)
 	for fragment: String in [
-		"North American 2014 Mazda3 BM five-door high-grade 2.5-style source | passenger hatchback | 1,842 | `awaiting_owner_scope`",
-		"19 mechanically consolidated global powertrain rows, including i-ACTIV AWD and sedan-only SKYACTIV-HYBRID",
-		"After model 14 is approved, research continues with model 15",
+		"North American 2014 Mazda3 BM five-door high-grade 2.5-style source with approved global BM/BN/BY scope | passenger hatchback | 1,842 | `approved`",
+		"| 14 — Mazda3 BM / BN / BY | `docs/vehicles/traffic/mazda_3_2014.md` | 19 |",
+		"After model 15 is approved, research continues with model 16",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves: %s" % fragment)
 	for fragment: String in [
-		"Mazda3 BM / BN five-door hatchback — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Mazda3 BM / BN five-door hatchback — research and approved scope",
+		"Workflow status: **`approved`**",
 		"Source SHA-256: `9b0877f05ffcbb6731b2db8a2d7dbaa07fb867c0bbab1d6596b83e2c87e055ad`",
-		"North American 2014 Mazda3 five-door hatchback",
+		"Approved implementation scope: **19 mechanically distinct Mazda3 / Axela BM, BN and BY configurations**",
 		"Wheelbase | approximately 2,700 mm / 2.700 m",
 		"Total triangles | 1,842",
-		"Source wheelbase | approximately 3.804384 source units",
 		"Approximate wheelbase-derived scale | 0.709707",
-		"Mechanically consolidated candidate total: 19 configurations",
-		"1.5L SKYACTIV-G P5-VPS",
-		"2.5L SKYACTIV-G PY-VPS",
-		"1.5L SKYACTIV-D S5-DPTS/S5-DPTR",
-		"2.2L SKYACTIV-D SH-VPTR",
+		"regional 1.6L MZR Z6 MPI",
 		"i-ACTIV AWD",
-		"SKYACTIV-HYBRID",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"Axela SKYACTIV-HYBRID",
+		"Approved total: 11 petrol + 7 diesel + 1 hybrid = 19 mechanically distinct configurations",
+		"Model 14 is **`approved`** with **19** configurations",
+		"Research proceeds to model 15",
 	]:
 		_expect(research.contains(fragment), "Mazda3 research preserves: %s" % fragment)
+	_expect(not research.contains("Workflow status: **`awaiting_owner_scope`**"), "Mazda3 owner gate is closed")
 	_finish()
 
 func _read_text(path: String) -> String:
