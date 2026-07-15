@@ -40,6 +40,7 @@ const EXCURSION_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_excurs
 const F150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_f150_limited_2013.md"
 const TRANSIT_CONNECT_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_transit_connect_2011.md"
 const FREELANDER_RESEARCH_PATH: String = "res://docs/vehicles/traffic/land_rover_freelander_2_2012.md"
+const GOLF_RESEARCH_PATH: String = "res://docs/vehicles/traffic/volkswagen_golf_vii_2013.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -95,9 +96,9 @@ func _test_inventory_and_global_gate() -> void:
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01, 02, 03, 04, 05, 06, 07 and 08 have passed their individual owner-scope gates",
-		"09 — Land Rover Freelander 2 / LR2 L359",
-		"After model 09 is approved, research continues with model 10",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08 and 09 have passed their individual owner-scope gates",
+		"10 — Volkswagen Golf VII hatchback",
+		"After model 10 is approved, research continues with model 11",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory preserves")
 	for asset_path: String in SOURCE_ASSETS:
@@ -115,7 +116,8 @@ func _test_model_scopes() -> void:
 		"| 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 |",
 		"| 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 |",
 		"| 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 |",
-		"Land Rover LR2 HSE 2012, Freelander 2 L359 first-facelift source | SUV | 2,130 | `awaiting_owner_scope`",
+		"| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 |",
+		"Volkswagen Golf VII five-door European pre-facelift standard TSI source | passenger hatchback | 1,982 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves scope: %s" % required_fragment)
 
@@ -160,28 +162,40 @@ func _test_model_scopes() -> void:
 
 	var transit: String = _read_text(TRANSIT_CONNECT_RESEARCH_PATH)
 	_expect_fragments(transit, PackedStringArray([
-		"Ford Transit Connect first generation — research and approved scope",
 		"Workflow status: **`approved`**",
 		"Approved implementation scope: **6 mechanically consolidated first-generation powertrain configurations**",
 		"merged 75-PS early/late row",
 		"dedicated BorgWarner single-speed fixed-reduction transaxle",
 		"Approved total: 6 mechanically consolidated Ford Transit Connect first-generation configurations",
-		"Model 08 is **`approved`** with **6** configurations",
-		"Research proceeds to model 09",
 	]), "Transit Connect scope preserves")
 	_expect(not transit.contains("Workflow status: **`awaiting_owner_scope`**"), "Transit Connect owner gate is closed")
 
-	_expect_fragments(_read_text(FREELANDER_RESEARCH_PATH), PackedStringArray([
-		"Land Rover Freelander 2 / LR2 L359 — research and owner-scope gate",
+	var freelander: String = _read_text(FREELANDER_RESEARCH_PATH)
+	_expect_fragments(freelander, PackedStringArray([
+		"Land Rover Freelander 2 / LR2 L359 — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **8 mechanically distinct Freelander 2 / LR2 engine, transmission and drivetrain configurations**",
+		"Approved total: 8 mechanically distinct Land Rover Freelander 2 / LR2 L359 configurations",
+		"front-wheel drive only",
+		"on-demand AWD",
+		"Model 09 is **`approved`** with **8** configurations",
+		"Research proceeds to model 10",
+	]), "Freelander 2 scope preserves")
+	_expect(not freelander.contains("Workflow status: **`awaiting_owner_scope`**"), "Freelander 2 owner gate is closed")
+
+	_expect_fragments(_read_text(GOLF_RESEARCH_PATH), PackedStringArray([
+		"Volkswagen Golf VII hatchback — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source SHA-256: `ba2cd619b59ff52a0e44ff48e17ea5fc91f89d59cdb4012597dc3b2628a20191`",
-		"North American 2012 Land Rover LR2 HSE",
-		"Mechanically consolidated candidate total: 8 rows",
-		"Volvo SI6 3.2L naturally aspirated transverse inline-six",
-		"2.2L eD4 turbo-diesel inline-four",
-		"2.0L Si4 direct-injected turbocharged petrol inline-four",
+		"Source SHA-256: `d8ff27d0dd2dbfed76723cbe7c04d042af891a127a68fe0dbdbe8946f2220260`",
+		"European/German-market 2013 Volkswagen Golf VII five-door hatchback",
+		"Mechanically consolidated candidate total: 63 configurations",
+		"DQ200 seven-speed dry DSG",
+		"DQ250 six-speed wet DSG",
+		"DQ381 seven-speed wet DSG",
+		"DQ400e hybrid DSG",
+		"e-Golf single-speed reduction",
 		"Owner scope decision — required before implementation",
-	]), "Freelander 2 gate preserves")
+	]), "Golf VII gate preserves")
 
 
 func _test_provenance_contract() -> void:
