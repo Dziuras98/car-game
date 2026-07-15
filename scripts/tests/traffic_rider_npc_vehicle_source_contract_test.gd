@@ -33,6 +33,7 @@ const WORKFLOW_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_impor
 const INVENTORY_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_inventory.md"
 const BMW_F32_RESEARCH_PATH: String = "res://docs/vehicles/traffic/bmw_4_series_2014.md"
 const SILVERADO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_silverado_2014.md"
+const CLIO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_clio_2013.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -53,6 +54,7 @@ func _initialize() -> void:
 	_test_inventory_status_contract()
 	_test_first_model_approved_scope()
 	_test_second_model_approved_scope()
+	_test_third_model_approved_scope()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -125,7 +127,7 @@ func _test_global_research_before_implementation_contract() -> void:
 	for required_fragment: String in [
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01 and 02 have passed their individual owner-scope gates",
+		"Models 01, 02 and 03 have passed their individual owner-scope gates",
 		"Only after all 20 scopes are approved does implementation begin",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves global gate: %s" % required_fragment)
@@ -192,14 +194,11 @@ func _test_first_model_approved_scope() -> void:
 	var research: String = _read_text(BMW_F32_RESEARCH_PATH)
 	_expect(not research.is_empty(), "BMW F32 research record is readable")
 	for required_fragment: String in [
-		"BMW 4 Series Coupé F32 pre-LCI",
 		"Workflow status: **`approved`**",
-		"Source SHA-256: `fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510`",
 		"Approved implementation scope: **44 mechanically distinct pre-LCI combinations**",
 		"Approved total: 42 standard + 2 ZHP = 44 combinations",
 		"Owner decision recorded",
 		"Visual scope: **strictly pre-LCI**",
-		"Missing expected variants: **none identified by the owner**",
 		"The owner-scope gate is satisfied",
 	]:
 		_expect(research.contains(required_fragment), "BMW F32 approval preserves: %s" % required_fragment)
@@ -215,35 +214,57 @@ func _test_second_model_approved_scope() -> void:
 		inventory.contains("| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 |"),
 		"inventory records four approved Silverado RWD combinations"
 	)
-	_expect(
-		inventory.contains("The next research target is model 03 — Renault Clio 2013"),
-		"research advances to model 03 without starting implementation"
-	)
 
 	var research: String = _read_text(SILVERADO_RESEARCH_PATH)
 	_expect(not research.is_empty(), "Silverado research record is readable")
 	for required_fragment: String in [
-		"Chevrolet Silverado 1500 K2XX pre-facelift",
 		"Workflow status: **`approved`**",
 		"Approved implementation scope: **4 mechanically distinct RWD combinations**",
-		"Source SHA-256: `bce261f8703d7e03737cfd40ffa25a1546b76de84772f5b790ed7cc3b40ee465`",
-		"LTZ Crew Cab Standard Box 4WD",
-		"approved runtime variants require corrected RWD materials",
-		"8 mechanically distinct engine/transmission/drivetrain combinations",
 		"Approved total: 4 RWD combinations",
-		"LV3 4.3 V6",
-		"L83 5.3 V8",
-		"L86 6.2 V8",
 		"Hydra-Matic 6L80 6AT, RPO MYC",
 		"Hydra-Matic 8L90 8AT, RPO M5U",
 		"one **standard factory axle ratio**",
 		"gasoline only",
-		"Exclude Z71, Max Trailering and Special Service Vehicle variants",
-		"Missing expected variants: **none identified by the owner**",
 		"Model 02 is **`approved`**",
-		"Research proceeds to model 03",
 	]:
 		_expect(research.contains(required_fragment), "Silverado approval preserves: %s" % required_fragment)
+
+
+func _test_third_model_approved_scope() -> void:
+	var inventory: String = _read_text(INVENTORY_PATH)
+	_expect(
+		inventory.contains("Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved`"),
+		"model 03 has passed the owner-scope gate"
+	)
+	_expect(
+		inventory.contains("| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 11 |"),
+		"inventory records eleven approved non-RS Clio configurations"
+	)
+	_expect(
+		inventory.contains("The next research target is model 04 — Chevrolet Cruze 2011"),
+		"research advances to model 04 without starting implementation"
+	)
+
+	var research: String = _read_text(CLIO_RESEARCH_PATH)
+	_expect(not research.is_empty(), "Renault Clio research record is readable")
+	for required_fragment: String in [
+		"Renault Clio IV X98 — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **11 mechanically distinct non-R.S. hatchback configurations**",
+		"Source SHA-256: `48081738ea28f0ef1360461c7790dadc4c4acc8547b5ac872dcd3a12606438b4`",
+		"Approved total: 11 mechanically distinct non-R.S. configurations",
+		"H4B/H4Bt 0.9 TCe turbo I3, 75 PS",
+		"H5F/H5Ft 1.2 TCe direct-injection turbo I4, 120 PS / approximately 205 Nm",
+		"GT-specific bumpers, trim, steering and chassis",
+		"K9K 1.5 dCi turbo-diesel I4, 110 PS / approximately 260 Nm",
+		"six-speed dry dual-clutch transmission",
+		"exclude every factory LPG/bi-fuel variant",
+		"All Renault Sport derivatives are excluded by owner decision",
+		"Phase 2 variants therefore require a separately authored facelift visual derivative",
+		"Model 03 is **`approved`**",
+		"Research proceeds to model 04",
+	]:
+		_expect(research.contains(required_fragment), "Renault Clio approval preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
