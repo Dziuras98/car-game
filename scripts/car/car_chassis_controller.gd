@@ -5,9 +5,9 @@ const PROBE_END_MARGIN: float = 0.05
 const REFERENCE_FRONT_TIRE_WIDTH_M: float = 0.225
 const REFERENCE_REAR_TIRE_WIDTH_M: float = 0.245
 const DEFAULT_SURFACE_GRIP_MULTIPLIER: float = 1.0
-const PER_WHEEL_LATERAL_SHARE: float = 1.0 / 4.0
 
 var _tire_model: TireModel = TireModel.new()
+var _lateral_tire_model: LateralTireDynamicsModel = LateralTireDynamicsModel.new()
 var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
 var _ground_contact_model: GroundContactModel = GroundContactModel.new()
 var _config: CarDriveConfig
@@ -109,43 +109,100 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 
 func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_active: bool, delta: float) -> void:
 	state.synchronize_wheel_contacts_from_aggregate()
+	_set_wheel_steering_angles(state, steering)
+	state.lateral_acceleration_mps2 = 0.0
+	state.yaw_acceleration_rad_s2 = 0.0
+	state.yaw_moment_nm = 0.0
 	if state.ground_contact_count <= 0:
-		state.clear_wheel_tire_dynamics()
+		for wheel: WheelTireState in state.wheel_states:
+			wheel.reset_lateral_dynamics()
+			wheel.tire_slip_intensity = wheel.longitudinal_slip_intensity
+		state.update_slip_aggregates()
 		return
 
-	for wheel: WheelTireState in state.wheel_states:
-		if not wheel.has_contact:
-			continue
-		var wheel_handbrake_active: bool = handbrake_active
-		state.lateral_speed = _tire_model.recover_lateral_speed(
-			state.lateral_speed,
-			_get_wheel_effective_lateral_grip(wheel.wheel_index) * PER_WHEEL_LATERAL_SHARE,
-			_config.handbrake_lateral_grip_multiplier,
-			wheel_handbrake_active,
-			delta,
-			wheel.surface_grip_multiplier
-		)
+	var safe_delta: float = maxf(delta, 0.0)
+	var mass: float = maxf(_config.vehicle_mass, 1.0)
+	var total_lateral_force_n: float = 0.0
+	var total_yaw_moment_nm: float = 0.0
+	var longitudinal_acceleration: float = _get_previous_longitudinal_acceleration(state)
 
 	for wheel: WheelTireState in state.wheel_states:
 		if not wheel.has_contact:
-			wheel.reset_tire_dynamics()
+			wheel.reset_lateral_dynamics()
+			wheel.tire_slip_intensity = wheel.longitudinal_slip_intensity
 			continue
-		var wheel_steering: float = steering if wheel.is_front() else 0.0
-		var wheel_handbrake_active: bool = handbrake_active and wheel.is_rear()
-		wheel.lateral_slip_intensity = _tire_model.calculate_slip_intensity(
-			state.lateral_speed,
+		var forward_offset_m: float = _lateral_tire_model.get_wheel_forward_offset_m(
+			_config,
+			wheel.wheel_index
+		)
+		var lateral_offset_m: float = _lateral_tire_model.get_wheel_lateral_offset_m(
+			_config,
+			wheel.wheel_index
+		)
+		var wheel_velocity: Vector2 = _lateral_tire_model.get_wheel_local_velocity(
 			state.forward_speed,
-			wheel_steering,
-			_config.steering_slip_gain,
-			_config.slip_speed_threshold,
-			_config.max_forward_speed,
-			wheel_handbrake_active
+			state.lateral_speed,
+			state.yaw_rate_rad_s,
+			forward_offset_m,
+			lateral_offset_m
+		)
+		var lateral_grip: float = _get_wheel_effective_lateral_grip(wheel.wheel_index)
+		var tire_width: float = _config.front_tire_width_m if wheel.is_front() else _config.rear_tire_width_m
+		var peak_slip_angle: float = _lateral_tire_model.get_peak_slip_angle_rad(
+			lateral_grip,
+			tire_width,
+			_config.steering_slip_gain
+		)
+		wheel.lateral_slip_angle_rad = _lateral_tire_model.calculate_slip_angle_rad(
+			wheel_velocity.x,
+			wheel_velocity.y,
+			wheel.steering_angle_rad
+		)
+		var load_share: float = _get_dynamic_wheel_load_share(
+			state,
+			wheel,
+			longitudinal_acceleration
+		)
+		var handbrake_multiplier: float = (
+			_config.handbrake_lateral_grip_multiplier
+			if handbrake_active and wheel.is_rear()
+			else 1.0
+		)
+		var lateral_acceleration_contribution: float = _lateral_tire_model.resolve_lateral_acceleration(
+			wheel.lateral_slip_angle_rad,
+			wheel_velocity.x,
+			load_share,
+			lateral_grip,
+			wheel.surface_grip_multiplier,
+			wheel.longitudinal_slip_intensity,
+			peak_slip_angle,
+			handbrake_multiplier
+		)
+		wheel.lateral_force_n = lateral_acceleration_contribution * mass
+		wheel.lateral_slip_intensity = _lateral_tire_model.calculate_lateral_slip_intensity(
+			wheel.lateral_slip_angle_rad,
+			peak_slip_angle
 		)
 		wheel.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
 			wheel.lateral_slip_intensity,
 			wheel.longitudinal_slip_intensity
 		)
+		total_lateral_force_n += wheel.lateral_force_n
+		total_yaw_moment_nm += wheel.lateral_force_n * forward_offset_m
 
+	state.yaw_moment_nm = total_yaw_moment_nm
+	state.lateral_acceleration_mps2 = (
+		total_lateral_force_n / mass
+		- state.forward_speed * state.yaw_rate_rad_s
+	)
+	state.yaw_acceleration_rad_s2 = total_yaw_moment_nm / _lateral_tire_model.estimate_yaw_inertia_kg_m2(_config)
+	if safe_delta > 0.0:
+		state.lateral_speed += state.lateral_acceleration_mps2 * safe_delta
+		state.yaw_rate_rad_s = clampf(
+			state.yaw_rate_rad_s + state.yaw_acceleration_rad_s2 * safe_delta,
+			-_config.steering_speed,
+			_config.steering_speed
+		)
 	state.update_slip_aggregates()
 
 
@@ -160,24 +217,11 @@ func update_tires(state: CarRuntimeState, steering: float, handbrake_active: boo
 	update_skid_marks(state, car, skid_mark_emitter, delta)
 
 
-func update_steering(state: CarRuntimeState, steering: float, car: CharacterBody3D, delta: float) -> void:
-	var contact_factor: float = _get_ground_contact_factor(state)
-	if contact_factor <= 0.0:
+func update_steering(state: CarRuntimeState, _steering: float, car: CharacterBody3D, delta: float) -> void:
+	var yaw_step: float = state.yaw_rate_rad_s * maxf(delta, 0.0)
+	if absf(yaw_step) <= 0.000001:
 		return
-	var steering_amount: float = _get_slip_limited_steering(state, steering)
-	var absolute_forward_speed: float = absf(state.forward_speed)
-	if absf(steering_amount) < 0.01 or absolute_forward_speed < 0.35:
-		return
-	var horizontal_velocity: Vector3 = get_horizontal_velocity_vector(state, car.global_transform)
-	var speed_ratio: float = clampf(absolute_forward_speed / maxf(_config.max_forward_speed, 0.1), 0.0, 1.0)
-	var high_speed_steering_limit: float = lerpf(1.0, 0.42, _smoothstep(speed_ratio))
-	var steer_angle: float = deg_to_rad(_config.max_steering_angle_degrees) * steering_amount * high_speed_steering_limit
-	var grip_factor: float = lerpf(1.0, 0.38, state.tire_slip_intensity) * contact_factor
-	var axle_balance: float = _get_front_axle_yaw_factor()
-	var yaw_rate: float = tan(steer_angle) * state.forward_speed / maxf(_config.wheel_base, 0.1) * grip_factor * axle_balance
-	yaw_rate = clampf(yaw_rate, -_config.steering_speed, _config.steering_speed)
-	car.rotate_y(-yaw_rate * delta)
-	set_local_speeds_from_horizontal_velocity(state, car.global_transform, horizontal_velocity)
+	car.rotate_y(-yaw_step)
 
 
 func integrate_velocity(state: CarRuntimeState, car: CharacterBody3D, delta: float) -> void:
@@ -219,6 +263,52 @@ func set_local_speeds_from_horizontal_velocity(state: CarRuntimeState, car_trans
 	state.lateral_speed = local_speeds.y
 
 
+func _set_wheel_steering_angles(state: CarRuntimeState, steering: float) -> void:
+	var front_angles: Vector2 = _lateral_tire_model.get_ackermann_steering_angles(
+		steering,
+		_config.max_steering_angle_degrees,
+		_config.wheel_base,
+		_config.front_axle_track_width
+	)
+	state.wheel_states[WheelTireState.Position.FRONT_LEFT].steering_angle_rad = front_angles.x
+	state.wheel_states[WheelTireState.Position.FRONT_RIGHT].steering_angle_rad = front_angles.y
+	state.wheel_states[WheelTireState.Position.REAR_LEFT].steering_angle_rad = 0.0
+	state.wheel_states[WheelTireState.Position.REAR_RIGHT].steering_angle_rad = 0.0
+
+
+func _get_previous_longitudinal_acceleration(state: CarRuntimeState) -> float:
+	var acceleration: float = 0.0
+	for wheel: WheelTireState in state.wheel_states:
+		acceleration += wheel.applied_longitudinal_acceleration
+	return acceleration
+
+
+func _get_dynamic_wheel_load_share(
+	state: CarRuntimeState,
+	wheel: WheelTireState,
+	longitudinal_acceleration: float
+) -> float:
+	var base_share: float = _config.get_wheel_load_share(
+		wheel.wheel_index,
+		longitudinal_acceleration
+	)
+	var axle_fraction: float = (
+		_config.front_static_load_fraction
+		if wheel.is_front()
+		else 1.0 - _config.front_static_load_fraction
+	)
+	var track_width: float = _config.front_axle_track_width if wheel.is_front() else _config.rear_axle_track_width
+	var axle_transfer: float = (
+		absf(state.lateral_acceleration_mps2)
+		* _config.center_of_mass_height_m
+		/ maxf(TireModel.STANDARD_GRAVITY * track_width, 0.01)
+		* axle_fraction
+	)
+	var outside_sign: float = signf(state.lateral_acceleration_mps2)
+	var wheel_sign: float = 1.0 if wheel.is_left() else -1.0
+	return clampf(base_share + outside_sign * wheel_sign * axle_transfer * 0.5, 0.01, 0.49)
+
+
 func _get_surface_grip_multiplier(collider: CollisionObject3D) -> float:
 	if collider is TrackSurfaceBody:
 		return (collider as TrackSurfaceBody).get_grip_multiplier()
@@ -243,13 +333,6 @@ func _get_wheel_effective_lateral_grip(wheel_index: int) -> float:
 	)
 
 
-func _get_front_axle_yaw_factor() -> float:
-	var front_effective: float = _config.front_lateral_grip * sqrt(_config.front_tire_width_m / REFERENCE_FRONT_TIRE_WIDTH_M)
-	var rear_effective: float = _config.rear_lateral_grip * sqrt(_config.rear_tire_width_m / REFERENCE_REAR_TIRE_WIDTH_M)
-	var total: float = maxf(front_effective + rear_effective, 0.01)
-	return clampf(front_effective / total * 2.0, 0.72, 1.18)
-
-
 func _get_ground_contact_factor(state: CarRuntimeState) -> float:
 	return clampf(
 		float(state.ground_contact_count) / float(GroundContactModel.PROBE_COUNT),
@@ -263,16 +346,5 @@ func _smoothstep(value: float) -> float:
 	return clamped_value * clamped_value * (3.0 - 2.0 * clamped_value)
 
 
-func _get_slip_limited_steering(state: CarRuntimeState, steering: float) -> float:
-	var steering_amount: float = clampf(steering, -1.0, 1.0)
-	var lateral_slip_ratio: float = absf(state.lateral_speed) / maxf(_config.slip_speed_threshold, 0.1)
-	if lateral_slip_ratio < _config.slip_steering_lock_threshold:
-		return steering_amount
-	var slip_direction: float = signf(state.lateral_speed)
-	if signf(steering_amount) != slip_direction:
-		return steering_amount
-	var lock_range: float = maxf(1.0 - _config.slip_steering_lock_threshold, 0.01)
-	var lock_amount: float = clampf((lateral_slip_ratio - _config.slip_steering_lock_threshold) / lock_range, 0.0, 1.0)
-	var same_direction_multiplier: float = clampf(_config.slip_steering_same_direction_multiplier, 0.0, 1.0)
-	var steering_multiplier: float = lerpf(1.0, same_direction_multiplier, lock_amount)
-	return steering_amount * steering_multiplier
+func _get_slip_limited_steering(_state: CarRuntimeState, steering: float) -> float:
+	return clampf(steering, -1.0, 1.0)
