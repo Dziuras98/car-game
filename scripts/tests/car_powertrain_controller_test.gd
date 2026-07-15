@@ -196,6 +196,9 @@ func _test_fallback_drive_brake_and_reverse() -> void:
 	state.forward_speed = 0.0
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.20)
 	_expect(state.forward_speed < 0.0, "fallback brake from stop applies reverse acceleration")
+	for _step_index: int in range(3):
+		powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
+	_expect(state.forward_speed < -0.25, "fallback reverse exceeds the gear-indicator dead zone")
 	_expect(powertrain.get_gear_text(state) == "R", "fallback gear text reports reverse while moving backwards")
 
 
@@ -205,7 +208,7 @@ func _advance_shift(
 	throttle: float,
 	brake: float
 ) -> void:
-	for step: int in range(4):
+	for _step: int in range(4):
 		powertrain.update(state, throttle, brake, false, false, false, 0.10)
 
 
@@ -279,6 +282,7 @@ func _build_base_config() -> CarDriveConfig:
 	config.frontal_area = 2.05
 	config.air_density = 1.225
 	config.rolling_resistance_coefficient = 0.0
+	config.wheel_angular_damping_nm_per_rad_s = 0.0
 	config.sanitize()
 	return config
 
