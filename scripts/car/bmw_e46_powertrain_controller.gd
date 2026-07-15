@@ -4,10 +4,12 @@ class_name BmwE46PowertrainController
 var _torque_converter_automatic_model: AutomaticTransmissionModel = AutomaticTransmissionModel.new()
 var _smg_transmission_model: SmgTransmissionModel = SmgTransmissionModel.new()
 
+
 func reset(state: CarRuntimeState) -> void:
 	super.reset(state)
 	if _config != null and _config.is_smg_transmission():
 		state.clutch_engagement = 0.0
+
 
 func get_engine_load(state: CarRuntimeState) -> float:
 	if _config != null and _config.is_smg_transmission():
@@ -18,12 +20,16 @@ func get_engine_load(state: CarRuntimeState) -> float:
 		return state.throttle_input
 	return super.get_engine_load(state)
 
+
 func get_gear_text(state: CarRuntimeState) -> String:
 	if _config != null and _config.is_smg_transmission():
-		if state.current_gear < 0: return "R"
-		if state.current_gear == 0: return "N"
+		if state.current_gear < 0:
+			return "R"
+		if state.current_gear == 0:
+			return "N"
 		return "S%d" % state.current_gear
 	return super.get_gear_text(state)
+
 
 func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: float, gear_up_pressed: bool, gear_down_pressed: bool) -> void:
 	if _config == null:
@@ -56,6 +62,7 @@ func _update_transmission_input(state: CarRuntimeState, throttle: float, brake: 
 	if requested_gear != state.current_gear:
 		_set_transmission_gear(state, requested_gear)
 
+
 func _update_torque_converter_automatic_transmission(state: CarRuntimeState, throttle: float, brake: float) -> void:
 	var lower_gear_rpm: float = _config.idle_rpm
 	if state.current_gear > 1:
@@ -78,6 +85,7 @@ func _update_torque_converter_automatic_transmission(state: CarRuntimeState, thr
 	if requested_gear != state.current_gear:
 		_set_transmission_gear(state, requested_gear)
 
+
 func _set_transmission_gear(state: CarRuntimeState, next_gear: int) -> void:
 	if _config == null or not _config.is_smg_transmission():
 		super._set_transmission_gear(state, next_gear)
@@ -89,6 +97,7 @@ func _set_transmission_gear(state: CarRuntimeState, next_gear: int) -> void:
 	state.shift_timer = _config.smg_shift_delay
 	state.clutch_engagement = 0.0
 	_start_manual_shift_assist(state, previous_gear, next_gear)
+
 
 func _get_assisted_throttle(state: CarRuntimeState, requested_throttle: float) -> float:
 	if _config == null or not _config.is_smg_transmission():
@@ -106,6 +115,7 @@ func _get_assisted_throttle(state: CarRuntimeState, requested_throttle: float) -
 	var blip_throttle: float = clampf((_manual_shift_target_rpm - _config.idle_rpm) / usable_rpm_range, 0.0, 1.0)
 	return maxf(safe_throttle, blip_throttle)
 
+
 func _update_clutch(state: CarRuntimeState, throttle: float, delta: float) -> void:
 	if _config == null or not _config.is_smg_transmission():
 		super._update_clutch(state, throttle, delta)
@@ -120,6 +130,7 @@ func _update_clutch(state: CarRuntimeState, throttle: float, delta: float) -> vo
 		_config.smg_clutch_reengage_point
 	)
 
+
 func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
 	if _config == null or not _config.is_smg_transmission():
 		return super._get_wheel_driven_rpm(state)
@@ -127,18 +138,21 @@ func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
 		return _config.idle_rpm
 	return _get_coupled_engine_rpm_for_gear(state, state.current_gear)
 
+
 func _get_engine_free_rev_blend(state: CarRuntimeState) -> float:
 	if _config != null and _config.is_smg_transmission():
-		if state.current_gear == 0 or state.ground_contact_count <= 0:
+		if state.current_gear == 0:
 			return 1.0
 		return 1.0 - clampf(state.clutch_engagement, 0.0, 1.0)
 	return super._get_engine_free_rev_blend(state)
+
 
 func _get_transmission_drive_acceleration(state: CarRuntimeState, throttle: float) -> float:
 	var acceleration: float = super._get_transmission_drive_acceleration(state, throttle)
 	if _config != null and _config.is_smg_transmission():
 		acceleration *= _clutch_model.get_transmitted_torque_factor(state.clutch_engagement)
 	return acceleration
+
 
 func _get_torque_converter_torque_multiplier(drive_input: float) -> float:
 	if _config != null and _config.is_smg_transmission():
