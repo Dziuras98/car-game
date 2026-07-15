@@ -39,7 +39,7 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 1500 Crew Cab Standard Box RWD, K2XX pre-facelift | pickup | 2,232 | `approved` |
 | 3 | `03_renault_clio_2013.glb` | Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved` |
-| 5 | `05_ford_e150_2012.glb` | Ford E-150 Commercial Cargo Van, regular length, high-series exterior, 2012 | full-size van | 1,844 | `awaiting_owner_scope` |
+| 5 | `05_ford_e150_2012.glb` | Ford E-150 Commercial Cargo Van, regular length, approved 2008–2014 high-tier exterior scope | full-size van | 1,844 | `approved` |
 | 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 | SUV | 2,180 | `source_only` |
 | 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited 2013 | pickup | 1,758 | `source_only` |
 | 8 | `08_ford_transit_connect_2011.glb` | Ford Transit Connect 2011 | compact van | 1,650 | `source_only` |
@@ -66,16 +66,13 @@ Total committed source geometry: **40,300 triangles**.
 | 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 | all distinct pre-facelift engine/transmission combinations but RWD only: LV3+6L80, L83+6L80, L86+6L80 and L86+8L90; both 2014 and 2015; one verified standard axle ratio per row; gasoline only; no Z71, Max Trailering, SSV, 4WD or duplicate package/fuel entries |
 | 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération: D4F 65/75, H4B TCe 75/90, H5F TCe 120 6MT/EDC, K9K dCi 75/90 5MT, dCi 90 EDC and dCi 110 6MT; no GT, LPG, R.S., Estate, emissions-package or duplicate calibration rows; Phase 2 requires an accurate facelift visual |
 | 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 | all researched pre-facelift Chevrolet-badged J300 sedan engine/transmission rows: North American 1.8, 1.4T and LUZ diesel; pre-facelift European/export 1.6, 1.8 and 2.0 diesel families; China 1.6T; South American 1.8 manual/automatic on gasoline only; provisional rows included with evidence gates; no facelift-only, LPG, ethanol-state, Eco, hatchback, wagon or later-body entries |
+| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 8 | regular-length E-150 cargo body only; 4.6L and 5.4L V8 across distinct 2008, 2009–2010, 2011–2013 and 2014 eras; one verified standard axle ratio and open differential per row; gasoline only; high-tier year-correct exterior; no E85 state, CNG/LPG, Crew Van, Extended, Wagon, E-250/E-350 or package duplicates |
 
-Models 01, 02, 03 and 04 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04 and 05 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
-| Model | Research record | Candidate configurations | Blocking decision |
-|---|---|---:|---|
-| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 strict-source engine/transmission rows; 4 with both axle ratios; 8 with open/LSD split; 6/12/24 equivalents across all E-150 cargo/Wagon bodies | regular cargo only vs Extended/Wagon; both V8s; axle-ratio and differential policy; gasoline/E85; gaseous prep; Crew Van; appearance-package deduplication; 2012 vs 2008–2014; E-150-only vs E-250/E-350; missing variants |
-
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 05 is approved, research continues with model 06.
+None. The next research target is model 06 — Ford Excursion 2000. Research must be completed and presented before model 07 begins.
 
 ## Source topology
 
