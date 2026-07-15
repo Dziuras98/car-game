@@ -36,17 +36,20 @@ func _run() -> void:
 		var material: ShaderMaterial = plane_mesh.material as ShaderMaterial
 		_expect(material != null and material.shader != null, "grid plane uses a procedural shader")
 		if material != null and material.shader != null:
+			var minor_spacing: float = material.get_shader_parameter("minor_spacing")
+			var major_spacing: float = material.get_shader_parameter("major_spacing")
+			var minor_half_width: float = material.get_shader_parameter("minor_half_width")
+			var major_half_width: float = material.get_shader_parameter("major_half_width")
 			_expect(
-				is_equal_approx(float(material.get_shader_parameter("minor_spacing")), 1.0),
+				is_equal_approx(minor_spacing, 1.0),
 				"orange grid spacing is one metre"
 			)
 			_expect(
-				is_equal_approx(float(material.get_shader_parameter("major_spacing")), 10.0),
+				is_equal_approx(major_spacing, 10.0),
 				"red grid spacing is ten metres"
 			)
 			_expect(
-				float(material.get_shader_parameter("major_half_width"))
-				> float(material.get_shader_parameter("minor_half_width")),
+				major_half_width > minor_half_width,
 				"ten-metre red grid lines are thicker than one-metre orange lines"
 			)
 			_expect(
