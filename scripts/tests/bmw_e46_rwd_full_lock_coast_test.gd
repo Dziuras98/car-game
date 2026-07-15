@@ -49,16 +49,23 @@ func _run() -> void:
 	var delta: float = 1.0 / float(tick_rate)
 	var previous_position: Vector3 = car.global_position
 	var start_position: Vector3 = car.global_position
+	var previous_forward: Vector3 = -car.global_basis.z
+	previous_forward.y = 0.0
+	previous_forward = previous_forward.normalized()
+	var total_yaw_change_rad: float = 0.0
 	var max_center_speed: float = 0.0
 	var speed_at_release: float = 0.0
 	var final_center_speed: float = 0.0
 	var max_reported_center_error: float = 0.0
+	var max_snapshot_center_error: float = 0.0
 	var max_velocity_displacement_error: float = 0.0
 	var max_lateral_speed: float = 0.0
 	var max_slip: float = 0.0
 	var min_contacts: int = 4
 	var max_rpm: float = 0.0
 	var max_gear: int = 0
+	var gear_change_count: int = 0
+	var previous_gear: int = car.get_current_gear()
 	var coast_speed_samples: PackedFloat32Array = PackedFloat32Array()
 
 	print("[BMW_E46_RWD_FULL_LOCK_COAST_TEST] variant=%s tick_rate=%d powered=%.1fs total=%.1fs" % [str(VARIANT_ID), tick_rate, POWERED_SECONDS, TOTAL_SECONDS])
@@ -75,18 +82,30 @@ func _run() -> void:
 		var displacement_speed: float = displacement.length() / delta
 		var velocity_speed: float = Vector2(car.velocity.x, car.velocity.z).length()
 		var component_speed: float = Vector2(telemetry.get_forward_speed(), telemetry.get_lateral_speed()).length()
-		var reported_speed: float = car.get_speed_kmh() / 3.6
+		var reported_speed: float = car.get_speed_mps()
+		var snapshot_speed: float = telemetry.get_speed_mps()
 		var reported_error: float = absf(reported_speed - displacement_speed)
+		var snapshot_error: float = absf(snapshot_speed - displacement_speed)
 		var velocity_error: float = absf(velocity_speed - displacement_speed)
+		var current_forward: Vector3 = -car.global_basis.z
+		current_forward.y = 0.0
+		if current_forward.length_squared() > 0.000001:
+			current_forward = current_forward.normalized()
+			total_yaw_change_rad += acos(clampf(previous_forward.dot(current_forward), -1.0, 1.0))
+			previous_forward = current_forward
 
 		max_center_speed = maxf(max_center_speed, displacement_speed)
 		max_reported_center_error = maxf(max_reported_center_error, reported_error)
+		max_snapshot_center_error = maxf(max_snapshot_center_error, snapshot_error)
 		max_velocity_displacement_error = maxf(max_velocity_displacement_error, velocity_error)
 		max_lateral_speed = maxf(max_lateral_speed, absf(telemetry.get_lateral_speed()))
 		max_slip = maxf(max_slip, telemetry.get_tire_slip_intensity())
 		min_contacts = mini(min_contacts, telemetry.get_ground_contact_count())
 		max_rpm = maxf(max_rpm, telemetry.get_engine_rpm())
 		max_gear = maxi(max_gear, telemetry.get_current_gear())
+		if telemetry.get_current_gear() != previous_gear:
+			gear_change_count += 1
+			previous_gear = telemetry.get_current_gear()
 		final_center_speed = displacement_speed
 		if tick == powered_ticks - 1:
 			speed_at_release = displacement_speed
@@ -103,7 +122,7 @@ func _run() -> void:
 		_expect_finite_scalar(telemetry.get_suspension_acceleration(), "suspension acceleration", tick)
 
 		if tick % sample_interval == 0 or tick == powered_ticks - 1 or tick == total_ticks - 1:
-			print("[BMW_E46_RWD_FULL_LOCK_COAST_TEST][SAMPLE] t=%.1f phase=%s pos=(%.3f,%.3f,%.3f) center=%.3f velocity=%.3f components=%.3f reported=%.3f forward=%.3f lateral=%.3f rpm=%.1f gear=%d throttle=%.2f brake=%.2f slip=%.3f grip=%.3f contacts=%d" % [
+			print("[BMW_E46_RWD_FULL_LOCK_COAST_TEST][SAMPLE] t=%.1f phase=%s pos=(%.3f,%.3f,%.3f) center=%.3f velocity=%.3f components=%.3f reported=%.3f snapshot=%.3f forward=%.3f lateral=%.3f yaw_total_deg=%.2f rpm=%.1f gear=%d throttle=%.2f brake=%.2f slip=%.3f grip=%.3f contacts=%d" % [
 				float(tick + 1) * delta,
 				"powered" if powered else "coast",
 				position.x,
@@ -113,8 +132,10 @@ func _run() -> void:
 				velocity_speed,
 				component_speed,
 				reported_speed,
+				snapshot_speed,
 				telemetry.get_forward_speed(),
 				telemetry.get_lateral_speed(),
+				rad_to_deg(total_yaw_change_rad),
 				telemetry.get_engine_rpm(),
 				telemetry.get_current_gear(),
 				telemetry.get_throttle_input(),
@@ -133,30 +154,38 @@ func _run() -> void:
 	_expect(max_center_speed > 2.0, "full throttle produces meaningful center-of-mass movement")
 	_expect(speed_at_release > 1.0, "car is moving when controls are released after ten seconds")
 	_expect(max_lateral_speed > 0.25, "full steering lock creates a measurable lateral velocity component")
+	_expect(total_yaw_change_rad > deg_to_rad(30.0), "full steering lock produces a substantial change of heading")
 	_expect(max_slip > 0.05, "RWD full-throttle turn creates measurable tire slip")
+	_expect(final_telemetry.get_tire_slip_intensity() <= 0.05, "tire slip clears after the stopped wheels settle")
 	_expect(min_contacts >= 3, "car retains at least three ground contacts throughout the run")
 	_expect(max_rpm <= variant.specs.rev_limiter_rpm + 150.0, "engine RPM remains bounded by the configured limiter")
 	_expect(max_gear <= variant.specs.gear_ratios.size(), "automatic transmission never exceeds its configured top gear")
+	_expect(gear_change_count <= 8, "automatic transmission does not hunt repeatedly between gears")
 	_expect(final_telemetry.get_throttle_input() <= 0.001, "throttle snapshot clears during the coast phase")
 	_expect(final_telemetry.get_brake_input() <= 0.001, "brake remains released during the coast phase")
 	_expect(final_center_speed < speed_at_release, "car slows after all controls are released")
 	_expect(final_center_speed <= maxf(speed_at_release * 0.35, 1.0), "fifty seconds of coasting removes most of the release speed")
 	_expect(travelled_distance > 1.0, "the center of the car changes world position")
 	_expect(max_velocity_displacement_error <= SPEED_TOLERANCE_MPS, "CharacterBody velocity matches measured center displacement speed")
-	_expect(max_reported_center_error <= SPEED_TOLERANCE_MPS, "public speed is the measured movement speed of the car center")
+	_expect(max_reported_center_error <= SPEED_TOLERANCE_MPS, "controller speed is the measured movement speed of the car center")
+	_expect(max_snapshot_center_error <= SPEED_TOLERANCE_MPS, "telemetry speed is the measured movement speed of the car center")
 	_expect(_mostly_non_increasing(coast_speed_samples), "coast-speed trend is predominantly non-increasing")
 
-	print("[BMW_E46_RWD_FULL_LOCK_COAST_TEST][SUMMARY] max_center=%.3f release=%.3f final=%.3f max_lateral=%.3f max_slip=%.3f min_contacts=%d max_rpm=%.1f max_gear=%d travelled=%.3f max_reported_error=%.3f max_velocity_error=%.3f" % [
+	print("[BMW_E46_RWD_FULL_LOCK_COAST_TEST][SUMMARY] max_center=%.3f release=%.3f final=%.3f max_lateral=%.3f yaw_total_deg=%.2f max_slip=%.3f final_slip=%.3f min_contacts=%d max_rpm=%.1f max_gear=%d gear_changes=%d travelled=%.3f max_reported_error=%.3f max_snapshot_error=%.3f max_velocity_error=%.3f" % [
 		max_center_speed,
 		speed_at_release,
 		final_center_speed,
 		max_lateral_speed,
+		rad_to_deg(total_yaw_change_rad),
 		max_slip,
+		final_telemetry.get_tire_slip_intensity(),
 		min_contacts,
 		max_rpm,
 		max_gear,
+		gear_change_count,
 		travelled_distance,
 		max_reported_center_error,
+		max_snapshot_center_error,
 		max_velocity_displacement_error,
 	])
 	_finish(track, car)
