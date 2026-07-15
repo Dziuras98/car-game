@@ -38,6 +38,7 @@ const CRUZE_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_cruze
 const E150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_e150_2012.md"
 const EXCURSION_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_excursion_2000.md"
 const F150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_f150_limited_2013.md"
+const TRANSIT_CONNECT_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_transit_connect_2011.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -48,54 +49,61 @@ var _failures: Array[String] = []
 
 func _initialize() -> void:
 	_expect(SOURCE_ASSETS.size() == 20, "inventory contains exactly 20 source GLBs")
-	_test_source_assets()
-	_test_workflow_and_inventory()
-	_test_approved_scopes()
-	_test_model_07_gate()
-	_test_provenance_and_gitignore()
+	_test_committed_source_assets()
+	_test_excluded_large_trucks()
+	_test_workflow_contract()
+	_test_inventory_and_global_gate()
+	_test_model_scopes()
+	_test_provenance_contract()
+	_test_gitignore_contract()
 	_finish()
 
 
-func _test_source_assets() -> void:
+func _test_committed_source_assets() -> void:
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(FileAccess.file_exists(asset_path), "%s is committed" % asset_path)
 		_expect(ResourceLoader.exists(asset_path, "PackedScene"), "%s is imported as a PackedScene" % asset_path)
+
+
+func _test_excluded_large_trucks() -> void:
 	for asset_path: String in EXCLUDED_ASSETS:
 		_expect(not FileAccess.file_exists(asset_path), "%s remains excluded" % asset_path)
 
 
-func _test_workflow_and_inventory() -> void:
-	var workflow: String = _read_text(WORKFLOW_PATH)
-	_expect_fragments(workflow, PackedStringArray([
+func _test_workflow_contract() -> void:
+	_expect_fragments(_read_text(WORKFLOW_PATH), PackedStringArray([
 		"Research the complete factory variant matrix before importing the model",
 		"Stop for owner approval after research",
 		"Finish all model scopes before implementing any model",
 		"Keep the committed source GLB unchanged",
 		"Use wheelbase as the primary scale reference",
 		"Provide four independent wheel nodes",
+		"Use explicit wheel bindings",
 		"Match the real transmission architecture exactly",
+		"Implement missing transmission types faithfully",
 		"Build new engine-sound architectures from first principles",
+		"Keep every model compatible with current `master` physics",
 		"No model may enter `integrating` until all included models have reached `approved`",
 		"Stage 11 — mandatory validation",
 	]), "workflow preserves")
 
+
+func _test_inventory_and_global_gate() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01, 02, 03, 04, 05 and 06 have passed their individual owner-scope gates",
-		"07 — Ford F-150 P415 SuperCrew 5.5-ft",
-		"11 mechanically consolidated generation rows",
-		"3.5 EcoBoost fixed to 4x2 and one standard axle",
-		"After model 07 is approved, research continues with model 08",
+		"Models 01, 02, 03, 04, 05, 06 and 07 have passed their individual owner-scope gates",
+		"08 — Ford Transit Connect first generation",
+		"After model 08 is approved, research continues with model 09",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory preserves")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
 
 
-func _test_approved_scopes() -> void:
+func _test_model_scopes() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	for required_fragment: String in [
 		"| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 |",
@@ -104,8 +112,10 @@ func _test_approved_scopes() -> void:
 		"| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |",
 		"| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 |",
 		"| 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 |",
+		"| 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 |",
+		"Ford Transit Connect XLT Premium Wagon 2011, long wheelbase and high roof | compact van | 1,650 | `awaiting_owner_scope`",
 	]:
-		_expect(inventory.contains(required_fragment), "inventory preserves approved scope: %s" % required_fragment)
+		_expect(inventory.contains(required_fragment), "inventory preserves scope: %s" % required_fragment)
 
 	_expect_fragments(_read_text(BMW_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
@@ -115,20 +125,20 @@ func _test_approved_scopes() -> void:
 		"Workflow status: **`approved`**",
 		"Approved implementation scope: **4 mechanically distinct RWD combinations**",
 	]), "Silverado scope preserves")
-	_expect_fragments(_read_text(CLIO_RESEARCH_PATH), PackedStringArray([
+	var clio: String = _read_text(CLIO_RESEARCH_PATH)
+	_expect_fragments(clio, PackedStringArray([
 		"Workflow status: **`approved`**",
 		"Approved total: 10 mechanically distinct non-R.S., non-GT configurations",
 		"**exclude GT 120 EDC**",
 	]), "Clio scope preserves")
+	_expect(not clio.contains("| 7 | Phase 1 GT |"), "Clio GT is absent from the approved matrix")
 	_expect_fragments(_read_text(CRUZE_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
 		"Approved total: 20 mechanically distinct pre-facelift Chevrolet J300 sedan configurations",
-		"Provisional rows are approved for catalog scope immediately",
 	]), "Cruze scope preserves")
 	_expect_fragments(_read_text(E150_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
 		"Approved total: 2 regular-length E-150 Commercial Cargo Van configurations",
-		"do not create separate catalog rows for model-year eras",
 	]), "E-150 scope preserves")
 	_expect_fragments(_read_text(EXCURSION_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
@@ -137,40 +147,31 @@ func _test_approved_scopes() -> void:
 		"**7.3 late**, 2002–early 2003",
 	]), "Excursion scope preserves")
 
+	var f150: String = _read_text(F150_RESEARCH_PATH)
+	_expect_fragments(f150, PackedStringArray([
+		"Ford F-150 P415 SuperCrew 5.5-ft box — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **7 mechanically consolidated 4x2 engine configurations**",
+		"Approved total: 7 mechanically consolidated Ford F-150 P415 SuperCrew 5.5-ft 4x2 configurations",
+		"22-in P275/45R22 tyres for every row",
+		"Model 07 is **`approved`** with **7** configurations",
+		"Research proceeds to model 08",
+	]), "F-150 scope preserves")
+	_expect(not f150.contains("Workflow status: **`awaiting_owner_scope`**"), "F-150 owner gate is closed")
 
-func _test_model_07_gate() -> void:
-	var inventory: String = _read_text(INVENTORY_PATH)
-	_expect(
-		inventory.contains("Ford F-150 Limited 2013 source; expanded 2009–2014 P415 SuperCrew 5.5-ft research | pickup | 1,758 | `awaiting_owner_scope`"),
-		"model 07 remains at the expanded owner-scope gate"
-	)
-	var research: String = _read_text(F150_RESEARCH_PATH)
-	_expect_fragments(research, PackedStringArray([
-		"Ford F-150 P415 SuperCrew 5.5-ft box — research and owner-scope gate",
+	_expect_fragments(_read_text(TRANSIT_CONNECT_RESEARCH_PATH), PackedStringArray([
+		"Ford Transit Connect first generation — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source SHA-256: `3be44b7f8f563efc57d259e0a3902dc55b2b347a0b34b2b90f55d75f541f6587`",
-		"complete **2009–2014 P415 model-year generation**",
-		"4.6L Modular SOHC 2-valve",
-		"4.6L Modular SOHC 3-valve",
-		"5.4L Triton Modular SOHC 3-valve",
-		"3.7L Duratec Ti-VCT",
-		"5.0L Coyote Ti-VCT",
-		"3.5L EcoBoost DOHC twin-turbocharged direct-injected V6",
-		"6.2L Boss SOHC",
-		"4R75E-family 4-speed torque-converter automatic",
-		"6R80-family 6-speed torque-converter automatic",
-		"Mechanically consolidated candidate total: 11 rows",
-		"3.5L EcoBoost scope to **4x2 only**",
-		"one verified factory-standard rear-axle ratio",
-		"Owner scope decision — remaining questions",
-	]), "F-150 P415 gate preserves")
-	_expect(
-		not research.contains("| 3.5L EcoBoost twin-turbo DI V6, 365 hp / 420 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x4 |"),
-		"EcoBoost 4x4 remains excluded"
-	)
+		"Source SHA-256: `e506579960a582b33c7f91c9b3a6086f99cb9e97158f635c4e614de69d5b862b`",
+		"North American 2011 Ford Transit Connect XLT Premium Wagon",
+		"Core candidate total: 7 mechanically distinct powertrain rows",
+		"4F27E",
+		"Azure Dynamics Transit Connect Electric",
+		"Owner scope decision — required before implementation",
+	]), "Transit Connect gate preserves")
 
 
-func _test_provenance_and_gitignore() -> void:
+func _test_provenance_contract() -> void:
 	_expect_fragments(_read_text(NOTICE_PATH), PackedStringArray([
 		"## Sketchfab Traffic Rider NPC vehicle bundle",
 		"Mason (`ModelzRipper`)",
@@ -182,6 +183,9 @@ func _test_provenance_and_gitignore() -> void:
 		"The 20 source GLBs remain committed and are not added to `.gitignore`.",
 		"Scania, generic articulated truck and generic rigid truck remain excluded",
 	]), "accepted-risk record preserves")
+
+
+func _test_gitignore_contract() -> void:
 	var gitignore: String = _read_text(GITIGNORE_PATH)
 	_expect(not gitignore.contains("traffic_rider_npc_vehicles"), "Traffic Rider asset directory is not ignored")
 	_expect(not gitignore.contains("*.glb"), "GLB files are not globally ignored")
