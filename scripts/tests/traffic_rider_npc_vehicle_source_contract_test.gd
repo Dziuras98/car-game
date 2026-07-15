@@ -113,7 +113,7 @@ func _test_powertrain_fidelity_contract() -> void:
 		"create a dedicated transmission model",
 		"Do not force an unsupported transmission through a fallback path",
 		"Reproduce performance from evidence, not from labels",
-		"sampled full-load torque curve",
+		"sampled torque",
 		"Do not match acceleration by using a false peak torque",
 	]:
 		_expect(workflow.contains(required_fragment), "powertrain fidelity preserves: %s" % required_fragment)
@@ -125,7 +125,7 @@ func _test_physics_and_audio_contract() -> void:
 		"Keep every model compatible with current `master` physics",
 		"Mandatory `master` physics synchronization",
 		"all models and variants added earlier in the PR",
-		"recalibrate every affected model in the PR to the new physics",
+		"recalibrate every affected model to current physics",
 		"Build new engine-sound architectures from first principles",
 		"build a new architecture-specific synthesis model from first principles",
 		"must not use an unrelated cylinder layout as its primary waveform",
