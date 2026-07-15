@@ -135,9 +135,6 @@ msgstr "Prosty owal"
 msgid "Tor Poznań"
 msgstr "Tor Poznań"
 
-msgid "Suzuka"
-msgstr "Suzuka"
-
 msgid "Nieskończona siatka"
 msgstr "Nieskończona siatka"
 

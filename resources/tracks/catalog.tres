@@ -1,12 +1,11 @@
-[gd_resource type="Resource" load_steps=6 format=3]
+[gd_resource type="Resource" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/track/track_catalog.gd" id="1_catalog"]
 [ext_resource type="Resource" path="res://resources/tracks/simple_oval_definition.tres" id="2_simple_oval"]
 [ext_resource type="Resource" path="res://resources/tracks/tor_poznan_definition.tres" id="3_tor_poznan"]
-[ext_resource type="Resource" path="res://resources/tracks/suzuka_definition.tres" id="4_suzuka"]
-[ext_resource type="Resource" path="res://resources/tracks/infinite_grid_definition.tres" id="5_infinite_grid"]
+[ext_resource type="Resource" path="res://resources/tracks/infinite_grid_definition.tres" id="4_infinite_grid"]
 
 [resource]
 script = ExtResource("1_catalog")
-tracks = Array[Resource]([ExtResource("2_simple_oval"), ExtResource("3_tor_poznan"), ExtResource("4_suzuka"), ExtResource("5_infinite_grid")])
+tracks = Array[Resource]([ExtResource("2_simple_oval"), ExtResource("3_tor_poznan"), ExtResource("4_infinite_grid")])
 default_track_id = &"simple_oval"
