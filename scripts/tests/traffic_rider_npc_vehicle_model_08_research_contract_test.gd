@@ -13,33 +13,35 @@ func _initialize() -> void:
 	_expect(not inventory.is_empty(), "vehicle inventory is readable")
 	_expect(not research.is_empty(), "Transit Connect research record is readable")
 	for required_fragment: String in [
-		"Ford Transit Connect XLT Premium Wagon 2011, long wheelbase and high roof | compact van | 1,650 | `awaiting_owner_scope`",
-		"7 mechanically distinct powertrain rows; 6 without Azure Electric; 6 if the 75-PS diesels are merged; 1 strict source XLT Premium Wagon row",
+		"Ford Transit Connect XLT Premium Wagon 2011 with approved complete first-generation powertrain scope | compact van | 1,650 | `approved`",
+		"| 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 |",
 		"After model 08 is approved, research continues with model 09",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves: %s" % required_fragment)
 	for required_fragment: String in [
-		"Ford Transit Connect first generation — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Ford Transit Connect first generation — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **6 mechanically consolidated first-generation powertrain configurations**",
 		"Source SHA-256: `e506579960a582b33c7f91c9b3a6086f99cb9e97158f635c4e614de69d5b862b`",
 		"North American 2011 Ford Transit Connect XLT Premium Wagon",
 		"Wheelbase | 114.6 in / 2.91084 m",
 		"Total triangles | 1,650",
 		"Approximate wheelbase-derived scale | 0.700555",
-		"Core candidate total: 7 mechanically distinct powertrain rows",
-		"1.8L Zetec/Duratec 16-valve",
-		"early 75-PS calibration",
+		"merged 75-PS early/late row",
 		"1.8L Duratorq TDCi 90 PS",
 		"1.8L Duratorq TDCi 110 PS",
 		"2.0L Duratec DOHC",
-		"4F27E",
-		"Azure Dynamics Transit Connect Electric",
-		"BorgWarner single-speed reduction transaxle",
-		"All first-generation production powertrains are front-engine and front-wheel drive",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"4F27E four-speed planetary torque-converter automatic",
+		"Azure Dynamics, 2011–2012 fleet derivative",
+		"dedicated BorgWarner single-speed fixed-reduction transaxle",
+		"Approved total: 6 mechanically consolidated Ford Transit Connect first-generation configurations",
+		"Build the Azure motor, inverter, battery, regenerative braking and single-speed fixed-reduction transaxle",
+		"Model 08 is **`approved`** with **6** configurations",
+		"Research proceeds to model 09",
 	]:
-		_expect(research.contains(required_fragment), "Transit Connect research preserves: %s" % required_fragment)
+		_expect(research.contains(required_fragment), "Transit Connect approved scope preserves: %s" % required_fragment)
+	_expect(not research.contains("Workflow status: **`awaiting_owner_scope`**"), "Transit Connect owner gate is closed")
+	_expect(not research.contains("Approved total: 7"), "merged 75-PS diesels reduce the total to six rows")
 	_finish()
 
 
