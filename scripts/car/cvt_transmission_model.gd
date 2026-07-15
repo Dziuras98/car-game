@@ -75,7 +75,6 @@ func update_ratio(forward_speed: float, throttle: float, delta: float) -> float:
 	desired_ratio = clampf(desired_ratio, effective_min_ratio, max_ratio)
 	var blend: float = 1.0 - exp(-ratio_response * maxf(delta, 0.0))
 	_current_ratio = lerpf(_current_ratio, desired_ratio, blend)
-	var effective_min_ratio: float = min_ratio if min_ratio > 0.0 else MIN_DYNAMIC_RATIO
 	_current_ratio = clampf(_current_ratio, effective_min_ratio, max_ratio)
 	return _current_ratio
 

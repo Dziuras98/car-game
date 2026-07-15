@@ -114,7 +114,7 @@ func get_longitudinal_acceleration_capacity(
 	return (
 		STANDARD_GRAVITY
 		* maxf(longitudinal_grip_coefficient, 0.0)
-		* get_longitudinal_grip_factor(lateral_slip_intensity, surface_grip_multiplier)
+		* get_longitudinal_grip_factor(lateral_grip_usage, surface_grip_multiplier)
 		* clampf(contact_factor, 0.0, 1.0)
 	)
 
