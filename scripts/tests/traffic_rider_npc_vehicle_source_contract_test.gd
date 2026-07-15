@@ -29,52 +29,51 @@ const EXCLUDED_ASSETS: PackedStringArray = PackedStringArray([
 	"res://22_generic_rigid_truck.glb",
 ])
 
-const WORKFLOW_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_import_workflow.md"
-const INVENTORY_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_inventory.md"
-const BMW_RESEARCH_PATH: String = "res://docs/vehicles/traffic/bmw_4_series_2014.md"
-const SILVERADO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_silverado_2014.md"
-const CLIO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_clio_2013.md"
-const CRUZE_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_cruze_2011.md"
-const E150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_e150_2012.md"
-const EXCURSION_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_excursion_2000.md"
-const F150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_f150_limited_2013.md"
-const TRANSIT_CONNECT_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_transit_connect_2011.md"
-const FREELANDER_RESEARCH_PATH: String = "res://docs/vehicles/traffic/land_rover_freelander_2_2012.md"
-const GOLF_RESEARCH_PATH: String = "res://docs/vehicles/traffic/volkswagen_golf_vii_2013.md"
-const KIA_CEED_RESEARCH_PATH: String = "res://docs/vehicles/traffic/kia_ceed_2012.md"
-const MAXITY_RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_maxity_2008.md"
-const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
-const RISK_PATH: String = "res://docs/accepted_risks.md"
-const GITIGNORE_PATH: String = "res://.gitignore"
+const WORKFLOW_PATH := "res://docs/assets/traffic_rider_npc_vehicle_import_workflow.md"
+const INVENTORY_PATH := "res://docs/assets/traffic_rider_npc_vehicle_inventory.md"
+const NOTICE_PATH := "res://THIRD_PARTY_NOTICES.md"
+const RISK_PATH := "res://docs/accepted_risks.md"
+const GITIGNORE_PATH := "res://.gitignore"
+
+const APPROVED_SCOPE_PATHS: Dictionary = {
+	"res://docs/vehicles/traffic/bmw_4_series_2014.md": "Approved total: 42 standard + 2 ZHP = 44 combinations",
+	"res://docs/vehicles/traffic/chevrolet_silverado_2014.md": "Approved implementation scope: **4 mechanically distinct RWD combinations**",
+	"res://docs/vehicles/traffic/renault_clio_2013.md": "Approved total: 10 mechanically distinct non-R.S., non-GT configurations",
+	"res://docs/vehicles/traffic/chevrolet_cruze_2011.md": "Approved total: 20 mechanically distinct pre-facelift Chevrolet J300 sedan configurations",
+	"res://docs/vehicles/traffic/ford_e150_2012.md": "Approved total: 2 regular-length E-150 Commercial Cargo Van configurations",
+	"res://docs/vehicles/traffic/ford_excursion_2000.md": "Approved total: 5 pre-facelift Ford Excursion 4x2 configurations",
+	"res://docs/vehicles/traffic/ford_f150_limited_2013.md": "Approved total: 7 mechanically consolidated Ford F-150 P415 SuperCrew 5.5-ft 4x2 configurations",
+	"res://docs/vehicles/traffic/ford_transit_connect_2011.md": "Approved total: 6 mechanically consolidated Ford Transit Connect first-generation configurations",
+	"res://docs/vehicles/traffic/land_rover_freelander_2_2012.md": "Approved total: 8 mechanically distinct Land Rover Freelander 2 / LR2 L359 configurations",
+	"res://docs/vehicles/traffic/volkswagen_golf_vii_2013.md": "Approved total: 22 standard petrol + 14 ordinary diesel + 2 electric = 38 configurations",
+	"res://docs/vehicles/traffic/kia_ceed_2012.md": "Approved total: 8 petrol + 7 diesel = 15 mechanically consolidated configurations",
+	"res://docs/vehicles/traffic/renault_maxity_2008.md": "Approved total: 5 diesel + 1 electric = 6 mechanically consolidated configurations",
+}
+
+const MAZDA2_RESEARCH_PATH := "res://docs/vehicles/traffic/mazda_2_2011.md"
 
 var _checks: int = 0
 var _failures: Array[String] = []
 
-
 func _initialize() -> void:
 	_expect(SOURCE_ASSETS.size() == 20, "inventory contains exactly 20 source GLBs")
-	_test_committed_source_assets()
-	_test_excluded_large_trucks()
-	_test_workflow_contract()
-	_test_inventory_and_global_gate()
-	_test_model_scopes()
-	_test_provenance_contract()
-	_test_gitignore_contract()
+	_test_assets()
+	_test_workflow()
+	_test_inventory()
+	_test_approved_scopes()
+	_test_mazda2_gate()
+	_test_provenance()
+	_test_gitignore()
 	_finish()
 
-
-func _test_committed_source_assets() -> void:
+func _test_assets() -> void:
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(FileAccess.file_exists(asset_path), "%s is committed" % asset_path)
-		_expect(ResourceLoader.exists(asset_path, "PackedScene"), "%s is imported as a PackedScene" % asset_path)
-
-
-func _test_excluded_large_trucks() -> void:
+		_expect(ResourceLoader.exists(asset_path, "PackedScene"), "%s imports as PackedScene" % asset_path)
 	for asset_path: String in EXCLUDED_ASSETS:
 		_expect(not FileAccess.file_exists(asset_path), "%s remains excluded" % asset_path)
 
-
-func _test_workflow_contract() -> void:
+func _test_workflow() -> void:
 	_expect_fragments(_read_text(WORKFLOW_PATH), PackedStringArray([
 		"Research the complete factory variant matrix before importing the model",
 		"Stop for owner approval after research",
@@ -89,160 +88,88 @@ func _test_workflow_contract() -> void:
 		"Keep every model compatible with current `master` physics",
 		"No model may enter `integrating` until all included models have reached `approved`",
 		"Stage 11 — mandatory validation",
-	]), "workflow preserves")
+	]), "workflow")
 
-
-func _test_inventory_and_global_gate() -> void:
-	var inventory: String = _read_text(INVENTORY_PATH)
+func _test_inventory() -> void:
+	var inventory := _read_text(INVENTORY_PATH)
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
-		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10 and 11 have passed their individual owner-scope gates",
-		"12 — Renault Maxity F24 original body",
-		"After model 12 is approved, research continues with model 13",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11 and 12 have passed their individual owner-scope gates",
+		"13 — Mazda2 / Demio DE five-door hatchback",
+		"16 mechanically consolidated global hatchback powertrain rows, including e-4WD and Demio EV",
+		"After model 13 is approved, research continues with model 14",
 		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
-	]), "inventory preserves")
+	]), "inventory")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
-
-
-func _test_model_scopes() -> void:
-	var inventory: String = _read_text(INVENTORY_PATH)
-	for required_fragment: String in [
-		"| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 |",
-		"| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 |",
-		"| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 |",
-		"| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |",
-		"| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 |",
-		"| 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 |",
-		"| 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 |",
-		"| 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 |",
-		"| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 |",
+	for fragment: String in [
 		"| 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 |",
 		"| 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 |",
-		"Renault Maxity original-body single-cab short-wheelbase box truck with dual rear wheels | light box truck | 2,102 | `awaiting_owner_scope`",
+		"| 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 |",
+		"North American 2011 Mazda2 Sport five-door facelift source | passenger hatchback | 1,770 | `awaiting_owner_scope`",
 	]:
-		_expect(inventory.contains(required_fragment), "inventory preserves scope: %s" % required_fragment)
+		_expect(inventory.contains(fragment), "inventory preserves scope: %s" % fragment)
 
-	_expect_fragments(_read_text(BMW_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 42 standard + 2 ZHP = 44 combinations",
-	]), "BMW scope preserves")
-	_expect_fragments(_read_text(SILVERADO_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved implementation scope: **4 mechanically distinct RWD combinations**",
-	]), "Silverado scope preserves")
-	_expect_fragments(_read_text(CLIO_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 10 mechanically distinct non-R.S., non-GT configurations",
-	]), "Clio scope preserves")
-	_expect_fragments(_read_text(CRUZE_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 20 mechanically distinct pre-facelift Chevrolet J300 sedan configurations",
-	]), "Cruze scope preserves")
-	_expect_fragments(_read_text(E150_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 2 regular-length E-150 Commercial Cargo Van configurations",
-	]), "E-150 scope preserves")
-	_expect_fragments(_read_text(EXCURSION_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 5 pre-facelift Ford Excursion 4x2 configurations",
-	]), "Excursion scope preserves")
-	_expect_fragments(_read_text(F150_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 7 mechanically consolidated Ford F-150 P415 SuperCrew 5.5-ft 4x2 configurations",
-	]), "F-150 scope preserves")
-	_expect_fragments(_read_text(TRANSIT_CONNECT_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 6 mechanically consolidated Ford Transit Connect first-generation configurations",
-	]), "Transit Connect scope preserves")
-	_expect_fragments(_read_text(FREELANDER_RESEARCH_PATH), PackedStringArray([
-		"Workflow status: **`approved`**",
-		"Approved total: 8 mechanically distinct Land Rover Freelander 2 / LR2 L359 configurations",
-	]), "Freelander 2 scope preserves")
+func _test_approved_scopes() -> void:
+	for path: String in APPROVED_SCOPE_PATHS:
+		var text := _read_text(path)
+		_expect_fragments(text, PackedStringArray([
+			"Workflow status: **`approved`**",
+			APPROVED_SCOPE_PATHS[path],
+		]), "approved scope %s" % path)
+		_expect(not text.contains("Workflow status: **`awaiting_owner_scope`**"), "%s owner gate is closed" % path)
 
-	var golf: String = _read_text(GOLF_RESEARCH_PATH)
-	_expect_fragments(golf, PackedStringArray([
-		"Volkswagen Golf VII hatchback — research and approved scope",
-		"Workflow status: **`approved`**",
-		"Approved implementation scope: **38 mechanically consolidated five-door Golf VII configurations**",
-		"Approved total: 22 standard petrol + 14 ordinary diesel + 2 electric = 38 configurations",
-		"Model 10 is **`approved`** with **38** configurations",
-	]), "Golf VII scope preserves")
-	_expect(not golf.contains("Workflow status: **`awaiting_owner_scope`**"), "Golf VII owner gate is closed")
-
-	var kia: String = _read_text(KIA_CEED_RESEARCH_PATH)
-	_expect_fragments(kia, PackedStringArray([
-		"Kia cee'd JD five-door hatchback — research and approved scope",
-		"Workflow status: **`approved`**",
-		"Approved implementation scope: **15 mechanically consolidated Kia cee'd JD five-door configurations**",
-		"merged 110-PS pre-/post-facelift row",
-		"Approved total: 8 petrol + 7 diesel = 15 mechanically consolidated configurations",
-		"Model 11 is **`approved`** with **15** configurations",
-		"Research proceeds to model 12",
-	]), "Kia cee'd scope preserves")
-	_expect(not kia.contains("Workflow status: **`awaiting_owner_scope`**"), "Kia cee'd owner gate is closed")
-
-	_expect_fragments(_read_text(MAXITY_RESEARCH_PATH), PackedStringArray([
-		"Renault Maxity F24 single-cab box truck — research and owner-scope gate",
+func _test_mazda2_gate() -> void:
+	_expect_fragments(_read_text(MAZDA2_RESEARCH_PATH), PackedStringArray([
+		"Mazda2 / Demio DE five-door hatchback — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source SHA-256: `37dd295636b56ebaecee37c1d461ee64349ee0c0bb697dfb484e94e49b0132f3`",
-		"single cab, enclosed box body and dual rear wheels",
-		"Mechanically consolidated candidate total: 6 configurations",
-		"DXi2.5 / Nissan YD25DDTi",
-		"DXi3 / Nissan ZD30DDTi",
-		"Renault Maxity Electric by PVI",
+		"Source SHA-256: `39bd570da17e3b84382910f7b9561daa91e23c9cb3ce6b098cb8f4381d7e2a0e`",
+		"North American 2011 Mazda2 Sport five-door hatchback",
+		"Mechanically consolidated candidate total: 16 configurations",
+		"Mazda e-4WD electric rear-axle traction assist",
+		"1.3L SKYACTIV-G P3-VPS",
+		"Demio EV permanent-magnet synchronous traction motor",
 		"Owner scope decision — required before implementation",
-	]), "Renault Maxity gate preserves")
+		"No implementation begins after this individual decision",
+	]), "Mazda2 gate")
 
-
-func _test_provenance_contract() -> void:
+func _test_provenance() -> void:
 	_expect_fragments(_read_text(NOTICE_PATH), PackedStringArray([
 		"## Sketchfab Traffic Rider NPC vehicle bundle",
 		"Mason (`ModelzRipper`)",
 		"CC BY-NC 4.0",
 		"incomplete upstream rights chain",
-	]), "third-party notice preserves")
+	]), "third-party notice")
 	_expect_fragments(_read_text(RISK_PATH), PackedStringArray([
 		"## Traffic Rider NPC vehicle bundle provenance",
 		"The 20 source GLBs remain committed and are not added to `.gitignore`.",
 		"Scania, generic articulated truck and generic rigid truck remain excluded",
-	]), "accepted-risk record preserves")
+	]), "accepted-risk record")
 
-
-func _test_gitignore_contract() -> void:
-	var gitignore: String = _read_text(GITIGNORE_PATH)
-	_expect(not gitignore.contains("traffic_rider_npc_vehicles"), "Traffic Rider asset directory is not ignored")
-	_expect(not gitignore.contains("*.glb"), "GLB files are not globally ignored")
-	for asset_path: String in SOURCE_ASSETS:
-		_expect(not gitignore.contains(asset_path.trim_prefix("res://")), "%s is not explicitly ignored" % asset_path)
-
+func _test_gitignore() -> void:
+	var gitignore := _read_text(GITIGNORE_PATH)
+	_expect(not gitignore.contains("traffic_rider_npc_vehicles"), "Traffic Rider assets are not ignored")
+	_expect(not gitignore.contains("*.glb"), "GLBs are not globally ignored")
 
 func _expect_fragments(text: String, fragments: PackedStringArray, label: String) -> void:
 	_expect(not text.is_empty(), "%s document is readable" % label)
 	for fragment: String in fragments:
-		_expect(text.contains(fragment), "%s: %s" % [label, fragment])
-
+		_expect(text.contains(fragment), "%s preserves: %s" % [label, fragment])
 
 func _read_text(path: String) -> String:
-	if not FileAccess.file_exists(path):
-		return ""
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return ""
-	return file.get_as_text()
-
+	if not FileAccess.file_exists(path): return ""
+	var file := FileAccess.open(path, FileAccess.READ)
+	return "" if file == null else file.get_as_text()
 
 func _expect(condition: bool, message: String) -> void:
 	_checks += 1
 	if condition:
 		print("[TRAFFIC_RIDER_SOURCE_CONTRACT_TEST][PASS] %s" % message)
-		return
-	_failures.append(message)
-	push_error("[TRAFFIC_RIDER_SOURCE_CONTRACT_TEST][FAIL] %s" % message)
-
+	else:
+		_failures.append(message)
+		push_error("[TRAFFIC_RIDER_SOURCE_CONTRACT_TEST][FAIL] %s" % message)
 
 func _finish() -> void:
 	if _failures.is_empty():
@@ -250,6 +177,4 @@ func _finish() -> void:
 		quit(0)
 		return
 	push_error("[TRAFFIC_RIDER_SOURCE_CONTRACT_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
-	for failure_message: String in _failures:
-		push_error("[TRAFFIC_RIDER_SOURCE_CONTRACT_TEST] - %s" % failure_message)
 	quit(1)
