@@ -32,6 +32,7 @@ const EXCLUDED_ASSETS: PackedStringArray = PackedStringArray([
 const WORKFLOW_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_import_workflow.md"
 const INVENTORY_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_inventory.md"
 const BMW_F32_RESEARCH_PATH: String = "res://docs/vehicles/traffic/bmw_4_series_2014.md"
+const SILVERADO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_silverado_2014.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -46,10 +47,12 @@ func _initialize() -> void:
 	_test_excluded_large_trucks()
 	_test_workflow_contract()
 	_test_research_and_owner_gate_contract()
+	_test_global_research_before_implementation_contract()
 	_test_powertrain_fidelity_contract()
 	_test_physics_and_audio_contract()
 	_test_inventory_status_contract()
 	_test_first_model_approved_scope()
+	_test_second_model_research_gate()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -102,6 +105,29 @@ func _test_research_and_owner_gate_contract() -> void:
 		_expect(workflow.contains(required_fragment), "research/owner gate preserves: %s" % required_fragment)
 
 
+func _test_global_research_before_implementation_contract() -> void:
+	var workflow: String = _read_text(WORKFLOW_PATH)
+	for required_fragment: String in [
+		"Global research-before-implementation gate",
+		"every included model before any implementation begins",
+		"No model may enter `integrating` before the global gate is satisfied",
+		"approved` — the owner has fixed the scope, but implementation remains deferred",
+		"No model may enter `integrating` until all included models have reached `approved`",
+		"Global owner-scope completion gate",
+		"only then move model 01 to `integrating`",
+	]:
+		_expect(workflow.contains(required_fragment), "global implementation gate preserves: %s" % required_fragment)
+
+	var inventory: String = _read_text(INVENTORY_PATH)
+	for required_fragment: String in [
+		"Global research-before-implementation gate",
+		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
+		"Model 01 has passed its individual owner-scope gate, but implementation is deferred",
+		"Only after all 20 scopes are approved does implementation begin",
+	]:
+		_expect(inventory.contains(required_fragment), "inventory preserves global gate: %s" % required_fragment)
+
+
 func _test_powertrain_fidelity_contract() -> void:
 	var workflow: String = _read_text(WORKFLOW_PATH)
 	for required_fragment: String in [
@@ -129,7 +155,7 @@ func _test_physics_and_audio_contract() -> void:
 		"Build new engine-sound architectures from first principles",
 		"build a new architecture-specific synthesis model from first principles",
 		"must not use an unrelated cylinder layout as its primary waveform",
-		"perceptual distinction from unrelated engine layouts",
+		"perceptual distinction",
 	]:
 		_expect(workflow.contains(required_fragment), "physics/audio fidelity preserves: %s" % required_fragment)
 
@@ -144,7 +170,7 @@ func _test_inventory_status_contract() -> void:
 		"approved",
 		"integrating",
 		"integrated",
-		"Integration remains blocked until the owner confirms whether to import all variants or a subset",
+		"The individual model moves to `approved` only after the owner confirms the scope",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory status gate preserves: %s" % required_fragment)
 
@@ -164,8 +190,8 @@ func _test_first_model_approved_scope() -> void:
 		"inventory records all 44 approved BMW combinations"
 	)
 	_expect(
-		inventory.contains("Model 02 must not begin until model 01 completes"),
-		"ascending model order remains enforced"
+		inventory.contains("Model 01 has passed its individual owner-scope gate, but implementation is deferred"),
+		"BMW implementation remains deferred until all scopes are approved"
 	)
 
 	var research: String = _read_text(BMW_F32_RESEARCH_PATH)
@@ -196,6 +222,49 @@ func _test_first_model_approved_scope() -> void:
 		"The owner-scope gate is satisfied",
 	]:
 		_expect(research.contains(required_fragment), "BMW F32 approval preserves: %s" % required_fragment)
+
+
+func _test_second_model_research_gate() -> void:
+	var inventory: String = _read_text(INVENTORY_PATH)
+	_expect(
+		inventory.contains("Chevrolet Silverado 1500 LTZ Crew Cab Standard Box 4WD, K2XX pre-facelift | pickup | 2,232 | `awaiting_owner_scope`"),
+		"model 02 is blocked at its owner-scope gate"
+	)
+	_expect(
+		inventory.contains("docs/vehicles/traffic/chevrolet_silverado_2014.md"),
+		"inventory links the Silverado research record"
+	)
+	_expect(
+		inventory.contains("8 broad body-shell base combinations; 3 strict LTZ 4x4 visual matches"),
+		"inventory records Silverado candidate scopes"
+	)
+	_expect(
+		inventory.contains("After model 02 is approved, research continues with model 03"),
+		"research order advances without starting implementation"
+	)
+
+	var research: String = _read_text(SILVERADO_RESEARCH_PATH)
+	_expect(not research.is_empty(), "Silverado research record is readable")
+	for required_fragment: String in [
+		"Chevrolet Silverado 1500 K2XX pre-facelift",
+		"Workflow status: **`awaiting_owner_scope`**",
+		"Source SHA-256: `bce261f8703d7e03737cfd40ffa25a1546b76de84772f5b790ed7cc3b40ee465`",
+		"LTZ Crew Cab Standard Box 4WD",
+		"Total triangles | 2,232",
+		"8 mechanically distinct base combinations",
+		"3 base combinations",
+		"LV3 4.3 L EcoTec3",
+		"L83 5.3 L EcoTec3",
+		"L86 6.2 L EcoTec3",
+		"Hydra-Matic 6L80 6AT, RPO MYC",
+		"Hydra-Matic 8L90 8AT, RPO M5U",
+		"selectable part-time 4WD",
+		"not permanent AWD",
+		"provisional pending retained official order-guide/trailering-guide confirmation",
+		"Owner scope decision — required before implementation",
+		"No implementation begins after this individual decision",
+	]:
+		_expect(research.contains(required_fragment), "Silverado research preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
