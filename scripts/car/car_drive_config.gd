@@ -67,6 +67,8 @@ var drag_coefficient: float = 0.30
 var frontal_area: float = 2.05
 var air_density: float = 1.225
 var rolling_resistance_coefficient: float = 0.015
+var front_static_load_fraction: float = 0.0
+var center_of_mass_height_m: float = 0.55
 
 var front_lateral_grip: float = 10.0
 var rear_lateral_grip: float = 10.0
@@ -169,6 +171,21 @@ func get_wheel_inertia_kg_m2(wheel_index: int) -> float:
 	return front_wheel_inertia_kg_m2 if wheel_index == WheelTireState.Position.FRONT_LEFT or wheel_index == WheelTireState.Position.FRONT_RIGHT else rear_wheel_inertia_kg_m2
 
 
+func get_wheel_load_share(wheel_index: int, longitudinal_acceleration_mps2: float) -> float:
+	var transfer_fraction: float = (
+		longitudinal_acceleration_mps2
+		* center_of_mass_height_m
+		/ maxf(TireModel.STANDARD_GRAVITY * wheel_base, 0.01)
+	)
+	var dynamic_front_fraction: float = clampf(
+		front_static_load_fraction - transfer_fraction,
+		0.10,
+		0.90
+	)
+	var is_front: bool = wheel_index == WheelTireState.Position.FRONT_LEFT or wheel_index == WheelTireState.Position.FRONT_RIGHT
+	return (dynamic_front_fraction if is_front else 1.0 - dynamic_front_fraction) * 0.5
+
+
 func duplicate_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
 	for property: Dictionary in get_property_list():
@@ -199,6 +216,10 @@ func sanitize() -> void:
 	if drive_layout < CarSpecs.DriveLayout.FRONT_WHEEL_DRIVE or drive_layout > CarSpecs.DriveLayout.ALL_WHEEL_DRIVE:
 		drive_layout = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
 	awd_front_torque_fraction = clampf(awd_front_torque_fraction, 0.0, 1.0)
+	if front_static_load_fraction <= 0.0:
+		front_static_load_fraction = 0.62 if is_front_wheel_drive() else 0.50 if is_all_wheel_drive() else 0.53
+	front_static_load_fraction = clampf(front_static_load_fraction, 0.10, 0.90)
+	center_of_mass_height_m = maxf(center_of_mass_height_m, 0.05)
 	front_lateral_grip = maxf(front_lateral_grip, 0.01)
 	rear_lateral_grip = maxf(rear_lateral_grip, 0.01)
 	front_tire_width_m = maxf(front_tire_width_m, 0.01)
