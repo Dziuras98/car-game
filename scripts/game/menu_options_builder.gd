@@ -49,10 +49,7 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 				model_label
 			))
 
-	ordered_variants.sort_custom(
-		func(left: CarVariantMenuOption, right: CarVariantMenuOption) -> bool:
-			return _is_car_option_ordered_before(left, right)
-	)
+	ordered_variants.sort_custom(_is_car_option_ordered_before)
 
 	# MainMenu flattens these entries in sequence. Splitting a model when needed
 	# preserves a global ascending DPI order while retaining the correct model metadata.
