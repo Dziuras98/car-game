@@ -8,29 +8,29 @@ var _failures: Array[String] = []
 
 
 func _initialize() -> void:
-	_test_inventory_gate()
+	_test_inventory_scope()
 	_test_research_record()
 	_finish()
 
 
-func _test_inventory_gate() -> void:
+func _test_inventory_scope() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect(not inventory.is_empty(), "vehicle inventory is readable")
 	_expect(
-		inventory.contains("Ford E-150 Commercial Cargo Van, regular length, high-series exterior, 2012 | full-size van | 1,844 | `awaiting_owner_scope`"),
-		"model 05 is blocked at its owner-scope gate"
+		inventory.contains("Ford E-150 Commercial Cargo Van, regular length, approved 2008–2014 high-tier exterior scope | full-size van | 1,844 | `approved`"),
+		"model 05 has passed the owner-scope gate"
 	)
 	_expect(
-		inventory.contains("docs/vehicles/traffic/ford_e150_2012.md"),
-		"inventory links the Ford E-150 research record"
+		inventory.contains("| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 8 |"),
+		"inventory records eight approved Ford E-150 configurations"
 	)
 	_expect(
-		inventory.contains("2 strict-source engine/transmission rows; 4 with both axle ratios; 8 with open/LSD split; 6/12/24 equivalents across all E-150 cargo/Wagon bodies"),
-		"inventory records the complete Ford E-150 candidate structure"
+		inventory.contains("Models 01, 02, 03, 04 and 05 have passed their individual owner-scope gates"),
+		"inventory records the first five approved scopes"
 	)
 	_expect(
-		inventory.contains("After model 05 is approved, research continues with model 06"),
-		"research order advances without implementation"
+		inventory.contains("The next research target is model 06 — Ford Excursion 2000"),
+		"research advances to model 06 without implementation"
 	)
 
 
@@ -38,33 +38,40 @@ func _test_research_record() -> void:
 	var research: String = _read_text(RESEARCH_PATH)
 	_expect(not research.is_empty(), "Ford E-150 research record is readable")
 	for required_fragment: String in [
-		"Ford E-150 Commercial Cargo Van — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Ford E-150 Commercial Cargo Van — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **8 distinct 2008–2014 regular-length E-150 Commercial Cargo Van year-era/engine configurations**",
 		"Source SHA-256: `b8fb9a407b091108ea4c36f12f609e65ae587108085ec4ac6e019842a9396c6e`",
-		"2012 Ford E-150 Commercial Cargo Van, regular length, rear-wheel drive",
 		"Wheelbase | 138.0 in / 3.5052 m",
 		"Total triangles | 1,844",
 		"Approximate wheelbase-derived scale | 0.712154",
-		"strict source body: **2 engine/transmission rows**",
-		"all 2012 E-150 full-body variants: **6 body/engine/transmission rows**",
-		"4.6L Triton Modular SOHC naturally aspirated V8, FFV",
-		"225 hp @ 4,800 rpm; 286 lb-ft",
-		"5.4L Triton Modular SOHC naturally aspirated V8, FFV",
-		"255 hp @ 4,500 rpm; 350 lb-ft",
-		"four-speed torque-converter automatic with overdrive",
-		"3.73:1 and 4.10:1 rear axle ratios",
-		"limited-slip rear axle",
-		"**4 engine/final-drive configurations**",
-		"**8 engine/final-drive/differential configurations**",
-		"factory flexible-fuel engines capable of gasoline, E85 or intermediate blends",
-		"5.4L CNG/LPG Gaseous Engine Prep Package",
+		"### 2008",
+		"were **not yet FFV**",
+		"### 2009–2010",
+		"both the 4.6L and 5.4L became FFV-capable",
+		"### 2011–2013",
+		"AdvanceTrac with RSC became standard equipment",
+		"### 2014",
+		"dual sealed-beam headlamps",
+		"4.6L Triton Modular SOHC naturally aspirated cross-plane V8",
+		"5.4L Triton Modular SOHC naturally aspirated cross-plane V8",
+		"four-speed planetary torque-converter automatic with overdrive",
+		"Approved total: 8 regular-length E-150 Commercial Cargo Van year-era/engine configurations",
+		"one standard factory rear-axle ratio verified for that exact year, engine and body",
+		"an open differential",
+		"selectable E85 state",
+		"CNG/LPG Gaseous Engine Prep",
 		"Crew Van Package",
-		"Ford Twin-I-Beam front suspension",
-		"solid rear drive axle on dual-stage leaf springs",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this decision",
+		"E-150 Extended Cargo Van",
+		"E-250 and E-350 full-body vans",
+		"Model 05 is **`approved`** with **8** configurations",
+		"Research proceeds to model 06",
 	]:
-		_expect(research.contains(required_fragment), "Ford E-150 research preserves: %s" % required_fragment)
+		_expect(research.contains(required_fragment), "Ford E-150 approval preserves: %s" % required_fragment)
+	_expect(
+		not research.contains("Workflow status: **`awaiting_owner_scope`**"),
+		"Ford E-150 no longer remains at the owner-scope gate"
+	)
 
 
 func _read_text(path: String) -> String:
