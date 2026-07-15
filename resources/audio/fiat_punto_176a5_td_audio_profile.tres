@@ -6,8 +6,8 @@
 script = ExtResource("1_profile")
 idle_volume_db = -6.5
 load_volume_db = 1.5
-output_volume_boost_db = 11.0
-synthesis_gain_db = 2.1
+output_volume_boost_db = 10.0
+synthesis_gain_db = 1.5
 high_rpm_rasp = 0.015
 intake_presence = 0.16
 intake_plenum_detail = 0.06
@@ -39,4 +39,4 @@ starter_motor_level = 0.42
 shutdown_duration = 1.25
 limiter_period = 0.092
 limiter_cut_ratio = 0.54
-limiter_residual_combustion = 0.18
+limiter_residual_combustion = 0.30
