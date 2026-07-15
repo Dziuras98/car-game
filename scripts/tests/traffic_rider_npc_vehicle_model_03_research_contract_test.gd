@@ -8,29 +8,29 @@ var _failures: Array[String] = []
 
 
 func _initialize() -> void:
-	_test_inventory_gate()
+	_test_inventory_scope()
 	_test_research_record()
 	_finish()
 
 
-func _test_inventory_gate() -> void:
+func _test_inventory_scope() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect(not inventory.is_empty(), "vehicle inventory is readable")
 	_expect(
-		inventory.contains("Renault Clio IV X98 five-door hatchback Phase 1 | passenger hatchback | 2,118 | `awaiting_owner_scope`"),
-		"model 03 remains blocked at its owner-scope gate"
+		inventory.contains("Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved`"),
+		"model 03 remains approved"
 	)
 	_expect(
-		inventory.contains("docs/vehicles/traffic/renault_clio_2013.md"),
-		"inventory links the Renault Clio research record"
+		inventory.contains("| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 |"),
+		"inventory records ten approved Clio configurations"
 	)
 	_expect(
-		inventory.contains("12 engine/calibration/transmission rows; 13 physical configurations after R.S. Sport/Cup split"),
-		"inventory records the complete Clio candidate scope"
+		inventory.contains("no GT, LPG, R.S., Estate, emissions-package or duplicate calibration rows"),
+		"inventory records the final Clio exclusions"
 	)
 	_expect(
-		inventory.contains("After model 03 is approved, research continues with model 04"),
-		"research order advances without implementation"
+		inventory.contains("Chevrolet Cruze J300 North American LS sedan, pre-facelift source | passenger sedan | 2,444 | `awaiting_owner_scope`"),
+		"research order advances to model 04"
 	)
 
 
@@ -38,28 +38,26 @@ func _test_research_record() -> void:
 	var research: String = _read_text(RESEARCH_PATH)
 	_expect(not research.is_empty(), "Renault Clio research record is readable")
 	for required_fragment: String in [
-		"Renault Clio IV X98 Phase 1",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Renault Clio IV X98 — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **10 mechanically distinct non-R.S., non-GT hatchback configurations**",
 		"Source SHA-256: `48081738ea28f0ef1360461c7790dadc4c4acc8547b5ac872dcd3a12606438b4`",
-		"standard non-R.S. body",
 		"Wheelbase | 2.589 m",
 		"Total triangles | 2,118",
 		"Approximate wheelbase-derived scale | 0.684016",
-		"12 candidate engine/calibration/transmission rows",
-		"13 candidate physical catalog configurations",
-		"D4F-740 1.2 16V",
-		"H4Bt/H4B 0.9 Energy TCe",
-		"K9K-612 1.5 dCi",
-		"H5Ft/H5F 1.2 TCe",
-		"M5Mt/MR16DDT 1.6",
+		"Approved total: 10 mechanically distinct non-R.S., non-GT configurations",
+		"H4B/H4Bt 0.9 TCe turbo I3, 75 PS",
+		"H5F/H5Ft 1.2 TCe direct-injection turbo I4, 120 PS / approximately 205 Nm",
+		"K9K 1.5 dCi turbo-diesel I4, 110 PS / approximately 260 Nm",
 		"six-speed dry dual-clutch transmission",
-		"Sport and Cup chassis are materially separate configurations",
-		"R.S. 220 EDC Trophy",
-		"disputed Phase 1 dCi 90 EDC",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"exclude every LPG/bi-fuel variant",
+		"**exclude GT 120 EDC**",
+		"Phase 2 and Clio Génération rows require an accurate facelift derivative",
+		"Model 03 is **`approved`** with **10** configurations",
+		"Research proceeds to model 04",
 	]:
-		_expect(research.contains(required_fragment), "Renault Clio research preserves: %s" % required_fragment)
+		_expect(research.contains(required_fragment), "Renault Clio approval preserves: %s" % required_fragment)
+	_expect(not research.contains("| 7 | Phase 1 GT |"), "GT 120 EDC is absent from the approved matrix")
 
 
 func _read_text(path: String) -> String:
