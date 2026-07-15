@@ -15,6 +15,9 @@ var has_contact: bool = false
 var surface_grip_multiplier: float = 1.0
 var contact_normal: Vector3 = Vector3.UP
 var suspension_acceleration: float = 0.0
+var steering_angle_rad: float = 0.0
+var lateral_slip_angle_rad: float = 0.0
+var lateral_force_n: float = 0.0
 var lateral_slip_intensity: float = 0.0
 var longitudinal_slip_ratio: float = 0.0
 var longitudinal_slip_intensity: float = 0.0
@@ -74,6 +77,7 @@ func integrate_rotation(delta: float) -> void:
 
 func reset() -> void:
 	reset_contact()
+	steering_angle_rad = 0.0
 	reset_tire_dynamics()
 	reset_rotation()
 
@@ -97,9 +101,15 @@ func set_contact(
 
 
 func reset_tire_dynamics() -> void:
-	lateral_slip_intensity = 0.0
+	reset_lateral_dynamics()
 	reset_longitudinal_dynamics()
 	tire_slip_intensity = 0.0
+
+
+func reset_lateral_dynamics() -> void:
+	lateral_slip_angle_rad = 0.0
+	lateral_force_n = 0.0
+	lateral_slip_intensity = 0.0
 
 
 func reset_longitudinal_dynamics() -> void:
