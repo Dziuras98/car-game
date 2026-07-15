@@ -53,6 +53,55 @@ func get_wheel_contact_count() -> int:
 	return contact_count
 
 
+func configure_wheel_rotation(config: CarDriveConfig, preserve_angular_velocity: bool = true) -> void:
+	ensure_wheel_states()
+	if config == null:
+		return
+	for wheel: WheelTireState in wheel_states:
+		var preserved_velocity: float = wheel.angular_velocity_rad_s
+		wheel.configure_rotation(
+			config.wheel_radius,
+			config.get_wheel_inertia_kg_m2(wheel.wheel_index)
+		)
+		if preserve_angular_velocity:
+			wheel.angular_velocity_rad_s = preserved_velocity
+		else:
+			wheel.set_rolling_speed(forward_speed)
+
+
+func get_average_driven_wheel_angular_velocity(config: CarDriveConfig) -> float:
+	ensure_wheel_states()
+	if config == null:
+		return 0.0
+	var weighted_velocity: float = 0.0
+	var total_fraction: float = 0.0
+	for wheel: WheelTireState in wheel_states:
+		var fraction: float = config.get_drive_torque_fraction(wheel.wheel_index)
+		if fraction <= 0.0:
+			continue
+		weighted_velocity += wheel.angular_velocity_rad_s * fraction
+		total_fraction += fraction
+	if total_fraction <= 0.0:
+		return 0.0
+	return weighted_velocity / total_fraction
+
+
+func get_wheel_angular_velocities() -> PackedFloat32Array:
+	ensure_wheel_states()
+	var velocities := PackedFloat32Array()
+	for wheel: WheelTireState in wheel_states:
+		velocities.append(wheel.angular_velocity_rad_s)
+	return velocities
+
+
+func get_wheel_angular_positions() -> PackedFloat32Array:
+	ensure_wheel_states()
+	var positions := PackedFloat32Array()
+	for wheel: WheelTireState in wheel_states:
+		positions.append(wheel.angular_position_rad)
+	return positions
+
+
 func synchronize_wheel_contacts_from_aggregate() -> void:
 	ensure_wheel_states()
 	var target_contact_count: int = clampi(
