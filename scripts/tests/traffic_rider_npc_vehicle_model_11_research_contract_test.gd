@@ -13,34 +13,30 @@ func _initialize() -> void:
 	_expect(not inventory.is_empty(), "vehicle inventory is readable")
 	_expect(not research.is_empty(), "Kia cee'd research record is readable")
 	for required_fragment: String in [
-		"Kia cee'd JD five-door European pre-facelift standard EcoDynamics-style source | passenger hatchback | 2,134 | `awaiting_owner_scope`",
-		"16 mechanically consolidated European five-door powertrain rows",
-		"After model 11 is approved, research continues with model 12",
+		"Kia cee'd JD five-door European pre-facelift standard EcoDynamics-style source with approved complete powertrain scope | passenger hatchback | 2,134 | `approved`",
+		"| 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 |",
+		"After model 12 is approved, research continues with model 13",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves: %s" % required_fragment)
 	for required_fragment: String in [
-		"Kia cee'd JD five-door hatchback — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Kia cee'd JD five-door hatchback — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **15 mechanically consolidated Kia cee'd JD five-door configurations**",
 		"Source SHA-256: `bc84bc41e7a4ca000826b38153a64b3f66d0d2532c068da30038046d614ac941`",
 		"European/UK-market Kia cee'd JD five-door hatchback",
 		"Wheelbase | 2,650 mm / 2.650 m",
 		"Total triangles | 2,134",
 		"Approximate wheelbase-derived scale | 0.682033",
-		"Mechanically consolidated candidate total: 16 configurations",
-		"1.4L Gamma CVVT MPI",
-		"1.4L Kappa MPI",
-		"1.6L Gamma GDI",
-		"1.0L Kappa T-GDI",
-		"cee'd GT 1.6L Gamma T-GDI",
-		"1.4L U2 CRDi",
-		"1.6L U2 CRDi",
+		"merged 110-PS pre-/post-facelift row",
+		"Approved total: 8 petrol + 7 diesel = 15 mechanically consolidated configurations",
 		"6-speed dry dual-clutch transaxle",
 		"6-speed planetary torque-converter automatic",
 		"7-speed dry dual-clutch transaxle",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"Model 11 is **`approved`** with **15** configurations",
+		"Research proceeds to model 12",
 	]:
 		_expect(research.contains(required_fragment), "Kia cee'd research preserves: %s" % required_fragment)
+	_expect(not research.contains("Workflow status: **`awaiting_owner_scope`**"), "Kia cee'd owner gate is closed")
 	_finish()
 
 
