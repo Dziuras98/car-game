@@ -10,6 +10,7 @@ func _initialize() -> void:
 	_test_airborne_wheel_is_not_constrained_to_road_speed()
 	_test_rwd_front_wheels_are_prepared_before_slip_resolution()
 	_test_external_speed_discontinuity_does_not_impulse_vehicle()
+	_test_synthetic_contact_initializes_wheel_speed()
 	_test_turning_free_wheel_uses_contact_patch_road_speed()
 	_finish()
 
@@ -63,7 +64,7 @@ func _test_rwd_front_wheels_are_prepared_before_slip_resolution() -> void:
 	state.configure_wheel_rotation(config, false)
 	var front_left: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_LEFT)
 	var front_right: WheelTireState = state.get_wheel_state(WheelTireState.Position.FRONT_RIGHT)
-	front_left.set_rolling_speed(11.5)
+	front_left.set_rolling_speed(11.9)
 	front_left.drive_torque_nm = 0.0
 	front_left.brake_torque_nm = 0.0
 
@@ -96,7 +97,7 @@ func _test_rwd_front_wheels_are_prepared_before_slip_resolution() -> void:
 		"small free-wheel speed corrections conserve generalized longitudinal momentum"
 	)
 	_expect(
-		state.forward_speed > 11.5 and state.forward_speed < 12.0,
+		state.forward_speed > 11.9 and state.forward_speed < 12.0,
 		"spinning up a slightly lagging free wheel consumes vehicle kinetic momentum"
 	)
 
@@ -126,6 +127,24 @@ func _test_external_speed_discontinuity_does_not_impulse_vehicle() -> void:
 		and is_equal_approx(front_right.get_circumferential_speed_mps(), 20.0),
 		"free wheels follow the new authoritative road speed after a discontinuity"
 	)
+
+
+func _test_synthetic_contact_initializes_wheel_speed() -> void:
+	var config := CarDriveConfig.new()
+	config.drive_layout = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
+	config.wheel_radius = 0.30
+	config.sanitize()
+	var state := CarRuntimeState.new()
+	state.configure_wheel_rotation(config, false)
+	state.forward_speed = 20.0
+	state.ground_contact_count = WheelTireState.WHEEL_COUNT
+	state.surface_grip_multiplier = 1.0
+	state.synchronize_wheel_contacts_from_aggregate()
+	for wheel: WheelTireState in state.wheel_states:
+		_expect(
+			is_equal_approx(wheel.get_circumferential_speed_mps(), 20.0),
+			"a newly synthesized wheel contact starts at seeded road speed"
+		)
 
 
 func _test_turning_free_wheel_uses_contact_patch_road_speed() -> void:
