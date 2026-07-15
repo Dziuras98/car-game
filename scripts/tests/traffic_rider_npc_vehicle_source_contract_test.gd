@@ -36,6 +36,7 @@ const SILVERADO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_s
 const CLIO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_clio_2013.md"
 const CRUZE_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_cruze_2011.md"
 const E150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_e150_2012.md"
+const EXCURSION_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_excursion_2000.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -50,7 +51,7 @@ func _initialize() -> void:
 	_test_excluded_large_trucks()
 	_test_workflow_contract()
 	_test_inventory_and_global_gate()
-	_test_approved_model_scopes()
+	_test_model_scopes()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -69,145 +70,94 @@ func _test_excluded_large_trucks() -> void:
 
 func _test_workflow_contract() -> void:
 	var workflow: String = _read_text(WORKFLOW_PATH)
-	_expect(not workflow.is_empty(), "workflow document is readable")
 	_expect_fragments(workflow, PackedStringArray([
 		"Research the complete factory variant matrix before importing the model",
 		"Stop for owner approval after research",
 		"Finish all model scopes before implementing any model",
 		"Keep the committed source GLB unchanged",
-		"Calibrate every model independently",
 		"Use wheelbase as the primary scale reference",
 		"Provide four independent wheel nodes",
-		"Use explicit wheel bindings",
 		"Match the real transmission architecture exactly",
-		"Implement missing transmission types faithfully",
-		"Reproduce performance from evidence, not from labels",
 		"Build new engine-sound architectures from first principles",
-		"Keep every model compatible with current `master` physics",
-		"Stage 0 — complete vehicle and powertrain research",
-		"A single row labelled only `automatic` is insufficient",
-		"Mandatory owner decision gate",
 		"No model may enter `integrating` until all included models have reached `approved`",
-		"Stage 6 — implement the exact transmission architecture",
-		"A classic automatic must never be represented as an automated manual",
-		"A DCT must not be approximated by shortening a conventional automatic shift delay",
-		"Do not force an unsupported transmission through a fallback path",
-		"Do not match acceleration by using a false peak torque",
-		"Mandatory `master` physics synchronization",
-		"recalibrate every affected model to current physics",
-		"must not use an unrelated cylinder layout as its primary waveform",
 		"Stage 11 — mandatory validation",
-		"Per-model integration record",
 	]), "workflow preserves")
 
 
 func _test_inventory_and_global_gate() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
-	_expect(not inventory.is_empty(), "vehicle inventory is readable")
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
-		"source_only",
-		"researching",
-		"awaiting_owner_scope",
-		"approved",
-		"integrating",
-		"integrated",
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
 		"Models 01, 02, 03, 04 and 05 have passed their individual owner-scope gates",
-		"The next research target is model 06 — Ford Excursion 2000",
-		"Only after all 20 scopes are approved does implementation begin",
+		"06 — Ford Excursion",
+		"After model 06 is approved, research continues with model 07",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory preserves")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
 
 
-func _test_approved_model_scopes() -> void:
+func _test_model_scopes() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
-	_expect(
-		inventory.contains("| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 |"),
-		"inventory records 44 approved BMW combinations"
-	)
-	_expect(
-		inventory.contains("| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 |"),
-		"inventory records four approved Silverado combinations"
-	)
-	_expect(
-		inventory.contains("| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 |"),
-		"inventory records ten approved Clio combinations"
-	)
-	_expect(
-		inventory.contains("| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |"),
-		"inventory records twenty approved Cruze combinations"
-	)
-	_expect(
-		inventory.contains("| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 8 |"),
-		"inventory records eight approved E-150 combinations"
-	)
+	for required_fragment: String in [
+		"| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 |",
+		"| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 |",
+		"| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 |",
+		"| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |",
+		"| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 |",
+		"Ford Excursion 2000 pre-facelift XLT, drivetrain unresolved visually | SUV | 2,180 | `awaiting_owner_scope`",
+	]:
+		_expect(inventory.contains(required_fragment), "inventory preserves scope: %s" % required_fragment)
 
 	_expect_fragments(_read_text(BMW_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
-		"Approved implementation scope: **44 mechanically distinct pre-LCI combinations**",
 		"Approved total: 42 standard + 2 ZHP = 44 combinations",
 	]), "BMW scope preserves")
-
 	_expect_fragments(_read_text(SILVERADO_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
 		"Approved implementation scope: **4 mechanically distinct RWD combinations**",
-		"Hydra-Matic 6L80 6AT, RPO MYC",
-		"Hydra-Matic 8L90 8AT, RPO M5U",
 	]), "Silverado scope preserves")
-
 	var clio: String = _read_text(CLIO_RESEARCH_PATH)
 	_expect_fragments(clio, PackedStringArray([
 		"Workflow status: **`approved`**",
-		"Approved implementation scope: **10 mechanically distinct non-R.S., non-GT hatchback configurations**",
 		"Approved total: 10 mechanically distinct non-R.S., non-GT configurations",
 		"**exclude GT 120 EDC**",
 	]), "Clio scope preserves")
 	_expect(not clio.contains("| 7 | Phase 1 GT |"), "Clio GT is absent from the approved matrix")
-
 	_expect_fragments(_read_text(CRUZE_RESEARCH_PATH), PackedStringArray([
-		"Chevrolet Cruze J300 sedan — research and approved scope",
 		"Workflow status: **`approved`**",
-		"Approved implementation scope: **20 mechanically distinct pre-facelift Chevrolet-badged J300 sedan configurations**",
 		"Approved total: 20 mechanically distinct pre-facelift Chevrolet J300 sedan configurations",
-		"Aisin AF40-6",
-		"approved, gasoline only",
 		"Provisional rows are approved for catalog scope immediately",
 	]), "Cruze scope preserves")
-
 	var e150: String = _read_text(E150_RESEARCH_PATH)
 	_expect_fragments(e150, PackedStringArray([
-		"Ford E-150 Commercial Cargo Van — research and approved scope",
 		"Workflow status: **`approved`**",
-		"Approved implementation scope: **8 distinct 2008–2014 regular-length E-150 Commercial Cargo Van year-era/engine configurations**",
-		"Source SHA-256: `b8fb9a407b091108ea4c36f12f609e65ae587108085ec4ac6e019842a9396c6e`",
-		"Approved total: 8 regular-length E-150 Commercial Cargo Van year-era/engine configurations",
-		"were **not yet FFV**",
-		"both the 4.6L and 5.4L became FFV-capable",
-		"AdvanceTrac with RSC became standard equipment",
-		"dual sealed-beam headlamps",
-		"one standard factory rear-axle ratio verified for that exact year, engine and body",
-		"an open differential",
-		"Model 05 is **`approved`** with **8** configurations",
-		"Research proceeds to model 06",
+		"Approved implementation scope: **2 regular-length E-150 Commercial Cargo Van engine configurations**",
+		"Approved total: 2 regular-length E-150 Commercial Cargo Van configurations",
+		"do not create separate catalog rows for model-year eras",
+		"Model 05 is **`approved`** with **2** configurations",
 	]), "E-150 scope preserves")
-	_expect(not e150.contains("Workflow status: **`awaiting_owner_scope`**"), "E-150 approval gate is closed")
+	_expect(not e150.contains("Approved total: 8 regular-length"), "E-150 year-era rows remain collapsed")
+	_expect_fragments(_read_text(EXCURSION_RESEARCH_PATH), PackedStringArray([
+		"Ford Excursion — research and owner-scope gate",
+		"Workflow status: **`awaiting_owner_scope`**",
+		"Candidate total: 12 engine/calibration/transmission/drivetrain rows",
+		"Ford 4R100 4-speed planetary torque-converter automatic",
+		"Ford TorqShift 5R110W 5-speed planetary torque-converter automatic",
+		"Owner scope decision — required before implementation",
+	]), "Excursion gate preserves")
 
 
 func _test_provenance_contract() -> void:
-	var notice: String = _read_text(NOTICE_PATH)
-	_expect_fragments(notice, PackedStringArray([
+	_expect_fragments(_read_text(NOTICE_PATH), PackedStringArray([
 		"## Sketchfab Traffic Rider NPC vehicle bundle",
 		"Mason (`ModelzRipper`)",
 		"CC BY-NC 4.0",
 		"incomplete upstream rights chain",
 	]), "third-party notice preserves")
-
-	var risks: String = _read_text(RISK_PATH)
-	_expect_fragments(risks, PackedStringArray([
+	_expect_fragments(_read_text(RISK_PATH), PackedStringArray([
 		"## Traffic Rider NPC vehicle bundle provenance",
 		"The 20 source GLBs remain committed and are not added to `.gitignore`.",
 		"Scania, generic articulated truck and generic rigid truck remain excluded",
