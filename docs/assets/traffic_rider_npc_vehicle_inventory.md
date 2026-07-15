@@ -48,8 +48,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 11 | `11_kia_ceed_2012.glb` | Kia cee'd JD five-door European pre-facelift standard EcoDynamics-style source with approved complete powertrain scope | passenger hatchback | 2,134 | `approved` |
 | 12 | `12_renault_maxity_2008.glb` | Renault Maxity original-body single-cab short-wheelbase box truck with approved complete six-powertrain scope | light box truck | 2,102 | `approved` |
 | 13 | `13_mazda_2_2011.glb` | North American 2011 Mazda2 Sport five-door facelift source with approved complete global powertrain scope | passenger hatchback | 1,770 | `approved` |
-| 14 | `14_mazda_3_2014.glb` | North American 2014 Mazda3 BM five-door high-grade 2.5-style source | passenger hatchback | 1,842 | `awaiting_owner_scope` |
-| 15 | `15_mercedes_benz_sprinter_2014.glb` | Mercedes-Benz Sprinter 2014 | full-size van | 1,536 | `source_only` |
+| 14 | `14_mazda_3_2014.glb` | North American 2014 Mazda3 BM five-door high-grade 2.5-style source with approved global BM/BN/BY scope | passenger hatchback | 1,842 | `approved` |
+| 15 | `15_mercedes_benz_sprinter_2014.glb` | Mercedes-Benz Sprinter W906 facelift long-wheelbase high-roof windowed single-rear-wheel van | full-size van | 1,536 | `awaiting_owner_scope` |
 | 16 | `16_mercedes_benz_unimog_u5023_2013.glb` | Mercedes-Benz Unimog U5023 2013 | utility vehicle | 2,032 | `source_only` |
 | 17 | `17_nissan_atlas_2007.glb` | Nissan Atlas 2007 | light flatbed truck | 1,996 | `source_only` |
 | 18 | `18_nissan_atleon_2004.glb` | Nissan Atleon 2004 | medium box truck | 2,076 | `source_only` |
@@ -75,16 +75,17 @@ Total committed source geometry: **40,300 triangles**.
 | 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 | all listed petrol and diesel rows with pre-/post-facelift 1.6 CRDi 110 PS 6MT merged; manual, 6DCT, torque-converter 6AT and 7DCT rows separate; five-door GT retained with real GT running gear; one standard final drive and differential per row; common source-like pre-facelift five-door exterior; no other bodies, conversions, gearing or emissions-state subdivisions |
 | 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 | five diesel calibrations (110, 120, 130, 140 and 150 PS) plus Maxity Electric; single-cab short-wheelbase source box body with dual rear wheels; one representative mass/payload state, final drive and differential per row; no alternative cabs, bodies, wheelbases, GVW, emissions subdivisions or conversions |
 | 13 — Mazda2 / Demio DE five-door hatchback | `docs/vehicles/traffic/mazda_2_2011.md` | 16 | all 16 listed global powertrain rows retained separately, including regional 1.3/1.5 calibrations, 5MT, 4AT, CVT, e-4WD, Miller, SKYACTIV-G, both diesels and Demio EV; one source-like five-door facelift body and one standard final drive/differential or rear-assist state per row; no alternate bodies, emissions subdivisions or conversions |
+| 14 — Mazda3 BM / BN / BY | `docs/vehicles/traffic/mazda_3_2014.md` | 19 | all 19 listed petrol, diesel, AWD and hybrid rows retained; provisional regional 1.6/4AT remains evidence-blocked; rows 1–18 use the source-like BM hatchback and the sedan-only hybrid retains its necessary BY sedan body; all transmission architectures separate; one standard final drive/differential or AWD state per row; no emissions or conversion duplicates |
 
-Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12 and 13 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13 and 14 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 14 — Mazda3 BM / BN five-door hatchback | `docs/vehicles/traffic/mazda_3_2014.md` | 19 mechanically consolidated global powertrain rows, including i-ACTIV AWD and sedan-only SKYACTIV-HYBRID | all powertrains; hatchback/sedan/hybrid body scope; common source exterior vs BN/sedan derivatives; regional calibration separation; provisional 1.6/4AT row; AWD; transmission architectures; final-drive/differential policy; emissions/control metadata; conversions; missing variants |
+| 15 — Mercedes-Benz Sprinter W906 facelift | `docs/vehicles/traffic/mercedes_benz_sprinter_2014.md` | 21 mechanically consolidated facelift powertrain rows: OM651/OM642 diesel, M271 petrol/NGT, RWD and Sprinter 4x4, with 6MT/5AT/7AT architectures | all rows vs selected groups; evidence-blocked rows; source body vs other bodies; petrol/NGT; North-American 5AT; 4x4; representative mass state; final-drive/differential policy; emissions/low-range metadata; conversions; missing variants |
 
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 14 is approved, research continues with model 15.
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 15 is approved, research continues with model 16.
 
 ## Source topology
 
