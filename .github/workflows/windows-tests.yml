@@ -40,6 +40,17 @@ jobs:
           persist-credentials: false
           lfs: true
 
+      - name: Upload temporary source snapshot
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: car-game-source-${{ github.sha }}
+          path: |
+            .
+            !.git
+          include-hidden-files: true
+          retention-days: 1
+          compression-level: 6
+
       - name: Download and verify Godot
         shell: pwsh
         run: |
