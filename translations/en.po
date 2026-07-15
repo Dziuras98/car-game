@@ -138,6 +138,9 @@ msgstr "Poznań Circuit"
 msgid "Suzuka"
 msgstr "Suzuka"
 
+msgid "Nieskończona siatka"
+msgstr "Infinite grid"
+
 msgid "370Z automat"
 msgstr "370Z automatic"
 
