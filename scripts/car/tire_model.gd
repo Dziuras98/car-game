@@ -98,8 +98,10 @@ func resolve_longitudinal_acceleration_from_slip(
 	if peak_capacity <= MIN_ACCELERATION_CAPACITY:
 		return 0.0
 	var normalized_slip: float = absf(slip_ratio) / maxf(peak_slip_ratio, 0.001)
-	var capacity_multiplier: float = normalized_slip
-	if normalized_slip > 1.0:
+	var capacity_multiplier: float
+	if normalized_slip <= 1.0:
+		capacity_multiplier = normalized_slip * (2.0 - normalized_slip)
+	else:
 		capacity_multiplier = _get_post_peak_capacity_multiplier(
 			normalized_slip,
 			slide_grip_multiplier
