@@ -5,6 +5,7 @@ const PROBE_END_MARGIN: float = 0.05
 const REFERENCE_FRONT_TIRE_WIDTH_M: float = 0.225
 const REFERENCE_REAR_TIRE_WIDTH_M: float = 0.245
 const DEFAULT_SURFACE_GRIP_MULTIPLIER: float = 1.0
+const MIN_WHEEL_LOAD_SHARE: float = 0.01
 
 var _tire_model: TireModel = TireModel.new()
 var _lateral_tire_model: LateralTireDynamicsModel = LateralTireDynamicsModel.new()
@@ -110,6 +111,11 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_active: bool, delta: float) -> void:
 	state.synchronize_wheel_contacts_from_aggregate()
 	_set_wheel_steering_angles(state, steering)
+	var mass: float = maxf(_config.vehicle_mass, 1.0)
+	var previous_lateral_acceleration: float = _get_previous_lateral_tire_acceleration(
+		state,
+		mass
+	)
 	state.lateral_acceleration_mps2 = 0.0
 	state.yaw_acceleration_rad_s2 = 0.0
 	state.yaw_moment_nm = 0.0
@@ -121,7 +127,6 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 		return
 
 	var safe_delta: float = maxf(delta, 0.0)
-	var mass: float = maxf(_config.vehicle_mass, 1.0)
 	var total_lateral_force_n: float = 0.0
 	var total_yaw_moment_nm: float = 0.0
 	var longitudinal_acceleration: float = _get_previous_longitudinal_acceleration(state)
@@ -159,9 +164,9 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 			wheel.steering_angle_rad
 		)
 		var load_share: float = _get_dynamic_wheel_load_share(
-			state,
 			wheel,
-			longitudinal_acceleration
+			longitudinal_acceleration,
+			previous_lateral_acceleration
 		)
 		var handbrake_multiplier: float = (
 			_config.handbrake_lateral_grip_multiplier
@@ -279,34 +284,49 @@ func _set_wheel_steering_angles(state: CarRuntimeState, steering: float) -> void
 func _get_previous_longitudinal_acceleration(state: CarRuntimeState) -> float:
 	var acceleration: float = 0.0
 	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			continue
 		acceleration += wheel.applied_longitudinal_acceleration
 	return acceleration
 
 
-func _get_dynamic_wheel_load_share(
+func _get_previous_lateral_tire_acceleration(
 	state: CarRuntimeState,
+	vehicle_mass: float
+) -> float:
+	var total_lateral_force_n: float = 0.0
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			continue
+		total_lateral_force_n += wheel.lateral_force_n
+	return total_lateral_force_n / maxf(vehicle_mass, 1.0)
+
+
+func _get_dynamic_wheel_load_share(
 	wheel: WheelTireState,
-	longitudinal_acceleration: float
+	longitudinal_acceleration: float,
+	lateral_acceleration: float
 ) -> float:
 	var base_share: float = _config.get_wheel_load_share(
 		wheel.wheel_index,
 		longitudinal_acceleration
 	)
-	var axle_fraction: float = (
-		_config.front_static_load_fraction
-		if wheel.is_front()
-		else 1.0 - _config.front_static_load_fraction
-	)
+	var dynamic_axle_fraction: float = base_share * 2.0
 	var track_width: float = _config.front_axle_track_width if wheel.is_front() else _config.rear_axle_track_width
-	var axle_transfer: float = (
-		absf(state.lateral_acceleration_mps2)
+	var requested_transfer_per_wheel: float = (
+		absf(lateral_acceleration)
 		* _config.center_of_mass_height_m
 		/ maxf(TireModel.STANDARD_GRAVITY * track_width, 0.01)
-		* axle_fraction
+		* dynamic_axle_fraction
+		* 0.5
 	)
-	var outside_sign: float = signf(state.lateral_acceleration_mps2)
+	var transfer_per_wheel: float = minf(
+		requested_transfer_per_wheel,
+		maxf(base_share - MIN_WHEEL_LOAD_SHARE, 0.0)
+	)
+	var outside_sign: float = signf(lateral_acceleration)
 	var wheel_sign: float = 1.0 if wheel.is_left() else -1.0
-	return clampf(base_share + outside_sign * wheel_sign * axle_transfer * 0.5, 0.01, 0.49)
+	return base_share + outside_sign * wheel_sign * transfer_per_wheel
 
 
 func _get_surface_grip_multiplier(collider: CollisionObject3D) -> float:
@@ -339,12 +359,3 @@ func _get_ground_contact_factor(state: CarRuntimeState) -> float:
 		0.0,
 		1.0
 	)
-
-
-func _smoothstep(value: float) -> float:
-	var clamped_value: float = clampf(value, 0.0, 1.0)
-	return clamped_value * clamped_value * (3.0 - 2.0 * clamped_value)
-
-
-func _get_slip_limited_steering(_state: CarRuntimeState, steering: float) -> float:
-	return clampf(steering, -1.0, 1.0)

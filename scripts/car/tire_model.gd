@@ -4,8 +4,6 @@ class_name TireModel
 const STANDARD_GRAVITY: float = 9.80665
 const MIN_ACCELERATION_CAPACITY: float = 0.0001
 const FULL_SLIDE_DEMAND_RATIO: float = 2.5
-const SLIP_VISUAL_ONSET_MULTIPLIER: float = 0.75
-const SLIP_VISUAL_FULL_MULTIPLIER: float = 1.50
 
 
 func recover_lateral_speed(
@@ -122,15 +120,13 @@ func get_longitudinal_acceleration_capacity(
 
 
 func calculate_longitudinal_slip_intensity(slip_ratio: float, peak_slip_ratio: float) -> float:
-	var safe_peak_slip_ratio: float = maxf(peak_slip_ratio, 0.001)
-	var onset: float = safe_peak_slip_ratio * SLIP_VISUAL_ONSET_MULTIPLIER
-	var full_intensity: float = safe_peak_slip_ratio * SLIP_VISUAL_FULL_MULTIPLIER
-	var normalized: float = clampf(
-		(absf(slip_ratio) - onset) / maxf(full_intensity - onset, 0.001),
+	# This value participates in the lateral/longitudinal friction circle, so it
+	# represents physical grip usage rather than a delayed visual-only onset.
+	return clampf(
+		absf(slip_ratio) / maxf(peak_slip_ratio, 0.001),
 		0.0,
 		1.0
 	)
-	return _smoothstep(normalized)
 
 
 func calculate_combined_slip_intensity(lateral_intensity: float, longitudinal_intensity: float) -> float:
