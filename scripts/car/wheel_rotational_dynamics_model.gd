@@ -26,6 +26,35 @@ func calculate_slip_ratio(
 	)
 
 
+func synchronize_free_rolling_contact(
+	wheel: WheelTireState,
+	drive_torque_nm: float,
+	brake_torque_nm: float,
+	vehicle_forward_speed_mps: float
+) -> bool:
+	if not is_free_rolling_contact(wheel, drive_torque_nm, brake_torque_nm):
+		return false
+	wheel.set_rolling_speed(vehicle_forward_speed_mps)
+	wheel.drive_torque_nm = 0.0
+	wheel.brake_torque_nm = 0.0
+	wheel.tire_torque_nm = 0.0
+	wheel.angular_acceleration_rad_s2 = 0.0
+	return true
+
+
+func is_free_rolling_contact(
+	wheel: WheelTireState,
+	drive_torque_nm: float,
+	brake_torque_nm: float
+) -> bool:
+	return (
+		wheel != null
+		and wheel.has_contact
+		and absf(drive_torque_nm) <= TORQUE_EPSILON_NM
+		and maxf(brake_torque_nm, 0.0) <= TORQUE_EPSILON_NM
+	)
+
+
 func integrate_wheel(
 	wheel: WheelTireState,
 	drive_torque_nm: float,
@@ -49,15 +78,12 @@ func integrate_wheel(
 	# pure rolling in this deterministic arcade model. Letting numerical wheel
 	# inertia drift away from road speed creates fictitious longitudinal slip,
 	# consumes the entire friction circle and removes steering authority.
-	if (
-		wheel.has_contact
-		and absf(drive_torque_nm) <= TORQUE_EPSILON_NM
-		and safe_brake_torque <= TORQUE_EPSILON_NM
+	if synchronize_free_rolling_contact(
+		wheel,
+		drive_torque_nm,
+		safe_brake_torque,
+		vehicle_forward_speed_mps
 	):
-		wheel.set_rolling_speed(vehicle_forward_speed_mps)
-		wheel.drive_torque_nm = 0.0
-		wheel.brake_torque_nm = 0.0
-		wheel.tire_torque_nm = 0.0
 		wheel.integrate_rotation(safe_delta)
 		return
 
