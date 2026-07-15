@@ -4,6 +4,7 @@ class_name CarVisualController
 
 class RuntimeWheelBinding:
 	var wheel_id: StringName
+	var wheel_index: int = WheelTireState.Position.FRONT_LEFT
 	var steering_pivot: Node3D
 	var spin_pivot: Node3D
 	var steers: bool = false
@@ -37,7 +38,9 @@ var _wheel_visuals_configured: bool = false
 var _low_detail_wheel_nodes: Array[Node3D] = []
 var _low_detail_base_rotations: Array[Vector3] = []
 var _low_detail_front_flags: Array[bool] = []
+var _low_detail_wheel_indices: Array[int] = []
 var _wheel_spin: float = 0.0
+var _wheel_spin_positions: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
 var _using_low_detail: bool = false
 var _is_screen_visible: bool = false
 
@@ -109,6 +112,23 @@ func update_vehicle_visuals(
 	var safe_delta: float = maxf(delta, 0.0)
 	var radius: float = wheel_radius_override if wheel_radius_override > 0.0 else visual_wheel_radius
 	_wheel_spin = fposmod(_wheel_spin + forward_speed / maxf(radius, 0.01) * safe_delta, TAU)
+	for wheel_index: int in range(WheelTireState.WHEEL_COUNT):
+		_wheel_spin_positions[wheel_index] = _wheel_spin
+	_apply_current_wheel_visuals(steering_input)
+
+
+func update_vehicle_wheel_visuals(
+	wheel_angular_positions: PackedFloat32Array,
+	steering_input: float
+) -> void:
+	_configure_wheel_visuals()
+	for wheel_index: int in range(WheelTireState.WHEEL_COUNT):
+		if wheel_index < wheel_angular_positions.size():
+			_wheel_spin_positions[wheel_index] = wheel_angular_positions[wheel_index]
+	_apply_current_wheel_visuals(steering_input)
+
+
+func _apply_current_wheel_visuals(steering_input: float) -> void:
 	if not _is_screen_visible:
 		return
 	var steering_angle: float = deg_to_rad(24.0) * clampf(steering_input, -1.0, 1.0)
@@ -182,22 +202,25 @@ func _collect_low_detail_wheel_nodes() -> void:
 	_low_detail_wheel_nodes.clear()
 	_low_detail_base_rotations.clear()
 	_low_detail_front_flags.clear()
+	_low_detail_wheel_indices.clear()
 	if _low_detail_root == null:
 		return
-	for wheel_name: StringName in LOW_DETAIL_WHEEL_NAMES:
+	for wheel_index: int in range(LOW_DETAIL_WHEEL_NAMES.size()):
+		var wheel_name: StringName = LOW_DETAIL_WHEEL_NAMES[wheel_index]
 		var wheel: Node3D = _low_detail_root.get_node_or_null(NodePath(str(wheel_name))) as Node3D
 		if wheel == null:
 			continue
 		_low_detail_wheel_nodes.append(wheel)
 		_low_detail_base_rotations.append(wheel.rotation)
-		_low_detail_front_flags.append(wheel_name == &"WheelFrontLeft" or wheel_name == &"WheelFrontRight")
+		_low_detail_front_flags.append(wheel_index <= WheelTireState.Position.FRONT_RIGHT)
+		_low_detail_wheel_indices.append(wheel_index)
 
 
 func _is_binding_spec_resolvable(spec: Dictionary) -> bool:
 	var wheel_id: StringName = spec.get("wheel_id", &"")
 	var pivot_parent_path: NodePath = spec.get("pivot_parent_path", NodePath())
 	var pivot_parent: Node3D = get_node_or_null(pivot_parent_path) as Node3D
-	if wheel_id.is_empty() or pivot_parent == null:
+	if wheel_id.is_empty() or pivot_parent == null or _get_wheel_index_from_id(wheel_id) < 0:
 		return false
 	var spin_paths: Array = spec.get("spin_node_paths", [])
 	if spin_paths.is_empty():
@@ -260,6 +283,9 @@ func _create_runtime_binding(
 ) -> RuntimeWheelBinding:
 	if pivot_parent == null or spin_nodes.is_empty():
 		return null
+	var wheel_index: int = _get_wheel_index_from_id(wheel_id)
+	if wheel_index < 0:
+		return null
 	var steering_pivot: Node3D = Node3D.new()
 	steering_pivot.name = "%sSteeringPivot" % String(wheel_id).to_pascal_case()
 	steering_pivot.position = pivot_position
@@ -280,12 +306,22 @@ func _create_runtime_binding(
 
 	var binding: RuntimeWheelBinding = RuntimeWheelBinding.new()
 	binding.wheel_id = wheel_id
+	binding.wheel_index = wheel_index
 	binding.steering_pivot = steering_pivot
 	binding.spin_pivot = spin_pivot
 	binding.steers = steers
 	binding.steering_direction = steering_direction
 	binding.spin_direction = spin_direction
 	return binding
+
+
+func _get_wheel_index_from_id(wheel_id: StringName) -> int:
+	match wheel_id:
+		&"front_left": return WheelTireState.Position.FRONT_LEFT
+		&"front_right": return WheelTireState.Position.FRONT_RIGHT
+		&"rear_left": return WheelTireState.Position.REAR_LEFT
+		&"rear_right": return WheelTireState.Position.REAR_RIGHT
+	return -1
 
 
 func _assign_runtime_owner(node: Node, runtime_owner: Node) -> void:
@@ -329,8 +365,9 @@ func _apply_runtime_wheel_bindings(bindings: Array[RuntimeWheelBinding], steerin
 		if binding == null or not is_instance_valid(binding.spin_pivot):
 			continue
 		var applied_steering: float = steering_angle * binding.steering_direction if binding.steers else 0.0
+		var spin_position: float = _wheel_spin_positions[binding.wheel_index]
 		binding.steering_pivot.quaternion = Quaternion(Vector3.UP, applied_steering)
-		binding.spin_pivot.quaternion = Quaternion(Vector3.RIGHT, _wheel_spin * binding.spin_direction)
+		binding.spin_pivot.quaternion = Quaternion(Vector3.RIGHT, spin_position * binding.spin_direction)
 
 
 func _apply_low_detail_wheels(steering_angle: float) -> void:
@@ -339,7 +376,8 @@ func _apply_low_detail_wheels(steering_angle: float) -> void:
 		if not is_instance_valid(wheel) or not wheel.is_visible_in_tree():
 			continue
 		var rotation_value: Vector3 = _low_detail_base_rotations[index]
-		rotation_value.x += _wheel_spin
+		var wheel_index: int = _low_detail_wheel_indices[index]
+		rotation_value.x += _wheel_spin_positions[wheel_index]
 		if _low_detail_front_flags[index]:
 			rotation_value.y -= steering_angle
 		wheel.rotation = rotation_value

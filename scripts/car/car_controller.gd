@@ -339,12 +339,10 @@ func _configure_skid_mark_emitter() -> void:
 	)
 
 
-func _update_vehicle_visuals(delta: float, steering: float) -> void:
+func _update_vehicle_visuals(_delta: float, steering: float) -> void:
 	if _visual_controller == null or _drive_config == null:
 		return
-	_visual_controller.update_vehicle_visuals(
-		delta,
-		_runtime_state.forward_speed,
-		steering,
-		_drive_config.wheel_radius
+	_visual_controller.update_vehicle_wheel_visuals(
+		_runtime_state.get_wheel_angular_positions(),
+		steering
 	)

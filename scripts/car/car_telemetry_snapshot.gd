@@ -14,6 +14,9 @@ var _surface_grip_multiplier: float = 1.0
 var _ground_contact_count: int = 0
 var _ground_normal: Vector3 = Vector3.UP
 var _suspension_acceleration: float = 0.0
+var _wheel_angular_velocities: PackedFloat32Array = PackedFloat32Array()
+var _wheel_angular_positions: PackedFloat32Array = PackedFloat32Array()
+var _wheel_slip_ratios: PackedFloat32Array = PackedFloat32Array()
 
 
 static func capture(state: CarRuntimeState) -> CarTelemetrySnapshot:
@@ -33,6 +36,10 @@ static func capture(state: CarRuntimeState) -> CarTelemetrySnapshot:
 	snapshot._ground_contact_count = state.ground_contact_count
 	snapshot._ground_normal = state.ground_normal
 	snapshot._suspension_acceleration = state.suspension_acceleration
+	snapshot._wheel_angular_velocities = state.get_wheel_angular_velocities()
+	snapshot._wheel_angular_positions = state.get_wheel_angular_positions()
+	for wheel: WheelTireState in state.wheel_states:
+		snapshot._wheel_slip_ratios.append(wheel.longitudinal_slip_ratio)
 	return snapshot
 
 
@@ -90,3 +97,15 @@ func get_ground_normal() -> Vector3:
 
 func get_suspension_acceleration() -> float:
 	return _suspension_acceleration
+
+
+func get_wheel_angular_velocities() -> PackedFloat32Array:
+	return _wheel_angular_velocities.duplicate()
+
+
+func get_wheel_angular_positions() -> PackedFloat32Array:
+	return _wheel_angular_positions.duplicate()
+
+
+func get_wheel_slip_ratios() -> PackedFloat32Array:
+	return _wheel_slip_ratios.duplicate()

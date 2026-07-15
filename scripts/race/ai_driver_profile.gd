@@ -12,7 +12,10 @@ var recovery_search_distance: float = 45.0
 var full_search_interval_updates: int = 120
 var stuck_detection_seconds: float = 1.5
 var recovery_stop_speed_kmh: float = 1.0
-var reverse_engage_timeout_seconds: float = 1.5
+# Reversing a physical wheel state requires the axle to shed its remaining angular
+# momentum before the transmission can establish measurable backwards motion.
+# Three seconds also covers a manual gearbox stepping down from a high forward gear.
+var reverse_engage_timeout_seconds: float = 3.0
 var reverse_recovery_distance: float = 3.0
 # The timer starts after reverse is confirmed. A 4.5-second bound preserves the
 # required clearance distance while allowing heavier, lower-powered manual cars
