@@ -41,7 +41,7 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved` |
 | 5 | `05_ford_e150_2012.glb` | Ford E-150 Commercial Cargo Van, regular length, merged 2008–2014 engine scope | full-size van | 1,844 | `approved` |
 | 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 pre-facelift XLT, approved 4x2 engine scope | SUV | 2,180 | `approved` |
-| 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited SuperCrew 5.5-ft box, 2013 source | pickup | 1,758 | `awaiting_owner_scope` |
+| 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited 2013 source; expanded 2009–2014 P415 SuperCrew 5.5-ft research | pickup | 1,758 | `awaiting_owner_scope` |
 | 8 | `08_ford_transit_connect_2011.glb` | Ford Transit Connect 2011 | compact van | 1,650 | `source_only` |
 | 9 | `09_land_rover_freelander_2_2012.glb` | Land Rover Freelander 2 2012 | SUV | 2,130 | `source_only` |
 | 10 | `10_volkswagen_golf_vii_2013.glb` | Volkswagen Golf VII 2013 | passenger hatchback | 1,982 | `source_only` |
@@ -75,7 +75,7 @@ Models 01, 02, 03, 04, 05 and 06 have passed their individual owner-scope gates,
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 07 — Ford F-150 Limited SuperCrew | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 2 base drivetrain rows; up to 4 with separate 3.55/3.73 electronic-locking axle ratios | strict Limited vs broader F-150 range; 4x2/4x4 scope; 2013/2014 merge; axle-ratio policy; Limited appearance, wheel/tyre and suspension package; missing variants |
+| 07 — Ford F-150 P415 SuperCrew 5.5-ft | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 11 mechanically consolidated generation rows; 3.5 EcoBoost fixed to 4x2 and one standard axle; 7 rows if the same 4x2-only policy is applied to every engine | engine-family selection; 4x2/4x4 policy for non-EcoBoost engines; standard axle/differential policy; FFV fuel states; 2009–2012 visual derivative; model-year merging; wheel/tyre and trim treatment; missing variants |
 
 No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 07 is approved, research continues with model 08.
 
