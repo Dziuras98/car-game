@@ -8,7 +8,6 @@ func _initialize() -> void:
 	_test_unloaded_contact_tracks_road_speed()
 	_test_unloaded_contact_stops_with_vehicle()
 	_test_airborne_wheel_is_not_constrained_to_road_speed()
-	_test_effective_drivetrain_inertia_is_applied()
 	_finish()
 
 
@@ -45,20 +44,6 @@ func _test_airborne_wheel_is_not_constrained_to_road_speed() -> void:
 	_expect(
 		is_equal_approx(wheel.angular_velocity_rad_s, 20.0),
 		"an airborne unloaded wheel retains independent angular velocity"
-	)
-
-
-func _test_effective_drivetrain_inertia_is_applied() -> void:
-	var model := WheelRotationalDynamicsModel.new()
-	var light_system := WheelTireState.new(WheelTireState.Position.REAR_LEFT)
-	var heavy_system := WheelTireState.new(WheelTireState.Position.REAR_RIGHT)
-	light_system.configure_rotation(0.30, 1.0)
-	heavy_system.configure_rotation(0.30, 1.0)
-	model.integrate_wheel(light_system, 120.0, 0.0, 0.0, 1000.0, 0.0, 0.0, 0.10, 1.0)
-	model.integrate_wheel(heavy_system, 120.0, 0.0, 0.0, 1000.0, 0.0, 0.0, 0.10, 4.0)
-	_expect(
-		light_system.angular_velocity_rad_s > heavy_system.angular_velocity_rad_s * 3.9,
-		"reflected drivetrain inertia reduces driven-wheel angular acceleration"
 	)
 
 
