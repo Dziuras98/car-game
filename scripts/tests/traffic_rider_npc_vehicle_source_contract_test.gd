@@ -49,7 +49,7 @@ func _initialize() -> void:
 	_test_powertrain_fidelity_contract()
 	_test_physics_and_audio_contract()
 	_test_inventory_status_contract()
-	_test_first_model_research_gate()
+	_test_first_model_approved_scope()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -149,25 +149,38 @@ func _test_inventory_status_contract() -> void:
 		_expect(inventory.contains(required_fragment), "inventory status gate preserves: %s" % required_fragment)
 
 
-func _test_first_model_research_gate() -> void:
+func _test_first_model_approved_scope() -> void:
 	var inventory: String = _read_text(INVENTORY_PATH)
 	_expect(
-		inventory.contains("BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `awaiting_owner_scope`"),
-		"model 01 remains blocked at the owner-scope gate"
+		inventory.contains("BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `approved`"),
+		"model 01 has passed the owner-scope gate"
 	)
 	_expect(
 		inventory.contains("docs/vehicles/traffic/bmw_4_series_2014.md"),
 		"inventory links the BMW F32 research record"
+	)
+	_expect(
+		inventory.contains("| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 |"),
+		"inventory records all 44 approved BMW combinations"
+	)
+	_expect(
+		inventory.contains("Model 02 must not begin until model 01 completes"),
+		"ascending model order remains enforced"
 	)
 
 	var research: String = _read_text(BMW_F32_RESEARCH_PATH)
 	_expect(not research.is_empty(), "BMW F32 research record is readable")
 	for required_fragment: String in [
 		"BMW 4 Series Coupé F32 pre-LCI",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Workflow status: **`approved`**",
 		"Source SHA-256: `fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510`",
-		"**42**",
+		"Approved implementation scope: **44 mechanically distinct pre-LCI combinations**",
+		"**Standard total**",
 		"23 petrol + 19 diesel",
+		"435i ZHP Coupé Edition",
+		"335 hp; 430 Nm with 6MT; 450 Nm with 8AT",
+		"Approved total: 42 standard + 2 ZHP = 44 combinations",
+		"do not create multiple catalog entries for a mechanically identical engine",
 		"ZF 8HP-family torque-converter automatics",
 		"B38",
 		"N20",
@@ -177,11 +190,12 @@ func _test_first_model_research_gate() -> void:
 		"N47",
 		"B47",
 		"N57",
-		"Owner scope decision — required before implementation",
-		"Is any expected engine, transmission, drivetrain or model-year variant missing",
-		"No implementation starts until this decision is recorded",
+		"Owner decision recorded",
+		"Visual scope: **strictly pre-LCI**",
+		"Missing expected variants: **none identified by the owner**",
+		"The owner-scope gate is satisfied",
 	]:
-		_expect(research.contains(required_fragment), "BMW F32 research preserves: %s" % required_fragment)
+		_expect(research.contains(required_fragment), "BMW F32 approval preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
