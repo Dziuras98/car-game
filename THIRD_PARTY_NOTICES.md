@@ -96,13 +96,13 @@ Sketchfab's standard terms restrict standalone or extractable redistribution. Th
 
 ### Distribution status of incomplete or restrictive records
 
-Until the repository records an applicable license, written permission or an explicit accepted-risk decision covering each asset and its intended distribution:
+Until the repository records an applicable license or written permission covering each asset and its intended distribution:
 
 - no contributor should describe these models as rights-cleared, freely reusable or covered by the repository's root `LICENSE`;
 - no public binary/source redistribution should assume permission to include these files;
 - no commercialization or external distribution decision should rely on the fact that the assets were downloadable from Sketchfab;
 - the assets should be relocated into a clearly identified third-party asset directory only together with complete path updates and a verified provenance record;
-- removal or replacement remains the safe option if acceptable permission cannot be demonstrated and no accepted-risk exception applies.
+- removal or replacement remains the safe option if acceptable permission cannot be demonstrated.
 
 This section records documentation and rights-verification gaps. It does not infer license terms from a model title, page availability or the word "free" in a filename.
 
@@ -131,24 +131,6 @@ The uploader-stated Creative Commons metadata is recorded for traceability but i
 The owner has explicitly directed the project to retain and integrate the 20 committed source GLBs for the current personal, private-purpose and noncommercial prototype while preserving this warning and attribution. The owner accepts the unresolved upstream provenance risk for that scope.
 
 The exact accepted scope, audit treatment and review triggers are recorded in `docs/accepted_risks.md`. Inclusion in this repository records the owner's risk decision; it does not grant additional rights to the project or downstream users.
-
-## AssettoWorld Suzuka circuit assets
-
-The Suzuka circuit package and the converted Godot assets derived from it are third-party materials sourced from AssettoWorld. They are not original project assets and are expressly excluded from the repository's root `LICENSE`.
-
-- asset: Suzuka circuit for Assetto Corsa;
-- source page: https://www.assettoworld.com/track/suzuka;
-- supplied archive: `ac_suzuka_v.1.0.rar`;
-- source platform named by the project owner: AssettoWorld;
-- permission basis: the project owner reports that AssettoWorld's operators stated that files supplied through their site may be used, modified and redistributed for any noncommercial purpose;
-- permitted project use: noncommercial modification, format conversion, integration and redistribution;
-- prohibited use: commercial use, monetized distribution, paid access, advertising-supported distribution, sponsorship use and commercial licensing;
-- attribution: redistributed copies must identify AssettoWorld as the source and link the source page above;
-- license boundary: the assets are provided under this source-specific noncommercial permission statement, not under CC BY, CC BY-SA or the repository's root license.
-
-The conversion to glTF/PNG, collision grouping, racing-line extraction and Godot integration do not transfer authorship of the underlying geometry, textures or source track data to this project. Project-authored scripts and configuration remain separately governed by the repository license, while the imported and converted track content remains subject to the AssettoWorld noncommercial restriction.
-
-The permission record and required notice wording are documented in `docs/suzuka_asset_permission.md`. Any downstream copy containing the Suzuka assets must preserve that file or an equivalent notice.
 
 ## Contribution policy
 
