@@ -31,6 +31,7 @@ const EXCLUDED_ASSETS: PackedStringArray = PackedStringArray([
 
 const WORKFLOW_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_import_workflow.md"
 const INVENTORY_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_inventory.md"
+const BMW_F32_RESEARCH_PATH: String = "res://docs/vehicles/traffic/bmw_4_series_2014.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -48,6 +49,7 @@ func _initialize() -> void:
 	_test_powertrain_fidelity_contract()
 	_test_physics_and_audio_contract()
 	_test_inventory_status_contract()
+	_test_first_model_research_gate()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -145,6 +147,41 @@ func _test_inventory_status_contract() -> void:
 		"Integration remains blocked until the owner confirms whether to import all variants or a subset",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory status gate preserves: %s" % required_fragment)
+
+
+func _test_first_model_research_gate() -> void:
+	var inventory: String = _read_text(INVENTORY_PATH)
+	_expect(
+		inventory.contains("BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `awaiting_owner_scope`"),
+		"model 01 remains blocked at the owner-scope gate"
+	)
+	_expect(
+		inventory.contains("docs/vehicles/traffic/bmw_4_series_2014.md"),
+		"inventory links the BMW F32 research record"
+	)
+
+	var research: String = _read_text(BMW_F32_RESEARCH_PATH)
+	_expect(not research.is_empty(), "BMW F32 research record is readable")
+	for required_fragment: String in [
+		"BMW 4 Series Coupé F32 pre-LCI",
+		"Workflow status: **`awaiting_owner_scope`**",
+		"Source SHA-256: `fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510`",
+		"**42**",
+		"23 petrol + 19 diesel",
+		"ZF 8HP-family torque-converter automatics",
+		"B38",
+		"N20",
+		"B48",
+		"N55",
+		"B58",
+		"N47",
+		"B47",
+		"N57",
+		"Owner scope decision — required before implementation",
+		"Is any expected engine, transmission, drivetrain or model-year variant missing",
+		"No implementation starts until this decision is recorded",
+	]:
+		_expect(research.contains(required_fragment), "BMW F32 research preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
