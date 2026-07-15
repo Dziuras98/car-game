@@ -3,6 +3,7 @@ class_name CarPowertrainController
 
 const MAX_FRAME_DELTA: float = 0.10
 const MAX_SIMULATION_SUBSTEP: float = 1.0 / 120.0
+const PER_WHEEL_LOAD_SHARE: float = 1.0 / 4.0
 
 
 enum ManualShiftAssistMode {
@@ -418,24 +419,72 @@ func _apply_longitudinal_acceleration(state: CarRuntimeState, requested_accelera
 
 
 func _resolve_longitudinal_acceleration(state: CarRuntimeState, requested_acceleration: float) -> float:
-	var response: Vector2 = _tire_model.resolve_longitudinal_acceleration(
-		requested_acceleration,
-		state.lateral_slip_intensity,
-		state.surface_grip_multiplier,
-		_get_ground_contact_factor(state),
-		_config.longitudinal_grip_coefficient,
-		_config.longitudinal_peak_slip_ratio,
-		_config.longitudinal_slide_grip_multiplier
+	state.synchronize_wheel_contacts_from_aggregate()
+	var active_wheel_count: int = 0
+	var total_peak_capacity: float = 0.0
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			continue
+		active_wheel_count += 1
+		total_peak_capacity += _get_wheel_longitudinal_capacity(wheel)
+
+	if active_wheel_count <= 0 or is_zero_approx(requested_acceleration):
+		return 0.0
+
+	var applied_acceleration: float = 0.0
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			continue
+		var wheel_capacity: float = _get_wheel_longitudinal_capacity(wheel)
+		var requested_wheel_acceleration: float
+		if total_peak_capacity > TireModel.MIN_ACCELERATION_CAPACITY:
+			requested_wheel_acceleration = (
+				requested_acceleration
+				* wheel_capacity
+				/ total_peak_capacity
+			)
+		else:
+			requested_wheel_acceleration = requested_acceleration / float(active_wheel_count)
+		var response: Vector2 = _tire_model.resolve_longitudinal_acceleration(
+			requested_wheel_acceleration,
+			wheel.lateral_slip_intensity,
+			wheel.surface_grip_multiplier,
+			PER_WHEEL_LOAD_SHARE,
+			_config.longitudinal_grip_coefficient,
+			_config.longitudinal_peak_slip_ratio,
+			_config.longitudinal_slide_grip_multiplier
+		)
+		_record_longitudinal_slip(
+			wheel,
+			requested_wheel_acceleration,
+			response.x,
+			response.y
+		)
+		applied_acceleration += response.x
+	return applied_acceleration
+
+
+func _get_wheel_longitudinal_capacity(wheel: WheelTireState) -> float:
+	return _tire_model.get_longitudinal_acceleration_capacity(
+		wheel.lateral_slip_intensity,
+		wheel.surface_grip_multiplier,
+		PER_WHEEL_LOAD_SHARE,
+		_config.longitudinal_grip_coefficient
 	)
-	_record_longitudinal_slip(state, response.y)
-	return response.x
 
 
-func _record_longitudinal_slip(state: CarRuntimeState, slip_ratio: float) -> void:
-	if absf(slip_ratio) > absf(state.longitudinal_slip_ratio):
-		state.longitudinal_slip_ratio = slip_ratio
-	state.longitudinal_slip_intensity = maxf(
-		state.longitudinal_slip_intensity,
+func _record_longitudinal_slip(
+	wheel: WheelTireState,
+	requested_acceleration: float,
+	applied_acceleration: float,
+	slip_ratio: float
+) -> void:
+	wheel.requested_longitudinal_acceleration += requested_acceleration
+	wheel.applied_longitudinal_acceleration += applied_acceleration
+	if absf(slip_ratio) > absf(wheel.longitudinal_slip_ratio):
+		wheel.longitudinal_slip_ratio = slip_ratio
+	wheel.longitudinal_slip_intensity = maxf(
+		wheel.longitudinal_slip_intensity,
 		_tire_model.calculate_longitudinal_slip_intensity(
 			slip_ratio,
 			_config.longitudinal_peak_slip_ratio
@@ -444,15 +493,22 @@ func _record_longitudinal_slip(state: CarRuntimeState, slip_ratio: float) -> voi
 
 
 func _reset_longitudinal_slip(state: CarRuntimeState) -> void:
-	state.longitudinal_slip_ratio = 0.0
-	state.longitudinal_slip_intensity = 0.0
+	state.synchronize_wheel_contacts_from_aggregate()
+	for wheel: WheelTireState in state.wheel_states:
+		wheel.reset_longitudinal_dynamics()
+	state.update_slip_aggregates()
 
 
 func _update_combined_slip(state: CarRuntimeState) -> void:
-	state.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
-		state.lateral_slip_intensity,
-		state.longitudinal_slip_intensity
-	)
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			wheel.reset_tire_dynamics()
+			continue
+		wheel.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
+			wheel.lateral_slip_intensity,
+			wheel.longitudinal_slip_intensity
+		)
+	state.update_slip_aggregates()
 
 
 func _get_wheel_driven_rpm(state: CarRuntimeState) -> float:
