@@ -35,6 +35,8 @@ var wheel_radius: float = 0.34
 var drivetrain_efficiency: float = 0.85
 var shift_delay: float = 0.28
 var max_drive_acceleration: float = 100.0
+var drive_layout: int = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
+var awd_front_torque_fraction: float = 0.40
 
 var automatic_upshift_rpm: float = 6200.0
 var automatic_downshift_rpm: float = 2100.0
@@ -83,6 +85,11 @@ var skid_mark_interval: float = 0.055
 var skid_mark_lifetime: float = 10.0
 var skid_mark_width: float = 0.22
 var skid_mark_length: float = 0.9
+var front_brake_bias: float = 0.62
+var front_wheel_inertia_kg_m2: float = 0.0
+var rear_wheel_inertia_kg_m2: float = 0.0
+var wheel_angular_damping_nm_per_rad_s: float = 0.08
+var wheel_slip_reference_speed_mps: float = 1.0
 
 var gravity: float = 30.0
 var floor_stick_force: float = 0.5
@@ -94,29 +101,73 @@ var suspension_damping: float = 5.0
 var ground_probe_collision_mask: int = 1
 var minimum_ground_normal_dot: float = 0.35
 
+
 func is_manual_transmission() -> bool:
 	return transmission_type == CarSpecs.TransmissionType.MANUAL
+
 
 func is_automatic_transmission() -> bool:
 	return transmission_type == CarSpecs.TransmissionType.AUTOMATIC
 
+
 func is_smg_transmission() -> bool:
 	return is_automatic_transmission() and smg_enabled
+
 
 func is_torque_converter_automatic() -> bool:
 	return is_automatic_transmission() and not smg_enabled
 
+
 func is_cvt_transmission() -> bool:
 	return transmission_type == CarSpecs.TransmissionType.CVT
+
 
 func is_self_shifting_transmission() -> bool:
 	return is_automatic_transmission() or is_cvt_transmission()
 
+
 func uses_discrete_gears() -> bool:
 	return is_manual_transmission() or is_automatic_transmission()
 
+
 func uses_geared_transmission() -> bool:
 	return uses_discrete_gears() or is_cvt_transmission()
+
+
+func is_front_wheel_drive() -> bool:
+	return drive_layout == CarSpecs.DriveLayout.FRONT_WHEEL_DRIVE
+
+
+func is_rear_wheel_drive() -> bool:
+	return drive_layout == CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
+
+
+func is_all_wheel_drive() -> bool:
+	return drive_layout == CarSpecs.DriveLayout.ALL_WHEEL_DRIVE
+
+
+func get_drive_torque_fraction(wheel_index: int) -> float:
+	var is_front: bool = wheel_index == WheelTireState.Position.FRONT_LEFT or wheel_index == WheelTireState.Position.FRONT_RIGHT
+	if is_front_wheel_drive():
+		return 0.5 if is_front else 0.0
+	if is_rear_wheel_drive():
+		return 0.0 if is_front else 0.5
+	var axle_fraction: float = awd_front_torque_fraction if is_front else 1.0 - awd_front_torque_fraction
+	return axle_fraction * 0.5
+
+
+func get_service_brake_fraction(wheel_index: int) -> float:
+	var is_front: bool = wheel_index == WheelTireState.Position.FRONT_LEFT or wheel_index == WheelTireState.Position.FRONT_RIGHT
+	return (front_brake_bias if is_front else 1.0 - front_brake_bias) * 0.5
+
+
+func get_handbrake_fraction(wheel_index: int) -> float:
+	return 0.5 if wheel_index == WheelTireState.Position.REAR_LEFT or wheel_index == WheelTireState.Position.REAR_RIGHT else 0.0
+
+
+func get_wheel_inertia_kg_m2(wheel_index: int) -> float:
+	return front_wheel_inertia_kg_m2 if wheel_index == WheelTireState.Position.FRONT_LEFT or wheel_index == WheelTireState.Position.FRONT_RIGHT else rear_wheel_inertia_kg_m2
+
 
 func duplicate_config() -> CarDriveConfig:
 	var config: CarDriveConfig = CarDriveConfig.new()
@@ -134,6 +185,7 @@ func duplicate_config() -> CarDriveConfig:
 	config.sanitize()
 	return config
 
+
 func sanitize() -> void:
 	max_forward_speed = maxf(max_forward_speed, 0.1)
 	max_reverse_speed = maxf(max_reverse_speed, 0.0)
@@ -144,6 +196,9 @@ func sanitize() -> void:
 	wheel_radius = maxf(wheel_radius, 0.01)
 	drivetrain_efficiency = clampf(drivetrain_efficiency, 0.0001, 1.0)
 	max_drive_acceleration = maxf(max_drive_acceleration, 0.01)
+	if drive_layout < CarSpecs.DriveLayout.FRONT_WHEEL_DRIVE or drive_layout > CarSpecs.DriveLayout.ALL_WHEEL_DRIVE:
+		drive_layout = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
+	awd_front_torque_fraction = clampf(awd_front_torque_fraction, 0.0, 1.0)
 	front_lateral_grip = maxf(front_lateral_grip, 0.01)
 	rear_lateral_grip = maxf(rear_lateral_grip, 0.01)
 	front_tire_width_m = maxf(front_tire_width_m, 0.01)
@@ -151,6 +206,15 @@ func sanitize() -> void:
 	longitudinal_grip_coefficient = maxf(longitudinal_grip_coefficient, 0.01)
 	longitudinal_peak_slip_ratio = maxf(longitudinal_peak_slip_ratio, 0.001)
 	longitudinal_slide_grip_multiplier = clampf(longitudinal_slide_grip_multiplier, 0.0, 1.0)
+	front_brake_bias = clampf(front_brake_bias, 0.0, 1.0)
+	wheel_angular_damping_nm_per_rad_s = maxf(wheel_angular_damping_nm_per_rad_s, 0.0)
+	wheel_slip_reference_speed_mps = maxf(wheel_slip_reference_speed_mps, WheelRotationalDynamicsModel.MIN_REFERENCE_SPEED_MPS)
+	if front_wheel_inertia_kg_m2 <= 0.0:
+		front_wheel_inertia_kg_m2 = _estimate_wheel_inertia(front_tire_width_m)
+	if rear_wheel_inertia_kg_m2 <= 0.0:
+		rear_wheel_inertia_kg_m2 = _estimate_wheel_inertia(rear_tire_width_m)
+	front_wheel_inertia_kg_m2 = maxf(front_wheel_inertia_kg_m2, 0.01)
+	rear_wheel_inertia_kg_m2 = maxf(rear_wheel_inertia_kg_m2, 0.01)
 	suspension_probe_height = maxf(suspension_probe_height, 0.0)
 	suspension_rest_length = maxf(suspension_rest_length, 0.01)
 	suspension_travel = maxf(suspension_travel, 0.01)
@@ -175,3 +239,12 @@ func sanitize() -> void:
 		smg_enabled = false
 	if uses_discrete_gears() and gear_ratios.is_empty():
 		gear_ratios = [1.0]
+
+
+func _estimate_wheel_inertia(tire_width_m: float) -> float:
+	var effective_rotating_mass_kg: float = clampf(
+		11.0 + tire_width_m * 45.0 + wheel_radius * 8.0,
+		12.0,
+		34.0
+	)
+	return effective_rotating_mass_kg * wheel_radius * wheel_radius * 0.65
