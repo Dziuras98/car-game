@@ -44,8 +44,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited 2013 source with approved 2009–2014 P415 SuperCrew 5.5-ft 4x2 engine scope | pickup | 1,758 | `approved` |
 | 8 | `08_ford_transit_connect_2011.glb` | Ford Transit Connect XLT Premium Wagon 2011 with approved complete first-generation powertrain scope | compact van | 1,650 | `approved` |
 | 9 | `09_land_rover_freelander_2_2012.glb` | Land Rover LR2 HSE 2012 with approved complete Freelander 2 L359 powertrain scope | SUV | 2,130 | `approved` |
-| 10 | `10_volkswagen_golf_vii_2013.glb` | Volkswagen Golf VII five-door European pre-facelift standard TSI source | passenger hatchback | 1,982 | `awaiting_owner_scope` |
-| 11 | `11_kia_ceed_2012.glb` | Kia cee'd 2012 | passenger hatchback | 2,134 | `source_only` |
+| 10 | `10_volkswagen_golf_vii_2013.glb` | Volkswagen Golf VII five-door source with approved standard TSI/TDI and e-Golf scope | passenger hatchback | 1,982 | `approved` |
+| 11 | `11_kia_ceed_2012.glb` | Kia cee'd JD five-door European pre-facelift standard EcoDynamics-style source | passenger hatchback | 2,134 | `awaiting_owner_scope` |
 | 12 | `12_renault_maxity_2008.glb` | Renault Maxity 2008 | light box truck | 2,102 | `source_only` |
 | 13 | `13_mazda_2_2011.glb` | Mazda 2 2011 | passenger hatchback | 1,770 | `source_only` |
 | 14 | `14_mazda_3_2014.glb` | Mazda 3 2014 | passenger hatchback | 1,842 | `source_only` |
@@ -71,16 +71,17 @@ Total committed source geometry: **40,300 triangles**.
 | 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 | all researched engine families, mechanically merged across 2009–2014: 4.6 2V, 4.6 3V, 5.4 3V, 3.7, 5.0, 3.5 EcoBoost and 6.2; 4x2 only; gasoline only; one standard axle and differential per row; common source-like 2013 Limited exterior, 22-in P275/45R22 tyres and sport-tuned shocks; no 4x4, E85, trim, body or axle duplicates |
 | 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 | all researched combustion families with early/late 75-PS diesel merged, plus Azure Dynamics Electric; common source-like LWB high-roof XLT Premium Wagon body; one standard final drive and differential per row; DPF/emissions as year metadata; no LPG/CNG, taxi, mobility, body, visual-phase or gearing duplicates; dedicated electric motor, inverter, battery, regeneration and fixed-reduction transaxle required |
 | 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 | all researched engine/transmission/drivetrain rows, including eD4 FWD and seven Haldex AWD rows; manual and automatic rows separate; one standard final drive and differential/coupling state per row; common source-like 2011–2012 HSE exterior; Haldex, stop/start and emissions as year metadata; no trim, visual-phase, gearing, LPG or conversion duplicates |
+| 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 | 22 standard TSI, 14 ordinary TDI and both e-Golf generations; all applicable manual, DQ200, DQ250, DQ381, diesel 4Motion and electric-reduction architectures retained; one standard final drive and differential/coupling state per row; source-like five-door body only; no GTD, TGI, GTE, GTI/Clubsport/TCR/R, other bodies, regional tuning or emissions-state subdivisions |
 
-Models 01, 02, 03, 04, 05, 06, 07, 08 and 09 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04, 05, 06, 07, 08, 09 and 10 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 10 — Volkswagen Golf VII hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 63 mechanically consolidated European hatchback powertrain rows: 26 standard petrol/TGI, 17 diesel, 17 performance petrol and 3 electrified | complete generation vs pre-facelift; all powertrain groups; five-door/three-door scope; visual derivatives; performance models; TGI; GTE/e-Golf; 4Motion; transmission architectures; final-drive/differential policy; emissions metadata; excluded bodies/markets; missing variants |
+| 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 16 mechanically consolidated European five-door powertrain rows | all powertrains; five-door-only body; cee'd GT; common source appearance vs facelift/GT derivatives; 5MT/6MT splits; 6DCT/6AT/7DCT architectures; final-drive/differential policy; conversions; emissions subdivisions; missing variants |
 
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 10 is approved, research continues with model 11.
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 11 is approved, research continues with model 12.
 
 ## Source topology
 
