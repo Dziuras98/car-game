@@ -450,15 +450,34 @@ func _simulate_wheel_dynamics(
 				state.forward_speed,
 				_config.wheel_slip_reference_speed_mps
 			)
-			tire_acceleration = _tire_model.resolve_longitudinal_acceleration_from_slip(
-				slip_ratio,
-				wheel.lateral_slip_intensity,
-				wheel.surface_grip_multiplier,
-				load_share,
-				_config.longitudinal_grip_coefficient,
-				_config.longitudinal_peak_slip_ratio,
-				_config.longitudinal_slide_grip_multiplier
-			)
+			if (
+				brake_torque_nm > WheelRotationalDynamicsModel.TORQUE_EPSILON_NM
+				and not is_zero_approx(requested_wheel_acceleration)
+			):
+				# Brake torque changes wheel speed during this same substep. Resolve its
+				# grip-limited chassis force from the requested deceleration immediately,
+				# rather than waiting one frame for a slip ratio to appear.
+				var braking_response: Vector2 = _tire_model.resolve_longitudinal_acceleration(
+					requested_wheel_acceleration,
+					wheel.lateral_slip_intensity,
+					wheel.surface_grip_multiplier,
+					load_share,
+					_config.longitudinal_grip_coefficient,
+					_config.longitudinal_peak_slip_ratio,
+					_config.longitudinal_slide_grip_multiplier
+				)
+				tire_acceleration = braking_response.x
+				slip_ratio = braking_response.y
+			else:
+				tire_acceleration = _tire_model.resolve_longitudinal_acceleration_from_slip(
+					slip_ratio,
+					wheel.lateral_slip_intensity,
+					wheel.surface_grip_multiplier,
+					load_share,
+					_config.longitudinal_grip_coefficient,
+					_config.longitudinal_peak_slip_ratio,
+					_config.longitudinal_slide_grip_multiplier
+				)
 			vehicle_acceleration += tire_acceleration
 		_record_longitudinal_slip(
 			wheel,
