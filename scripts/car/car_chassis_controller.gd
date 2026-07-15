@@ -5,6 +5,7 @@ const PROBE_END_MARGIN: float = 0.05
 const REFERENCE_FRONT_TIRE_WIDTH_M: float = 0.225
 const REFERENCE_REAR_TIRE_WIDTH_M: float = 0.245
 const DEFAULT_SURFACE_GRIP_MULTIPLIER: float = 1.0
+const PER_WHEEL_LATERAL_SHARE: float = 1.0 / 4.0
 
 var _tire_model: TireModel = TireModel.new()
 var _vehicle_motion_model: VehicleMotionModel = VehicleMotionModel.new()
@@ -31,10 +32,10 @@ func configure(config: CarDriveConfig) -> void:
 
 
 func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void:
-	state.ground_contact_count = 0
-	state.ground_normal = Vector3.UP
-	state.surface_grip_multiplier = 1.0
-	state.suspension_acceleration = 0.0
+	state.ensure_wheel_states()
+	for wheel: WheelTireState in state.wheel_states:
+		wheel.reset_contact()
+	state.update_contact_aggregates()
 	if _config == null or _probe_local_positions.is_empty() or not car.is_inside_tree() or car.get_world_3d() == null:
 		return
 
@@ -46,13 +47,12 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 
 	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
 	var maximum_probe_length: float = _config.suspension_rest_length + _config.suspension_travel + PROBE_END_MARGIN
-	var contact_count: int = 0
-	var normal_sum: Vector3 = Vector3.ZERO
-	var grip_sum: float = 0.0
-	var support_acceleration: float = 0.0
 	var direct_space_state: PhysicsDirectSpaceState3D = car.get_world_3d().direct_space_state
 
-	for local_probe_position: Vector3 in _probe_local_positions:
+	for wheel_index: int in range(_probe_local_positions.size()):
+		if wheel_index >= state.wheel_states.size():
+			break
+		var local_probe_position: Vector3 = _probe_local_positions[wheel_index]
 		var ray_start: Vector3 = car.global_transform * local_probe_position
 		var ray_end: Vector3 = ray_start + ray_direction * maximum_probe_length
 		_ray_query.from = ray_start
@@ -71,7 +71,7 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 		if hit_normal.dot(Vector3.UP) < _config.minimum_ground_normal_dot:
 			continue
 		var normal_velocity: float = car.velocity.dot(hit_normal)
-		support_acceleration += _ground_contact_model.calculate_spring_acceleration(
+		var support_acceleration: float = _ground_contact_model.calculate_spring_acceleration(
 			ray_start.distance_to(hit_position),
 			_config.suspension_rest_length,
 			_config.suspension_travel,
@@ -79,47 +79,55 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 			_config.suspension_stiffness,
 			_config.suspension_damping
 		)
-		contact_count += 1
-		normal_sum += hit_normal
-		grip_sum += _get_surface_grip_multiplier(collider)
+		state.wheel_states[wheel_index].set_contact(
+			_get_surface_grip_multiplier(collider),
+			hit_normal,
+			support_acceleration
+		)
 
-	state.ground_contact_count = contact_count
-	if contact_count <= 0:
-		return
-	state.ground_normal = normal_sum.normalized() if normal_sum.length_squared() > 0.000001 else Vector3.UP
-	state.surface_grip_multiplier = clampf(grip_sum / float(contact_count), 0.05, 2.0)
-	state.suspension_acceleration = support_acceleration
+	state.update_contact_aggregates()
 
 
 func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_active: bool, delta: float) -> void:
-	var contact_factor: float = _get_ground_contact_factor(state)
-	if contact_factor <= 0.0:
-		state.lateral_slip_intensity = 0.0
-		state.longitudinal_slip_ratio = 0.0
-		state.longitudinal_slip_intensity = 0.0
-		state.tire_slip_intensity = 0.0
+	state.synchronize_wheel_contacts_from_aggregate()
+	if state.ground_contact_count <= 0:
+		state.clear_wheel_tire_dynamics()
 		return
-	state.lateral_speed = _tire_model.recover_lateral_speed(
-		state.lateral_speed,
-		_get_effective_lateral_grip() * contact_factor,
-		_config.handbrake_lateral_grip_multiplier,
-		handbrake_active,
-		delta,
-		state.surface_grip_multiplier
-	)
-	state.lateral_slip_intensity = _tire_model.calculate_slip_intensity(
-		state.lateral_speed,
-		state.forward_speed,
-		steering,
-		_config.steering_slip_gain,
-		_config.slip_speed_threshold,
-		_config.max_forward_speed,
-		handbrake_active
-	)
-	state.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
-		state.lateral_slip_intensity,
-		state.longitudinal_slip_intensity
-	)
+
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			continue
+		var wheel_handbrake_active: bool = handbrake_active and wheel.is_rear()
+		state.lateral_speed = _tire_model.recover_lateral_speed(
+			state.lateral_speed,
+			_get_wheel_effective_lateral_grip(wheel.wheel_index) * PER_WHEEL_LATERAL_SHARE,
+			_config.handbrake_lateral_grip_multiplier,
+			wheel_handbrake_active,
+			delta,
+			wheel.surface_grip_multiplier
+		)
+
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			wheel.reset_tire_dynamics()
+			continue
+		var wheel_steering: float = steering if wheel.is_front() else 0.0
+		var wheel_handbrake_active: bool = handbrake_active and wheel.is_rear()
+		wheel.lateral_slip_intensity = _tire_model.calculate_slip_intensity(
+			state.lateral_speed,
+			state.forward_speed,
+			wheel_steering,
+			_config.steering_slip_gain,
+			_config.slip_speed_threshold,
+			_config.max_forward_speed,
+			wheel_handbrake_active
+		)
+		wheel.tire_slip_intensity = _tire_model.calculate_combined_slip_intensity(
+			wheel.lateral_slip_intensity,
+			wheel.longitudinal_slip_intensity
+		)
+
+	state.update_slip_aggregates()
 
 
 func update_skid_marks(state: CarRuntimeState, car: CharacterBody3D, skid_mark_emitter: SkidMarkEmitter, delta: float) -> void:
@@ -202,12 +210,18 @@ func _get_surface_grip_multiplier(collider: CollisionObject3D) -> float:
 	return DEFAULT_SURFACE_GRIP_MULTIPLIER
 
 
-func _get_effective_lateral_grip() -> float:
-	var front_width_factor: float = sqrt(_config.front_tire_width_m / REFERENCE_FRONT_TIRE_WIDTH_M)
-	var rear_width_factor: float = sqrt(_config.rear_tire_width_m / REFERENCE_REAR_TIRE_WIDTH_M)
-	var front_effective: float = _config.front_lateral_grip * front_width_factor
-	var rear_effective: float = _config.rear_lateral_grip * rear_width_factor
-	return maxf((front_effective + rear_effective) * 0.5, 0.01)
+func _get_wheel_effective_lateral_grip(wheel_index: int) -> float:
+	if wheel_index == WheelTireState.Position.FRONT_LEFT or wheel_index == WheelTireState.Position.FRONT_RIGHT:
+		return maxf(
+			_config.front_lateral_grip
+			* sqrt(_config.front_tire_width_m / REFERENCE_FRONT_TIRE_WIDTH_M),
+			0.01
+		)
+	return maxf(
+		_config.rear_lateral_grip
+		* sqrt(_config.rear_tire_width_m / REFERENCE_REAR_TIRE_WIDTH_M),
+		0.01
+	)
 
 
 func _get_front_axle_yaw_factor() -> float:
