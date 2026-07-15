@@ -89,12 +89,14 @@ enum DriveLayout {
 @export var cvt_clutch_engagement_rpm: float = 1250.0
 @export var cvt_clutch_full_rpm: float = 2200.0
 
-@export_group("Resistance")
+@export_group("Resistance and Mass Distribution")
 @export var vehicle_mass: float = 1200.0
 @export var drag_coefficient: float = 0.30
 @export var frontal_area: float = 2.05
 @export var air_density: float = 1.225
 @export var rolling_resistance_coefficient: float = 0.015
+@export_range(0.0, 1.0, 0.01) var front_static_load_fraction: float = 0.0
+@export var center_of_mass_height_m: float = 0.55
 
 @export_group("Tires")
 @export var front_lateral_grip: float = 10.0
@@ -278,6 +280,8 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "frontal_area", frontal_area)
 	_append_positive(errors, "air_density", air_density)
 	_append_non_negative(errors, "rolling_resistance_coefficient", rolling_resistance_coefficient)
+	_append_range(errors, "front_static_load_fraction", front_static_load_fraction, 0.0, 1.0)
+	_append_positive(errors, "center_of_mass_height_m", center_of_mass_height_m)
 	_append_positive(errors, "front_lateral_grip", front_lateral_grip)
 	_append_positive(errors, "rear_lateral_grip", rear_lateral_grip)
 	_append_positive(errors, "front_tire_width_m", front_tire_width_m)
