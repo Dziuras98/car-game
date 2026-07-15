@@ -29,7 +29,7 @@ source_only
 
 | # | Source GLB | Intended identity | Class | Source triangles | Workflow status |
 |---:|---|---|---|---:|---|
-| 1 | `01_bmw_4_series_2014.glb` | BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `awaiting_owner_scope` |
+| 1 | `01_bmw_4_series_2014.glb` | BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `approved` |
 | 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 2014 | pickup | 2,232 | `source_only` |
 | 3 | `03_renault_clio_2013.glb` | Renault Clio 2013 | passenger hatchback | 2,118 | `source_only` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze 2011 | passenger sedan | 2,444 | `source_only` |
@@ -52,13 +52,17 @@ source_only
 
 Total committed source geometry: **40,300 triangles**.
 
+## Approved scopes
+
+| Model | Research record | Approved combinations | Scope |
+|---|---|---:|---|
+| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 | all 42 mechanically distinct standard combinations, including regional 418i/418d entries subject to final evidence, plus RWD 6MT and 8AT 435i ZHP; strict pre-LCI body; no mechanically duplicate catalog entries |
+
+Model 01 has passed the owner-scope gate and may proceed to implementation. Model 02 must not begin until model 01 completes according to the ascending-number workflow.
+
 ## Active owner-scope gates
 
-| Model | Research record | Candidate standard combinations | Blocking decision |
-|---|---|---:|---|
-| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 42 | all variants vs subset; regional/special/post-LCI scope; missing variants |
-
-No implementation work may begin for an active row until the owner decision is recorded in its research document.
+None. The next gate will be opened only after model 01 is fully integrated and research begins for model 02.
 
 ## Source topology
 
