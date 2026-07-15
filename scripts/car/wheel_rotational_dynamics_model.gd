@@ -35,19 +35,14 @@ func integrate_wheel(
 	angular_damping_nm_per_rad_s: float,
 	vehicle_forward_speed_mps: float,
 	delta: float,
-	effective_inertia_kg_m2: float = -1.0
+	_effective_inertia_kg_m2: float = -1.0
 ) -> void:
 	if wheel == null:
 		return
 	var safe_delta: float = maxf(delta, 0.0)
 	var safe_mass: float = maxf(vehicle_mass_kg, 1.0)
 	var safe_radius: float = maxf(wheel.wheel_radius_m, 0.01)
-	var safe_inertia: float = maxf(
-		effective_inertia_kg_m2
-		if effective_inertia_kg_m2 > 0.0
-		else wheel.moment_of_inertia_kg_m2,
-		0.01
-	)
+	var safe_inertia: float = maxf(wheel.moment_of_inertia_kg_m2, 0.01)
 	var safe_brake_torque: float = maxf(brake_torque_nm, 0.0)
 
 	# A contacted wheel without drive or brake torque is constrained by the road to
