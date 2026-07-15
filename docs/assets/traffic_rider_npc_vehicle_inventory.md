@@ -23,14 +23,20 @@ source_only
 → integrated
 ```
 
-`awaiting_owner_scope` is mandatory. After researching all evidenced factory engine, transmission and drivetrain combinations, the complete matrix must be shown to the owner. Integration remains blocked until the owner confirms whether to import all variants or a subset and whether any expected variant is missing.
+`awaiting_owner_scope` is mandatory. After researching all evidenced factory engine, transmission and drivetrain combinations, the complete matrix must be shown to the owner. The individual model moves to `approved` only after the owner confirms the scope and whether anything is missing.
+
+## Global research-before-implementation gate
+
+Research and owner-scope approval proceed through all included models in ascending numeric order. **No Traffic Rider model may enter `integrating` until every included model has reached `approved`.** An individually approved model remains implementation-deferred while any later model is still `source_only`, `researching` or `awaiting_owner_scope`.
+
+After model 23 receives scope approval, implementation begins in ascending numeric order and must follow the current-physics, exact-transmission, audio and validation requirements of the workflow.
 
 ## Included models
 
 | # | Source GLB | Intended identity | Class | Source triangles | Workflow status |
 |---:|---|---|---|---:|---|
 | 1 | `01_bmw_4_series_2014.glb` | BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `approved` |
-| 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 2014 | pickup | 2,232 | `source_only` |
+| 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 1500 LTZ Crew Cab Standard Box 4WD, K2XX pre-facelift | pickup | 2,232 | `awaiting_owner_scope` |
 | 3 | `03_renault_clio_2013.glb` | Renault Clio 2013 | passenger hatchback | 2,118 | `source_only` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze 2011 | passenger sedan | 2,444 | `source_only` |
 | 5 | `05_ford_e150_2012.glb` | Ford E-150 2012 | full-size van | 1,844 | `source_only` |
@@ -58,11 +64,15 @@ Total committed source geometry: **40,300 triangles**.
 |---|---|---:|---|
 | 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 | all 42 mechanically distinct standard combinations, including regional 418i/418d entries subject to final evidence, plus RWD 6MT and 8AT 435i ZHP; strict pre-LCI body; no mechanically duplicate catalog entries |
 
-Model 01 has passed the owner-scope gate and may proceed to implementation. Model 02 must not begin until model 01 completes according to the ascending-number workflow.
+Model 01 has passed its individual owner-scope gate, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
-None. The next gate will be opened only after model 01 is fully integrated and research begins for model 02.
+| Model | Research record | Candidate combinations | Blocking decision |
+|---|---|---:|---|
+| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 8 broad body-shell base combinations; 3 strict LTZ 4x4 visual matches | strict visual vs broad body scope; 2014/2015 transmission changeover; axle/package catalog policy; physical packages; fuel-state handling; missing variants |
+
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 02 is approved, research continues with model 03.
 
 ## Source topology
 
@@ -84,15 +94,12 @@ These models existed in the combined source bundle but were not added to the rep
 | 21 | Generic articulated truck | articulated heavy truck excluded from scope |
 | 22 | Generic rigid truck | large rigid truck excluded from scope |
 
-## Pilot order after research approval
+## Research and later implementation order
 
-After each pilot completes the full Stage 0 research and receives explicit owner scope approval, the geometry/runtime workflow is validated on:
+Research and owner approval proceed in this order:
 
-1. Volkswagen Golf VII 2013;
-2. Chevrolet Silverado 2014;
-3. Mercedes-Benz Sprinter 2014;
-4. Nissan Atleon 2004.
+`01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 20 → 23`
 
-The pilot designation never bypasses complete powertrain research, exact transmission architecture, current-physics calibration or engine-audio requirements.
+Only after all 20 scopes are approved does implementation begin, again in ascending order. Geometry-class pilot checks remain mandatory when their numbered model is reached, but they do not alter this order or bypass any research, transmission, physics, audio or validation requirement.
 
 Updating a row to `integrated` requires a model-specific record under `docs/vehicles/traffic/`, the approved variant catalog, corresponding scenes/resources and all automated tests defined by the workflow.
