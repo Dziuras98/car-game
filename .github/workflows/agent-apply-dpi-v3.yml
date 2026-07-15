@@ -1,0 +1,35 @@
+name: Apply Agent DPI v3 Patch
+
+on:
+  push:
+    branches:
+      - agent/physics-dpi-recalibration
+
+permissions:
+  contents: write
+
+jobs:
+  apply-patch:
+    if: ${{ !contains(github.event.head_commit.message, '[agent-dpi-v3-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out working branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/physics-dpi-recalibration
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Decode and apply DPI v3 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode agent/dpi-v3.patch.gz.b64 | gzip --decompress > /tmp/dpi-v3.patch
+          echo "9c94e50d61632aca0b0315450c6214846a7646d76831add547e35674d3993e7f  /tmp/dpi-v3.patch" | sha256sum --check
+          git apply --check /tmp/dpi-v3.patch
+          git apply /tmp/dpi-v3.patch
+          rm -f agent/dpi-v3.patch.gz.b64 agent/trigger-dpi-v3 .github/workflows/agent-apply-dpi-v3.yml
+          git config user.name "openai-agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Calibrate DPI v3 to the revised physics [agent-dpi-v3-applied]"
+          git push origin HEAD:agent/physics-dpi-recalibration
