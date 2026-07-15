@@ -135,6 +135,9 @@ msgstr "Prosty owal"
 msgid "Tor Poznań"
 msgstr "Tor Poznań"
 
+msgid "Krótki Tor Pustynny"
+msgstr "Krótki Tor Pustynny"
+
 msgid "Nieskończona siatka"
 msgstr "Nieskończona siatka"
 
