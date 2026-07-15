@@ -46,6 +46,7 @@ func _initialize() -> void:
 
 	var menu_models: Array[CarModelMenuOption] = MenuOptionsBuilder.build_car_models(CAR_CATALOG)
 	var menu_variant_count: int = 0
+	var previous_menu_performance_index: int = -1
 	for model: CarModelMenuOption in menu_models:
 		for option: CarVariantMenuOption in model.variants:
 			menu_variant_count += 1
@@ -54,6 +55,11 @@ func _initialize() -> void:
 				not option.label.contains(" — DPI "),
 				"%s keeps DPI separate from the variant label" % option.variant_id
 			)
+			_expect(
+				option.performance_index >= previous_menu_performance_index,
+				"%s follows ascending DPI menu order" % option.variant_id
+			)
+			previous_menu_performance_index = option.performance_index
 	_expect(
 		menu_variant_count == variants.size(),
 		"every authoritative catalog variant is represented by a DPI menu option"
