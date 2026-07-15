@@ -52,9 +52,10 @@ const APPROVED_SCOPE_PATHS: Dictionary = {
 	"res://docs/vehicles/traffic/mazda_3_2014.md": "Approved total: 11 petrol + 7 diesel + 1 hybrid = 19 mechanically distinct configurations",
 	"res://docs/vehicles/traffic/mercedes_benz_sprinter_2014.md": "Approved total: 13 diesel RWD + 4 petrol/NGT RWD = 17 mechanically consolidated configurations",
 	"res://docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md": "Approved total: 2 mechanically distinct Unimog 437.4 chassis configurations",
+	"res://docs/vehicles/traffic/nissan_atlas_2007.md": "Approved total: 5 Japanese RWD + 3 European RWD = 8 Nissan Atlas / Cabstar F24 configurations",
 }
 
-const ATLAS_RESEARCH_PATH := "res://docs/vehicles/traffic/nissan_atlas_2007.md"
+const ATLEON_RESEARCH_PATH := "res://docs/vehicles/traffic/nissan_atleon_2004.md"
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -66,7 +67,7 @@ func _initialize() -> void:
 	_test_workflow()
 	_test_inventory()
 	_test_approved_scopes()
-	_test_atlas_gate()
+	_test_atleon_gate()
 	_test_provenance()
 	_test_gitignore()
 	_finish()
@@ -103,20 +104,20 @@ func _test_inventory() -> void:
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15 and 16 have passed their individual owner-scope gates",
-		"| 16 — Mercedes-Benz Unimog U4023 / U5023 | `docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md` | 2 |",
-		"17 — Nissan Atlas / Cabstar F24",
-		"9 mechanically consolidated candidates: six Japanese Atlas QR20DE/ZD30DDTi rows and three European Cabstar YD25/ZD30 rows",
-		"After model 17 is approved, research continues with model 18",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16 and 17 have passed their individual owner-scope gates",
+		"| 17 — Nissan Atlas / Cabstar F24 | `docs/vehicles/traffic/nissan_atlas_2007.md` | 8 |",
+		"18 — Nissan Atleon 2004 pre-facelift",
+		"4 mechanically consolidated RWD engine rows: BD30Ti 110, B4.40Ti 140, B6.60TiL 165 and B6.60TiH 210",
+		"After model 18 is approved, research continues with model 20",
 		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
 	for fragment: String in [
-		"| 15 — Mercedes-Benz Sprinter W906 facelift RWD | `docs/vehicles/traffic/mercedes_benz_sprinter_2014.md` | 17 |",
 		"Mercedes-Benz Unimog U5023 single-cab dropside source with approved U4023/U5023 mechanical scope | utility vehicle | 2,032 | `approved`",
-		"Nissan Atlas / Cabstar F24 2007 narrow single-cab flatbed source | light flatbed truck | 1,996 | `awaiting_owner_scope`",
+		"Nissan Atlas / Cabstar F24 2007 narrow single-cab flatbed source with approved RWD scope | light flatbed truck | 1,996 | `approved`",
+		"Nissan Atleon 2004 pre-facelift single-cab box truck | medium box truck | 2,076 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves scope: %s" % fragment)
 
@@ -131,21 +132,22 @@ func _test_approved_scopes() -> void:
 		_expect(not text.contains("Workflow status: **`awaiting_owner_scope`**"), "%s owner gate is closed" % path)
 
 
-func _test_atlas_gate() -> void:
-	_expect_fragments(_read_text(ATLAS_RESEARCH_PATH), PackedStringArray([
-		"Nissan Atlas / Cabstar F24 single-cab flatbed — research and owner-scope gate",
+func _test_atleon_gate() -> void:
+	_expect_fragments(_read_text(ATLEON_RESEARCH_PATH), PackedStringArray([
+		"Nissan Atleon 2004 pre-facelift box truck — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source Git blob SHA-1: `8dcc240c7b26ec1821d30da11d3cf08e7f9daccf`",
+		"Source Git blob SHA-1: `680e31baa11e5d7abf8d13b95b2638eb3db32e69`",
 		"Source SHA-256: **pending direct binary hash capture before integration**",
-		"1,996 rendered triangles and 1,012 source vertices",
-		"QR20DE 1.998L naturally aspirated petrol inline-four",
-		"ZD30DDTi 2.953L common-rail turbo-diesel inline-four",
-		"5-speed Aisin-family torque-converter automatic",
-		"Mechanically consolidated candidate total: 9 configurations",
-		"European Nissan Cabstar F24 candidates",
+		"Source triangles | 2,076",
+		"BD30Ti 2.953L turbo-diesel inline-four",
+		"B4.40Ti 3.989L turbo-diesel inline-four",
+		"B6.60TiL 5.985L turbo-diesel inline-six",
+		"B6.60TiH 5.985L turbo-diesel inline-six",
+		"Mechanically consolidated candidate total: 4 pre-facelift RWD configurations",
+		"Unresolved 4WD branch",
 		"Owner scope decision — required before implementation",
 		"No implementation begins after this individual decision",
-	]), "Atlas gate")
+	]), "Atleon gate")
 
 
 func _test_provenance() -> void:
