@@ -37,6 +37,7 @@ const CLIO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_clio_201
 const CRUZE_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_cruze_2011.md"
 const E150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_e150_2012.md"
 const EXCURSION_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_excursion_2000.md"
+const F150_LIMITED_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_f150_limited_2013.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -90,9 +91,9 @@ func _test_inventory_and_global_gate() -> void:
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01, 02, 03, 04 and 05 have passed their individual owner-scope gates",
-		"06 — Ford Excursion",
-		"After model 06 is approved, research continues with model 07",
+		"Models 01, 02, 03, 04, 05 and 06 have passed their individual owner-scope gates",
+		"07 — Ford F-150 Limited SuperCrew",
+		"After model 07 is approved, research continues with model 08",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory preserves")
 	for asset_path: String in SOURCE_ASSETS:
@@ -107,7 +108,8 @@ func _test_model_scopes() -> void:
 		"| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 |",
 		"| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |",
 		"| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 |",
-		"Ford Excursion 2000 pre-facelift XLT, drivetrain unresolved visually | SUV | 2,180 | `awaiting_owner_scope`",
+		"| 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 |",
+		"Ford F-150 Limited SuperCrew 5.5-ft box, 2013 source | pickup | 1,758 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves scope: %s" % required_fragment)
 
@@ -140,14 +142,35 @@ func _test_model_scopes() -> void:
 		"Model 05 is **`approved`** with **2** configurations",
 	]), "E-150 scope preserves")
 	_expect(not e150.contains("Approved total: 8 regular-length"), "E-150 year-era rows remain collapsed")
-	_expect_fragments(_read_text(EXCURSION_RESEARCH_PATH), PackedStringArray([
-		"Ford Excursion — research and owner-scope gate",
+
+	var excursion: String = _read_text(EXCURSION_RESEARCH_PATH)
+	_expect_fragments(excursion, PackedStringArray([
+		"Ford Excursion — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **5 pre-facelift XLT-style Ford Excursion 4x2 engine/calibration configurations**",
+		"Approved total: 5 pre-facelift Ford Excursion 4x2 configurations",
+		"**7.3 early**, model year 2000",
+		"**7.3 late**, 2002–early 2003",
+		"every part-time 4x4 configuration",
+		"the 2005 facelift appearance",
+		"the Mexico-only 2006 continuation",
+		"Model 06 is **`approved`** with **5** configurations",
+		"Research proceeds to model 07",
+	]), "Excursion scope preserves")
+	_expect(not excursion.contains("Workflow status: **`awaiting_owner_scope`**"), "Excursion approval gate is closed")
+
+	_expect_fragments(_read_text(F150_LIMITED_RESEARCH_PATH), PackedStringArray([
+		"Ford F-150 Limited SuperCrew — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Candidate total: 12 engine/calibration/transmission/drivetrain rows",
-		"Ford 4R100 4-speed planetary torque-converter automatic",
-		"Ford TorqShift 5R110W 5-speed planetary torque-converter automatic",
+		"Source SHA-256: `3be44b7f8f563efc57d259e0a3902dc55b2b347a0b34b2b90f55d75f541f6587`",
+		"2013 Ford F-150 Limited SuperCrew with the 5.5-ft Styleside box",
+		"3.5L EcoBoost V6",
+		"working identification **6R80**",
+		"Base candidate total: 2 engine/transmission/drivetrain rows",
+		"3.55 electronic-locking rear axle",
+		"3.73 electronic-locking rear axle",
 		"Owner scope decision — required before implementation",
-	]), "Excursion gate preserves")
+	]), "F-150 Limited gate preserves")
 
 
 func _test_provenance_contract() -> void:
