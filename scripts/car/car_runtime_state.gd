@@ -1,6 +1,11 @@
 extends RefCounted
 class_name CarRuntimeState
 
+const FREE_ROLLING_STRAIGHT_YAW_THRESHOLD_RAD_S: float = 0.05
+const FREE_ROLLING_STRAIGHT_LATERAL_THRESHOLD_MPS: float = 0.25
+const FREE_ROLLING_STRAIGHT_STEERING_THRESHOLD_RAD: float = 0.02
+const FREE_ROLLING_DISCONTINUITY_THRESHOLD_MPS: float = 0.25
+
 var start_transform: Transform3D
 var forward_speed: float = 0.0
 var lateral_speed: float = 0.0
@@ -71,6 +76,122 @@ func configure_wheel_rotation(config: CarDriveConfig, preserve_angular_velocity:
 			wheel.angular_velocity_rad_s = preserved_velocity
 		else:
 			wheel.set_rolling_speed(forward_speed)
+	if preserve_angular_velocity:
+		_synchronize_free_rolling_wheels(config)
+
+
+func _synchronize_free_rolling_wheels(config: CarDriveConfig) -> void:
+	var free_wheels: Array[WheelTireState] = []
+	for wheel: WheelTireState in wheel_states:
+		if _should_prepare_free_rolling_wheel(wheel, config):
+			free_wheels.append(wheel)
+	if free_wheels.is_empty():
+		return
+
+	if _is_near_straight_free_rolling(free_wheels):
+		_synchronize_straight_free_rolling_wheels(free_wheels, config)
+		return
+
+	# During a turn each contact patch has a different longitudinal road speed.
+	# Synchronizing every wheel to the center speed repeatedly removes yaw and
+	# lateral kinetic energy. Match each wheel to its own velocity along the
+	# steered wheel plane instead, without applying a fictitious center impulse.
+	for wheel: WheelTireState in free_wheels:
+		wheel.set_rolling_speed(_get_wheel_longitudinal_road_speed(wheel, config))
+		wheel.angular_acceleration_rad_s2 = 0.0
+
+
+func _synchronize_straight_free_rolling_wheels(
+	free_wheels: Array[WheelTireState],
+	config: CarDriveConfig
+) -> void:
+	var maximum_speed_delta: float = 0.0
+	for wheel: WheelTireState in free_wheels:
+		maximum_speed_delta = maxf(
+			maximum_speed_delta,
+			absf(wheel.get_circumferential_speed_mps() - forward_speed)
+		)
+
+	# A large mismatch indicates an authoritative state jump such as a reset,
+	# teleport, test setup or direction hand-off. It is not a physical acceleration
+	# step, so synchronize wheel state without applying an impulse to the chassis.
+	if maximum_speed_delta > FREE_ROLLING_DISCONTINUITY_THRESHOLD_MPS:
+		for wheel: WheelTireState in free_wheels:
+			wheel.set_rolling_speed(forward_speed)
+			wheel.angular_acceleration_rad_s2 = 0.0
+		return
+
+	var equivalent_mass: float = maxf(config.vehicle_mass, 1.0)
+	var generalized_momentum: float = equivalent_mass * forward_speed
+	for wheel: WheelTireState in free_wheels:
+		var radius: float = maxf(wheel.wheel_radius_m, 0.01)
+		var rotational_equivalent_mass: float = (
+			maxf(wheel.moment_of_inertia_kg_m2, 0.01)
+			/ (radius * radius)
+		)
+		equivalent_mass += rotational_equivalent_mass
+		generalized_momentum += (
+			rotational_equivalent_mass
+			* wheel.get_circumferential_speed_mps()
+		)
+
+	# Enforce no-slip rolling without creating rotational energy for free. The
+	# translational vehicle mass and the I/r^2 equivalent masses of all unloaded
+	# wheels share one coupled speed, preserving generalized longitudinal momentum.
+	var coupled_speed: float = generalized_momentum / maxf(equivalent_mass, 0.01)
+	forward_speed = coupled_speed
+	for wheel: WheelTireState in free_wheels:
+		wheel.set_rolling_speed(coupled_speed)
+		wheel.angular_acceleration_rad_s2 = 0.0
+
+
+func _is_near_straight_free_rolling(free_wheels: Array[WheelTireState]) -> bool:
+	if absf(yaw_rate_rad_s) > FREE_ROLLING_STRAIGHT_YAW_THRESHOLD_RAD_S:
+		return false
+	if absf(lateral_speed) > FREE_ROLLING_STRAIGHT_LATERAL_THRESHOLD_MPS:
+		return false
+	for wheel: WheelTireState in free_wheels:
+		if absf(wheel.steering_angle_rad) > FREE_ROLLING_STRAIGHT_STEERING_THRESHOLD_RAD:
+			return false
+	return true
+
+
+func _get_wheel_longitudinal_road_speed(
+	wheel: WheelTireState,
+	config: CarDriveConfig
+) -> float:
+	var is_front: bool = wheel.is_front()
+	var forward_offset: float = (
+		maxf(config.wheel_base, 0.10) * (1.0 - config.front_static_load_fraction)
+		if is_front
+		else -maxf(config.wheel_base, 0.10) * config.front_static_load_fraction
+	)
+	var track_width: float = (
+		config.front_axle_track_width if is_front else config.rear_axle_track_width
+	)
+	var lateral_offset: float = (
+		-1.0 if wheel.is_left() else 1.0
+	) * maxf(track_width, 0.10) * 0.5
+	var wheel_forward_speed: float = forward_speed - yaw_rate_rad_s * lateral_offset
+	var wheel_lateral_speed: float = lateral_speed + yaw_rate_rad_s * forward_offset
+	var steering_cosine: float = cos(wheel.steering_angle_rad)
+	var steering_sine: float = sin(wheel.steering_angle_rad)
+	return (
+		wheel_forward_speed * steering_cosine
+		+ wheel_lateral_speed * steering_sine
+	)
+
+
+func _should_prepare_free_rolling_wheel(
+	wheel: WheelTireState,
+	config: CarDriveConfig
+) -> bool:
+	return (
+		wheel.has_contact
+		and config.get_drive_torque_fraction(wheel.wheel_index) <= 0.0
+		and absf(wheel.drive_torque_nm) <= WheelRotationalDynamicsModel.TORQUE_EPSILON_NM
+		and wheel.brake_torque_nm <= WheelRotationalDynamicsModel.TORQUE_EPSILON_NM
+	)
 
 
 func get_average_driven_wheel_angular_velocity(config: CarDriveConfig) -> float:
@@ -139,6 +260,16 @@ func synchronize_wheel_contacts_from_aggregate() -> void:
 			ground_normal,
 			support_per_wheel
 		)
+		# Aggregate contact is used by deterministic simulations that may seed body
+		# speed directly. Initialize a previously stationary wheel to road speed before
+		# slip is resolved, preventing a one-step fictitious braking impulse.
+		if (
+			absf(wheel.angular_velocity_rad_s)
+			<= WheelRotationalDynamicsModel.ANGULAR_STOP_THRESHOLD_RAD_S
+			and absf(forward_speed)
+			>= WheelRotationalDynamicsModel.MIN_REFERENCE_SPEED_MPS
+		):
+			wheel.set_rolling_speed(forward_speed)
 		wheel.lateral_slip_intensity = lateral_slip_intensity
 		wheel.longitudinal_slip_ratio = longitudinal_slip_ratio
 		wheel.longitudinal_slip_intensity = longitudinal_slip_intensity

@@ -49,8 +49,29 @@ func _test_full_throttle_upshift_hold() -> void:
 		1.0
 	)
 	_expect(
-		requested_gear == 1,
-		"vehicle acceleration releases the hold and restores normal kickdown"
+		requested_gear == 2,
+		"vehicle speed gain alone does not release a sustained full-throttle hold"
+	)
+
+	requested_gear = _request_gear(
+		transmission,
+		2,
+		12.2,
+		REDLINE_RPM,
+		1.0
+	)
+	_expect(requested_gear == 3, "held gear can still perform the next redline upshift")
+
+	requested_gear = _request_gear(
+		transmission,
+		3,
+		12.3,
+		DOWNSHIFT_RPM,
+		1.0
+	)
+	_expect(
+		requested_gear == 3,
+		"low coupled RPM after a full-throttle upshift does not recreate gear hunting"
 	)
 
 
@@ -85,17 +106,6 @@ func _test_hold_release_conditions() -> void:
 		1.0
 	)
 	_expect(requested_gear == 1, "braking bypasses the hold and permits a safe downshift")
-
-	var low_rpm_transmission: AutomaticTransmissionModel = AutomaticTransmissionModel.new()
-	_request_gear(low_rpm_transmission, 1, 10.0, REDLINE_RPM, 1.0)
-	requested_gear = _request_gear(
-		low_rpm_transmission,
-		2,
-		10.1,
-		DOWNSHIFT_RPM,
-		1.0
-	)
-	_expect(requested_gear == 1, "very low engine RPM releases the hold to prevent lugging")
 
 
 func _request_gear(

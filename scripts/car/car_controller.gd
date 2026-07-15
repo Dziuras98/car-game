@@ -51,8 +51,12 @@ func get_forward_speed() -> float:
 	return _runtime_state.forward_speed
 
 
+func get_speed_mps() -> float:
+	return Vector2(_runtime_state.forward_speed, _runtime_state.lateral_speed).length()
+
+
 func get_speed_kmh() -> float:
-	return _runtime_state.forward_speed * 3.6
+	return get_speed_mps() * 3.6
 
 
 func get_engine_rpm() -> float:
