@@ -8,6 +8,13 @@ code = "shader_type spatial;\nrender_mode unshaded, cull_disabled;\n\nuniform ve
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = SubResource("Shader_grid")
+shader_parameter/base_color = Color(0.31, 0.32, 0.34, 1)
+shader_parameter/minor_line_color = Color(1, 0.34, 0.03, 1)
+shader_parameter/major_line_color = Color(0.86, 0.025, 0.015, 1)
+shader_parameter/minor_spacing = 1.0
+shader_parameter/major_spacing = 10.0
+shader_parameter/minor_half_width = 0.025
+shader_parameter/major_half_width = 0.075
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_grid"]
 material = SubResource("ShaderMaterial_grid")
