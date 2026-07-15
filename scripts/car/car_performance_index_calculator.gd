@@ -5,12 +5,18 @@ const INDEX_SCALE: float = 1000.0
 const STEP_METERS: float = 1.0
 const MIN_SPEED_SUM: float = 0.000001
 const MIN_CVT_RATIO: float = 0.01
+const ROLLING_RESISTANCE_GRAVITY: float = 9.81
+const MIN_DYNAMIC_AXLE_LOAD_FRACTION: float = 0.10
+const MAX_DYNAMIC_AXLE_LOAD_FRACTION: float = 0.90
+const REFERENCE_FRONT_TIRE_WIDTH_M: float = 0.225
+const REFERENCE_REAR_TIRE_WIDTH_M: float = 0.245
 
-# Frozen DPI v1 normalization. These are the three benchmark times produced by
-# the reference 2016 Nissan 370Z 7AT configuration when the model was defined.
-const REFERENCE_TECHNICAL_TIME: float = 87.923473
-const REFERENCE_MIXED_TIME: float = 117.032444
-const REFERENCE_FAST_TIME: float = 128.254370
+# Frozen DPI v2 normalization. These are the three benchmark times produced by
+# the reference 2016 Nissan 370Z 7AT configuration after the per-wheel tire,
+# load-transfer and wheel-inertia model became authoritative.
+const REFERENCE_TECHNICAL_TIME: float = 91.131778
+const REFERENCE_MIXED_TIME: float = 119.533977
+const REFERENCE_FAST_TIME: float = 130.271534
 
 const TECHNICAL_WEIGHT: float = 0.35
 const MIXED_WEIGHT: float = 0.40
@@ -101,7 +107,6 @@ static func _calculate_course_time(specs: CarSpecs, segments: Array) -> float:
 		return INF
 
 	var speed_profile: PackedFloat64Array = speed_limits.duplicate()
-	var longitudinal_capacity: float = specs.longitudinal_grip_coefficient * specs.gravity
 	for sample_index: int in range(speed_profile.size() - 2, -1, -1):
 		var current_speed: float = minf(speed_profile[sample_index], specs.max_forward_speed)
 		var friction_factor: float = _get_remaining_longitudinal_factor(
@@ -110,7 +115,7 @@ static func _calculate_course_time(specs: CarSpecs, segments: Array) -> float:
 			radii[sample_index]
 		)
 		var braking_deceleration: float = (
-			minf(specs.brake_deceleration, longitudinal_capacity) * friction_factor
+			_get_braking_acceleration(specs, specs.brake_deceleration, friction_factor)
 			+ _get_resistance_acceleration(specs, current_speed)
 		)
 		var reachable_speed: float = sqrt(maxf(
@@ -124,7 +129,7 @@ static func _calculate_course_time(specs: CarSpecs, segments: Array) -> float:
 	var previous_gear: int = 0
 	for sample_index: int in range(speed_profile.size() - 1):
 		var current_speed: float = speed_profile[sample_index]
-		var drive_state: Vector2 = _get_best_drive_state(specs, current_speed)
+		var drive_state: Vector3 = _get_best_drive_state(specs, current_speed)
 		var selected_gear: int = roundi(drive_state.y)
 		var friction_factor: float = _get_remaining_longitudinal_factor(
 			specs,
@@ -132,12 +137,17 @@ static func _calculate_course_time(specs: CarSpecs, segments: Array) -> float:
 			radii[sample_index]
 		)
 		var resistance_acceleration: float = _get_resistance_acceleration(specs, current_speed)
-		var traction_limited_acceleration: float = (
-			longitudinal_capacity * friction_factor - resistance_acceleration
+		var traction_acceleration: float = _get_drive_traction_acceleration(
+			specs,
+			drive_state.z,
+			friction_factor
 		)
 		var net_acceleration: float = maxf(
 			0.0,
-			minf(drive_state.x - resistance_acceleration, traction_limited_acceleration)
+			minf(
+				drive_state.x - resistance_acceleration,
+				traction_acceleration - resistance_acceleration
+			)
 		)
 		var reachable_speed: float = sqrt(maxf(
 			0.0,
@@ -181,13 +191,22 @@ static func _build_course_samples(specs: CarSpecs, segments: Array) -> Dictionar
 	}
 
 
-static func _get_best_drive_state(specs: CarSpecs, speed: float) -> Vector2:
+# Vector3(actual acceleration after rotating inertia, selected gear, requested
+# chassis acceleration used by the runtime for torque split and load transfer).
+static func _get_best_drive_state(specs: CarSpecs, speed: float) -> Vector3:
 	if specs.is_cvt_transmission():
-		return Vector2(_get_cvt_drive_acceleration(specs, speed), 0.0)
+		var cvt_state: Vector2 = _get_cvt_drive_acceleration(specs, speed)
+		return Vector3(cvt_state.x, 0.0, cvt_state.y)
 	if not specs.uses_discrete_gears():
-		return Vector2(minf(specs.engine_force, specs.max_drive_acceleration), 0.0)
+		var nominal_acceleration: float = minf(specs.engine_force, specs.max_drive_acceleration)
+		return Vector3(
+			_apply_rotational_inertia(specs, nominal_acceleration, 0.0, false),
+			0.0,
+			nominal_acceleration
+		)
 
 	var best_acceleration: float = 0.0
+	var best_nominal_acceleration: float = 0.0
 	var best_gear: int = 1
 	var wheel_rpm: float = _get_wheel_rpm(specs, speed)
 	for gear_index: int in range(specs.gear_ratios.size()):
@@ -213,17 +232,25 @@ static func _get_best_drive_state(specs: CarSpecs, speed: float) -> Vector2:
 			* specs.drivetrain_efficiency
 			/ specs.wheel_radius
 		)
-		var acceleration: float = minf(
+		var nominal_acceleration: float = minf(
 			wheel_force / specs.vehicle_mass,
 			specs.max_drive_acceleration
 		)
+		var acceleration: float = _apply_rotational_inertia(
+			specs,
+			nominal_acceleration,
+			gear_ratio,
+			true
+		)
 		if acceleration > best_acceleration:
 			best_acceleration = acceleration
+			best_nominal_acceleration = nominal_acceleration
 			best_gear = gear_index + 1
-	return Vector2(best_acceleration, float(best_gear))
+	return Vector3(best_acceleration, float(best_gear), best_nominal_acceleration)
 
 
-static func _get_cvt_drive_acceleration(specs: CarSpecs, speed: float) -> float:
+# Vector2(actual acceleration after rotating inertia, requested chassis acceleration).
+static func _get_cvt_drive_acceleration(specs: CarSpecs, speed: float) -> Vector2:
 	var wheel_rpm: float = _get_wheel_rpm(specs, speed)
 	var target_rpm: float = specs.cvt_target_rpm_max
 	var ratio: float = specs.cvt_max_ratio
@@ -259,7 +286,138 @@ static func _get_cvt_drive_acceleration(specs: CarSpecs, speed: float) -> float:
 		* specs.drivetrain_efficiency
 		/ specs.wheel_radius
 	)
-	return minf(wheel_force / specs.vehicle_mass, specs.max_drive_acceleration)
+	var nominal_acceleration: float = minf(
+		wheel_force / specs.vehicle_mass,
+		specs.max_drive_acceleration
+	)
+	return Vector2(
+		_apply_rotational_inertia(specs, nominal_acceleration, ratio, true),
+		nominal_acceleration
+	)
+
+
+static func _get_drive_traction_acceleration(
+	specs: CarSpecs,
+	requested_acceleration: float,
+	friction_factor: float
+) -> float:
+	if requested_acceleration <= 0.0:
+		return 0.0
+	var dynamic_front_fraction: float = _get_dynamic_front_load_fraction(
+		specs,
+		requested_acceleration
+	)
+	var drive_fractions: Vector2 = _get_drive_axle_fractions(specs)
+	var axle_capacity_scale: float = (
+		TireModel.STANDARD_GRAVITY
+		* specs.longitudinal_grip_coefficient
+		* clampf(friction_factor, 0.0, 1.0)
+	)
+	return (
+		_resolve_axle_longitudinal_acceleration(
+			requested_acceleration * drive_fractions.x,
+			axle_capacity_scale * dynamic_front_fraction,
+			specs.longitudinal_slide_grip_multiplier
+		)
+		+ _resolve_axle_longitudinal_acceleration(
+			requested_acceleration * drive_fractions.y,
+			axle_capacity_scale * (1.0 - dynamic_front_fraction),
+			specs.longitudinal_slide_grip_multiplier
+		)
+	)
+
+
+static func _get_braking_acceleration(
+	specs: CarSpecs,
+	requested_deceleration: float,
+	friction_factor: float
+) -> float:
+	if requested_deceleration <= 0.0:
+		return 0.0
+	var dynamic_front_fraction: float = _get_dynamic_front_load_fraction(
+		specs,
+		-requested_deceleration
+	)
+	var front_brake_fraction: float = clampf(specs.front_brake_bias, 0.0, 1.0)
+	var axle_capacity_scale: float = (
+		TireModel.STANDARD_GRAVITY
+		* specs.longitudinal_grip_coefficient
+		* clampf(friction_factor, 0.0, 1.0)
+	)
+	return (
+		_resolve_axle_longitudinal_acceleration(
+			requested_deceleration * front_brake_fraction,
+			axle_capacity_scale * dynamic_front_fraction,
+			specs.longitudinal_slide_grip_multiplier
+		)
+		+ _resolve_axle_longitudinal_acceleration(
+			requested_deceleration * (1.0 - front_brake_fraction),
+			axle_capacity_scale * (1.0 - dynamic_front_fraction),
+			specs.longitudinal_slide_grip_multiplier
+		)
+	)
+
+
+static func _resolve_axle_longitudinal_acceleration(
+	requested_acceleration: float,
+	peak_capacity: float,
+	slide_grip_multiplier: float
+) -> float:
+	if requested_acceleration <= 0.0 or peak_capacity <= TireModel.MIN_ACCELERATION_CAPACITY:
+		return 0.0
+	var demand_ratio: float = requested_acceleration / peak_capacity
+	if demand_ratio <= 1.0:
+		return requested_acceleration
+	var slide_progress: float = _smoothstep(
+		(demand_ratio - 1.0) / maxf(TireModel.FULL_SLIDE_DEMAND_RATIO - 1.0, 0.001)
+	)
+	var capacity_multiplier: float = lerpf(
+		1.0,
+		clampf(slide_grip_multiplier, 0.0, 1.0),
+		slide_progress
+	)
+	return minf(requested_acceleration, peak_capacity * capacity_multiplier)
+
+
+static func _get_drive_axle_fractions(specs: CarSpecs) -> Vector2:
+	if specs.drive_layout == CarSpecs.DriveLayout.FRONT_WHEEL_DRIVE:
+		return Vector2(1.0, 0.0)
+	if specs.drive_layout == CarSpecs.DriveLayout.ALL_WHEEL_DRIVE:
+		var front_fraction: float = clampf(specs.awd_front_torque_fraction, 0.0, 1.0)
+		return Vector2(front_fraction, 1.0 - front_fraction)
+	return Vector2(0.0, 1.0)
+
+
+static func _get_dynamic_front_load_fraction(
+	specs: CarSpecs,
+	longitudinal_acceleration: float
+) -> float:
+	var transfer_fraction: float = (
+		longitudinal_acceleration
+		* specs.center_of_mass_height_m
+		/ maxf(TireModel.STANDARD_GRAVITY * specs.wheel_base, 0.01)
+	)
+	return clampf(
+		_get_front_static_load_fraction(specs) - transfer_fraction,
+		MIN_DYNAMIC_AXLE_LOAD_FRACTION,
+		MAX_DYNAMIC_AXLE_LOAD_FRACTION
+	)
+
+
+static func _get_front_static_load_fraction(specs: CarSpecs) -> float:
+	var front_fraction: float = specs.front_static_load_fraction
+	if front_fraction <= 0.0:
+		if specs.drive_layout == CarSpecs.DriveLayout.FRONT_WHEEL_DRIVE:
+			front_fraction = 0.62
+		elif specs.drive_layout == CarSpecs.DriveLayout.ALL_WHEEL_DRIVE:
+			front_fraction = 0.50
+		else:
+			front_fraction = 0.53
+	return clampf(
+		front_fraction,
+		MIN_DYNAMIC_AXLE_LOAD_FRACTION,
+		MAX_DYNAMIC_AXLE_LOAD_FRACTION
+	)
 
 
 static func _get_remaining_longitudinal_factor(
@@ -276,7 +434,85 @@ static func _get_remaining_longitudinal_factor(
 
 
 static func _get_lateral_capacity(specs: CarSpecs) -> float:
-	return maxf(minf(specs.front_lateral_grip, specs.rear_lateral_grip), 0.01)
+	var front_grip: float = (
+		specs.front_lateral_grip
+		* sqrt(specs.front_tire_width_m / REFERENCE_FRONT_TIRE_WIDTH_M)
+	)
+	var rear_grip: float = (
+		specs.rear_lateral_grip
+		* sqrt(specs.rear_tire_width_m / REFERENCE_REAR_TIRE_WIDTH_M)
+	)
+	var front_fraction: float = _get_front_static_load_fraction(specs)
+	return maxf(
+		front_grip * front_fraction + rear_grip * (1.0 - front_fraction),
+		0.01
+	)
+
+
+static func _apply_rotational_inertia(
+	specs: CarSpecs,
+	nominal_acceleration: float,
+	transmission_ratio: float,
+	include_engine_inertia: bool
+) -> float:
+	var effective_mass: float = _get_effective_vehicle_mass(
+		specs,
+		transmission_ratio,
+		include_engine_inertia
+	)
+	return nominal_acceleration * specs.vehicle_mass / effective_mass
+
+
+static func _get_effective_vehicle_mass(
+	specs: CarSpecs,
+	transmission_ratio: float,
+	include_engine_inertia: bool
+) -> float:
+	var radius_squared: float = maxf(specs.wheel_radius * specs.wheel_radius, 0.0001)
+	var front_inertia: float = _get_wheel_inertia(
+		specs,
+		specs.front_wheel_inertia_kg_m2,
+		specs.front_tire_width_m
+	)
+	var rear_inertia: float = _get_wheel_inertia(
+		specs,
+		specs.rear_wheel_inertia_kg_m2,
+		specs.rear_tire_width_m
+	)
+	var rotating_equivalent_mass: float = (
+		2.0 * (front_inertia + rear_inertia) / radius_squared
+	)
+	if include_engine_inertia and transmission_ratio > 0.0:
+		var engine_side_inertia: float = clampf(
+			0.08 + specs.peak_engine_torque * 0.00028,
+			0.10,
+			0.24
+		)
+		var coupling: float = 0.65 if specs.is_torque_converter_automatic() else 1.0
+		var active_ratio: float = transmission_ratio * specs.final_drive_ratio
+		rotating_equivalent_mass += (
+			engine_side_inertia
+			* active_ratio
+			* active_ratio
+			* coupling
+			/ radius_squared
+		)
+	return maxf(specs.vehicle_mass + rotating_equivalent_mass, 1.0)
+
+
+static func _get_wheel_inertia(
+	specs: CarSpecs,
+	configured_inertia: float,
+	tire_width_m: float
+) -> float:
+	if configured_inertia > 0.0:
+		return configured_inertia
+	var effective_rotating_mass_kg: float = clampf(
+		11.0 + tire_width_m * 45.0 + specs.wheel_radius * 8.0,
+		12.0,
+		34.0
+	)
+	return effective_rotating_mass_kg * specs.wheel_radius * specs.wheel_radius * 0.65
 
 
 static func _get_resistance_acceleration(specs: CarSpecs, speed: float) -> float:
@@ -289,7 +525,9 @@ static func _get_resistance_acceleration(specs: CarSpecs, speed: float) -> float
 		* speed
 		/ specs.vehicle_mass
 	)
-	var rolling_resistance: float = specs.rolling_resistance_coefficient * specs.gravity
+	var rolling_resistance: float = (
+		specs.rolling_resistance_coefficient * ROLLING_RESISTANCE_GRAVITY
+	)
 	return aerodynamic_drag + rolling_resistance
 
 
@@ -337,7 +575,7 @@ static func _get_rev_limiter_multiplier(specs: CarSpecs, rpm: float) -> float:
 
 
 static func _get_torque_converter_multiplier(specs: CarSpecs, rpm: float) -> float:
-	if not specs.is_automatic_transmission() or rpm >= specs.torque_converter_coupling_rpm:
+	if not specs.is_torque_converter_automatic() or rpm >= specs.torque_converter_coupling_rpm:
 		return 1.0
 	var coupling_span: float = maxf(
 		specs.torque_converter_coupling_rpm - specs.torque_converter_stall_rpm,
