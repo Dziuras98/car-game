@@ -39,7 +39,7 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 1500 Crew Cab Standard Box RWD, K2XX pre-facelift | pickup | 2,232 | `approved` |
 | 3 | `03_renault_clio_2013.glb` | Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved` |
-| 5 | `05_ford_e150_2012.glb` | Ford E-150 2012 | full-size van | 1,844 | `source_only` |
+| 5 | `05_ford_e150_2012.glb` | Ford E-150 Commercial Cargo Van, regular length, high-series exterior, 2012 | full-size van | 1,844 | `awaiting_owner_scope` |
 | 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 | SUV | 2,180 | `source_only` |
 | 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited 2013 | pickup | 1,758 | `source_only` |
 | 8 | `08_ford_transit_connect_2011.glb` | Ford Transit Connect 2011 | compact van | 1,650 | `source_only` |
@@ -71,7 +71,11 @@ Models 01, 02, 03 and 04 have passed their individual owner-scope gates, but imp
 
 ## Active owner-scope gates
 
-None. The next research target is model 05 — Ford E-150 2012. Research must be completed and presented before model 06 begins.
+| Model | Research record | Candidate configurations | Blocking decision |
+|---|---|---:|---|
+| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 strict-source engine/transmission rows; 4 with both axle ratios; 8 with open/LSD split; 6/12/24 equivalents across all E-150 cargo/Wagon bodies | regular cargo only vs Extended/Wagon; both V8s; axle-ratio and differential policy; gasoline/E85; gaseous prep; Crew Van; appearance-package deduplication; 2012 vs 2008–2014; E-150-only vs E-250/E-350; missing variants |
+
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 05 is approved, research continues with model 06.
 
 ## Source topology
 
