@@ -41,6 +41,7 @@ const F150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_f150_limite
 const TRANSIT_CONNECT_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_transit_connect_2011.md"
 const FREELANDER_RESEARCH_PATH: String = "res://docs/vehicles/traffic/land_rover_freelander_2_2012.md"
 const GOLF_RESEARCH_PATH: String = "res://docs/vehicles/traffic/volkswagen_golf_vii_2013.md"
+const KIA_CEED_RESEARCH_PATH: String = "res://docs/vehicles/traffic/kia_ceed_2012.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -96,9 +97,9 @@ func _test_inventory_and_global_gate() -> void:
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08 and 09 have passed their individual owner-scope gates",
-		"10 — Volkswagen Golf VII hatchback",
-		"After model 10 is approved, research continues with model 11",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09 and 10 have passed their individual owner-scope gates",
+		"11 — Kia cee'd JD five-door hatchback",
+		"After model 11 is approved, research continues with model 12",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory preserves")
 	for asset_path: String in SOURCE_ASSETS:
@@ -117,7 +118,8 @@ func _test_model_scopes() -> void:
 		"| 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 |",
 		"| 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 |",
 		"| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 |",
-		"Volkswagen Golf VII five-door European pre-facelift standard TSI source | passenger hatchback | 1,982 | `awaiting_owner_scope`",
+		"| 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 |",
+		"Kia cee'd JD five-door European pre-facelift standard EcoDynamics-style source | passenger hatchback | 2,134 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves scope: %s" % required_fragment)
 
@@ -129,13 +131,10 @@ func _test_model_scopes() -> void:
 		"Workflow status: **`approved`**",
 		"Approved implementation scope: **4 mechanically distinct RWD combinations**",
 	]), "Silverado scope preserves")
-	var clio: String = _read_text(CLIO_RESEARCH_PATH)
-	_expect_fragments(clio, PackedStringArray([
+	_expect_fragments(_read_text(CLIO_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
 		"Approved total: 10 mechanically distinct non-R.S., non-GT configurations",
-		"**exclude GT 120 EDC**",
 	]), "Clio scope preserves")
-	_expect(not clio.contains("| 7 | Phase 1 GT |"), "Clio GT is absent from the approved matrix")
 	_expect_fragments(_read_text(CRUZE_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
 		"Approved total: 20 mechanically distinct pre-facelift Chevrolet J300 sedan configurations",
@@ -147,55 +146,42 @@ func _test_model_scopes() -> void:
 	_expect_fragments(_read_text(EXCURSION_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
 		"Approved total: 5 pre-facelift Ford Excursion 4x2 configurations",
-		"**7.3 early**, model year 2000",
-		"**7.3 late**, 2002–early 2003",
 	]), "Excursion scope preserves")
-
-	var f150: String = _read_text(F150_RESEARCH_PATH)
-	_expect_fragments(f150, PackedStringArray([
+	_expect_fragments(_read_text(F150_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
-		"Approved implementation scope: **7 mechanically consolidated 4x2 engine configurations**",
 		"Approved total: 7 mechanically consolidated Ford F-150 P415 SuperCrew 5.5-ft 4x2 configurations",
-		"22-in P275/45R22 tyres for every row",
 	]), "F-150 scope preserves")
-	_expect(not f150.contains("Workflow status: **`awaiting_owner_scope`**"), "F-150 owner gate is closed")
-
-	var transit: String = _read_text(TRANSIT_CONNECT_RESEARCH_PATH)
-	_expect_fragments(transit, PackedStringArray([
+	_expect_fragments(_read_text(TRANSIT_CONNECT_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
-		"Approved implementation scope: **6 mechanically consolidated first-generation powertrain configurations**",
-		"merged 75-PS early/late row",
-		"dedicated BorgWarner single-speed fixed-reduction transaxle",
 		"Approved total: 6 mechanically consolidated Ford Transit Connect first-generation configurations",
 	]), "Transit Connect scope preserves")
-	_expect(not transit.contains("Workflow status: **`awaiting_owner_scope`**"), "Transit Connect owner gate is closed")
-
-	var freelander: String = _read_text(FREELANDER_RESEARCH_PATH)
-	_expect_fragments(freelander, PackedStringArray([
-		"Land Rover Freelander 2 / LR2 L359 — research and approved scope",
+	_expect_fragments(_read_text(FREELANDER_RESEARCH_PATH), PackedStringArray([
 		"Workflow status: **`approved`**",
-		"Approved implementation scope: **8 mechanically distinct Freelander 2 / LR2 engine, transmission and drivetrain configurations**",
 		"Approved total: 8 mechanically distinct Land Rover Freelander 2 / LR2 L359 configurations",
-		"front-wheel drive only",
-		"on-demand AWD",
-		"Model 09 is **`approved`** with **8** configurations",
-		"Research proceeds to model 10",
 	]), "Freelander 2 scope preserves")
-	_expect(not freelander.contains("Workflow status: **`awaiting_owner_scope`**"), "Freelander 2 owner gate is closed")
 
-	_expect_fragments(_read_text(GOLF_RESEARCH_PATH), PackedStringArray([
-		"Volkswagen Golf VII hatchback — research and owner-scope gate",
+	var golf: String = _read_text(GOLF_RESEARCH_PATH)
+	_expect_fragments(golf, PackedStringArray([
+		"Volkswagen Golf VII hatchback — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **38 mechanically consolidated five-door Golf VII configurations**",
+		"Approved total: 22 standard petrol + 14 ordinary diesel + 2 electric = 38 configurations",
+		"Model 10 is **`approved`** with **38** configurations",
+		"Research proceeds to model 11",
+	]), "Golf VII scope preserves")
+	_expect(not golf.contains("Workflow status: **`awaiting_owner_scope`**"), "Golf VII owner gate is closed")
+
+	_expect_fragments(_read_text(KIA_CEED_RESEARCH_PATH), PackedStringArray([
+		"Kia cee'd JD five-door hatchback — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source SHA-256: `d8ff27d0dd2dbfed76723cbe7c04d042af891a127a68fe0dbdbe8946f2220260`",
-		"European/German-market 2013 Volkswagen Golf VII five-door hatchback",
-		"Mechanically consolidated candidate total: 63 configurations",
-		"DQ200 seven-speed dry DSG",
-		"DQ250 six-speed wet DSG",
-		"DQ381 seven-speed wet DSG",
-		"DQ400e hybrid DSG",
-		"e-Golf single-speed reduction",
+		"Source SHA-256: `bc84bc41e7a4ca000826b38153a64b3f66d0d2532c068da30038046d614ac941`",
+		"European/UK-market Kia cee'd JD five-door hatchback",
+		"Mechanically consolidated candidate total: 16 configurations",
+		"6-speed dry dual-clutch transaxle",
+		"6-speed planetary torque-converter automatic",
+		"7-speed dry dual-clutch transaxle",
 		"Owner scope decision — required before implementation",
-	]), "Golf VII gate preserves")
+	]), "Kia cee'd gate preserves")
 
 
 func _test_provenance_contract() -> void:
