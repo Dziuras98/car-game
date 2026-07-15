@@ -48,6 +48,31 @@ func _on_track_pressed(track_id: StringName) -> void:
 	_show_car_step()
 
 
+func _focus_first_option() -> void:
+	for child: Node in _options.get_children():
+		if child is Button:
+			_defer_focus(child as Button)
+			return
+	_focus_back_button()
+
+
+func _focus_back_button() -> void:
+	if _back_button.visible:
+		_defer_focus(_back_button)
+
+
+func _defer_focus(control: Control) -> void:
+	_grab_focus_if_available.call_deferred(control)
+
+
+func _grab_focus_if_available(control: Control) -> void:
+	if not is_instance_valid(control) or not control.is_inside_tree():
+		return
+	if not control.is_visible_in_tree():
+		return
+	control.grab_focus()
+
+
 func _add_track_option_button(track_option: TrackMenuOption) -> void:
 	_add_option_button(
 		track_option.label,
