@@ -29,7 +29,7 @@ source_only
 
 | # | Source GLB | Intended identity | Class | Source triangles | Workflow status |
 |---:|---|---|---|---:|---|
-| 1 | `01_bmw_4_series_2014.glb` | BMW 4 Series 2014 | passenger coupe | 1,780 | `source_only` |
+| 1 | `01_bmw_4_series_2014.glb` | BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `awaiting_owner_scope` |
 | 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 2014 | pickup | 2,232 | `source_only` |
 | 3 | `03_renault_clio_2013.glb` | Renault Clio 2013 | passenger hatchback | 2,118 | `source_only` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze 2011 | passenger sedan | 2,444 | `source_only` |
@@ -51,6 +51,14 @@ source_only
 | 23 | `23_volkswagen_amarok_2010.glb` | Volkswagen Amarok 2010 | pickup | 2,684 | `source_only` |
 
 Total committed source geometry: **40,300 triangles**.
+
+## Active owner-scope gates
+
+| Model | Research record | Candidate standard combinations | Blocking decision |
+|---|---|---:|---|
+| 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 42 | all variants vs subset; regional/special/post-LCI scope; missing variants |
+
+No implementation work may begin for an active row until the owner decision is recorded in its research document.
 
 ## Source topology
 
