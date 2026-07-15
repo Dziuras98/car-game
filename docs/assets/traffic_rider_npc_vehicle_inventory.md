@@ -43,8 +43,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 6 | `06_ford_excursion_2000.glb` | Ford Excursion 2000 pre-facelift XLT, approved 4x2 engine scope | SUV | 2,180 | `approved` |
 | 7 | `07_ford_f150_limited_2013.glb` | Ford F-150 Limited 2013 source with approved 2009–2014 P415 SuperCrew 5.5-ft 4x2 engine scope | pickup | 1,758 | `approved` |
 | 8 | `08_ford_transit_connect_2011.glb` | Ford Transit Connect XLT Premium Wagon 2011 with approved complete first-generation powertrain scope | compact van | 1,650 | `approved` |
-| 9 | `09_land_rover_freelander_2_2012.glb` | Land Rover LR2 HSE 2012, Freelander 2 L359 first-facelift source | SUV | 2,130 | `awaiting_owner_scope` |
-| 10 | `10_volkswagen_golf_vii_2013.glb` | Volkswagen Golf VII 2013 | passenger hatchback | 1,982 | `source_only` |
+| 9 | `09_land_rover_freelander_2_2012.glb` | Land Rover LR2 HSE 2012 with approved complete Freelander 2 L359 powertrain scope | SUV | 2,130 | `approved` |
+| 10 | `10_volkswagen_golf_vii_2013.glb` | Volkswagen Golf VII five-door European pre-facelift standard TSI source | passenger hatchback | 1,982 | `awaiting_owner_scope` |
 | 11 | `11_kia_ceed_2012.glb` | Kia cee'd 2012 | passenger hatchback | 2,134 | `source_only` |
 | 12 | `12_renault_maxity_2008.glb` | Renault Maxity 2008 | light box truck | 2,102 | `source_only` |
 | 13 | `13_mazda_2_2011.glb` | Mazda 2 2011 | passenger hatchback | 1,770 | `source_only` |
@@ -70,16 +70,17 @@ Total committed source geometry: **40,300 triangles**.
 | 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 | 4x2 only: 5.4 V8, 6.8 V10, 7.3 Power Stroke early, 7.3 Power Stroke late and 6.0 Power Stroke; source-like 2000–2004 pre-facelift XLT appearance; one standard axle ratio and differential per row; no 4x4, middle 7.3 calibration, 2005 facelift, Mexico 2006, trim or axle/differential duplicates |
 | 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 | all researched engine families, mechanically merged across 2009–2014: 4.6 2V, 4.6 3V, 5.4 3V, 3.7, 5.0, 3.5 EcoBoost and 6.2; 4x2 only; gasoline only; one standard axle and differential per row; common source-like 2013 Limited exterior, 22-in P275/45R22 tyres and sport-tuned shocks; no 4x4, E85, trim, body or axle duplicates |
 | 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 | all researched combustion families with early/late 75-PS diesel merged, plus Azure Dynamics Electric; common source-like LWB high-roof XLT Premium Wagon body; one standard final drive and differential per row; DPF/emissions as year metadata; no LPG/CNG, taxi, mobility, body, visual-phase or gearing duplicates; dedicated electric motor, inverter, battery, regeneration and fixed-reduction transaxle required |
+| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 | all researched engine/transmission/drivetrain rows, including eD4 FWD and seven Haldex AWD rows; manual and automatic rows separate; one standard final drive and differential/coupling state per row; common source-like 2011–2012 HSE exterior; Haldex, stop/start and emissions as year metadata; no trim, visual-phase, gearing, LPG or conversion duplicates |
 
-Models 01, 02, 03, 04, 05, 06, 07 and 08 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04, 05, 06, 07, 08 and 09 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 mechanically consolidated engine/transmission/drivetrain rows; 1 strict source-year LR2 HSE row | exact source phase vs complete generation; all powertrains; eD4 FWD; manual/automatic TD4 split; visual phases; trim policy; Haldex/emissions metadata; final-drive/differential policy; conversions; missing variants |
+| 10 — Volkswagen Golf VII hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 63 mechanically consolidated European hatchback powertrain rows: 26 standard petrol/TGI, 17 diesel, 17 performance petrol and 3 electrified | complete generation vs pre-facelift; all powertrain groups; five-door/three-door scope; visual derivatives; performance models; TGI; GTE/e-Golf; 4Motion; transmission architectures; final-drive/differential policy; emissions metadata; excluded bodies/markets; missing variants |
 
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 09 is approved, research continues with model 10.
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 10 is approved, research continues with model 11.
 
 ## Source topology
 
