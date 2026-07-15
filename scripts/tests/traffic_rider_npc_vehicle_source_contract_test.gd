@@ -35,6 +35,7 @@ const BMW_RESEARCH_PATH: String = "res://docs/vehicles/traffic/bmw_4_series_2014
 const SILVERADO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_silverado_2014.md"
 const CLIO_RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_clio_2013.md"
 const CRUZE_RESEARCH_PATH: String = "res://docs/vehicles/traffic/chevrolet_cruze_2011.md"
+const E150_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_e150_2012.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -53,6 +54,7 @@ func _initialize() -> void:
 	_test_model_02_scope()
 	_test_model_03_scope()
 	_test_model_04_scope()
+	_test_model_05_gate()
 	_test_provenance_contract()
 	_test_gitignore_contract()
 	_finish()
@@ -118,7 +120,8 @@ func _test_inventory_and_global_gate() -> void:
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
 		"Models 01, 02, 03 and 04 have passed their individual owner-scope gates",
-		"The next research target is model 05 — Ford E-150 2012",
+		"05 — Ford E-150 Commercial Cargo Van",
+		"After model 05 is approved, research continues with model 06",
 		"Only after all 20 scopes are approved does implementation begin",
 		"Total committed source geometry: **40,300 triangles**",
 	]:
@@ -219,6 +222,39 @@ func _test_model_04_scope() -> void:
 		"Research proceeds to model 05",
 	]:
 		_expect(research.contains(required_fragment), "Cruze scope preserves: %s" % required_fragment)
+
+
+func _test_model_05_gate() -> void:
+	var inventory: String = _read_text(INVENTORY_PATH)
+	_expect(
+		inventory.contains("Ford E-150 Commercial Cargo Van, regular length, high-series exterior, 2012 | full-size van | 1,844 | `awaiting_owner_scope`"),
+		"model 05 is at the owner-scope gate"
+	)
+	_expect(
+		inventory.contains("2 strict-source engine/transmission rows; 4 with both axle ratios; 8 with open/LSD split; 6/12/24 equivalents across all E-150 cargo/Wagon bodies"),
+		"inventory records Ford E-150 candidate totals"
+	)
+	var research: String = _read_text(E150_RESEARCH_PATH)
+	for required_fragment: String in [
+		"Ford E-150 Commercial Cargo Van — research and owner-scope gate",
+		"Workflow status: **`awaiting_owner_scope`**",
+		"Source SHA-256: `b8fb9a407b091108ea4c36f12f609e65ae587108085ec4ac6e019842a9396c6e`",
+		"2012 Ford E-150 Commercial Cargo Van, regular length, rear-wheel drive",
+		"Total triangles | 1,844",
+		"Approximate wheelbase-derived scale | 0.712154",
+		"strict source body: **2 engine/transmission rows**",
+		"all 2012 E-150 full-body variants: **6 body/engine/transmission rows**",
+		"4.6L Triton Modular SOHC naturally aspirated V8, FFV",
+		"5.4L Triton Modular SOHC naturally aspirated V8, FFV",
+		"four-speed torque-converter automatic with overdrive",
+		"3.73:1 and 4.10:1 rear axle ratios",
+		"limited-slip rear axle",
+		"5.4L CNG/LPG Gaseous Engine Prep Package",
+		"Crew Van Package",
+		"Owner scope decision — required before implementation",
+		"No implementation begins after this decision",
+	]:
+		_expect(research.contains(required_fragment), "Ford E-150 gate preserves: %s" % required_fragment)
 
 
 func _test_provenance_contract() -> void:
