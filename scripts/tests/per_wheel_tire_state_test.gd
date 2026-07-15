@@ -53,6 +53,9 @@ func _test_legacy_contact_bridge() -> void:
 
 func _test_mixed_surface_longitudinal_distribution() -> void:
 	var config: CarDriveConfig = _build_config()
+	config.drive_layout = CarSpecs.DriveLayout.ALL_WHEEL_DRIVE
+	config.awd_front_torque_fraction = 0.5
+	config.sanitize()
 	var state: CarRuntimeState = _build_contact_state(config)
 	state.wheel_states[WheelTireState.Position.FRONT_LEFT].surface_grip_multiplier = 1.0
 	state.wheel_states[WheelTireState.Position.FRONT_RIGHT].surface_grip_multiplier = 1.0
@@ -67,8 +70,8 @@ func _test_mixed_surface_longitudinal_distribution() -> void:
 
 	var front_left: WheelTireState = state.wheel_states[WheelTireState.Position.FRONT_LEFT]
 	var rear_left: WheelTireState = state.wheel_states[WheelTireState.Position.REAR_LEFT]
-	_expect(front_left.applied_longitudinal_acceleration > rear_left.applied_longitudinal_acceleration, "higher-grip wheels contribute more longitudinal acceleration")
-	_expect(front_left.requested_longitudinal_acceleration > rear_left.requested_longitudinal_acceleration, "longitudinal demand is distributed using each wheel's available capacity")
+	_expect(front_left.applied_longitudinal_acceleration > rear_left.applied_longitudinal_acceleration, "higher-grip wheels contribute more actual longitudinal acceleration under equal torque split")
+	_expect(is_equal_approx(front_left.requested_longitudinal_acceleration, rear_left.requested_longitudinal_acceleration), "equal AWD torque split gives equal longitudinal demand before tire response")
 	_expect(front_left.longitudinal_slip_ratio > 0.0, "front wheel records positive drive slip")
 	_expect(rear_left.longitudinal_slip_ratio > 0.0, "rear wheel records positive drive slip")
 	_expect(is_equal_approx(state.surface_grip_multiplier, 0.75), "legacy surface telemetry remains the average of wheel states")
