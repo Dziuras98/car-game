@@ -10,6 +10,12 @@ enum TransmissionType {
 	CVT,
 }
 
+enum DriveLayout {
+	FRONT_WHEEL_DRIVE,
+	REAR_WHEEL_DRIVE,
+	ALL_WHEEL_DRIVE,
+}
+
 @export_group("Identity")
 @export var display_name: String = "Car"
 
@@ -53,6 +59,8 @@ enum TransmissionType {
 @export var drivetrain_efficiency: float = 0.85
 @export var shift_delay: float = 0.28
 @export var max_drive_acceleration: float = 100.0
+@export_enum("FWD", "RWD", "AWD") var drive_layout: int = DriveLayout.REAR_WHEEL_DRIVE
+@export_range(0.0, 1.0, 0.01) var awd_front_torque_fraction: float = 0.40
 
 @export_group("Automatic Transmission")
 @export var automatic_upshift_rpm: float = 6200.0
@@ -107,6 +115,13 @@ enum TransmissionType {
 @export var skid_mark_width: float = 0.22
 @export var skid_mark_length: float = 0.9
 
+@export_group("Wheel Dynamics")
+@export_range(0.0, 1.0, 0.01) var front_brake_bias: float = 0.62
+@export var front_wheel_inertia_kg_m2: float = 0.0
+@export var rear_wheel_inertia_kg_m2: float = 0.0
+@export var wheel_angular_damping_nm_per_rad_s: float = 0.08
+@export var wheel_slip_reference_speed_mps: float = 1.0
+
 @export_group("Grounding")
 @export var gravity: float = 30.0
 @export var floor_stick_force: float = 0.5
@@ -118,32 +133,42 @@ enum TransmissionType {
 @export var ground_probe_collision_mask: int = 1
 @export_range(0.0, 1.0, 0.01) var minimum_ground_normal_dot: float = 0.35
 
+
 func is_manual_transmission() -> bool:
 	return transmission_type == TransmissionType.MANUAL
+
 
 func is_automatic_transmission() -> bool:
 	return transmission_type == TransmissionType.AUTOMATIC
 
+
 func is_smg_transmission() -> bool:
 	return is_automatic_transmission() and smg_enabled
+
 
 func is_torque_converter_automatic() -> bool:
 	return is_automatic_transmission() and not smg_enabled
 
+
 func is_cvt_transmission() -> bool:
 	return transmission_type == TransmissionType.CVT
+
 
 func is_self_shifting_transmission() -> bool:
 	return is_automatic_transmission() or is_cvt_transmission()
 
+
 func uses_discrete_gears() -> bool:
 	return is_manual_transmission() or is_automatic_transmission()
+
 
 func uses_geared_transmission() -> bool:
 	return uses_discrete_gears() or is_cvt_transmission()
 
+
 func is_valid() -> bool:
 	return validate().is_empty()
+
 
 func validate() -> PackedStringArray:
 	var errors: PackedStringArray = PackedStringArray()
@@ -183,6 +208,9 @@ func validate() -> PackedStringArray:
 
 	if transmission_type < TransmissionType.DIRECT_DRIVE or transmission_type > TransmissionType.CVT:
 		errors.append("transmission_type is invalid")
+	if drive_layout < DriveLayout.FRONT_WHEEL_DRIVE or drive_layout > DriveLayout.ALL_WHEEL_DRIVE:
+		errors.append("drive_layout is invalid")
+	_append_range(errors, "awd_front_torque_fraction", awd_front_torque_fraction, 0.0, 1.0)
 	if smg_enabled and not is_automatic_transmission():
 		errors.append("smg_enabled requires AUTOMATIC transmission_type")
 	if uses_discrete_gears() and gear_ratios.is_empty(): errors.append("gear_ratios must contain at least one forward gear")
@@ -267,6 +295,11 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "skid_mark_lifetime", skid_mark_lifetime)
 	_append_positive(errors, "skid_mark_width", skid_mark_width)
 	_append_positive(errors, "skid_mark_length", skid_mark_length)
+	_append_range(errors, "front_brake_bias", front_brake_bias, 0.0, 1.0)
+	_append_non_negative(errors, "front_wheel_inertia_kg_m2", front_wheel_inertia_kg_m2)
+	_append_non_negative(errors, "rear_wheel_inertia_kg_m2", rear_wheel_inertia_kg_m2)
+	_append_non_negative(errors, "wheel_angular_damping_nm_per_rad_s", wheel_angular_damping_nm_per_rad_s)
+	_append_positive(errors, "wheel_slip_reference_speed_mps", wheel_slip_reference_speed_mps)
 	_append_positive(errors, "gravity", gravity)
 	_append_non_negative(errors, "floor_stick_force", floor_stick_force)
 	_append_non_negative(errors, "suspension_probe_height", suspension_probe_height)
@@ -280,11 +313,14 @@ func validate() -> PackedStringArray:
 	_append_range(errors, "minimum_ground_normal_dot", minimum_ground_normal_dot, 0.0, 1.0)
 	return errors
 
+
 func _append_positive(errors: PackedStringArray, property_name: String, value: float) -> void:
 	if not is_finite(value) or value <= 0.0: errors.append("%s must be finite and greater than zero" % property_name)
 
+
 func _append_non_negative(errors: PackedStringArray, property_name: String, value: float) -> void:
 	if not is_finite(value) or value < 0.0: errors.append("%s must be finite and non-negative" % property_name)
+
 
 func _append_range(errors: PackedStringArray, property_name: String, value: float, minimum: float, maximum: float) -> void:
 	if not is_finite(value) or value < minimum or value > maximum:
