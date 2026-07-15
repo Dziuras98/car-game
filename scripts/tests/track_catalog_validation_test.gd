@@ -15,6 +15,28 @@ func _initialize() -> void:
 		and PRODUCTION_CATALOG.get_default_track().track_id == &"simple_oval",
 		"production catalog resolves the explicit default track"
 	)
+	var production_tracks: Array[TrackDefinition] = PRODUCTION_CATALOG.get_tracks()
+	_expect(
+		not production_tracks.is_empty() and production_tracks[0].track_id == &"simple_oval",
+		"production catalog preserves the established circuit order"
+	)
+	var infinite_grid: TrackDefinition = PRODUCTION_CATALOG.get_track_by_id(&"infinite_grid")
+	_expect(infinite_grid != null and infinite_grid.is_valid(), "infinite grid map is a valid production track definition")
+	_expect(
+		infinite_grid != null and infinite_grid.supports_mode(GameModes.FREE_DRIVE),
+		"infinite grid map is available in free drive"
+	)
+	_expect(
+		infinite_grid != null and not infinite_grid.supports_mode(GameModes.RACE),
+		"infinite grid map is excluded from races"
+	)
+	var simple_oval: TrackDefinition = PRODUCTION_CATALOG.get_track_by_id(&"simple_oval")
+	_expect(
+		simple_oval != null
+		and simple_oval.supports_mode(GameModes.FREE_DRIVE)
+		and simple_oval.supports_mode(GameModes.RACE),
+		"existing tracks remain available in both gameplay modes by default"
+	)
 
 	var explicit_default_catalog: TrackCatalog = TrackCatalog.new()
 	explicit_default_catalog.tracks = [_build_definition(&"explicit")]
@@ -49,6 +71,14 @@ func _initialize() -> void:
 		_contains_error(duplicate_id_catalog.validate(), "duplicated"),
 		"catalog with duplicate track ids is rejected"
 	)
+
+	var unsupported_mode_definition: TrackDefinition = _build_definition(&"unsupported_mode")
+	unsupported_mode_definition.supported_modes = [&"unsupported"]
+	_expect(not unsupported_mode_definition.is_valid(), "track definitions reject unsupported gameplay modes")
+
+	var duplicate_modes_definition: TrackDefinition = _build_definition(&"duplicate_modes")
+	duplicate_modes_definition.supported_modes = [GameModes.FREE_DRIVE, GameModes.FREE_DRIVE]
+	_expect(not duplicate_modes_definition.is_valid(), "track definitions reject duplicated gameplay modes")
 	_finish()
 
 

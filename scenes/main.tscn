@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/camera/follow_camera.gd" id="3_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/speedometer.tscn" id="4_speedometer"]
 [ext_resource type="Script" path="res://scripts/game/game_manager.gd" id="5_game_manager"]
-[ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="7_menu"]
+[ext_resource type="PackedScene" path="res://scenes/ui/mode_filtered_main_menu.tscn" id="7_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/minimap.tscn" id="8_minimap"]
 [ext_resource type="Script" path="res://scripts/game/main_scene_readiness_reporter.gd" id="9_readiness_reporter"]
 

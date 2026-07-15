@@ -116,7 +116,7 @@ func execute(
 	if selected_car_index < 0:
 		return Result.UNAVAILABLE_CAR_VARIANT
 	var selected_track: TrackDefinition = _track_catalog.get_track_by_id(track_id)
-	if selected_track == null:
+	if selected_track == null or not selected_track.supports_mode(mode_id):
 		return Result.UNAVAILABLE_TRACK
 
 	_execution_in_progress = true
@@ -183,7 +183,7 @@ static func get_failure_message(result: Result) -> String:
 		Result.UNAVAILABLE_CAR_VARIANT:
 			return "Menu emitted an unavailable car variant."
 		Result.UNAVAILABLE_TRACK:
-			return "Menu emitted an unavailable track."
+			return "Menu emitted a track unavailable for the selected mode."
 		Result.SESSION_BEGIN_REJECTED:
 			return "Session lifecycle rejected startup from the current state."
 		Result.TRACK_STAGE_FAILED:

@@ -13,7 +13,8 @@ static func build_track_options(track_catalog: TrackCatalog) -> Array[TrackMenuO
 		track_options.append(TrackMenuOption.new(
 			definition.track_id,
 			TranslationServer.translate(definition.display_name),
-			definition.recommended_laps
+			definition.recommended_laps,
+			definition.supported_modes
 		))
 	return track_options
 
