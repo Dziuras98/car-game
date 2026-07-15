@@ -42,6 +42,7 @@ const TRANSIT_CONNECT_RESEARCH_PATH: String = "res://docs/vehicles/traffic/ford_
 const FREELANDER_RESEARCH_PATH: String = "res://docs/vehicles/traffic/land_rover_freelander_2_2012.md"
 const GOLF_RESEARCH_PATH: String = "res://docs/vehicles/traffic/volkswagen_golf_vii_2013.md"
 const KIA_CEED_RESEARCH_PATH: String = "res://docs/vehicles/traffic/kia_ceed_2012.md"
+const MAXITY_RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_maxity_2008.md"
 const NOTICE_PATH: String = "res://THIRD_PARTY_NOTICES.md"
 const RISK_PATH: String = "res://docs/accepted_risks.md"
 const GITIGNORE_PATH: String = "res://.gitignore"
@@ -97,9 +98,10 @@ func _test_inventory_and_global_gate() -> void:
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
 		"No Traffic Rider model may enter `integrating` until every included model has reached `approved`",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09 and 10 have passed their individual owner-scope gates",
-		"11 — Kia cee'd JD five-door hatchback",
-		"After model 11 is approved, research continues with model 12",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10 and 11 have passed their individual owner-scope gates",
+		"12 — Renault Maxity F24 original body",
+		"After model 12 is approved, research continues with model 13",
+		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory preserves")
 	for asset_path: String in SOURCE_ASSETS:
@@ -119,7 +121,8 @@ func _test_model_scopes() -> void:
 		"| 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 |",
 		"| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 |",
 		"| 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 |",
-		"Kia cee'd JD five-door European pre-facelift standard EcoDynamics-style source | passenger hatchback | 2,134 | `awaiting_owner_scope`",
+		"| 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 |",
+		"Renault Maxity original-body single-cab short-wheelbase box truck with dual rear wheels | light box truck | 2,102 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(required_fragment), "inventory preserves scope: %s" % required_fragment)
 
@@ -167,21 +170,32 @@ func _test_model_scopes() -> void:
 		"Approved implementation scope: **38 mechanically consolidated five-door Golf VII configurations**",
 		"Approved total: 22 standard petrol + 14 ordinary diesel + 2 electric = 38 configurations",
 		"Model 10 is **`approved`** with **38** configurations",
-		"Research proceeds to model 11",
 	]), "Golf VII scope preserves")
 	_expect(not golf.contains("Workflow status: **`awaiting_owner_scope`**"), "Golf VII owner gate is closed")
 
-	_expect_fragments(_read_text(KIA_CEED_RESEARCH_PATH), PackedStringArray([
-		"Kia cee'd JD five-door hatchback — research and owner-scope gate",
+	var kia: String = _read_text(KIA_CEED_RESEARCH_PATH)
+	_expect_fragments(kia, PackedStringArray([
+		"Kia cee'd JD five-door hatchback — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **15 mechanically consolidated Kia cee'd JD five-door configurations**",
+		"merged 110-PS pre-/post-facelift row",
+		"Approved total: 8 petrol + 7 diesel = 15 mechanically consolidated configurations",
+		"Model 11 is **`approved`** with **15** configurations",
+		"Research proceeds to model 12",
+	]), "Kia cee'd scope preserves")
+	_expect(not kia.contains("Workflow status: **`awaiting_owner_scope`**"), "Kia cee'd owner gate is closed")
+
+	_expect_fragments(_read_text(MAXITY_RESEARCH_PATH), PackedStringArray([
+		"Renault Maxity F24 single-cab box truck — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source SHA-256: `bc84bc41e7a4ca000826b38153a64b3f66d0d2532c068da30038046d614ac941`",
-		"European/UK-market Kia cee'd JD five-door hatchback",
-		"Mechanically consolidated candidate total: 16 configurations",
-		"6-speed dry dual-clutch transaxle",
-		"6-speed planetary torque-converter automatic",
-		"7-speed dry dual-clutch transaxle",
+		"Source SHA-256: `37dd295636b56ebaecee37c1d461ee64349ee0c0bb697dfb484e94e49b0132f3`",
+		"single cab, enclosed box body and dual rear wheels",
+		"Mechanically consolidated candidate total: 6 configurations",
+		"DXi2.5 / Nissan YD25DDTi",
+		"DXi3 / Nissan ZD30DDTi",
+		"Renault Maxity Electric by PVI",
 		"Owner scope decision — required before implementation",
-	]), "Kia cee'd gate preserves")
+	]), "Renault Maxity gate preserves")
 
 
 func _test_provenance_contract() -> void:
