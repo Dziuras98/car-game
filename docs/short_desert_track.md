@@ -1,21 +1,40 @@
 # Krótki Tor Pustynny / Short Desert Track
 
-## Current integration stage
+## Runtime layout
 
-The first integration stage creates a fully selectable and race-capable procedural proxy derived from the uploaded `Race Track Map` GLB.
+The track is selectable in free drive and race modes. Its procedural layer supplies deterministic road collision, barriers, checkpoints and AI racing-line data.
 
 - source road mesh analysed: 64,680 triangles;
-- source scene bounds: approximately 96.9 × 7.9 × 80.6 model units;
 - extracted closed centreline: approximately 219 source units;
-- applied scale correction: `5.0`;
+- scale correction: `5.0`;
 - resulting lap length: approximately 1.10 km;
-- start line aligned to the project convention: origin, forward along negative Z;
+- start line: project origin, forward along negative Z;
 - generated road width: 18 m;
-- checkpoints: 20%, 40%, 60% and 80%;
-- supported modes: free drive and race.
+- checkpoints: 20%, 40%, 60% and 80%.
 
-The source model contains approximately 607,000 triangles and a 72 MB embedded GLB. The initial stage intentionally does not commit that full visual asset. Instead, the existing deterministic track-generation pipeline supplies road mesh, collision, barriers, checkpoints and AI racing-line data, while `DesertGeneratedTrack` replaces grass and roadside materials with sand surfaces.
+## Split visual model
 
-## Follow-up work
+The uploaded 72,406,464-byte GLB is divided by scene function rather than by arbitrary byte ranges:
 
-A later visual pass can import an optimized version of the original scenery, with collision proxies separated from decorative geometry and large textures reduced or externalized. That pass should preserve the scale, origin, orientation and attribution established here.
+| File | Size | Contents |
+| --- | ---: | --- |
+| `track_surface.glb` | 13.3 MiB | road, lines, kerbs and terrain |
+| `fences.glb` | 11.8 MiB | track fencing |
+| `barriers.glb` | 6.7 MiB | banks and perimeter barriers |
+| `buildings.glb` | 8.0 MiB | buildings, start and finish props |
+| `vehicles.glb` | 2.3 MiB | source-scene vehicles |
+| `vegetation.glb` | 1.5 MiB | trees and vegetation bases |
+
+Every part preserves its source transforms and materials. `ShortDesertVisualLoader` applies one common transform to all six files: a five-times scale, 90-degree Y rotation and translation to the procedural start line. The loader tolerates missing parts, so the procedural track remains playable while binary assets are being transferred.
+
+`assets/tracks/short_desert_track/split_manifest.json` records the source hash, expected output hashes, object counts and triangle counts. The split can be reproduced with:
+
+```text
+python tools/track_import/split_short_desert_track.py path/to/race_track_map.glb
+```
+
+The utility requires Python 3.10+ and `trimesh`.
+
+## Collision policy
+
+The imported GLBs are visual assets only. Gameplay collision continues to come from the project-authored procedural track pipeline. This avoids using the approximately 607,000-triangle source scene as concave runtime collision and keeps surface grip, checkpoint sequencing and AI navigation deterministic.
