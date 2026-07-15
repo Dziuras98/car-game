@@ -50,12 +50,14 @@ const APPROVED_SCOPE_PATHS: Dictionary = {
 	"res://docs/vehicles/traffic/renault_maxity_2008.md": "Approved total: 5 diesel + 1 electric = 6 mechanically consolidated configurations",
 	"res://docs/vehicles/traffic/mazda_2_2011.md": "Approved total: 16 mechanically distinct Mazda2 / Demio DE five-door configurations",
 	"res://docs/vehicles/traffic/mazda_3_2014.md": "Approved total: 11 petrol + 7 diesel + 1 hybrid = 19 mechanically distinct configurations",
+	"res://docs/vehicles/traffic/mercedes_benz_sprinter_2014.md": "Approved total: 13 diesel RWD + 4 petrol/NGT RWD = 17 mechanically consolidated configurations",
 }
 
-const SPRINTER_RESEARCH_PATH := "res://docs/vehicles/traffic/mercedes_benz_sprinter_2014.md"
+const UNIMOG_RESEARCH_PATH := "res://docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md"
 
 var _checks: int = 0
 var _failures: Array[String] = []
+
 
 func _initialize() -> void:
 	_expect(SOURCE_ASSETS.size() == 20, "inventory contains exactly 20 source GLBs")
@@ -63,10 +65,11 @@ func _initialize() -> void:
 	_test_workflow()
 	_test_inventory()
 	_test_approved_scopes()
-	_test_sprinter_gate()
+	_test_unimog_gate()
 	_test_provenance()
 	_test_gitignore()
 	_finish()
+
 
 func _test_assets() -> void:
 	for asset_path: String in SOURCE_ASSETS:
@@ -74,6 +77,7 @@ func _test_assets() -> void:
 		_expect(ResourceLoader.exists(asset_path, "PackedScene"), "%s imports as PackedScene" % asset_path)
 	for asset_path: String in EXCLUDED_ASSETS:
 		_expect(not FileAccess.file_exists(asset_path), "%s remains excluded" % asset_path)
+
 
 func _test_workflow() -> void:
 	_expect_fragments(_read_text(WORKFLOW_PATH), PackedStringArray([
@@ -92,26 +96,28 @@ func _test_workflow() -> void:
 		"Stage 11 — mandatory validation",
 	]), "workflow")
 
+
 func _test_inventory() -> void:
 	var inventory := _read_text(INVENTORY_PATH)
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13 and 14 have passed their individual owner-scope gates",
-		"15 — Mercedes-Benz Sprinter W906 facelift",
-		"21 mechanically consolidated facelift powertrain rows: OM651/OM642 diesel, M271 petrol/NGT, RWD and Sprinter 4x4, with 6MT/5AT/7AT architectures",
-		"After model 15 is approved, research continues with model 16",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14 and 15 have passed their individual owner-scope gates",
+		"16 — Mercedes-Benz Unimog U4023 / U5023",
+		"2 mechanically consolidated extreme-off-road chassis rows sharing OM934/UG100 but using different portal axles, load ratings and final-drive reductions",
+		"After model 16 is approved, research continues with model 17",
 		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
 	for fragment: String in [
-		"| 13 — Mazda2 / Demio DE five-door hatchback | `docs/vehicles/traffic/mazda_2_2011.md` | 16 |",
 		"| 14 — Mazda3 BM / BN / BY | `docs/vehicles/traffic/mazda_3_2014.md` | 19 |",
-		"Mercedes-Benz Sprinter W906 facelift long-wheelbase high-roof windowed single-rear-wheel van | full-size van | 1,536 | `awaiting_owner_scope`",
+		"| 15 — Mercedes-Benz Sprinter W906 facelift RWD | `docs/vehicles/traffic/mercedes_benz_sprinter_2014.md` | 17 |",
+		"Mercedes-Benz Unimog U5023 single-cab dropside extreme-off-road source | utility vehicle | 2,032 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves scope: %s" % fragment)
+
 
 func _test_approved_scopes() -> void:
 	for path: String in APPROVED_SCOPE_PATHS:
@@ -122,22 +128,22 @@ func _test_approved_scopes() -> void:
 		]), "approved scope %s" % path)
 		_expect(not text.contains("Workflow status: **`awaiting_owner_scope`**"), "%s owner gate is closed" % path)
 
-func _test_sprinter_gate() -> void:
-	_expect_fragments(_read_text(SPRINTER_RESEARCH_PATH), PackedStringArray([
-		"Mercedes-Benz Sprinter W906 facelift long high-roof van — research and owner-scope gate",
+
+func _test_unimog_gate() -> void:
+	_expect_fragments(_read_text(UNIMOG_RESEARCH_PATH), PackedStringArray([
+		"Mercedes-Benz Unimog U4023 / U5023 extreme-off-road truck — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source SHA-256: `e787e83373d2b454d4f47c46f5d5c7c2bffdf862edc9f85f8b16370bd86dbc3f`",
-		"Most likely wheelbase | 4,325 mm / 4.325 m",
-		"Mechanically consolidated candidate total: 21 configurations",
-		"OM651 2.143L four-cylinder diesel",
-		"OM642 3.0L V6 diesel",
-		"M271 E18 ML",
-		"5G-TRONIC/NAG1",
-		"7G-TRONIC PLUS",
-		"selectable Sprinter 4x4",
+		"Source SHA-256: `d935aeb5e9aad2e60f0ffcadc28e14edd9902302fc038cd35ef67f01da4f8966`",
+		"Mercedes-Benz Unimog U5023 extreme-off-road truck",
+		"Wheelbase | 3,850 mm / 3.850 m",
+		"Mechanically consolidated candidate total: 2 configurations",
+		"OM934 LA 5.132L turbo-diesel inline-four",
+		"UG 100E-8",
+		"portal axles",
 		"Owner scope decision — required before implementation",
 		"No implementation begins after this individual decision",
-	]), "Sprinter gate")
+	]), "Unimog gate")
+
 
 func _test_provenance() -> void:
 	_expect_fragments(_read_text(NOTICE_PATH), PackedStringArray([
@@ -152,20 +158,24 @@ func _test_provenance() -> void:
 		"Scania, generic articulated truck and generic rigid truck remain excluded",
 	]), "accepted-risk record")
 
+
 func _test_gitignore() -> void:
 	var gitignore := _read_text(GITIGNORE_PATH)
 	_expect(not gitignore.contains("traffic_rider_npc_vehicles"), "Traffic Rider assets are not ignored")
 	_expect(not gitignore.contains("*.glb"), "GLBs are not globally ignored")
+
 
 func _expect_fragments(text: String, fragments: PackedStringArray, label: String) -> void:
 	_expect(not text.is_empty(), "%s document is readable" % label)
 	for fragment: String in fragments:
 		_expect(text.contains(fragment), "%s preserves: %s" % [label, fragment])
 
+
 func _read_text(path: String) -> String:
 	if not FileAccess.file_exists(path): return ""
 	var file := FileAccess.open(path, FileAccess.READ)
 	return "" if file == null else file.get_as_text()
+
 
 func _expect(condition: bool, message: String) -> void:
 	_checks += 1
@@ -174,6 +184,7 @@ func _expect(condition: bool, message: String) -> void:
 	else:
 		_failures.append(message)
 		push_error("[TRAFFIC_RIDER_SOURCE_CONTRACT_TEST][FAIL] %s" % message)
+
 
 func _finish() -> void:
 	if _failures.is_empty():
