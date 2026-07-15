@@ -69,8 +69,22 @@ func configure_wheel_rotation(config: CarDriveConfig, preserve_angular_velocity:
 		)
 		if preserve_angular_velocity:
 			wheel.angular_velocity_rad_s = preserved_velocity
+			if _should_prepare_free_rolling_wheel(wheel, config):
+				wheel.set_rolling_speed(forward_speed)
 		else:
 			wheel.set_rolling_speed(forward_speed)
+
+
+func _should_prepare_free_rolling_wheel(
+	wheel: WheelTireState,
+	config: CarDriveConfig
+) -> bool:
+	return (
+		wheel.has_contact
+		and config.get_drive_torque_fraction(wheel.wheel_index) <= 0.0
+		and absf(wheel.drive_torque_nm) <= WheelRotationalDynamicsModel.TORQUE_EPSILON_NM
+		and wheel.brake_torque_nm <= WheelRotationalDynamicsModel.TORQUE_EPSILON_NM
+	)
 
 
 func get_average_driven_wheel_angular_velocity(config: CarDriveConfig) -> float:
