@@ -116,7 +116,7 @@ func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_act
 	for wheel: WheelTireState in state.wheel_states:
 		if not wheel.has_contact:
 			continue
-		var wheel_handbrake_active: bool = handbrake_active and wheel.is_rear()
+		var wheel_handbrake_active: bool = handbrake_active
 		state.lateral_speed = _tire_model.recover_lateral_speed(
 			state.lateral_speed,
 			_get_wheel_effective_lateral_grip(wheel.wheel_index) * PER_WHEEL_LATERAL_SHARE,
