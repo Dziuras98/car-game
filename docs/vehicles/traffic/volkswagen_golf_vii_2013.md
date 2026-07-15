@@ -110,7 +110,7 @@ Each listed transmission or drivetrain alternative is a separate candidate confi
 | GTI Performance 245 PS / 370 Nm | facelift | 6-speed manual FWD; DQ381 7-speed wet DSG FWD; VAQ front differential required | 2 |
 | GTI Clubsport 265 PS, temporary 290-PS overboost | pre-facelift special | 6-speed manual FWD; DQ250 6-speed wet DSG FWD; VAQ required | 2 |
 | GTI Clubsport S 310 PS | pre-facelift, limited three-door | 6-speed manual FWD; VAQ and model-specific chassis | 1 |
-| GTI TCR 290 PS / 380 Nm | facelift, three-door special | DQ381 7-speed wet DSG FWD; VAQ required | 1 |
+| GTI TCR 290 PS / 380 Nm | facelift special, available as hatchback without a three-door-only restriction | DQ381 7-speed wet DSG FWD; VAQ required | 1 |
 | Golf R 300 PS / 380 Nm | pre-facelift | 6-speed manual 4Motion; DQ250 6-speed wet DSG 4Motion | 2 |
 | Golf R 310 PS / 400 Nm | early facelift | 6-speed manual 4Motion; DQ381 7-speed wet DSG 4Motion | 2 |
 | Golf R 300 PS late emissions calibration | late facelift | DQ381 7-speed wet DSG 4Motion | 1 |
@@ -144,7 +144,7 @@ The source is a standard five-door pre-facelift TSI. Other groups require distin
 
 - 2017–2020 facelift requires revised bumpers, lamps, grille and interior details;
 - GTI, GTD and GTI Performance require their own bumpers, grille bands, exhaust, brakes, wheels and trim;
-- Clubsport, Clubsport S and TCR require dedicated aero, wheels, brakes and in some cases three-door body work;
+- Clubsport, Clubsport S and TCR require dedicated aero, wheels and brakes; Clubsport S additionally requires three-door body work;
 - Golf R requires R bumpers, quad exhaust, brakes, wheels and 4Motion chassis presentation;
 - GTE and e-Golf require charging-port, lighting, aero-wheel and badging changes;
 - TGI requires CNG tank mass, fuel-system packaging and fuel-state behaviour even if exterior differences are small.
@@ -231,7 +231,7 @@ Please decide:
 
 1. Cover the complete 2012–2020 Golf VII generation, or only the source-compatible 2012–2016 pre-facelift phase?
 2. Include all **63** mechanically consolidated configurations, or select engine/powertrain groups?
-3. Preserve the five-door hatchback body only, excluding three-door-only Clubsport S and TCR unless adapted?
+3. Preserve the five-door hatchback body only, excluding the three-door-only Clubsport S unless its body is adapted?
 4. Use only the source-like standard pre-facelift TSI appearance for every approved row, or create correct facelift, GTI/GTD/R, GTE and e-Golf visual derivatives?
 5. Include GTI, GTI Performance, Clubsport, Clubsport S, TCR, GTD and R performance versions?
 6. Include factory TGI compressed-natural-gas rows?
