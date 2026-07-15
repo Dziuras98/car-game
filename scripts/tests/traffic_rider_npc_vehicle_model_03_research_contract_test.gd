@@ -29,8 +29,8 @@ func _test_inventory_scope() -> void:
 		"inventory records the final Clio exclusions"
 	)
 	_expect(
-		inventory.contains("Chevrolet Cruze J300 North American LS sedan, pre-facelift source | passenger sedan | 2,444 | `awaiting_owner_scope`"),
-		"research order advances to model 04"
+		inventory.contains("The next research target is model 05 — Ford E-150 2012"),
+		"later approvals do not reopen the Clio scope"
 	)
 
 
