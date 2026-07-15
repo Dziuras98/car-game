@@ -28,16 +28,8 @@ func _test_runtime_initializes_four_wheels() -> void:
 
 func _test_contact_aggregates_are_derived_from_wheels() -> void:
 	var state: CarRuntimeState = CarRuntimeState.new()
-	state.wheel_states[WheelTireState.Position.FRONT_LEFT].set_contact(
-		1.0,
-		Vector3.UP,
-		4.0
-	)
-	state.wheel_states[WheelTireState.Position.REAR_RIGHT].set_contact(
-		0.5,
-		Vector3.UP,
-		6.0
-	)
+	state.wheel_states[WheelTireState.Position.FRONT_LEFT].set_contact(1.0, Vector3.UP, 4.0)
+	state.wheel_states[WheelTireState.Position.REAR_RIGHT].set_contact(0.5, Vector3.UP, 6.0)
 	state.update_contact_aggregates()
 
 	_expect(state.ground_contact_count == 2, "aggregate contact count is derived from contacted wheels")
@@ -83,10 +75,7 @@ func _test_mixed_surface_longitudinal_distribution() -> void:
 	_expect(
 		is_equal_approx(
 			state.longitudinal_slip_ratio,
-			maxf(
-				front_left.longitudinal_slip_ratio,
-				rear_left.longitudinal_slip_ratio
-			)
+			maxf(front_left.longitudinal_slip_ratio, rear_left.longitudinal_slip_ratio)
 		),
 		"aggregate longitudinal slip remains available for existing telemetry"
 	)
@@ -96,9 +85,7 @@ func _test_mixed_surface_longitudinal_distribution() -> void:
 	powertrain.update(state, 1.0, 0.0, false, false, false, 0.1)
 	_expect(state.ground_contact_count == 3, "losing one wheel contact updates aggregate contact count")
 	_expect(
-		is_zero_approx(
-			state.wheel_states[WheelTireState.Position.REAR_RIGHT].applied_longitudinal_acceleration
-		),
+		is_zero_approx(state.wheel_states[WheelTireState.Position.REAR_RIGHT].applied_longitudinal_acceleration),
 		"airborne wheel contributes no longitudinal acceleration"
 	)
 
@@ -112,18 +99,29 @@ func _test_front_and_rear_lateral_states() -> void:
 	chassis.configure(config)
 	chassis.update_tire_dynamics(state, 1.0, false, 0.0)
 
-	var front: WheelTireState = state.wheel_states[WheelTireState.Position.FRONT_LEFT]
-	var rear: WheelTireState = state.wheel_states[WheelTireState.Position.REAR_LEFT]
-	_expect(front.lateral_slip_intensity > rear.lateral_slip_intensity, "steering demand is applied to front wheel slip states")
-	_expect(is_equal_approx(state.lateral_slip_intensity, front.lateral_slip_intensity), "aggregate lateral slip exposes the strongest wheel state")
+	var front_left: WheelTireState = state.wheel_states[WheelTireState.Position.FRONT_LEFT]
+	var front_right: WheelTireState = state.wheel_states[WheelTireState.Position.FRONT_RIGHT]
+	var rear_left: WheelTireState = state.wheel_states[WheelTireState.Position.REAR_LEFT]
+	_expect(front_left.steering_angle_rad > 0.0, "steering rotates the front-left wheel state")
+	_expect(front_right.steering_angle_rad > front_left.steering_angle_rad, "Ackermann geometry gives the inner right wheel a larger angle")
+	_expect(is_zero_approx(rear_left.steering_angle_rad), "rear wheel states remain unsteered")
+	_expect(front_left.lateral_slip_intensity > rear_left.lateral_slip_intensity, "front steering produces a distinct front-wheel slip angle")
+	_expect(absf(front_left.lateral_force_n) > 0.0, "front wheel slip produces a physical lateral tire force")
+	_expect(is_equal_approx(state.lateral_slip_intensity, maxf(front_left.lateral_slip_intensity, front_right.lateral_slip_intensity)), "aggregate lateral slip exposes the strongest wheel state")
 
-	state.lateral_speed = 0.2
-	for wheel: WheelTireState in state.wheel_states:
-		wheel.reset_tire_dynamics()
-	chassis.update_tire_dynamics(state, 0.0, true, 0.0)
-	front = state.wheel_states[WheelTireState.Position.FRONT_LEFT]
-	rear = state.wheel_states[WheelTireState.Position.REAR_LEFT]
-	_expect(rear.lateral_slip_intensity > front.lateral_slip_intensity, "handbrake slip bonus is isolated to rear wheel states")
+	var normal_state: CarRuntimeState = _build_contact_state(config)
+	normal_state.forward_speed = 15.0
+	normal_state.lateral_speed = 2.0
+	chassis.update_tire_dynamics(normal_state, 0.0, false, 0.0)
+	var handbrake_state: CarRuntimeState = _build_contact_state(config)
+	handbrake_state.forward_speed = 15.0
+	handbrake_state.lateral_speed = 2.0
+	chassis.update_tire_dynamics(handbrake_state, 0.0, true, 0.0)
+	_expect(
+		absf(handbrake_state.wheel_states[WheelTireState.Position.REAR_LEFT].lateral_force_n)
+		< absf(normal_state.wheel_states[WheelTireState.Position.REAR_LEFT].lateral_force_n),
+		"handbrake reduces rear-wheel lateral force rather than adding artificial yaw"
+	)
 
 
 func _build_contact_state(config: CarDriveConfig) -> CarRuntimeState:
