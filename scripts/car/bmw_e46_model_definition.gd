@@ -18,6 +18,7 @@ const CURVE_PATHS: Array[String] = [
 
 var _audio_profiles: Dictionary = {}
 
+
 func _init() -> void:
 	manufacturer = "BMW"
 	model_id = &"bmw_e46_sedan"
@@ -28,8 +29,10 @@ func _init() -> void:
 	default_variant_id = &"bmw_e46_sedan_330i_6mt"
 	_build_variants()
 
+
 func get_audio_profile(engine_key: StringName) -> BmwE46EngineAudioProfile:
 	return _audio_profiles.get(str(engine_key)) as BmwE46EngineAudioProfile
+
 
 func _build_variants() -> void:
 	variants.clear()
@@ -65,8 +68,10 @@ func _build_variants() -> void:
 			variants.append(variant)
 			sort_order += 1
 
+
 func _load_engines() -> Dictionary:
 	return _index_by(_read_csv(ENGINE_CATALOG_PATH), "engine_key")
+
 
 func _load_curves(runtime_targets: Dictionary) -> Dictionary:
 	var raw_points: Dictionary = {}
@@ -92,6 +97,7 @@ func _load_curves(runtime_targets: Dictionary) -> Dictionary:
 		curve.resource_name = "BMW E46 %s torque curve" % key
 		result[key] = curve
 	return result
+
 
 func _build_specs(row: Dictionary, engine: Dictionary, curve: EngineTorqueCurve, audio_profile: BmwE46EngineAudioProfile) -> CarSpecs:
 	var specs := CarSpecs.new()
@@ -146,6 +152,8 @@ func _build_specs(row: Dictionary, engine: Dictionary, curve: EngineTorqueCurve,
 	if drivetrain == "AWD": specs.drivetrain_efficiency -= 0.03
 	specs.shift_delay = 0.30 if gear_ratios.size() <= 5 else 0.26
 	specs.max_drive_acceleration = 18.0 if fuel == "petrol" else 16.5
+	specs.drive_layout = CarSpecs.DriveLayout.ALL_WHEEL_DRIVE if drivetrain == "AWD" else CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
+	specs.awd_front_torque_fraction = 0.38
 
 	var automatic_upshift: float = minf(redline * (0.94 if fuel == "petrol" else 0.90), redline)
 	var automatic_downshift: float = maxf(specs.idle_rpm, peak_torque_rpm * (0.55 if fuel == "petrol" else 0.70))
@@ -201,6 +209,7 @@ func _build_specs(row: Dictionary, engine: Dictionary, curve: EngineTorqueCurve,
 	specs.minimum_ground_normal_dot = 0.35
 	return specs
 
+
 func _build_variant_display_name(row: Dictionary) -> String:
 	var badge: String = str(row.get("badge", "E46"))
 	var transmission: String = str(row.get("transmission_type", "manual"))
@@ -213,6 +222,7 @@ func _build_variant_display_name(row: Dictionary) -> String:
 		"automated_manual": suffix = "%dSMG" % gear_count
 		_: suffix = "%dMT" % gear_count
 	return "BMW E46 %s %s %s" % [badge, str(row.get("drivetrain", "RWD")), suffix]
+
 
 func _read_csv(path: String) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -230,6 +240,7 @@ func _read_csv(path: String) -> Array[Dictionary]:
 		result.append(row)
 	return result
 
+
 func _index_by(rows: Array[Dictionary], field: String) -> Dictionary:
 	var result: Dictionary = {}
 	for row: Dictionary in rows:
@@ -237,9 +248,11 @@ func _index_by(rows: Array[Dictionary], field: String) -> Dictionary:
 		if not key.is_empty(): result[key] = row
 	return result
 
+
 func _float(row: Dictionary, field: String, fallback: float) -> float:
 	var text: String = str(row.get(field, "")).strip_edges()
 	return text.to_float() if text.is_valid_float() else fallback
+
 
 func _parse_tire_width(tire_size: String) -> float:
 	var slash_index: int = tire_size.find("/")
