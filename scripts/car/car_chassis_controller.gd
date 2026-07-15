@@ -35,7 +35,10 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 	state.ensure_wheel_states()
 	for wheel: WheelTireState in state.wheel_states:
 		wheel.reset_contact()
-	state.update_contact_aggregates()
+	state.ground_contact_count = 0
+	state.ground_normal = Vector3.UP
+	state.surface_grip_multiplier = 1.0
+	state.suspension_acceleration = 0.0
 	if _config == null or _probe_local_positions.is_empty() or not car.is_inside_tree() or car.get_world_3d() == null:
 		return
 
@@ -47,12 +50,18 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 
 	var ray_direction: Vector3 = -car.global_transform.basis.y.normalized()
 	var maximum_probe_length: float = _config.suspension_rest_length + _config.suspension_travel + PROBE_END_MARGIN
+	var contact_count: int = 0
+	var normal_sum: Vector3 = Vector3.ZERO
+	var grip_sum: float = 0.0
+	var support_acceleration_sum: float = 0.0
+	var wheel_index: int = 0
 	var direct_space_state: PhysicsDirectSpaceState3D = car.get_world_3d().direct_space_state
 
-	for wheel_index: int in range(_probe_local_positions.size()):
+	for local_probe_position: Vector3 in _probe_local_positions:
 		if wheel_index >= state.wheel_states.size():
 			break
-		var local_probe_position: Vector3 = _probe_local_positions[wheel_index]
+		var current_wheel_index: int = wheel_index
+		wheel_index += 1
 		var ray_start: Vector3 = car.global_transform * local_probe_position
 		var ray_end: Vector3 = ray_start + ray_direction * maximum_probe_length
 		_ray_query.from = ray_start
@@ -79,13 +88,23 @@ func sample_ground_contact(state: CarRuntimeState, car: CharacterBody3D) -> void
 			_config.suspension_stiffness,
 			_config.suspension_damping
 		)
-		state.wheel_states[wheel_index].set_contact(
-			_get_surface_grip_multiplier(collider),
+		var surface_grip: float = _get_surface_grip_multiplier(collider)
+		state.wheel_states[current_wheel_index].set_contact(
+			surface_grip,
 			hit_normal,
 			support_acceleration
 		)
+		contact_count += 1
+		normal_sum += hit_normal
+		grip_sum += surface_grip
+		support_acceleration_sum += support_acceleration
 
-	state.update_contact_aggregates()
+	state.ground_contact_count = contact_count
+	state.suspension_acceleration = support_acceleration_sum
+	if contact_count <= 0:
+		return
+	state.ground_normal = normal_sum.normalized() if normal_sum.length_squared() > 0.000001 else Vector3.UP
+	state.surface_grip_multiplier = clampf(grip_sum / float(contact_count), 0.05, 2.0)
 
 
 func update_tire_dynamics(state: CarRuntimeState, steering: float, handbrake_active: bool, delta: float) -> void:
