@@ -137,6 +137,9 @@ func _test_longitudinal_slip_curve() -> void:
 
 func _test_contact_capacity_scaling() -> void:
 	var config: CarDriveConfig = _build_direct_drive_config()
+	config.drive_layout = CarSpecs.DriveLayout.ALL_WHEEL_DRIVE
+	config.awd_front_torque_fraction = 0.5
+	config.sanitize()
 	var acceleration_speeds: Array[float] = []
 	var braking_speeds: Array[float] = []
 	for contact_count: int in range(1, GroundContactModel.PROBE_COUNT + 1):
@@ -169,15 +172,18 @@ func _test_contact_capacity_scaling() -> void:
 	chassis.configure(config)
 	var one_contact_lateral: CarRuntimeState = _make_state(config)
 	one_contact_lateral.ground_contact_count = 1
+	one_contact_lateral.forward_speed = 12.0
 	one_contact_lateral.lateral_speed = 5.0
 	var full_contact_lateral: CarRuntimeState = _make_state(config)
 	full_contact_lateral.ground_contact_count = GroundContactModel.PROBE_COUNT
+	full_contact_lateral.forward_speed = 12.0
 	full_contact_lateral.lateral_speed = 5.0
-	chassis.update_tire_dynamics(one_contact_lateral, 0.0, false, 0.1)
-	chassis.update_tire_dynamics(full_contact_lateral, 0.0, false, 0.1)
+	chassis.update_tire_dynamics(one_contact_lateral, 0.0, false, 0.0)
+	chassis.update_tire_dynamics(full_contact_lateral, 0.0, false, 0.0)
 	_expect(
-		absf(full_contact_lateral.lateral_speed) < absf(one_contact_lateral.lateral_speed),
-		"lateral recovery is weaker when only one support point remains"
+		absf(full_contact_lateral.lateral_acceleration_mps2)
+		> absf(one_contact_lateral.lateral_acceleration_mps2),
+		"available lateral tire force increases when more support points remain"
 	)
 
 
