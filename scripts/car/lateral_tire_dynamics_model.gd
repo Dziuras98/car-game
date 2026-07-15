@@ -5,7 +5,7 @@ const MIN_REFERENCE_SPEED_MPS: float = 0.25
 const MAX_STEERING_ANGLE_RAD: float = PI * 0.305555556
 const MAX_SLIP_ANGLE_RAD: float = PI * 0.49
 const FULL_SLIDE_SLIP_RATIO: float = 3.0
-const DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER: float = 0.78
+const DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER: float = 0.92
 
 
 func get_ackermann_steering_angles(
@@ -67,6 +67,12 @@ func calculate_slip_angle_rad(
 	wheel_lateral_speed_mps: float,
 	steering_angle_rad: float
 ) -> float:
+	var wheel_speed_mps: float = Vector2(
+		wheel_forward_speed_mps,
+		wheel_lateral_speed_mps
+	).length()
+	if wheel_speed_mps <= MIN_REFERENCE_SPEED_MPS:
+		return 0.0
 	var travel_direction: float = 1.0 if wheel_forward_speed_mps >= 0.0 else -1.0
 	var velocity_angle: float = atan2(
 		wheel_lateral_speed_mps,
@@ -107,9 +113,14 @@ func resolve_lateral_acceleration(
 ) -> float:
 	if is_zero_approx(slip_angle_rad) or load_share <= 0.0:
 		return 0.0
-	var speed_factor: float = absf(wheel_forward_speed_mps) / (
+	var forward_speed_factor: float = absf(wheel_forward_speed_mps) / (
 		absf(wheel_forward_speed_mps) + MIN_REFERENCE_SPEED_MPS
 	)
+	# Near a perpendicular slide the forward component can approach zero even
+	# while the tire contact patch is moving quickly. Preserve lateral recovery
+	# from the slip angle instead of treating that state as almost stationary.
+	var sideways_motion_factor: float = absf(sin(slip_angle_rad))
+	var speed_factor: float = maxf(forward_speed_factor, sideways_motion_factor)
 	if speed_factor <= 0.0:
 		return 0.0
 	var combined_grip_factor: float = sqrt(
