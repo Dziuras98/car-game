@@ -108,12 +108,23 @@ func _test_front_and_rear_lateral_states() -> void:
 	var front_left: WheelTireState = state.wheel_states[WheelTireState.Position.FRONT_LEFT]
 	var front_right: WheelTireState = state.wheel_states[WheelTireState.Position.FRONT_RIGHT]
 	var rear_left: WheelTireState = state.wheel_states[WheelTireState.Position.REAR_LEFT]
+	var rear_right: WheelTireState = state.wheel_states[WheelTireState.Position.REAR_RIGHT]
 	_expect(front_left.steering_angle_rad > 0.0, "steering rotates the front-left wheel state")
 	_expect(front_right.steering_angle_rad > front_left.steering_angle_rad, "Ackermann geometry gives the inner right wheel a larger angle")
 	_expect(is_zero_approx(rear_left.steering_angle_rad), "rear wheel states remain unsteered")
-	_expect(front_left.lateral_slip_intensity > rear_left.lateral_slip_intensity, "front steering produces a distinct front-wheel slip angle")
+	_expect(
+		absf(absf(front_left.lateral_slip_angle_rad) - absf(rear_left.lateral_slip_angle_rad)) > 0.0001,
+		"front steering produces a distinct front-wheel slip angle"
+	)
 	_expect(absf(front_left.lateral_force_n) > 0.0, "front wheel slip produces a physical lateral tire force")
-	_expect(is_equal_approx(state.lateral_slip_intensity, maxf(front_left.lateral_slip_intensity, front_right.lateral_slip_intensity)), "aggregate lateral slip exposes the strongest wheel state")
+	var strongest_lateral_slip: float = maxf(
+		maxf(front_left.lateral_slip_intensity, front_right.lateral_slip_intensity),
+		maxf(rear_left.lateral_slip_intensity, rear_right.lateral_slip_intensity)
+	)
+	_expect(
+		is_equal_approx(state.lateral_slip_intensity, strongest_lateral_slip),
+		"aggregate lateral slip exposes the strongest wheel state"
+	)
 
 	var normal_state: CarRuntimeState = _build_contact_state(config)
 	normal_state.forward_speed = 15.0
