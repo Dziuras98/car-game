@@ -401,6 +401,7 @@ func _simulate_wheel_dynamics(
 ) -> void:
 	state.synchronize_wheel_contacts_from_aggregate()
 	state.configure_wheel_rotation(_config, true)
+	_initialize_external_motion_wheel_state(state)
 	var mass: float = maxf(_config.vehicle_mass, 1.0)
 	var radius: float = maxf(_config.wheel_radius, 0.01)
 	var total_drive_torque_nm: float = requested_drive_acceleration * mass * radius
@@ -411,11 +412,20 @@ func _simulate_wheel_dynamics(
 	var braking_direction: float = -signf(state.forward_speed)
 	if braking_direction == 0.0:
 		braking_direction = -signf(state.get_average_driven_wheel_angular_velocity(_config))
+	var estimated_longitudinal_acceleration: float = (
+		requested_drive_acceleration
+		+ braking_direction
+		* (service_brake_deceleration + engine_brake_deceleration + handbrake_deceleration)
+	)
 
 	for wheel: WheelTireState in state.wheel_states:
 		var drive_fraction: float = _config.get_drive_torque_fraction(wheel.wheel_index)
 		var brake_fraction: float = _config.get_service_brake_fraction(wheel.wheel_index)
 		var handbrake_fraction: float = _config.get_handbrake_fraction(wheel.wheel_index)
+		var load_share: float = _config.get_wheel_load_share(
+			wheel.wheel_index,
+			estimated_longitudinal_acceleration
+		)
 		var drive_torque_nm: float = total_drive_torque_nm * drive_fraction
 		var brake_torque_nm: float = (
 			total_service_brake_torque_nm * brake_fraction
@@ -444,7 +454,7 @@ func _simulate_wheel_dynamics(
 				slip_ratio,
 				wheel.lateral_slip_intensity,
 				wheel.surface_grip_multiplier,
-				PER_WHEEL_LOAD_SHARE,
+				load_share,
 				_config.longitudinal_grip_coefficient,
 				_config.longitudinal_peak_slip_ratio,
 				_config.longitudinal_slide_grip_multiplier
@@ -469,6 +479,22 @@ func _simulate_wheel_dynamics(
 
 	state.forward_speed += vehicle_acceleration * delta
 	state.update_slip_aggregates()
+
+
+func _initialize_external_motion_wheel_state(state: CarRuntimeState) -> void:
+	if absf(state.forward_speed) < WheelRotationalDynamicsModel.MIN_REFERENCE_SPEED_MPS:
+		return
+	for wheel: WheelTireState in state.wheel_states:
+		if (
+			absf(wheel.angular_velocity_rad_s) > 0.0001
+			or absf(wheel.angular_position_rad) > 0.0001
+			or absf(wheel.drive_torque_nm) > 0.0001
+			or absf(wheel.brake_torque_nm) > 0.0001
+			or absf(wheel.tire_torque_nm) > 0.0001
+		):
+			return
+	for wheel: WheelTireState in state.wheel_states:
+		wheel.set_rolling_speed(state.forward_speed)
 
 
 func _apply_throttle(state: CarRuntimeState, throttle: float, delta: float) -> void:
