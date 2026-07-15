@@ -46,8 +46,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 9 | `09_land_rover_freelander_2_2012.glb` | Land Rover LR2 HSE 2012 with approved complete Freelander 2 L359 powertrain scope | SUV | 2,130 | `approved` |
 | 10 | `10_volkswagen_golf_vii_2013.glb` | Volkswagen Golf VII five-door source with approved standard TSI/TDI and e-Golf scope | passenger hatchback | 1,982 | `approved` |
 | 11 | `11_kia_ceed_2012.glb` | Kia cee'd JD five-door European pre-facelift standard EcoDynamics-style source with approved complete powertrain scope | passenger hatchback | 2,134 | `approved` |
-| 12 | `12_renault_maxity_2008.glb` | Renault Maxity original-body single-cab short-wheelbase box truck with dual rear wheels | light box truck | 2,102 | `awaiting_owner_scope` |
-| 13 | `13_mazda_2_2011.glb` | Mazda 2 2011 | passenger hatchback | 1,770 | `source_only` |
+| 12 | `12_renault_maxity_2008.glb` | Renault Maxity original-body single-cab short-wheelbase box truck with approved complete six-powertrain scope | light box truck | 2,102 | `approved` |
+| 13 | `13_mazda_2_2011.glb` | North American 2011 Mazda2 Sport five-door facelift source | passenger hatchback | 1,770 | `awaiting_owner_scope` |
 | 14 | `14_mazda_3_2014.glb` | Mazda 3 2014 | passenger hatchback | 1,842 | `source_only` |
 | 15 | `15_mercedes_benz_sprinter_2014.glb` | Mercedes-Benz Sprinter 2014 | full-size van | 1,536 | `source_only` |
 | 16 | `16_mercedes_benz_unimog_u5023_2013.glb` | Mercedes-Benz Unimog U5023 2013 | utility vehicle | 2,032 | `source_only` |
@@ -73,16 +73,17 @@ Total committed source geometry: **40,300 triangles**.
 | 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 | all researched engine/transmission/drivetrain rows, including eD4 FWD and seven Haldex AWD rows; manual and automatic rows separate; one standard final drive and differential/coupling state per row; common source-like 2011–2012 HSE exterior; Haldex, stop/start and emissions as year metadata; no trim, visual-phase, gearing, LPG or conversion duplicates |
 | 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 | 22 standard TSI, 14 ordinary TDI and both e-Golf generations; all applicable manual, DQ200, DQ250, DQ381, diesel 4Motion and electric-reduction architectures retained; one standard final drive and differential/coupling state per row; source-like five-door body only; no GTD, TGI, GTE, GTI/Clubsport/TCR/R, other bodies, regional tuning or emissions-state subdivisions |
 | 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 | all listed petrol and diesel rows with pre-/post-facelift 1.6 CRDi 110 PS 6MT merged; manual, 6DCT, torque-converter 6AT and 7DCT rows separate; five-door GT retained with real GT running gear; one standard final drive and differential per row; common source-like pre-facelift five-door exterior; no other bodies, conversions, gearing or emissions-state subdivisions |
+| 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 | five diesel calibrations (110, 120, 130, 140 and 150 PS) plus Maxity Electric; single-cab short-wheelbase source box body with dual rear wheels; one representative mass/payload state, final drive and differential per row; no alternative cabs, bodies, wheelbases, GVW, emissions subdivisions or conversions |
 
-Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10 and 11 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11 and 12 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 mechanically consolidated powertrain rows: five diesel calibrations and Maxity Electric | all powertrains; 110/120/130/140 calibration separation; electric derivative; source box body vs other cabs/wheelbases/GVW classes; common source exterior; payload-state policy; final-drive/differential policy; emissions subdivisions; conversions; missing variants |
+| 13 — Mazda2 / Demio DE five-door hatchback | `docs/vehicles/traffic/mazda_2_2011.md` | 16 mechanically consolidated global hatchback powertrain rows, including e-4WD and Demio EV | all powertrains; regional calibration merges; five-door-only body; common source exterior vs visual derivatives; e-4WD; Miller/SKYACTIV CVTs; Demio EV; transmission separation; final-drive/differential policy; emissions metadata; conversions; missing variants |
 
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 12 is approved, research continues with model 13.
+No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 13 is approved, research continues with model 14.
 
 ## Source topology
 
