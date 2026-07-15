@@ -1,16 +1,18 @@
-# Traffic Rider NPC vehicle import workflow
+# Traffic Rider NPC vehicle research and import workflow
 
 ## Purpose
 
-This document is the authoritative procedure for integrating every non-heavy vehicle from the **Traffic Rider NPC Vehicles** bundle into the Godot project.
+This document is the authoritative procedure for researching and integrating every non-heavy vehicle from the **Traffic Rider NPC Vehicles** bundle into the Godot project.
 
-The workflow is intentionally model-by-model. A shared package scale, guessed wheelbase, generic collision copied between unrelated body classes, or runtime wheel-name scanning is not acceptable. Every integration PR must complete the stages below in order and record its measurements, evidence, decisions and deviations.
+The workflow is intentionally model-by-model and variant-complete. A shared package scale, guessed wheelbase, generic collision copied between unrelated body classes, substituted transmission architecture, approximate engine sound based on another cylinder layout, or performance tuning against stale physics is not acceptable.
+
+Every integration PR must complete the stages below in order and record its evidence, measurements, decisions, uncertainties and validation results.
 
 The source bundle is used only for the project's private, noncommercial scope under the accepted-risk decision in `docs/accepted_risks.md`. The asset notice in `THIRD_PARTY_NOTICES.md` must remain intact.
 
 ## Scope
 
-The repository contains 20 source GLBs to integrate:
+The repository contains 20 source GLBs to research and integrate:
 
 - passenger cars and estate cars;
 - SUVs and pickups;
@@ -28,16 +30,35 @@ The complete source inventory and current status are recorded in `docs/assets/tr
 
 ## Core rules
 
-1. **Keep the committed source GLB unchanged.** Technical adaptations belong in a derived GLB, Godot wrapper scene, imported material override or project-authored resource. Do not destructively overwrite the source file.
-2. **Calibrate every model independently.** Scale must be based on verified dimensions for the represented body variant. The former package-wide `0.695` conversion is not authoritative and must not be reused as a default.
-3. **Use wheelbase as the primary scale reference.** Overall length is a mandatory cross-check, not the only measurement. Wheel track, height and wheel diameter provide additional validation.
-4. **Use the project coordinate convention.** `+Y` is up, local `-Z` is the vehicle front, local `-X` is vehicle-left and local `+X` is vehicle-right.
-5. **Provide four independent wheel nodes.** The current source models generally contain one body mesh, one paired front-wheel mesh and one paired rear-wheel mesh. Each axle pair must be split into left and right wheel geometry with a hub-centred pivot.
-6. **Use explicit wheel bindings.** Do not add generic name scanning or heuristic wheel discovery to `CarVisualController`.
-7. **Separate visual and physical data.** Collision, wheel contact, mass and traffic behaviour are project-authored. They must not be inferred directly from the render mesh at runtime.
-8. **Do not invent a playable powertrain.** These assets are initially traffic visuals. Playable variants require a separate researched model definition, drivetrain data and audio scope.
-9. **Document uncertainty.** When the exact body length, wheelbase, trim or commercial-body configuration cannot be identified, record the uncertainty and use a clearly labelled provisional value.
-10. **One model is complete only after validation.** Merely importing a GLB without scale, wheel, collision, visibility and runtime checks does not complete the workflow.
+1. **Research the complete factory variant matrix before importing the model.** Identify every evidenced engine, transmission and drivetrain combination applicable to the represented generation/body across its production years and markets. Regional, facelift and limited factory variants must not be silently omitted.
+2. **Stop for owner approval after research.** Present the complete matrix to the owner, ask whether every variant should be imported or only a subset, and ask whether any expected variant is missing. Do not begin geometry conversion, catalog creation, physics calibration or audio implementation until the owner answers.
+3. **Keep the committed source GLB unchanged.** Technical adaptations belong in a derived GLB, Godot wrapper scene, imported material override or project-authored resource. Do not destructively overwrite the source file.
+4. **Calibrate every model independently.** Scale must be based on verified dimensions for the represented body variant. The former package-wide `0.695` conversion is not authoritative and must not be reused as a default.
+5. **Use wheelbase as the primary scale reference.** Overall length is a mandatory cross-check, not the only measurement. Wheel track, height and wheel diameter provide additional validation.
+6. **Use the project coordinate convention.** `+Y` is up, local `-Z` is the vehicle front, local `-X` is vehicle-left and local `+X` is vehicle-right.
+7. **Provide four independent wheel nodes.** The current source models generally contain one body mesh, one paired front-wheel mesh and one paired rear-wheel mesh. Each axle pair must be split into left and right wheel geometry with a hub-centred pivot.
+8. **Use explicit wheel bindings.** Do not add generic name scanning or heuristic wheel discovery to `CarVisualController`.
+9. **Match the real transmission architecture exactly.** A torque-converter planetary automatic must use a torque-converter automatic model; an automated manual must use an automated-clutch manual model; a dual-clutch transmission, CVT and conventional manual must each use their own correct architecture. Never substitute one transmission type because it already exists in the project.
+10. **Implement missing transmission types faithfully.** If the project lacks the required transmission architecture or generation-specific behaviour, create or extend a dedicated model that preserves its real operating principles instead of adapting an unrelated model.
+11. **Reproduce performance from evidence, not from labels.** Engine curves, gearing, mass, drag, tyres, drivetrain losses, shift behaviour and physical limits must combine to reproduce documented performance as closely as the current simulation permits.
+12. **Build new engine-sound architectures from first principles.** If the synthesizer does not already contain the relevant engine architecture, create a dedicated synthesis model based on that engine's firing cadence, crank arrangement, bank/collector geometry, aspiration and mechanical character. Do not base the new architecture on an unrelated cylinder layout.
+13. **Keep every model compatible with current `master` physics.** Before final validation, rebase or synchronize with `master`, inspect all relevant physics changes, and recalibrate every model and variant introduced earlier in the same PR when those changes affect it.
+14. **Separate visual and physical data.** Collision, wheel contact, mass, powertrain and traffic behaviour are project-authored. They must not be inferred directly from the render mesh at runtime.
+15. **Document uncertainty.** When an exact trim, body configuration, engine calibration, gearbox suffix or performance result cannot be established, record the uncertainty and use a clearly labelled provisional value.
+16. **One model is complete only after full validation.** Merely importing a GLB without research, owner approval, scale, wheels, transmission, physics, audio, collision, visibility and runtime checks does not complete the workflow.
+
+## Status gates
+
+Use these statuses in the inventory and model-specific record:
+
+1. `source_only` — source GLB is committed but research has not started;
+2. `researching` — identity, dimensions and full powertrain matrix are being established;
+3. `awaiting_owner_scope` — research matrix has been presented and implementation is blocked on the owner's answer;
+4. `approved` — the owner has confirmed all variants or an explicit subset and confirmed whether anything is missing;
+5. `integrating` — geometry, catalog, physics, transmission and audio work is in progress;
+6. `integrated` — all mandatory validation has passed against current `master`.
+
+A model must not skip `awaiting_owner_scope`.
 
 ## Repository layout
 
@@ -61,33 +82,106 @@ resources/traffic/vehicles/<vehicle_id>.tres
 docs/vehicles/traffic/<vehicle_id>.md
 ```
 
+Playable model and variant resources must follow the existing authoritative car-catalog hierarchy rather than creating a parallel catalog.
+
 Do not retain duplicate source copies after relocation.
 
-## Stage 1 — establish identity and evidence
+## Stage 0 — complete vehicle and powertrain research
 
-Before editing geometry or creating a scene:
+This stage is mandatory before geometry import or runtime implementation.
+
+### 0.1 Establish represented vehicle scope
 
 1. Inspect the model visually from all sides.
-2. Confirm the manufacturer, model generation, body style and approximate model year represented by the mesh.
-3. Do not rely only on the filename. Compare lamps, grille, body shell, cab style, bed/box length and wheel count against references.
-4. Record whether the identity is:
+2. Confirm the manufacturer, generation, body style and approximate model year represented by the mesh.
+3. Compare lamps, grille, bumpers, body shell, cab style, wheel count, bed/box length and facelift details against references.
+4. Record whether identity is:
    - verified;
    - probable;
    - unresolved.
-5. Collect dimensional references, preferring:
-   - manufacturer technical data;
-   - homologation/type-approval documents;
-   - official brochures or workshop documentation;
-   - reputable secondary specifications only when primary documentation is unavailable.
-6. Record at minimum:
-   - overall length;
-   - overall width excluding mirrors;
-   - overall height;
-   - wheelbase;
-   - front track;
-   - rear track;
-   - representative tyre size or rolling radius.
-7. For chassis-cab and box-body vehicles, identify the represented wheelbase and body length separately. Do not apply dimensions from another commercial-body configuration without marking them provisional.
+5. Define the production-year and market scope to research. Do not assume one market represents the full factory range.
+
+### 0.2 Enumerate every factory combination
+
+Build a complete matrix of all evidenced factory combinations applicable to the represented generation/body. At minimum record:
+
+- model year or production range;
+- sales market/region;
+- trim or commercial-body restriction where relevant;
+- engine family and exact engine code where known;
+- fuel and aspiration;
+- displacement, cylinder count and layout;
+- factory power and torque calibration with measurement standard;
+- idle speed, peak-power speed, peak-torque range, redline and limiter where available;
+- transmission marketing name, manufacturer/family and exact suffix/code where known;
+- transmission architecture;
+- forward gear count or CVT ratio range;
+- gear ratios, reverse ratio and final drive;
+- driven wheels and AWD/4WD system;
+- differential type or torque distribution where material;
+- kerb mass and gross mass applicable to the variant;
+- tyre/wheel size;
+- documented performance figures.
+
+The matrix must cover conventional manuals, torque-converter automatics, automated manuals, dual-clutch transmissions, CVTs and other factory types independently. A single row labelled only `automatic` is insufficient.
+
+For commercial vehicles, research wheelbase, axle, cab and body combinations because powertrain availability may depend on chassis configuration and gross-weight class.
+
+### 0.3 Evidence requirements
+
+Prefer sources in this order:
+
+1. manufacturer technical data and homologation/type-approval documents;
+2. official brochures, price lists, workshop manuals and transmission documentation;
+3. recognized technical databases and period instrumented tests;
+4. reputable specialist secondary sources;
+5. community sources only for gaps, explicitly marked as lower-confidence evidence.
+
+Never infer a factory combination solely because an engine and gearbox were separately available somewhere in the same model family.
+
+For every combination, classify evidence as:
+
+- `verified_factory`;
+- `strongly_supported`;
+- `provisional`;
+- `rejected/not_factory`.
+
+Conflicting data must be preserved and resolved explicitly rather than silently selecting the most convenient value.
+
+### 0.4 Mandatory owner decision gate
+
+After completing the matrix, present it to the owner before implementing anything. The summary must include:
+
+- total number of identified factory combinations;
+- grouped engine families and calibrations;
+- exact transmission types and known gearbox codes;
+- drivetrain layouts;
+- regional or model-year-only variants;
+- unresolved or disputed combinations;
+- combinations that would require a new transmission model;
+- engine architectures that would require a new audio synthesizer.
+
+Then explicitly ask:
+
+> I identified the following complete set of evidenced variants. Do you want all of them imported, or only a selected subset? Is any engine, transmission, drivetrain or model-year variant missing from this list?
+
+Wait for the owner's answer. Record the answer verbatim or as an unambiguous scope table in the model-specific integration record. No geometry processing, catalog resource, powertrain code or audio code may be committed for that model before this gate is satisfied.
+
+## Stage 1 — establish dimensions and geometry evidence
+
+Collect dimensional references, preferring the same primary-source hierarchy used in Stage 0.
+
+Record at minimum:
+
+- overall length;
+- overall width excluding mirrors;
+- overall height;
+- wheelbase;
+- front track;
+- rear track;
+- representative tyre size or rolling radius.
+
+For chassis-cab and box-body vehicles, identify the represented wheelbase and body length separately. Do not apply dimensions from another commercial-body configuration without marking them provisional.
 
 All sources and uncertainty must be written into the model-specific integration record.
 
@@ -225,9 +319,165 @@ Each wheel binding must specify:
 
 Run a wheel-animation scene check that applies positive and negative steering and at least one full revolution to every wheel.
 
-## Stage 5 — define traffic geometry and behaviour
+## Stage 5 — implement the approved variant catalog
 
-Create a traffic-vehicle resource separately from the visual scene.
+Only variants approved at the Stage 0 owner gate may be added.
+
+Create one authoritative model definition containing every approved factory engine/transmission/drivetrain combination. Preserve distinctions between:
+
+- production years and facelifts;
+- markets and emissions calibrations;
+- power/torque variants sharing an engine family;
+- manual, torque-converter automatic, automated-manual, dual-clutch and CVT applications;
+- FWD, RWD, selectable 4WD and permanent AWD systems;
+- commercial chassis/body restrictions.
+
+For each approved variant, research and encode:
+
+- sampled full-load torque curve rather than only peak torque;
+- idle, redline and limiter behaviour;
+- all forward ratios, reverse ratio and final drive;
+- transmission efficiency and shift timing based on the correct architecture;
+- mass, static load distribution and centre-of-mass estimate;
+- drag coefficient and frontal area;
+- tyre sizes, rolling radius and grip calibration;
+- brake performance;
+- drivetrain layout and differential behaviour;
+- documented top speed and acceleration targets.
+
+Do not duplicate variants merely because sources use different marketing labels for the same mechanical configuration. Conversely, do not merge materially different engine calibrations or transmissions into one generic entry.
+
+## Stage 6 — implement the exact transmission architecture
+
+### 6.1 No architecture substitution
+
+The implementation must match the factory transmission type:
+
+- conventional manual: driver-operated clutch and discrete manual gear selection;
+- torque-converter planetary automatic: converter multiplication/slip, creep, planetary ratios, hydraulic/electronic shift scheduling and lock-up behaviour;
+- automated manual/SMG: manual gearsets with automated clutch opening, launch slip, torque interruption and rev-matched shifts;
+- dual-clutch transmission: two clutch paths, preselection, launch clutch behaviour and architecture-appropriate shift overlap/interruption;
+- CVT: continuous ratio bounds, target-ratio control and architecture-appropriate launch device;
+- other architectures: implement their actual mechanical/control principle and document it.
+
+A classic automatic must never be represented as an automated manual. An automated manual must never receive torque-converter creep or multiplication. A DCT must not be approximated by shortening a conventional automatic shift delay.
+
+### 6.2 Missing model requirement
+
+If the required type or generation-specific behaviour is absent from the repository:
+
+1. create a dedicated transmission model or a clean architecture-specific extension point;
+2. document the mechanical model and evidence;
+3. implement the relevant launch, creep, clutch/converter, lock-up, shift, kickdown, rev-match and torque-interruption behaviour;
+4. preserve exact gear counts and ratios;
+5. add deterministic standalone tests for architecture identity and operating behaviour;
+6. ensure menu/gear indication and AI control use the correct semantics;
+7. validate that audio load and wheel-side torque can differ during shifts where the real architecture requires it.
+
+Do not force an unsupported transmission through a fallback path.
+
+## Stage 7 — physics and performance calibration
+
+### 7.1 Evidence-based targets
+
+Use multiple documented targets where available:
+
+- kerb mass by exact variant;
+- 0–50 km/h, 0–100 km/h and higher-speed acceleration;
+- standing 400 m or standing kilometre;
+- in-gear acceleration;
+- maximum speed and whether electronically limited;
+- engine speed at known road speeds;
+- braking distance/deceleration;
+- shift time and launch behaviour;
+- turning circle and lateral behaviour where documented.
+
+Manufacturer figures and independent instrumented tests must be kept distinct. Record test conditions, transmission mode, tyres and uncertainty.
+
+### 7.2 Calibration method
+
+Performance must emerge from the correct physical inputs:
+
+- sampled torque curve;
+- exact ratios and final drive;
+- wheel radius;
+- vehicle mass;
+- drivetrain efficiency and architecture losses;
+- converter/clutch behaviour;
+- aero drag and frontal area;
+- rolling resistance;
+- tyre force limits and load transfer;
+- shift scheduling and delays.
+
+Do not match acceleration by using a false peak torque, wrong mass, incorrect gearbox type or arbitrary acceleration cap that hides an upstream error. Any gameplay limit must be separately named and justified.
+
+Add deterministic regression tests for:
+
+- gear-valid maximum speed;
+- acceleration targets within documented tolerance;
+- architecture-correct shift behaviour;
+- stable results across repeated runs;
+- no regression in other variants sharing the implementation.
+
+### 7.3 Mandatory `master` physics synchronization
+
+Before final validation and again immediately before marking the PR ready:
+
+1. synchronize the branch with current `master`;
+2. record the `master` commit used as the physics baseline;
+3. inspect changes to `CarSpecs`, drive configuration, transmission models, wheel/tire state, load transfer, suspension contact, drag/rolling resistance, braking, steering/yaw and performance-index logic;
+4. identify every already-added model and variant in the current PR affected by those changes;
+5. rerun their complete physics/performance tests;
+6. recalibrate every affected model in the PR to the new physics rather than adding compatibility hacks for the old behaviour;
+7. rerun catalog-wide regressions when shared code changed.
+
+A model calibrated against an earlier physics revision may not remain in the PR unchanged if `master` altered the relevant physical model.
+
+## Stage 8 — implement architecture-correct engine audio
+
+### 8.1 Research the real sound-producing architecture
+
+For each engine family record:
+
+- cylinder count and arrangement;
+- bank angle where relevant;
+- crankshaft layout and firing order;
+- firing intervals and dominant crank orders;
+- exhaust manifold and collector grouping;
+- intake/plenum arrangement;
+- naturally aspirated, turbocharged or supercharged induction;
+- diesel/petrol combustion and injection characteristics;
+- valvetrain and major mechanical-noise sources;
+- starter, idle, load, overrun, limiter and shutdown behaviour;
+- representative recordings used for perceptual comparison.
+
+### 8.2 New architecture requirement
+
+If the relevant engine architecture is not already represented accurately in the synthesizer, build a new architecture-specific synthesis model from first principles.
+
+The new model must not use an unrelated cylinder layout as its primary waveform or merely alter pitch/EQ on another architecture. For example, an inline-three, flat-four, odd-fire V6, cross-plane V8, inline-five or large commercial diesel requires its own cadence, pulse grouping, harmonic structure and transient behaviour.
+
+Shared low-level DSP utilities are allowed, but the combustion pulse model, collector cadence and architecture-defining layers must be independently derived.
+
+### 8.3 Audio validation
+
+Add tests and evidence for:
+
+- correct firing and collector frequencies across RPM;
+- correct cylinder/crank identity;
+- architecture-specific harmonic balance;
+- load and throttle response;
+- turbo/supercharger spool and release where applicable;
+- start, idle, overrun, limiter and shutdown;
+- sample-rate scaling and anti-alias safety;
+- finite, non-silent output;
+- perceptual distinction from unrelated engine layouts.
+
+Each materially different engine family/calibration needs an appropriate profile. Do not allow a newly added variant to silently fall back to a generic engine sound.
+
+## Stage 9 — define traffic geometry and behaviour
+
+Create a traffic-vehicle resource separately from the visual scene and playable powertrain data.
 
 Required data:
 
@@ -250,9 +500,9 @@ Collision requirements:
 - keep collision inside the visible body except for small deliberate gameplay margins;
 - validate front and rear overhang relative to the axle positions.
 
-Vehicle classes may share baseline behaviour, but dimensions and collision volumes remain model-specific.
+Vehicle classes may share baseline traffic behaviour, but dimensions and collision volumes remain model-specific.
 
-## Stage 6 — LOD and runtime performance
+## Stage 10 — LOD and runtime performance
 
 For every model:
 
@@ -262,12 +512,21 @@ For every model:
 4. Define visibility and LOD distances appropriate to the vehicle's screen size.
 5. Use the existing low-detail/visibility architecture rather than model-specific process loops.
 6. Test a representative traffic group, not only one isolated vehicle.
+7. Test representative approved playable variants where the model is player-selectable.
 
 A separate optimisation pass may simplify geometry or textures, but it must preserve the source GLB and document visual impact.
 
-## Stage 7 — mandatory validation
+## Stage 11 — mandatory validation
 
-A model may move to `integrated` status only when all checks pass:
+A model may move to `integrated` status only when all checks pass against current `master`.
+
+### Research and scope contract
+
+- complete factory engine/transmission/drivetrain matrix is documented;
+- evidence/confidence is recorded for every included or rejected combination;
+- the owner was shown the complete matrix;
+- the owner answered whether to import all variants or a subset and whether anything was missing;
+- implementation contains exactly the approved scope.
 
 ### Asset contract
 
@@ -292,18 +551,46 @@ A model may move to `integrated` status only when all checks pass:
 - wheel spin direction matches forward travel;
 - no body or opposite-side wheel is accidentally reparented under a wheel pivot.
 
+### Powertrain contract
+
+- every approved variant exists exactly once;
+- transmission architecture matches the factory type;
+- no architecture uses an unrelated fallback model;
+- all ratios, final drives, engine curves and drivetrain layouts are evidence-backed;
+- performance targets are reproduced within documented tolerances;
+- shared transmission changes retain regression coverage.
+
+### Audio contract
+
+- every approved engine family has an appropriate profile;
+- previously unsupported architectures use a dedicated first-principles model;
+- no unrelated cylinder-layout fallback is used;
+- architecture, transient and sample-safety tests pass.
+
+### Current-physics contract
+
+- branch is synchronized with current `master`;
+- physics baseline commit is recorded;
+- all models and variants added earlier in the PR were retested after relevant `master` physics changes;
+- every affected model was recalibrated to the current physics;
+- shared and catalog-wide regressions pass.
+
 ### Scene contract
 
 - wrapper scene instantiates in Godot 4.7 without errors or warnings;
 - visibility AABB encloses the final visual;
 - collision encloses the intended solid body without excessive empty volume;
 - traffic resource validates;
-- model can spawn, move, despawn and be culled through the shared traffic path.
+- model can spawn, move, despawn and be culled through the shared traffic path;
+- approved playable variants can be selected, spawned and driven through the standard catalog path.
 
 ### Regression contract
 
 - source inventory test passes;
 - model-specific content test passes;
+- transmission architecture tests pass;
+- performance regressions pass;
+- engine-audio architecture tests pass;
 - repository static checks pass;
 - full Godot test suite passes;
 - Windows export and packaged smoke test pass.
@@ -313,13 +600,25 @@ A model may move to `integrated` status only when all checks pass:
 Create `docs/vehicles/traffic/<vehicle_id>.md` from this template:
 
 ```markdown
-# <Display name> traffic integration
+# <Display name> research and integration
 
 ## Identity
 - source GLB:
 - source SHA-256:
 - represented body/generation:
 - identity confidence:
+- researched production years/markets:
+
+## Complete factory variant matrix
+| Years/market | Engine/code | Power/torque | Transmission/code | Architecture | Drivetrain | Evidence/confidence |
+|---|---|---:|---|---|---|---|
+
+## Owner scope decision
+- date/question presented:
+- import all or selected subset:
+- approved variants:
+- owner-reported missing variants:
+- exclusions:
 
 ## Reference dimensions
 - length:
@@ -345,16 +644,42 @@ Create `docs/vehicles/traffic/<vehicle_id>.md` from this template:
 - wheel split method:
 - derived GLB path:
 
+## Approved powertrains
+- engine curves and evidence:
+- transmission implementations:
+- gear/final-drive data:
+- mass/aero/tyre data:
+- performance targets:
+- measured simulation results:
+
+## Engine audio
+- architecture/firing order:
+- existing or new synthesizer:
+- first-principles model notes:
+- profile coverage:
+- validation results:
+
 ## Runtime integration
 - visual scene:
 - traffic resource:
+- playable catalog resources:
 - collision profile:
 - LOD/visibility settings:
+
+## Physics synchronization
+- master baseline commit:
+- relevant master physics changes reviewed:
+- affected variants recalibrated:
+- catalog-wide regressions:
 
 ## Validation
 - dimensional results:
 - wheel animation:
+- transmission behaviour:
+- performance results:
+- audio results:
 - traffic spawn/runtime:
+- playable spawn/runtime:
 - automated tests:
 
 ## Uncertainty and deferred work
@@ -363,11 +688,13 @@ Create `docs/vehicles/traffic/<vehicle_id>.md` from this template:
 
 ## Integration order
 
-Validate the workflow on one representative model from each geometry class before bulk integration:
+For each model, complete Stage 0 and obtain owner approval before any visual or runtime integration.
+
+After approval, validate the implementation workflow on one representative model from each geometry class before bulk integration:
 
 1. **Volkswagen Golf VII 2013** — passenger hatchback baseline;
 2. **Chevrolet Silverado 2014** — pickup/SUV collision and wheel-track baseline;
 3. **Mercedes-Benz Sprinter 2014** — long van and visibility/LOD baseline;
 4. **Nissan Atleon 2004** — cab-over medium commercial baseline.
 
-After these four pilots pass the same contracts, integrate the remaining models in small PR batches grouped by body class. Do not weaken the workflow to accommodate a model; record a justified exception or improve the shared tooling/controller instead.
+After these four pilots pass the same contracts, integrate the remaining models in small PR batches grouped by body class. Do not weaken the workflow to accommodate a model; record a justified exception or improve the shared physics, transmission, audio or visual architecture instead.
