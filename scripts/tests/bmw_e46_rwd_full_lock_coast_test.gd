@@ -6,6 +6,9 @@ const VARIANT_ID: StringName = &"bmw_e46_sedan_330i_5at"
 const POWERED_SECONDS: float = 10.0
 const TOTAL_SECONDS: float = 60.0
 const SPEED_TOLERANCE_MPS: float = 0.35
+const FINAL_SETTLE_SPEED_MPS: float = 0.02
+const MAX_FULL_LOCK_SPEED_MPS: float = 20.0
+const MAX_TOTAL_YAW_CHANGE_RAD: float = TAU * 2.0
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -152,9 +155,11 @@ func _run() -> void:
 	var travelled_distance: float = Vector2(car.global_position.x - start_position.x, car.global_position.z - start_position.z).length()
 
 	_expect(max_center_speed > 2.0, "full throttle produces meaningful center-of-mass movement")
+	_expect(max_center_speed <= MAX_FULL_LOCK_SPEED_MPS, "full-lock tire dynamics do not create implausible center speed")
 	_expect(speed_at_release > 1.0, "car is moving when controls are released after ten seconds")
 	_expect(max_lateral_speed > 0.25, "full steering lock creates a measurable lateral velocity component")
 	_expect(total_yaw_change_rad > deg_to_rad(30.0), "full steering lock produces a substantial change of heading")
+	_expect(total_yaw_change_rad <= MAX_TOTAL_YAW_CHANGE_RAD, "full-lock run does not accumulate runaway chassis rotation")
 	_expect(max_slip > 0.05, "RWD full-throttle turn creates measurable tire slip")
 	_expect(final_telemetry.get_tire_slip_intensity() <= 0.05, "tire slip clears after the stopped wheels settle")
 	_expect(min_contacts >= 3, "car retains at least three ground contacts throughout the run")
@@ -164,18 +169,20 @@ func _run() -> void:
 	_expect(final_telemetry.get_throttle_input() <= 0.001, "throttle snapshot clears during the coast phase")
 	_expect(final_telemetry.get_brake_input() <= 0.001, "brake remains released during the coast phase")
 	_expect(final_center_speed < speed_at_release, "car slows after all controls are released")
-	_expect(final_center_speed <= maxf(speed_at_release * 0.35, 1.0), "fifty seconds of coasting removes most of the release speed")
+	_expect(final_center_speed <= FINAL_SETTLE_SPEED_MPS, "car center fully settles after fifty seconds without input")
+	_expect(absf(final_telemetry.get_lateral_speed()) <= FINAL_SETTLE_SPEED_MPS, "residual lateral creep disappears after the coast phase")
 	_expect(travelled_distance > 1.0, "the center of the car changes world position")
 	_expect(max_velocity_displacement_error <= SPEED_TOLERANCE_MPS, "CharacterBody velocity matches measured center displacement speed")
 	_expect(max_reported_center_error <= SPEED_TOLERANCE_MPS, "controller speed is the measured movement speed of the car center")
 	_expect(max_snapshot_center_error <= SPEED_TOLERANCE_MPS, "telemetry speed is the measured movement speed of the car center")
 	_expect(_mostly_non_increasing(coast_speed_samples), "coast-speed trend is predominantly non-increasing")
 
-	print("[BMW_E46_RWD_FULL_LOCK_COAST_TEST][SUMMARY] max_center=%.3f release=%.3f final=%.3f max_lateral=%.3f yaw_total_deg=%.2f max_slip=%.3f final_slip=%.3f min_contacts=%d max_rpm=%.1f max_gear=%d gear_changes=%d travelled=%.3f max_reported_error=%.3f max_snapshot_error=%.3f max_velocity_error=%.3f" % [
+	print("[BMW_E46_RWD_FULL_LOCK_COAST_TEST][SUMMARY] max_center=%.3f release=%.3f final=%.3f max_lateral=%.3f final_lateral=%.3f yaw_total_deg=%.2f max_slip=%.3f final_slip=%.3f min_contacts=%d max_rpm=%.1f max_gear=%d gear_changes=%d travelled=%.3f max_reported_error=%.3f max_snapshot_error=%.3f max_velocity_error=%.3f" % [
 		max_center_speed,
 		speed_at_release,
 		final_center_speed,
 		max_lateral_speed,
+		final_telemetry.get_lateral_speed(),
 		rad_to_deg(total_yaw_change_rad),
 		max_slip,
 		final_telemetry.get_tire_slip_intensity(),
