@@ -48,9 +48,10 @@ const APPROVED_SCOPE_PATHS: Dictionary = {
 	"res://docs/vehicles/traffic/volkswagen_golf_vii_2013.md": "Approved total: 22 standard petrol + 14 ordinary diesel + 2 electric = 38 configurations",
 	"res://docs/vehicles/traffic/kia_ceed_2012.md": "Approved total: 8 petrol + 7 diesel = 15 mechanically consolidated configurations",
 	"res://docs/vehicles/traffic/renault_maxity_2008.md": "Approved total: 5 diesel + 1 electric = 6 mechanically consolidated configurations",
+	"res://docs/vehicles/traffic/mazda_2_2011.md": "Approved total: 16 mechanically distinct Mazda2 / Demio DE five-door configurations",
 }
 
-const MAZDA2_RESEARCH_PATH := "res://docs/vehicles/traffic/mazda_2_2011.md"
+const MAZDA3_RESEARCH_PATH := "res://docs/vehicles/traffic/mazda_3_2014.md"
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -61,7 +62,7 @@ func _initialize() -> void:
 	_test_workflow()
 	_test_inventory()
 	_test_approved_scopes()
-	_test_mazda2_gate()
+	_test_mazda3_gate()
 	_test_provenance()
 	_test_gitignore()
 	_finish()
@@ -95,20 +96,19 @@ func _test_inventory() -> void:
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11 and 12 have passed their individual owner-scope gates",
-		"13 — Mazda2 / Demio DE five-door hatchback",
-		"16 mechanically consolidated global hatchback powertrain rows, including e-4WD and Demio EV",
-		"After model 13 is approved, research continues with model 14",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12 and 13 have passed their individual owner-scope gates",
+		"14 — Mazda3 BM / BN five-door hatchback",
+		"19 mechanically consolidated global powertrain rows, including i-ACTIV AWD and sedan-only SKYACTIV-HYBRID",
+		"After model 14 is approved, research continues with model 15",
 		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
 	for fragment: String in [
-		"| 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 |",
-		"| 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 |",
 		"| 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 |",
-		"North American 2011 Mazda2 Sport five-door facelift source | passenger hatchback | 1,770 | `awaiting_owner_scope`",
+		"| 13 — Mazda2 / Demio DE five-door hatchback | `docs/vehicles/traffic/mazda_2_2011.md` | 16 |",
+		"North American 2014 Mazda3 BM five-door high-grade 2.5-style source | passenger hatchback | 1,842 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves scope: %s" % fragment)
 
@@ -121,19 +121,20 @@ func _test_approved_scopes() -> void:
 		]), "approved scope %s" % path)
 		_expect(not text.contains("Workflow status: **`awaiting_owner_scope`**"), "%s owner gate is closed" % path)
 
-func _test_mazda2_gate() -> void:
-	_expect_fragments(_read_text(MAZDA2_RESEARCH_PATH), PackedStringArray([
-		"Mazda2 / Demio DE five-door hatchback — research and owner-scope gate",
+func _test_mazda3_gate() -> void:
+	_expect_fragments(_read_text(MAZDA3_RESEARCH_PATH), PackedStringArray([
+		"Mazda3 BM / BN five-door hatchback — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source SHA-256: `39bd570da17e3b84382910f7b9561daa91e23c9cb3ce6b098cb8f4381d7e2a0e`",
-		"North American 2011 Mazda2 Sport five-door hatchback",
-		"Mechanically consolidated candidate total: 16 configurations",
-		"Mazda e-4WD electric rear-axle traction assist",
-		"1.3L SKYACTIV-G P3-VPS",
-		"Demio EV permanent-magnet synchronous traction motor",
+		"Source SHA-256: `9b0877f05ffcbb6731b2db8a2d7dbaa07fb867c0bbab1d6596b83e2c87e055ad`",
+		"North American 2014 Mazda3 five-door hatchback",
+		"Mechanically consolidated candidate total: 19 configurations",
+		"2.5L SKYACTIV-G PY-VPS",
+		"1.5L SKYACTIV-D S5-DPTS/S5-DPTR",
+		"i-ACTIV AWD",
+		"SKYACTIV-HYBRID",
 		"Owner scope decision — required before implementation",
 		"No implementation begins after this individual decision",
-	]), "Mazda2 gate")
+	]), "Mazda3 gate")
 
 func _test_provenance() -> void:
 	_expect_fragments(_read_text(NOTICE_PATH), PackedStringArray([
