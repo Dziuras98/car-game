@@ -21,6 +21,14 @@ var longitudinal_slip_intensity: float = 0.0
 var tire_slip_intensity: float = 0.0
 var requested_longitudinal_acceleration: float = 0.0
 var applied_longitudinal_acceleration: float = 0.0
+var wheel_radius_m: float = 0.34
+var moment_of_inertia_kg_m2: float = 1.5
+var angular_velocity_rad_s: float = 0.0
+var angular_acceleration_rad_s2: float = 0.0
+var angular_position_rad: float = 0.0
+var drive_torque_nm: float = 0.0
+var brake_torque_nm: float = 0.0
+var tire_torque_nm: float = 0.0
 
 
 func _init(index: int = Position.FRONT_LEFT) -> void:
@@ -39,9 +47,35 @@ func is_left() -> bool:
 	return wheel_index == Position.FRONT_LEFT or wheel_index == Position.REAR_LEFT
 
 
+func configure_rotation(radius_m: float, inertia_kg_m2: float) -> void:
+	wheel_radius_m = maxf(radius_m, 0.01)
+	moment_of_inertia_kg_m2 = maxf(inertia_kg_m2, 0.01)
+
+
+func get_circumferential_speed_mps() -> float:
+	return angular_velocity_rad_s * wheel_radius_m
+
+
+func get_rpm() -> float:
+	return angular_velocity_rad_s * 60.0 / TAU
+
+
+func set_rolling_speed(forward_speed_mps: float) -> void:
+	angular_velocity_rad_s = forward_speed_mps / maxf(wheel_radius_m, 0.01)
+	angular_acceleration_rad_s2 = 0.0
+
+
+func integrate_rotation(delta: float) -> void:
+	angular_position_rad = fposmod(
+		angular_position_rad + angular_velocity_rad_s * maxf(delta, 0.0),
+		TAU
+	)
+
+
 func reset() -> void:
 	reset_contact()
 	reset_tire_dynamics()
+	reset_rotation()
 
 
 func reset_contact() -> void:
@@ -73,3 +107,16 @@ func reset_longitudinal_dynamics() -> void:
 	longitudinal_slip_intensity = 0.0
 	requested_longitudinal_acceleration = 0.0
 	applied_longitudinal_acceleration = 0.0
+	drive_torque_nm = 0.0
+	brake_torque_nm = 0.0
+	tire_torque_nm = 0.0
+	angular_acceleration_rad_s2 = 0.0
+
+
+func reset_rotation() -> void:
+	angular_velocity_rad_s = 0.0
+	angular_acceleration_rad_s2 = 0.0
+	angular_position_rad = 0.0
+	drive_torque_nm = 0.0
+	brake_torque_nm = 0.0
+	tire_torque_nm = 0.0
