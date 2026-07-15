@@ -1,41 +1,40 @@
-# Ford F-150 Limited SuperCrew — research and owner-scope gate
+# Ford F-150 P415 SuperCrew 5.5-ft box — research and owner-scope gate
 
 - Model number in Traffic Rider bundle: **07**
 - Source GLB: `07_ford_f150_limited_2013.glb`
 - Source SHA-256: `3be44b7f8f563efc57d259e0a3902dc55b2b347a0b34b2b90f55d75f541f6587`
 - Research date: 2026-07-15
+- Scope expansion date: 2026-07-15
 - Workflow status: **`awaiting_owner_scope`**
 - Physics baseline inspected: `master` at `9d4aa60ec539f6b22211557ebb1ce0659cd7c512`
 - Global implementation gate: no geometry, catalog, physics, transmission or audio implementation begins until every included model has reached `approved`.
 
 ## Visual identity
 
-The source represents a **2013 Ford F-150 Limited SuperCrew with the 5.5-ft Styleside box**, from the facelifted P415/twelfth-generation F-150.
+The committed source represents a **2013 Ford F-150 Limited SuperCrew with the 5.5-ft Styleside box**, from the facelifted P415/twelfth-generation F-150.
 
 Visible source evidence includes:
 
 - four full-size SuperCrew doors;
-- the short 5.5-ft Styleside box rather than the 6.5-ft box;
+- the short 5.5-ft Styleside box rather than the 6.5-ft or 8-ft box;
 - `F-150` and `LIMITED` exterior markings;
 - Limited-specific chrome three-bar grille treatment;
-- HID-style headlamp treatment;
+- HID-style headlamps;
 - body-colour bumper surfaces with bright trim;
 - polished 22-inch Limited wheel appearance;
 - white exterior paint and North American plate treatment.
 
-The source is not a Regular Cab, SuperCab, 6.5-ft or 8-ft box, SVT Raptor, Harley-Davidson, Platinum, King Ranch, Lariat, FX4 or lower trim. The model does not visually prove 4x2 versus 4x4: no sufficiently reliable driveline or decal detail survives in the low-polygon source.
+The source does not visually prove 4x2 versus 4x4. The owner has nevertheless fixed the **3.5L EcoBoost scope to 4x2 only**.
 
-Identity confidence: **high for 2013 F-150 Limited SuperCrew 5.5-ft box; drivetrain unresolved visually**.
+Identity confidence: **high for the 2013 Limited SuperCrew 5.5-ft source; high for the shared P415 SuperCrew/short-box body proportions; period-correct 2009–2012 front and trim derivatives require separate visual work**.
 
 ## Reference dimensions and source inspection
-
-Official Limited/SuperCrew 5.5-ft-box dimensions:
 
 | Parameter | Reference / source result |
 |---|---:|
 | Wheelbase | 144.5 in / 3.6703 m |
 | Overall length | 231.9 in / 5.8903 m |
-| Width excluding mirrors | approximately 79.2 in / 2.0117 m |
+| Width excluding mirrors | approximately 78.9 in for 2009–2011 and 79.2 in for 2012–2014 |
 | Box floor length | 67.0 in / 1.7018 m |
 | Cargo-box volume | approximately 55.4 cu ft |
 | Source meshes | 3 |
@@ -55,154 +54,165 @@ The 3.6703 m wheelbase is the primary scale reference. Length, width, height, tr
 
 The committed GLB remains unchanged. Wheel separation, collision, catalog, physics, transmission and audio work remain blocked by the global research gate.
 
-## Research boundary
+## Expanded research boundary
 
-The strict represented model is the **F-150 Limited**, offered in this P415 form for model years 2013 and 2014 as a SuperCrew with the 5.5-ft box. The Limited equipment group standardizes the engine, transmission, body, wheel/tyre package and sport-oriented chassis equipment much more tightly than the broad F-150 range.
+The owner expanded research from the strict 2013–2014 Limited trim to the complete **2009–2014 P415 model-year generation**, while retaining the source-compatible **SuperCrew cab and 5.5-ft Styleside box** as the body boundary.
 
-Other F-150 trims and body configurations are not silently included merely because they share the cab or frame. Expanding the scope to XL, XLT, FX, Lariat, King Ranch, Platinum, SVT Raptor or other boxes/cabs would require a separate much larger engine, body, wheelbase and chassis matrix.
+The expansion does not silently add Regular Cab, SuperCab, 6.5-ft or 8-ft boxes, Flareside, SVT Raptor wide body or chassis-cab derivatives. Trim names are evidence for engine and equipment availability, not automatic duplicate catalog vehicles.
 
-## Engine and transmission identity
+The generation has two major powertrain periods:
 
-The Limited uses one factory engine/transmission architecture:
+1. **2009–2010:** 4.6L 2V, 4.6L 3V and 5.4L 3V FFV V8 engines; the base 4.6L 2V uses a four-speed automatic while the other engines use a six-speed automatic.
+2. **2011–2014:** 3.7L V6 FFV, 5.0L V8 FFV, 3.5L EcoBoost V6 and 6.2L V8; all use the six-speed automatic architecture.
 
-- **3.5L EcoBoost V6**, first-generation direct-injected, twin-turbocharged and intercooled DOHC petrol engine;
-- approximately **365 hp at 5,000 rpm**;
-- approximately **420 lb-ft / 569 Nm at 2,500 rpm**;
-- Ford longitudinal **six-speed planetary torque-converter automatic**, working identification **6R80**;
-- regular unleaded gasoline calibration.
+The 3.5L EcoBoost was not a 2009–2010 factory engine. Its expanded model-year coverage therefore begins in 2011.
 
-The exact 6R80 engineering suffix, converter, ratios and year-specific calibration must be retained from a Ford service or order-guide source before parameter commitment. A generic six-speed automatic is not sufficient.
+## Powertrain architecture by period
 
-No other factory engine, manual transmission, diesel, FFV engine or alternative gearbox belongs to the 2013–2014 Limited trim.
+### 2009–2010
 
-## Complete strict-Limited candidate matrix
+- **4.6L Modular SOHC 2-valve naturally aspirated cross-plane V8:** 248 hp / 294 lb-ft; longitudinal four-speed planetary torque-converter automatic, working identification 4R75E.
+- **4.6L Modular SOHC 3-valve naturally aspirated cross-plane V8:** 292 hp / 320 lb-ft; longitudinal six-speed planetary torque-converter automatic, working identification 6R80/6R80E family.
+- **5.4L Triton Modular SOHC 3-valve naturally aspirated cross-plane V8 FFV:** approximately 310 hp / 365 lb-ft on gasoline and up to 320 hp / 390 lb-ft on E85; same six-speed automatic family.
 
-Both 4x2 and 4x4 Limited configurations are evidenced by Ford's distinct fuel-tank listings and drivetrain specifications. The source itself does not resolve which one it depicts.
+The 4.6L 2V is evidenced in the SuperCrew short-box as 4x2 but not as SuperCrew 4x4. The 4.6L 3V and 5.4L appear in both 4x2 and 4x4 SuperCrew applications.
 
-| # | Model-year coverage | Engine | Transmission | Drivetrain | Base axle policy | Evidence |
+### 2011–2014
+
+- **3.7L Duratec Ti-VCT DOHC naturally aspirated V6 FFV:** 302 hp / 278 lb-ft; six-speed automatic; source-body SuperCrew 5.5-ft application is evidenced as 4x2.
+- **5.0L Coyote Ti-VCT DOHC naturally aspirated cross-plane V8 FFV:** 360 hp / 380 lb-ft; six-speed automatic; 4x2 and 4x4 SuperCrew applications.
+- **3.5L EcoBoost DOHC twin-turbocharged direct-injected V6:** 365 hp / 420 lb-ft; six-speed automatic; factory 4x2 and 4x4 existed, but the owner has fixed this project scope to **4x2 only with one standard axle ratio**.
+- **6.2L Boss SOHC naturally aspirated V8:** 411 hp / 434 lb-ft on the documented premium-fuel rating; six-speed automatic; 4x2 and 4x4 SuperCrew applications from 2011 onward.
+
+The six-speed working identification is 6R80-family. Exact engineering suffixes, converters and calibration changes by year and engine require Ford service/order-guide evidence before parameters are committed.
+
+## Mechanically consolidated candidate matrix
+
+This matrix merges model years where the same engine, transmission, body and drivetrain architecture continue. It does not yet merge visually different 2009–2012 and 2013–2014 front treatments.
+
+| # | Model-year coverage | Engine / fuel hardware | Transmission | Drivetrain | Axle policy | Decision state |
 |---:|---|---|---|---|---|---|
-| 1 | 2013–2014 Limited, merged unless owner requests year rows | 3.5L EcoBoost twin-turbo DI V6, 365 hp / 420 lb-ft | Ford 6R80-family 6-speed torque-converter automatic | 4x2 RWD | standard Limited axle ratio and electronic locking differential, exact 2013 confirmation pending | `verified_body_powertrain_drivetrain`; axle detail strongest for 2014 |
-| 2 | 2013–2014 Limited, merged unless owner requests year rows | 3.5L EcoBoost twin-turbo DI V6, 365 hp / 420 lb-ft | Ford 6R80-family 6-speed torque-converter automatic | automatic/selectable 4x4 with two-speed transfer case | standard Limited axle ratio and electronic locking differential, exact 2013 confirmation pending | `verified_body_powertrain_drivetrain`; transfer-case code pending |
+| 1 | 2009–2010 | 4.6L Modular 2V V8, 248 hp / 294 lb-ft | 4R75E-family 4-speed torque-converter automatic | 4x2 RWD | unresolved owner policy; one standard ratio recommended | candidate |
+| 2 | 2009–2010 | 4.6L Modular 3V V8, 292 hp / 320 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x2 RWD | unresolved owner policy | candidate |
+| 3 | 2009–2010 | 4.6L Modular 3V V8, 292 hp / 320 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x4 | unresolved owner policy | candidate |
+| 4 | 2009–2010 | 5.4L Triton 3V V8 FFV | 6R80-family 6-speed torque-converter automatic | 4x2 RWD | unresolved owner policy | candidate |
+| 5 | 2009–2010 | 5.4L Triton 3V V8 FFV | 6R80-family 6-speed torque-converter automatic | 4x4 | unresolved owner policy | candidate |
+| 6 | 2011–2014 | 3.7L Duratec Ti-VCT V6 FFV, 302 hp / 278 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x2 RWD | unresolved owner policy | candidate |
+| 7 | 2011–2014 | 5.0L Coyote V8 FFV, 360 hp / 380 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x2 RWD | unresolved owner policy | candidate |
+| 8 | 2011–2014 | 5.0L Coyote V8 FFV, 360 hp / 380 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x4 | unresolved owner policy | candidate |
+| 9 | 2011–2014 | 3.5L EcoBoost twin-turbo DI V6, 365 hp / 420 lb-ft | 6R80-family 6-speed torque-converter automatic | **4x2 RWD only** | **one verified standard ratio only; owner-fixed** | partially approved |
+| 10 | 2011–2014 | 6.2L Boss V8, 411 hp / 434 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x2 RWD | unresolved owner policy | candidate |
+| 11 | 2011–2014 | 6.2L Boss V8, 411 hp / 434 lb-ft | 6R80-family 6-speed torque-converter automatic | 4x4 | unresolved owner policy | candidate |
 
-**Base candidate total: 2 engine/transmission/drivetrain rows.**
+**Mechanically consolidated candidate total: 11 rows.**
 
-The 2013 and 2014 Limited retain the same core body, engine, transmission, wheelbase and drivetrain choices. Known interior colour, paint and equipment-detail changes do not justify duplicate mechanical catalog rows unless the owner explicitly requests separate model years.
+If the owner applies 4x2-only and one-standard-axle policies to every engine, the scope reduces to **7 rows**. If only the 3.5L EcoBoost family is ultimately retained across 2011–2014, the scope reduces to **1 mechanically merged row**, subject to the visual-phase decision below.
 
-## Axle-ratio and differential subdivisions
+## Owner-fixed 3.5L EcoBoost policy
 
-For 2014, Ford documents:
+For every approved 2011–2014 3.5L EcoBoost application:
 
-- **3.55 electronic-locking rear axle** as the standard Limited configuration;
-- **3.73 electronic-locking rear axle** as an available alternative.
+- use 4x2 rear-wheel drive only;
+- exclude the transfer case, front driveshaft, front differential and driven half-shafts;
+- use one verified factory-standard rear-axle ratio for the selected year/trim calibration;
+- do not create optional axle-ratio duplicates;
+- do not create a 4x4 duplicate.
 
-The 3.73 ratio materially changes wheel torque, engine speed, acceleration and towing response. Possible scope policies are:
+The standard axle is not uniform across every possible trim. The 2012 generic 4x2 EcoBoost towing table documents a 3.15 application, while the 2014 Limited equipment list documents a standard **3.55 electronic-locking differential**. Therefore a selected trim/year calibration must determine the exact ratio and differential state; one ratio must not be guessed for the entire 2011–2014 range.
 
-1. use one verified standard 3.55 electronic-locking axle per drivetrain row, producing **2 configurations**;
-2. represent both 3.55 and 3.73 electronic-locking axles for 4x2 and 4x4 where order evidence confirms availability, producing up to **4 configurations**.
+## Visual phases and trim problem
 
-The differential is already a physical electronic-locking unit in the documented Limited specification. It should not be replaced by a permanently open differential or a generic traction-control-only approximation.
+- **2009–2012:** original P415 front treatment. The 2011–2012 3.5L EcoBoost existed in SuperCrew 5.5-ft bodies, but not in the 2013-style Limited appearance represented by the source. Including these years requires a period-correct grille, lamps, bumpers, wheels and badges.
+- **2013–2014:** refreshed front treatment. The source is the 2013 Limited visual anchor. Limited uses the 3.5L EcoBoost, 22-inch P275/45R22 tyres, sport-tuned shocks and a standard 3.55 electronic-locking rear axle.
 
-Exact 2013 standard and optional axle availability requires a retained 2013 Ford order guide before final parameter commitment. The catalog scope may either defer that detail or use the verified 2014 Limited policy for a merged 2013–2014 row only after evidence supports the merge.
+The project must not label a 2011 or 2012 truck as Limited while reusing the 2013 source materials unchanged. A non-Limited earlier trim derivative must be selected if those years become approved catalog content.
 
-## Drivetrain and chassis subdivisions
+## Axle and differential questions for the other engines
 
-### 4x2
+Factory towing and equipment tables show multiple ratios including 3.15, 3.31, 3.55, 3.73, 4.10 and trim/package-specific locking or limited-slip states. These options materially affect acceleration, engine speed, towing and differential behaviour.
 
-The 4x2 Limited is rear-wheel drive. It has no transfer case, front driveshaft or driven front differential/half-shafts and uses the lower 4x2 ride-height and mass calibration.
+The owner has fixed the 3.5L EcoBoost to one standard ratio. The remaining engines still require a policy:
 
-### 4x4
+1. one verified standard axle and differential state per engine/drivetrain row; or
+2. separate factory axle-ratio rows, which would substantially increase the catalog.
 
-The 4x4 Limited requires Ford's two-speed automatic/selectable four-wheel-drive architecture with transfer case, front driveshaft, front differential and half-shafts. It needs distinct mass, ride height, rotating inertia, driveline losses, transfer-case modes and traction behaviour.
+The first policy is recommended for consistency with models 02, 05 and 06.
 
-The two drivetrains must not be represented as a visual flag over one shared physical driveline.
+## Fuel subdivisions
 
-### Shared Limited chassis equipment
+- 4.6L 2V and 4.6L 3V are gasoline engines.
+- 5.4L 3V, 3.7L and 5.0L are FFV-capable.
+- 3.5L EcoBoost and 6.2L are gasoline engines in this generation.
 
-Later implementation must preserve:
+The FFV engines can be represented as gasoline-only hardware/calibration states, selectable gasoline/E85 states, or duplicate fuel rows. Duplicate rows are not recommended because the same engine hardware underlies the fuel choice. The 5.4L published peak output changes with E85 and therefore cannot silently use the E85 rating while simulating gasoline.
+
+## Chassis and physics architecture
+
+All approved rows require:
 
 - fully boxed ladder frame;
+- longitudinal front engine;
 - independent double-wishbone/coil-over front suspension;
 - solid rear drive axle on leaf springs;
-- Limited sport-tuned shock calibration;
-- electric power-assisted steering;
-- four-wheel vented disc brakes with ABS;
+- four-wheel disc brakes with ABS;
 - AdvanceTrac with Roll Stability Control;
-- 22-inch polished wheels with the documented P275/45R22 tyre package;
-- SuperCrew and 5.5-ft-box mass and load distribution.
+- SuperCrew 5.5-ft-box mass and load distribution;
+- drivetrain-specific mass, ride height and losses;
+- year-, trim-, wheel- and tyre-correct steering and damping calibration.
 
-A generic passenger-car suspension, generic pickup mass or smaller wheel/tyre package is not acceptable.
-
-## Visual and package policy
-
-The source is specifically Limited. The following are part of the represented physical/visual package and should normally be retained rather than optionalized:
-
-- Limited grille, badges and box-side lettering;
-- HID headlamps;
-- body-colour/bright bumper treatment;
-- 22-inch polished wheels and corresponding tyres;
-- Limited cabin/equipment mass allowance;
-- sport-tuned shocks.
-
-Paint colours, 2013 Brick Red versus 2014 Marina Blue interior themes, navigation/audio options, bed accessories and appearance-only dealer accessories should not create duplicate vehicles.
+A 4x4 configuration must use its real transfer case and front driveline. A 4x2 configuration must not be implemented as a disabled 4x4.
 
 ## Transmission architecture assessment
 
-The 6R80 is a longitudinal six-speed planetary automatic with a hydrodynamic torque converter and lock-up clutch. It requires:
+### 4R75E-family four-speed
 
-- speed-ratio-dependent converter multiplication and slip;
-- creep and brake-hold behaviour;
-- progressive lock-up and unlock;
-- six exact forward ratios and reverse;
-- torque and inertia phases during shifts;
-- multi-gear kickdown;
-- adaptive load, grade and towing schedules;
-- engine-torque coordination during boost and shifts;
-- thermal protection;
-- transfer-case mode coordination for 4x4.
+The 2009–2010 4.6L 2V row requires a distinct four-speed planetary automatic with a hydrodynamic converter, exact four forward ratios, reverse, creep, lock-up, kickdown, load scheduling and thermal behaviour.
 
-It must not be represented as a DCT, automated manual or generic six-speed with arbitrary delays.
+### 6R80-family six-speed
+
+Every other candidate row uses the longitudinal six-speed planetary automatic family. It requires exact ratios, engine-specific converter and lock-up behaviour, torque and inertia shift phases, multi-gear kickdown, tow/haul or grade scheduling, boost coordination for EcoBoost and transfer-case coordination for 4x4.
+
+The four-speed and six-speed units must not share a generic ratio set or only differ by the number of enabled gears.
 
 ## Engine-audio architecture assessment
 
-The 3.5L EcoBoost requires a dedicated twin-turbo V6 architecture with:
+| Engine | Required treatment |
+|---|---|
+| 4.6L 2V / 4.6L 3V / 5.4L 3V | displacement- and valvetrain-specific Ford Modular cross-plane V8 layers |
+| 3.7L V6 | naturally aspirated V6 cadence and Ti-VCT transient response |
+| 5.0L Coyote V8 | DOHC Ti-VCT cross-plane V8, distinct from the older Modular 2V/3V engines |
+| 3.5L EcoBoost | dedicated direct-injected twin-turbo V6 with turbo, compressor, wastegate/bypass and intercooler response |
+| 6.2L Boss V8 | large-displacement SOHC V8 with its own firing, intake and exhaust architecture |
 
-- correct V6 firing cadence and crank/firing order;
-- direct-injection mechanical layer;
-- twin-turbo spool, compressor and wastegate/bypass behaviour;
-- intercooler and boosted induction response;
-- load-dependent exhaust and turbine filtering;
-- start, idle, boost onset, converter-loaded acceleration, shifts, overrun, limiter and shutdown.
-
-It must not be synthesized by pitch-shifting a naturally aspirated V6 or applying turbo noise over a four-cylinder waveform.
+None of these may be produced only by pitch-shifting another cylinder layout or displacement.
 
 ## Evidence retained and unresolved work
 
-Ford's 2013 and 2014 F-150 brochures establish the Limited body, SuperCrew/5.5-ft-box dimensions, exclusive 3.5L EcoBoost powertrain, 4x2 and 4x4 availability, 22-inch wheel/tyre package, HID lighting, chassis equipment and 2014 axle options.
+Ford 2010, 2012, 2013 and 2014 brochures and technical tables establish the body dimensions, engine outputs, transmission counts, SuperCrew availability, drivetrain subdivisions, EcoBoost introduction period, axle choices and Limited package data used above. Before implementation retain exact Ford order-guide/service evidence for:
 
-Before implementation retain exact primary Ford service/order-guide evidence for:
+- 2009 and 2011 order restrictions and exact model-year changeovers;
+- 4R75E and 6R80 engineering suffixes, ratios and converters;
+- one standard axle ratio and differential state for each approved row;
+- exact trim/body availability where brochure tables aggregate cabs;
+- kerb mass, axle loads, tyres, drag, brakes and performance targets;
+- 4x4 transfer-case codes and behaviour if any non-EcoBoost 4x4 rows are approved.
 
-- the 6R80 code/suffix, ratios, converter and calibration;
-- the 4x4 transfer-case code, ratios and control modes;
-- exact 2013 standard and optional axle ratios;
-- exact kerb mass and axle loads for 4x2 and 4x4;
-- drag, tyre characteristics, braking and documented performance targets;
-- year-specific shock, stability-control and driveline calibration.
+These gaps block parameter commitment but do not justify guessed hardware.
 
-These gaps block parameter commitment but do not authorize guessed hardware.
+## Owner scope decision — remaining questions
 
-## Owner scope decision — required before implementation
-
-Status remains **`awaiting_owner_scope`**.
+Status remains **`awaiting_owner_scope`**. The following decisions are already fixed: generation research covers 2009–2014; body remains SuperCrew with the 5.5-ft box; 3.5L EcoBoost is 4x2 only with one standard axle ratio.
 
 Please decide:
 
-1. Keep the scope strictly to the **2013–2014 F-150 Limited SuperCrew 5.5-ft box**, or expand it to other P415 F-150 trims, engines, cabs and boxes?
-2. Include both the 4x2 and 4x4 Limited drivetrains, or only one?
-3. Merge 2013 and 2014 into the same drivetrain rows, or create separate year entries despite identical core mechanics?
-4. Use only the standard **3.55 electronic-locking axle**, or create separate 3.55 and 3.73 configurations wherever Ford ordering evidence confirms them?
-5. Preserve only the Limited appearance and avoid XL/XLT/FX/Lariat/King Ranch/Platinum/Raptor visual derivatives?
-6. Keep the Limited 22-inch P275/45R22 wheel/tyre package and sport-tuned shocks mandatory for every approved row?
-7. Keep gasoline as the only fuel state, with no FFV/E85 or gaseous-fuel subdivisions?
-8. Is any expected Limited engine, transmission, drivetrain, axle, body, model-year or package variant missing?
+1. Include all seven engine families represented in the 11-row matrix, or retain only selected engines?
+2. For every engine other than 3.5L EcoBoost, include both evidenced 4x2 and 4x4 rows, or use 4x2 only?
+3. Apply one verified standard axle ratio and standard differential state to every remaining row, matching the fixed EcoBoost policy?
+4. Simulate the 5.4L, 3.7L and 5.0L FFV engines on gasoline only, or provide selectable E85 states?
+5. Include a correct 2009–2012 front/trim derivative, or keep only the 2013–2014 refreshed appearance?
+6. If 2009–2012 is included, use one period-correct non-Limited high-series appearance without trim duplicates?
+7. Merge mechanically identical model years into the period rows shown above, or create separate year entries?
+8. Preserve the source Limited 22-inch P275/45R22 wheel/tyre and sport-shock package only for the 2013–2014 Limited row rather than forcing it onto earlier/non-Limited engines?
+9. Is any expected P415 SuperCrew 5.5-ft engine, transmission, drivetrain, fuel, axle or visual-phase variant missing?
 
-No implementation begins after this individual decision. Research proceeds to model 08 only after the owner fixes model 07 scope, and implementation begins only after every included model has reached `approved`.
+No implementation begins after this partial decision. Research proceeds to model 08 only after the owner fixes the remaining model 07 scope, and implementation begins only after every included model has reached `approved`.
