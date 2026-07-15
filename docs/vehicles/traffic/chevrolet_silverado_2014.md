@@ -1,16 +1,20 @@
-# Chevrolet Silverado 1500 K2XX pre-facelift — research and owner-scope gate
+# Chevrolet Silverado 1500 K2XX pre-facelift — research and approved scope
 
 - Model number in Traffic Rider bundle: **02**
 - Source GLB: `02_chevrolet_silverado_2014.glb`
 - Source SHA-256: `bce261f8703d7e03737cfd40ffa25a1546b76de84772f5b790ed7cc3b40ee465`
 - Research date: 2026-07-15
-- Workflow status: **`awaiting_owner_scope`**
+- Owner decision date: 2026-07-15
+- Workflow status: **`approved`**
+- Approved implementation scope: **4 mechanically distinct RWD combinations**
 - Physics baseline inspected: `master` at `9d4aa60ec539f6b22211557ebb1ce0659cd7c512`
 - Global implementation gate: no geometry, catalog, physics, transmission or audio implementation for any Traffic Rider vehicle begins until the owner has approved the scope of every included model.
 
 ## Visual identity
 
-The source mesh represents a **Chevrolet Silverado 1500 K2XX Crew Cab Standard Box, pre-facelift**. The texture atlas contains an `LTZ` grille badge and a `4x4` rear-bed decal, so the strict visual identity is **LTZ Crew Cab Standard Box 4WD**.
+The source mesh represents a **Chevrolet Silverado 1500 K2XX Crew Cab Standard Box, pre-facelift**. The texture atlas contains an `LTZ` grille badge and a `4x4` rear-bed decal, so the unmodified texture is visually closest to an **LTZ Crew Cab Standard Box 4WD**.
+
+The approved catalog scope is RWD-only. Implementation must therefore create a non-destructive material/texture variant that removes the `4x4` decal. Trim badges must also be corrected when an approved engine was not factory-compatible with the depicted LTZ trim. The source GLB and its embedded textures remain unchanged.
 
 It is not:
 
@@ -20,9 +24,9 @@ It is not:
 - a 2016-and-later facelift body;
 - a GMC Sierra.
 
-The body proportions support the 153-inch-wheelbase Crew Cab Standard Box configuration. Exact wheel, suspension-package and appearance-package identity remain unresolved.
+The body proportions support the 153-inch-wheelbase Crew Cab Standard Box configuration. Exact wheel and appearance-package identity remain unresolved.
 
-Identity confidence: **high for 1500/K2XX/Crew Cab/Standard Box/pre-facelift; high for LTZ and 4x4 texture identity; package details unresolved**.
+Identity confidence: **high for 1500/K2XX/Crew Cab/Standard Box/pre-facelift; high for source LTZ/4x4 texture identity; approved runtime variants require corrected RWD materials**.
 
 ## Reference dimensions
 
@@ -34,7 +38,7 @@ Primary Crew Cab Standard Box reference:
 | Overall length | approximately 6.085 m / 239.6 in |
 | Bed length | approximately 1.98 m / 6.5 ft |
 
-The final visual scale must use wheelbase as the primary reference and cross-check overall length, width, height, tracks, ground clearance and tyre diameter against the exact approved configuration.
+Final scale must use wheelbase as the primary reference and cross-check overall length, width, height, tracks, ground clearance and tyre diameter against the exact approved configuration.
 
 ## Source inspection
 
@@ -53,65 +57,61 @@ The final visual scale must use wheelbase as the primary reference and cross-che
 | Source wheelbase | approximately 5.377249 source units |
 | Approximate wheelbase-derived scale | 0.7227 for a 3.886 m real wheelbase |
 
-The source GLB remains unchanged. A future derived visual will have to split both paired axle meshes into four independent hub-centred wheel nodes, but that work is explicitly deferred until every model scope is approved.
+The source GLB remains unchanged. A future derivative must split both paired axle meshes into four independent hub-centred wheel nodes, but this work is deferred until all model scopes are approved.
 
 ## Research boundary and deduplication
 
-The baseline matrix covers **mechanically distinct engine/transmission/drivetrain combinations** available with the pre-facelift 2014–2015 Silverado 1500 K2XX body.
+The researched base matrix contains **8 mechanically distinct engine/transmission/drivetrain combinations** for the pre-facelift 2014–2015 Silverado 1500 K2XX body. The owner approved the four RWD rows and rejected the four selectable-4WD counterparts.
 
-Rules:
+Deduplication rules:
 
 - do not duplicate an identical powertrain because it appears in both model years or several trim levels;
 - treat a different transmission behind the same engine as a separate variant;
-- treat RWD and selectable 4WD as separate variants;
-- do not treat a gasoline/E85 calibration as a second vehicle when it is the same flex-fuel vehicle operating on another approved fuel;
-- do not create a separate vehicle for an appearance package;
-- create a separate chassis configuration only when suspension, brakes, tyres, axle ratio, cooling, mass or other physical behaviour changes materially.
-
-Evidence states:
-
-- `strongly_supported`: consistent manufacturer-era specifications and multiple technical references;
-- `provisional_package`: powertrain is established, but exact trim, axle-ratio or package availability still requires a retained GM order guide, trailering guide, homologation record or build-data source;
-- `rejected/not_factory`: no evidence of a factory combination for this body and period.
+- retain only RWD for this model;
+- use only the normal gasoline calibration;
+- do not create E85/flex-fuel catalog duplicates or selectable fuel states;
+- use one verified standard factory axle ratio per approved powertrain;
+- do not create separate Z71, Max Trailering, Special Service Vehicle or appearance-package variants.
 
 ## Engines
 
-| Engine | Architecture | Factory output used as research anchor | Notes |
-|---|---|---|---|
-| LV3 4.3 L EcoTec3 | naturally aspirated 90-degree V6, pushrod, direct injection, VVT, AFM | 285 hp; 305 lb-ft / approximately 413 Nm | flex-fuel applications exist; dedicated V6 audio architecture required |
-| L83 5.3 L EcoTec3 | naturally aspirated cross-plane V8, pushrod, direct injection, VVT, AFM | 355 hp; 383 lb-ft / approximately 519 Nm | gasoline/E85 states must not become duplicate vehicles |
-| L86 6.2 L EcoTec3 | naturally aspirated cross-plane V8, pushrod, direct injection, VVT, AFM | 420 hp; 460 lb-ft / approximately 624 Nm | 2014 uses 6L80; 2015 uses 8L90 |
+| Engine | Architecture | Factory output used as research anchor | Approved fuel treatment |
+|---|---|---:|---|
+| LV3 4.3 L EcoTec3 | naturally aspirated 90-degree V6, pushrod, direct injection, VVT, AFM | 285 hp; 305 lb-ft / approximately 413 Nm | gasoline only |
+| L83 5.3 L EcoTec3 | naturally aspirated cross-plane V8, pushrod, direct injection, VVT, AFM | 355 hp; 383 lb-ft / approximately 519 Nm | gasoline only |
+| L86 6.2 L EcoTec3 | naturally aspirated cross-plane V8, pushrod, direct injection, VVT, AFM | 420 hp; 460 lb-ft / approximately 624 Nm | gasoline only |
 
-No production manual, DCT, CVT or automated-manual transmission belongs in this matrix.
+No production manual, DCT, CVT or automated-manual transmission belongs in the approved matrix.
 
-## Complete pre-facelift base matrix
+## Complete researched base matrix
 
-The following matrix contains **8 mechanically distinct base combinations** before axle-ratio and materially different chassis-package subdivisions:
+| # | Model-year applicability | Engine | Transmission | Drivetrain | Owner decision |
+|---:|---|---|---|---|---|
+| 1 | 2014–2015 | LV3 4.3 V6 | Hydra-Matic 6L80 6AT, RPO MYC | RWD | **approved** |
+| 2 | 2014–2015 | LV3 4.3 V6 | Hydra-Matic 6L80 6AT, RPO MYC | selectable part-time 4WD | rejected — RWD only |
+| 3 | 2014–2015 | L83 5.3 V8 | Hydra-Matic 6L80 6AT, RPO MYC | RWD | **approved** |
+| 4 | 2014–2015 | L83 5.3 V8 | Hydra-Matic 6L80 6AT, RPO MYC | selectable part-time 4WD | rejected — RWD only |
+| 5 | 2014 | L86 6.2 V8 | Hydra-Matic 6L80 6AT, RPO MYC | RWD | **approved** |
+| 6 | 2014 | L86 6.2 V8 | Hydra-Matic 6L80 6AT, RPO MYC | selectable part-time 4WD | rejected — RWD only |
+| 7 | 2015 | L86 6.2 V8 | Hydra-Matic 8L90 8AT, RPO M5U | RWD | **approved** |
+| 8 | 2015 | L86 6.2 V8 | Hydra-Matic 8L90 8AT, RPO M5U | selectable part-time 4WD | rejected — RWD only |
 
-| # | Model-year applicability | Engine | Transmission | Drivetrain | Visual relationship | Evidence |
-|---:|---|---|---|---|---|---|
-| 1 | 2014–2015 | LV3 4.3 V6 | Hydra-Matic 6L80 6AT, RPO MYC | RWD | body-compatible; LTZ/4x4 badges would need material variants | strongly supported |
-| 2 | 2014–2015 | LV3 4.3 V6 | Hydra-Matic 6L80 6AT, RPO MYC | selectable part-time 4WD | body-compatible; 4x4 badge compatible, LTZ badge not exact | strongly supported |
-| 3 | 2014–2015 | L83 5.3 V8 | Hydra-Matic 6L80 6AT, RPO MYC | RWD | body-compatible; 4x4 badge would need removal | strongly supported |
-| 4 | 2014–2015 | L83 5.3 V8 | Hydra-Matic 6L80 6AT, RPO MYC | selectable part-time 4WD | **strict LTZ 4x4 visual match** | strongly supported |
-| 5 | 2014 | L86 6.2 V8 | Hydra-Matic 6L80 6AT, RPO MYC | RWD | body-compatible; 4x4 badge would need removal | strongly supported |
-| 6 | 2014 | L86 6.2 V8 | Hydra-Matic 6L80 6AT, RPO MYC | selectable part-time 4WD | **strict LTZ 4x4 visual match** | strongly supported |
-| 7 | 2015 | L86 6.2 V8 | Hydra-Matic 8L90 8AT, RPO M5U | RWD | body-compatible; 4x4 badge would need removal | strongly supported |
-| 8 | 2015 | L86 6.2 V8 | Hydra-Matic 8L90 8AT, RPO M5U | selectable part-time 4WD | **strict LTZ 4x4 visual match** | strongly supported |
+**Approved total: 4 RWD combinations.**
 
-Summary:
+The L86 + 6L80 and L86 + 8L90 rows remain separate because the transmission architecture, ratios, shift behaviour, inertia and model-year applicability differ materially.
 
-- broad pre-facelift body-shell scope: **8 base combinations**;
-- strict current-texture LTZ 4x4 scope: **3 base combinations**;
-- exact axle-ratio and physical package subdivisions: pending owner policy and retained official package evidence.
+## Approved catalog rows
+
+1. Silverado 1500 Crew Cab Standard Box RWD — LV3 4.3 V6 — 6L80 — 2014–2015.
+2. Silverado 1500 Crew Cab Standard Box RWD — L83 5.3 V8 — 6L80 — 2014–2015.
+3. Silverado 1500 Crew Cab Standard Box RWD — L86 6.2 V8 — 6L80 — 2014.
+4. Silverado 1500 Crew Cab Standard Box RWD — L86 6.2 V8 — 8L90 — 2015.
 
 ## Transmission architecture
 
-Both transmissions are conventional planetary torque-converter automatics, not automated manuals or dual-clutch transmissions.
+Both approved transmissions are conventional planetary torque-converter automatics, not automated manuals or dual-clutch transmissions.
 
 ### Hydra-Matic 6L80 / RPO MYC
-
-Research ratios:
 
 | Gear | Ratio |
 |---|---:|
@@ -125,8 +125,6 @@ Research ratios:
 
 ### Hydra-Matic 8L90 / RPO M5U
 
-Research ratios:
-
 | Gear | Ratio |
 |---|---:|
 | Reverse | approximately 3.82 |
@@ -139,56 +137,39 @@ Research ratios:
 | 7 | approximately 0.85 |
 | 8 | approximately 0.65 |
 
-A later implementation must model the 6L80 and 8L90 independently, including converter multiplication/slip, creep, progressive lock-up, torque and inertia phases during shifts, kickdown, tow/haul scheduling and grade braking. A generic shift delay is not sufficient.
+A later implementation must model the 6L80 and 8L90 independently, including converter multiplication/slip, creep, progressive lock-up, torque and inertia phases during shifts, kickdown, normal road shift scheduling and grade braking. Tow/haul-specific tuning is outside the approved catalog scope.
 
-## Drivetrain and transfer-case identity
+## Final-drive policy
 
-The 4WD rows are **selectable part-time 4WD**, not permanent AWD. Depending on trim/package, the real vehicle may use an electronically controlled two-speed transfer case with modes such as 2H, Auto, 4H and 4L. Exact transfer-case RPO and control availability must be verified for every approved trim/package before implementation.
+Each approved row receives exactly one **standard factory axle ratio**. Max Trailering and optional axle ratios are excluded.
 
-A future 4WD model must therefore represent:
+The exact standard ratio must be verified from retained official Chevrolet order-guide or build-data evidence for the exact engine, transmission, RWD, Crew Cab and Standard Box combination. No provisional 3.08/3.23/3.42/3.73 value may be committed merely because it was available elsewhere in the range.
 
-- disconnected or rear-drive operation where applicable;
-- clutch-controlled Auto mode where fitted;
-- locked high-range 4WD;
-- low-range multiplication;
-- operating restrictions and driveline wind-up behaviour;
-- transfer-case inertia and losses.
+## Excluded configurations
 
-It must not use a fixed AWD front-torque fraction as a substitute.
+The following are explicitly outside the approved scope:
 
-## Axle ratios and package subdivisions
-
-Factory axle ratio depends on engine, transmission, drive, towing package and model year. Research references indicate families around 3.08, 3.23, 3.42 and 3.73 for relevant K2XX configurations; the 2015 L86/8L90 combination is commonly associated with 3.23 and a 3.42 Max Trailering configuration.
-
-This submatrix remains **provisional pending retained official order-guide/trailering-guide confirmation**. Exact combinations must not be guessed during implementation.
-
-Two catalog policies are possible:
-
-1. each verified factory axle ratio and materially different Max Trailering configuration becomes a separate playable variant; or
-2. axle ratio/package becomes an explicit selectable configuration under one base engine/transmission/drivetrain entry.
-
-Either policy must preserve the real final drive, mass, tyres, cooling, suspension and tow/haul behaviour and must not collapse them into one compromise calibration.
-
-## Materially different packages
-
-Potentially relevant packages include Z71, Max Trailering and the 2015 Special Service Vehicle package. They should not create duplicates solely for badges or appearance. They may require separate physical configurations when evidence confirms changes to suspension, tyres, brakes, cooling, electrical load, mass, axle ratio, speed limiter or duty-cycle behaviour.
-
-High Country, Rally and other appearance/trim variants should remain material or trim variants unless their mechanical specification differs.
+- all selectable-4WD configurations and transfer-case modes;
+- Z71;
+- Max Trailering;
+- Special Service Vehicle;
+- optional axle-ratio variants;
+- E85 calibration or selectable fuel-state variants;
+- duplicate trim or appearance-package entries;
+- 2016-and-later facelift models.
 
 ## Performance and physics requirements
 
-For each approved physical configuration, later research and calibration must retain:
+For each approved row, later implementation research and calibration must retain:
 
-- sampled full-load torque curve and AFM transition behaviour;
-- exact transmission and axle ratios;
+- sampled full-load gasoline torque curve and AFM transition behaviour;
+- exact transmission and standard axle ratio;
 - converter and lock-up control;
-- exact kerb mass and axle load for cab/bed/drive/package;
+- exact kerb mass and axle load for Crew Cab Standard Box RWD;
 - tyre dimensions and rolling radius;
 - aerodynamic drag and frontal area;
-- selectable-4WD and low-range behaviour;
 - unloaded acceleration and maximum-speed targets;
 - braking performance;
-- tow/haul shift scheduling, grade braking and representative loaded behaviour;
 - validation against the current `master` physics baseline at implementation time.
 
 No performance value may be matched with false torque, wrong mass, wrong final drive or an arbitrary speed/acceleration cap.
@@ -201,32 +182,29 @@ No performance value may be matched with false torque, wrong mass, wrong final d
 | L83 | Gen V 5.3 L cross-plane pushrod V8 model with its own firing/collector, intake, exhaust, AFM and load layers |
 | L86 | Gen V 6.2 L cross-plane pushrod V8; it may share low-level V8 architecture utilities with L83 but requires a distinct combustion, intake/exhaust, inertia and calibration profile |
 
-The LV3 must not be produced by pitch-shifting an inline-six or unrelated V6. L83 and L86 must not be reduced to one generic V8 recording or waveform. Flexible-fuel operation may alter a profile state, but must not create a duplicate vehicle entry.
+The LV3 must not be produced by pitch-shifting an inline-six or unrelated V6. L83 and L86 must not be reduced to one generic V8 waveform.
 
-## Evidence retained and unresolved work
+## Evidence retained and unresolved implementation research
 
-The broad engine/transmission changeover and base drivetrain matrix are strongly supported by manufacturer-era specifications and technical transmission references. Before implementation, the following must be strengthened with retained primary documentation:
+Before implementation, retain primary documentation for:
 
 - official 2014 and 2015 Chevrolet order guides;
-- official trailering guides and axle-ratio/package tables;
-- exact transfer-case RPO by trim and package;
-- exact tyre, mass, drag, braking and performance values for every approved physical configuration;
-- exact flex-fuel output and control distinctions;
-- exact Special Service Vehicle, Z71 and Max Trailering mechanical deltas.
+- the standard axle ratio of each approved RWD powertrain;
+- exact tyre, mass, drag, braking and performance values;
+- exact gasoline torque curves and AFM control behaviour;
+- exact trim/material corrections required for the LV3 and RWD variants.
 
-Implementation remains blocked both by the owner-scope decision below and by the global all-model research gate.
+These evidence gaps do not reopen the approved catalog scope. They block final parameter commitment if unresolved.
 
-## Owner scope decision — required before implementation
+## Owner decision recorded
 
-Status remains **`awaiting_owner_scope`**.
+The owner decided:
 
-Please decide:
+1. Start from the complete eight-row base matrix, but retain **only RWD**, producing four approved combinations.
+2. Include model years 2014 and 2015 and preserve L86 + 6L80 separately from L86 + 8L90.
+3. Use only one verified **standard axle ratio** per approved powertrain.
+4. Exclude Z71, Max Trailering and Special Service Vehicle variants.
+5. Use only the default gasoline calibration; exclude E85 duplicates and fuel-state variants.
+6. Missing expected variants: **none identified by the owner**.
 
-1. Use only the **3 strict current-texture LTZ 4x4 combinations**, or approve all **8 pre-facelift Crew Cab Standard Box base combinations** with later badge/material variants for RWD, lower trims and the LV3?
-2. Include both model years 2014 and 2015, preserving the mechanically distinct L86 + 6L80 and L86 + 8L90 combinations?
-3. Should every verified factory axle ratio and materially different Max Trailering configuration be a separate playable catalog entry, or an explicit selectable configuration under its base powertrain?
-4. Include materially different Z71, Max Trailering and Special Service Vehicle chassis configurations when they change real physics, while avoiding duplicate entries for unchanged powertrains?
-5. Treat gasoline and E85 output as fuel states of one flexible-fuel variant rather than duplicate vehicles?
-6. Is any expected engine, transmission, drivetrain, axle/package or pre-facelift model-year variant missing from this matrix?
-
-No implementation begins after this individual decision. Research continues through the remaining models in ascending order, and implementation starts only after the owner has approved the scope of every included model.
+The individual owner-scope gate is satisfied. Model 02 is **`approved`**, but implementation remains blocked by the global all-model research gate. Research proceeds to model 03.
