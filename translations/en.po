@@ -138,6 +138,9 @@ msgstr "Poznań Circuit"
 msgid "Krótki Tor Pustynny"
 msgstr "Short Desert Track"
 
+msgid "High Speed Ring"
+msgstr "High Speed Ring"
+
 msgid "Nieskończona siatka"
 msgstr "Infinite grid"
 
