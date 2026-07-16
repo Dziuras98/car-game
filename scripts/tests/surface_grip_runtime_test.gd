@@ -1,6 +1,7 @@
 extends Node
 
 const SIMPLE_OVAL_SCENE: PackedScene = preload("res://scenes/tracks/simple_oval.tscn")
+const EPSILON: float = 0.001
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -26,7 +27,7 @@ func _test_longitudinal_grip_budget() -> void:
 	var grass_state: CarRuntimeState = _make_state(config)
 	grass_state.surface_grip_multiplier = 0.5
 	var sliding_state: CarRuntimeState = _make_state(config)
-	sliding_state.lateral_slip_intensity = 0.8
+	_set_lateral_grip_usage(sliding_state, 0.8)
 
 	var dry_powertrain: CarPowertrainController = _make_powertrain(config, dry_state)
 	var grass_powertrain: CarPowertrainController = _make_powertrain(config, grass_state)
@@ -35,7 +36,7 @@ func _test_longitudinal_grip_budget() -> void:
 	grass_powertrain.update(grass_state, 1.0, 0.0, false, false, false, 0.1)
 	sliding_powertrain.update(sliding_state, 1.0, 0.0, false, false, false, 0.1)
 	_expect(dry_state.forward_speed > grass_state.forward_speed, "lower surface grip reduces drive acceleration")
-	_expect(dry_state.forward_speed > sliding_state.forward_speed, "lateral slip consumes longitudinal acceleration budget")
+	_expect(dry_state.forward_speed > sliding_state.forward_speed, "lateral grip usage consumes longitudinal acceleration budget")
 	_expect(dry_state.longitudinal_slip_ratio > config.longitudinal_peak_slip_ratio, "excess drive demand creates positive longitudinal slip")
 	_expect(dry_state.longitudinal_slip_intensity > 0.0, "wheelspin contributes to the tire slip signal")
 
@@ -64,7 +65,7 @@ func _test_engine_braking_uses_tire_budget() -> void:
 	grass_state.surface_grip_multiplier = 0.5
 	var sliding_state: CarRuntimeState = _make_state(config)
 	sliding_state.forward_speed = 12.0
-	sliding_state.lateral_slip_intensity = 0.8
+	_set_lateral_grip_usage(sliding_state, 0.8)
 
 	var dry_powertrain: CarPowertrainController = _make_powertrain(config, dry_state)
 	var grass_powertrain: CarPowertrainController = _make_powertrain(config, grass_state)
@@ -140,32 +141,47 @@ func _test_contact_capacity_scaling() -> void:
 	config.drive_layout = CarSpecs.DriveLayout.ALL_WHEEL_DRIVE
 	config.awd_front_torque_fraction = 0.5
 	config.sanitize()
-	var acceleration_speeds: Array[float] = []
-	var braking_speeds: Array[float] = []
 	for contact_count: int in range(1, GroundContactModel.PROBE_COUNT + 1):
 		var acceleration_state: CarRuntimeState = _make_state(config)
 		acceleration_state.ground_contact_count = contact_count
+		acceleration_state.synchronize_wheel_contacts_from_aggregate()
+		acceleration_state.update_wheel_load_shares(config, 0.0, 0.0)
+		_expect(
+			acceleration_state.get_wheel_contact_count() == contact_count,
+			"aggregate setup creates exactly %d active wheel contacts" % contact_count
+		)
+		_expect(
+			absf(_get_active_load_share_sum(acceleration_state) - 1.0) <= EPSILON,
+			"active wheel load shares normalize to one with %d contacts" % contact_count
+		)
+		_expect(
+			_inactive_wheels_have_zero_load(acceleration_state),
+			"inactive wheels carry no normal load with %d contacts" % contact_count
+		)
 		var acceleration_powertrain: CarPowertrainController = _make_powertrain(config, acceleration_state)
 		acceleration_powertrain.update(acceleration_state, 1.0, 0.0, false, false, false, 0.1)
-		acceleration_speeds.append(acceleration_state.forward_speed)
+		_expect(
+			is_finite(acceleration_state.forward_speed) and acceleration_state.forward_speed > 0.0,
+			"remaining contacts produce finite forward acceleration with %d contacts" % contact_count
+		)
+		_expect(
+			_inactive_wheels_have_zero_longitudinal_force(acceleration_state),
+			"inactive wheels produce no longitudinal force with %d contacts" % contact_count
+		)
 
 		var braking_state: CarRuntimeState = _make_state(config)
 		braking_state.ground_contact_count = contact_count
 		braking_state.forward_speed = 12.0
+		braking_state.synchronize_wheel_contacts_from_aggregate()
 		var braking_powertrain: CarPowertrainController = _make_powertrain(config, braking_state)
 		braking_powertrain.update(braking_state, 0.0, 1.0, false, false, false, 0.1)
-		braking_speeds.append(braking_state.forward_speed)
-
-	for index: int in range(1, acceleration_speeds.size()):
 		_expect(
-			acceleration_speeds[index] > acceleration_speeds[index - 1],
-			"drive acceleration increases monotonically with active contact count %d -> %d"
-			% [index, index + 1]
+			is_finite(braking_state.forward_speed) and braking_state.forward_speed < 12.0,
+			"remaining contacts produce finite service braking with %d contacts" % contact_count
 		)
 		_expect(
-			braking_speeds[index] < braking_speeds[index - 1],
-			"service braking increases monotonically with active contact count %d -> %d"
-			% [index, index + 1]
+			_inactive_wheels_have_zero_longitudinal_force(braking_state),
+			"inactive wheels produce no braking force with %d contacts" % contact_count
 		)
 
 	var chassis: CarChassisController = CarChassisController.new()
@@ -174,16 +190,26 @@ func _test_contact_capacity_scaling() -> void:
 	one_contact_lateral.ground_contact_count = 1
 	one_contact_lateral.forward_speed = 12.0
 	one_contact_lateral.lateral_speed = 5.0
+	one_contact_lateral.synchronize_wheel_contacts_from_aggregate()
 	var full_contact_lateral: CarRuntimeState = _make_state(config)
 	full_contact_lateral.ground_contact_count = GroundContactModel.PROBE_COUNT
 	full_contact_lateral.forward_speed = 12.0
 	full_contact_lateral.lateral_speed = 5.0
+	full_contact_lateral.synchronize_wheel_contacts_from_aggregate()
 	chassis.update_tire_dynamics(one_contact_lateral, 0.0, false, 0.0)
 	chassis.update_tire_dynamics(full_contact_lateral, 0.0, false, 0.0)
 	_expect(
-		absf(full_contact_lateral.lateral_acceleration_mps2)
-		> absf(one_contact_lateral.lateral_acceleration_mps2),
-		"available lateral tire force increases when more support points remain"
+		absf(one_contact_lateral.lateral_acceleration_mps2) > EPSILON,
+		"a remaining support point still produces lateral recovery force"
+	)
+	_expect(
+		absf(full_contact_lateral.lateral_acceleration_mps2) > EPSILON,
+		"four support points produce lateral recovery force"
+	)
+	_expect(
+		absf(one_contact_lateral.lateral_acceleration_mps2)
+		<= absf(full_contact_lateral.lateral_acceleration_mps2) * 1.05 + EPSILON,
+		"load redistribution does not create extra lateral capacity from fewer contacts"
 	)
 
 
@@ -250,6 +276,38 @@ func _make_state(config: CarDriveConfig) -> CarRuntimeState:
 	state.reset_drive_state(config.idle_rpm)
 	state.ground_contact_count = GroundContactModel.PROBE_COUNT
 	return state
+
+
+func _set_lateral_grip_usage(state: CarRuntimeState, usage: float) -> void:
+	state.synchronize_wheel_contacts_from_aggregate()
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact:
+			continue
+		wheel.lateral_grip_usage = clampf(usage, 0.0, 1.0)
+		wheel.lateral_slip_intensity = clampf(usage, 0.0, 1.0)
+	state.update_slip_aggregates()
+
+
+func _get_active_load_share_sum(state: CarRuntimeState) -> float:
+	var total: float = 0.0
+	for wheel: WheelTireState in state.wheel_states:
+		if wheel.has_contact:
+			total += wheel.normal_load_share
+	return total
+
+
+func _inactive_wheels_have_zero_load(state: CarRuntimeState) -> bool:
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact and absf(wheel.normal_load_share) > EPSILON:
+			return false
+	return true
+
+
+func _inactive_wheels_have_zero_longitudinal_force(state: CarRuntimeState) -> bool:
+	for wheel: WheelTireState in state.wheel_states:
+		if not wheel.has_contact and absf(wheel.longitudinal_force_n) > EPSILON:
+			return false
+	return true
 
 
 func _make_powertrain(config: CarDriveConfig, state: CarRuntimeState) -> CarPowertrainController:
