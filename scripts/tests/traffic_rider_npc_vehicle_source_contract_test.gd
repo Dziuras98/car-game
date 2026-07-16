@@ -12,7 +12,7 @@ const MODEL_01_VISUAL_DEFINITION := "res://resources/traffic/vehicles/bmw_4_seri
 const MODEL_01_RESEARCH_PATH := "res://docs/vehicles/traffic/bmw_4_series_2014.md"
 const PHYSICS_BASELINE := "3743f5e95391b63a97e81b95050984b8240b7f30"
 
-const SOURCE_ASSETS: PackedStringArray = PackedStringArray([
+const SOURCE_ASSETS := [
 	MODEL_01_SOURCE,
 	"res://02_chevrolet_silverado_2014.glb",
 	"res://03_renault_clio_2013.glb",
@@ -33,13 +33,13 @@ const SOURCE_ASSETS: PackedStringArray = PackedStringArray([
 	"res://18_nissan_atleon_2004.glb",
 	"res://20_skoda_octavia_combi_2013.glb",
 	"res://23_volkswagen_amarok_2010.glb",
-])
+]
 
-const EXCLUDED_ASSETS: PackedStringArray = PackedStringArray([
+const EXCLUDED_ASSETS := [
 	"res://19_scania_truck.glb",
 	"res://21_generic_articulated_truck.glb",
 	"res://22_generic_rigid_truck.glb",
-])
+]
 
 const WORKFLOW_PATH := "res://docs/assets/traffic_rider_npc_vehicle_import_workflow.md"
 const INVENTORY_PATH := "res://docs/assets/traffic_rider_npc_vehicle_inventory.md"
