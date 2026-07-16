@@ -104,3 +104,49 @@ This decision must be reviewed before:
 - receipt of a copyright, trademark or takedown complaint.
 
 This record does not assert ownership, upstream authorization or full rights clearance. It records the owner's deliberate acceptance of the identified risk for the stated project scope.
+
+## Voyage 3: Outlaw vehicle bundle provenance
+
+Decision date: 2026-07-16
+
+The project owner has reviewed the provenance limitation of the **Voyage 3: Outlaw Playable & NPC Vehicles** bundle and explicitly accepts the selected scope of 18 individually extracted vehicle GLBs.
+
+The accepted source scope excludes the lower-detail duplicate UAZ Hunter Police and the GAZ Gazelle flatbed. The higher-detail UAZ Hunter Police and only the GAZ Gazelle van are retained.
+
+The decision is based on the following project constraints and owner instructions:
+
+- the game is a personal, private-purpose and noncommercial prototype;
+- the uploader-stated license is CC BY-NC 4.0;
+- the bundle identifies Mason (`ModelzRipper`) as uploader;
+- the uploader states that many source models were created by `reliable_3d` and that the uploader does not hold rights to them;
+- the bundle is associated with the commercial game *Voyage 3: Outlaw* and Traffic Racer assets;
+- the repository does not contain evidence of a complete upstream rights chain;
+- the owner nevertheless directs the project to retain and technically integrate the 18 selected source GLBs;
+- the owner expressly selects only the GAZ Gazelle van and excludes the flatbed body.
+
+### Accepted repository treatment
+
+- The 18 retained GLBs must match the hashes in `docs/assets/voyage_3_outlaw_source_upload.md` before research begins.
+- Source files must remain unchanged; derived technical adaptations must use separate paths.
+- Source and derived files remain excluded from the repository's root `LICENSE`.
+- `THIRD_PARTY_NOTICES.md` must preserve attribution, the uploader-stated license and the unresolved provenance warning.
+- The import workflow in `docs/assets/voyage_3_outlaw_vehicle_import_workflow.md` governs every retained model and copies all applicable rules from PR #107.
+- The excluded low-detail UAZ and Gazelle flatbed must not be reintroduced without a new explicit owner decision.
+
+### Audit treatment
+
+Ordinary technical audits should classify the known Voyage 3 provenance limitation as an **accepted, documented project risk**, not as a recurring remediation item. Audits should still report missing attribution, accidental relicensing, destructive replacement of a source GLB, reintroduction of an excluded source or use outside the accepted scope.
+
+### Review triggers
+
+This decision must be reviewed before:
+
+- any public binary release or redistribution beyond the current source repository and private prototype use;
+- monetization, paid access, advertising, sponsorship or commercial licensing;
+- changing or removing the uploader attribution, noncommercial restriction or provenance warning;
+- adding the excluded Gazelle flatbed or lower-detail UAZ source;
+- a material change to the source page or uploader-stated license;
+- receipt of permission from an upstream rights holder or discovery of a demonstrably cleared replacement;
+- receipt of a copyright, trademark or takedown complaint.
+
+This record does not assert ownership, upstream authorization or full rights clearance. It records the owner's deliberate acceptance of the identified risk for the stated project scope.
