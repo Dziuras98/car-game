@@ -8,12 +8,12 @@ var _loaded_parts: Array[Node3D] = []
 
 static func _get_model_paths() -> PackedStringArray:
 	return PackedStringArray([
-		"res://assets/tracks/short_desert_track/models/track_surface.glb",
-		"res://assets/tracks/short_desert_track/models/fences.glb",
-		"res://assets/tracks/short_desert_track/models/barriers.glb",
-		"res://assets/tracks/short_desert_track/models/buildings.glb",
-		"res://assets/tracks/short_desert_track/models/vehicles.glb",
-		"res://assets/tracks/short_desert_track/models/vegetation.glb",
+		"res://assets/tracks/short_desert_track/track_surface.glb",
+		"res://assets/tracks/short_desert_track/fences.glb",
+		"res://assets/tracks/short_desert_track/barriers.glb",
+		"res://assets/tracks/short_desert_track/buildings.glb",
+		"res://assets/tracks/short_desert_track/vehicles.glb",
+		"res://assets/tracks/short_desert_track/vegetation.glb",
 	])
 
 
