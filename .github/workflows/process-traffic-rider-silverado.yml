@@ -1,0 +1,70 @@
+name: Process Traffic Rider Silverado
+
+on:
+  push:
+    branches:
+      - agent/add-traffic-rider-vehicle-workflow
+    paths:
+      - .github/workflows/process-traffic-rider-silverado.yml
+      - tools/assets/process_traffic_rider_vehicle.py
+      - 02_chevrolet_silverado_2014.glb
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: process-traffic-rider-silverado-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install pinned processor dependencies
+        run: python -m pip install numpy==2.3.5 Pillow==12.2.0 trimesh==4.11.1
+
+      - name: Move source and build derivative
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_dir="assets/third_party/sketchfab/traffic_rider_npc_vehicles/chevrolet_silverado_2014/source"
+          processed_dir="assets/third_party/sketchfab/traffic_rider_npc_vehicles/chevrolet_silverado_2014/processed"
+          mkdir -p "$source_dir" "$processed_dir"
+          if [ -f 02_chevrolet_silverado_2014.glb ]; then
+            git mv 02_chevrolet_silverado_2014.glb "$source_dir/02_chevrolet_silverado_2014.glb"
+          fi
+          python tools/assets/process_traffic_rider_vehicle.py \
+            "$source_dir/02_chevrolet_silverado_2014.glb" \
+            "$processed_dir/chevrolet_silverado_2014_processed.glb" \
+            docs/assets/traffic_rider_chevrolet_silverado_2014_processed_visual.json \
+            --vehicle-id ChevroletSilverado2014 \
+            --target-wheelbase-m 3.886 \
+            --expected-source-sha256 bce261f8703d7e03737cfd40ffa25a1546b76de84772f5b790ed7cc3b40ee465 \
+            --expected-total-faces 2232
+
+      - name: Commit canonical derivative
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "Silverado derivative is unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            assets/third_party/sketchfab/traffic_rider_npc_vehicles/chevrolet_silverado_2014 \
+            docs/assets/traffic_rider_chevrolet_silverado_2014_processed_visual.json
+          git commit -m "Process Traffic Rider Silverado visual [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
