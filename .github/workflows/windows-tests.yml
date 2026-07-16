@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: windows-godot-tests-${{ github.workflow }}-${{ github.ref }}
@@ -37,66 +37,8 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          persist-credentials: true
+          persist-credentials: false
           lfs: true
-
-      - name: Apply staged DPI v3 patch
-        if: ${{ hashFiles('agent/dpi-v3.patch.gz.b64') != '' }}
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $encodedPath = Join-Path $PWD "agent/dpi-v3.patch.gz.b64"
-          $archivePath = Join-Path $env:RUNNER_TEMP "dpi-v3.patch.gz"
-          $patchPath = Join-Path $env:RUNNER_TEMP "dpi-v3.patch"
-          $encoded = (Get-Content -LiteralPath $encodedPath -Raw).Trim()
-          [IO.File]::WriteAllBytes($archivePath, [Convert]::FromBase64String($encoded))
-          $inputStream = [IO.File]::OpenRead($archivePath)
-          try {
-            $gzipStream = [IO.Compression.GzipStream]::new($inputStream, [IO.Compression.CompressionMode]::Decompress)
-            try {
-              $outputStream = [IO.File]::Create($patchPath)
-              try {
-                $gzipStream.CopyTo($outputStream)
-              }
-              finally {
-                $outputStream.Dispose()
-              }
-            }
-            finally {
-              $gzipStream.Dispose()
-            }
-          }
-          finally {
-            $inputStream.Dispose()
-          }
-          $expectedHash = "9c94e50d61632aca0b0315450c6214846a7646d76831add547e35674d3993e7f"
-          $actualHash = (Get-FileHash -LiteralPath $patchPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualHash -ne $expectedHash) {
-            throw "DPI v3 patch SHA256 mismatch. Expected $expectedHash, received $actualHash."
-          }
-          git apply --check $patchPath
-          if ($LASTEXITCODE -ne 0) {
-            throw "DPI v3 patch preflight failed."
-          }
-          git apply $patchPath
-          if ($LASTEXITCODE -ne 0) {
-            throw "DPI v3 patch application failed."
-          }
-          git checkout origin/master -- .github/workflows/windows-tests.yml
-          Remove-Item -LiteralPath "agent/dpi-v3.patch.gz.b64" -Force
-          Remove-Item -LiteralPath "agent/trigger-dpi-v3" -Force -ErrorAction SilentlyContinue
-          Remove-Item -LiteralPath ".github/workflows/agent-apply-dpi-v3.yml" -Force -ErrorAction SilentlyContinue
-          git config user.name "openai-agent"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Calibrate DPI v3 to revised physics [agent-dpi-v3-applied]"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Could not create DPI v3 commit."
-          }
-          git push origin HEAD:agent/physics-dpi-recalibration
-          if ($LASTEXITCODE -ne 0) {
-            throw "Could not push DPI v3 commit."
-          }
 
       - name: Download and verify Godot
         shell: pwsh
