@@ -53,9 +53,10 @@ const APPROVED_SCOPE_PATHS: Dictionary = {
 	"res://docs/vehicles/traffic/mercedes_benz_sprinter_2014.md": "Approved total: 13 diesel RWD + 4 petrol/NGT RWD = 17 mechanically consolidated configurations",
 	"res://docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md": "Approved total: 2 mechanically distinct Unimog 437.4 chassis configurations",
 	"res://docs/vehicles/traffic/nissan_atlas_2007.md": "Approved total: 5 Japanese RWD + 3 European RWD = 8 Nissan Atlas / Cabstar F24 configurations",
+	"res://docs/vehicles/traffic/nissan_atleon_2004.md": "Approved total: 4 pre-facelift Nissan Atleon RWD configurations",
 }
 
-const ATLEON_RESEARCH_PATH := "res://docs/vehicles/traffic/nissan_atleon_2004.md"
+const OCTAVIA_RESEARCH_PATH := "res://docs/vehicles/traffic/skoda_octavia_combi_2013.md"
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -67,7 +68,7 @@ func _initialize() -> void:
 	_test_workflow()
 	_test_inventory()
 	_test_approved_scopes()
-	_test_atleon_gate()
+	_test_octavia_gate()
 	_test_provenance()
 	_test_gitignore()
 	_finish()
@@ -104,20 +105,20 @@ func _test_inventory() -> void:
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16 and 17 have passed their individual owner-scope gates",
-		"| 17 — Nissan Atlas / Cabstar F24 | `docs/vehicles/traffic/nissan_atlas_2007.md` | 8 |",
-		"18 — Nissan Atleon 2004 pre-facelift",
-		"4 mechanically consolidated RWD engine rows: BD30Ti 110, B4.40Ti 140, B6.60TiL 165 and B6.60TiH 210",
-		"After model 18 is approved, research continues with model 20",
+		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17 and 18 have passed their individual owner-scope gates",
+		"| 18 — Nissan Atleon 2004 pre-facelift | `docs/vehicles/traffic/nissan_atleon_2004.md` | 4 |",
+		"20 — Škoda Octavia III Combi pre-facelift",
+		"38 mechanically consolidated candidates: 23 standard FWD, 5 ordinary 4×4, 7 RS Combi and 3 Scout rows",
+		"After model 20 is approved, research continues with model 23",
 		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory")
 	for asset_path: String in SOURCE_ASSETS:
 		_expect(inventory.contains(asset_path.trim_prefix("res://")), "inventory lists %s" % asset_path)
 	for fragment: String in [
-		"Mercedes-Benz Unimog U5023 single-cab dropside source with approved U4023/U5023 mechanical scope | utility vehicle | 2,032 | `approved`",
 		"Nissan Atlas / Cabstar F24 2007 narrow single-cab flatbed source with approved RWD scope | light flatbed truck | 1,996 | `approved`",
-		"Nissan Atleon 2004 pre-facelift single-cab box truck | medium box truck | 2,076 | `awaiting_owner_scope`",
+		"Nissan Atleon 2004 pre-facelift single-cab box truck with approved four-engine RWD scope | medium box truck | 2,076 | `approved`",
+		"Škoda Octavia III type 5E Combi 2013 standard pre-facelift source | passenger estate | 2,010 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves scope: %s" % fragment)
 
@@ -132,22 +133,25 @@ func _test_approved_scopes() -> void:
 		_expect(not text.contains("Workflow status: **`awaiting_owner_scope`**"), "%s owner gate is closed" % path)
 
 
-func _test_atleon_gate() -> void:
-	_expect_fragments(_read_text(ATLEON_RESEARCH_PATH), PackedStringArray([
-		"Nissan Atleon 2004 pre-facelift box truck — research and owner-scope gate",
+func _test_octavia_gate() -> void:
+	_expect_fragments(_read_text(OCTAVIA_RESEARCH_PATH), PackedStringArray([
+		"Škoda Octavia III Combi 2013 pre-facelift — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
-		"Source Git blob SHA-1: `680e31baa11e5d7abf8d13b95b2638eb3db32e69`",
+		"Source Git blob SHA-1: `5f19949ae8f6d29ba0e4a58caeaf14d4044b75ec`",
 		"Source SHA-256: **pending direct binary hash capture before integration**",
-		"Source triangles | 2,076",
-		"BD30Ti 2.953L turbo-diesel inline-four",
-		"B4.40Ti 3.989L turbo-diesel inline-four",
-		"B6.60TiL 5.985L turbo-diesel inline-six",
-		"B6.60TiH 5.985L turbo-diesel inline-six",
-		"Mechanically consolidated candidate total: 4 pre-facelift RWD configurations",
-		"Unresolved 4WD branch",
+		"Source triangles | 2,010",
+		"Mechanically consolidated candidate total: 38 pre-facelift Octavia III Combi configurations",
+		"Standard-body petrol and G-TEC FWD — 15 candidates",
+		"Standard-body diesel FWD — 8 candidates",
+		"Standard/L&K-style 4×4 — 5 candidates",
+		"Octavia RS Combi — 7 candidates",
+		"Octavia Scout — 3 candidates",
+		"DQ200 7-speed dry-clutch DSG",
+		"DQ250 6-speed wet-clutch DSG",
+		"Haldex fifth-generation AWD",
 		"Owner scope decision — required before implementation",
 		"No implementation begins after this individual decision",
-	]), "Atleon gate")
+	]), "Octavia gate")
 
 
 func _test_provenance() -> void:
