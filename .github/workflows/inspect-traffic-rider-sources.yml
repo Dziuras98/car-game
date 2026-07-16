@@ -1,0 +1,58 @@
+name: Inspect Traffic Rider sources
+
+on:
+  push:
+    branches:
+      - agent/add-traffic-rider-vehicle-workflow
+    paths:
+      - tools/assets/inspect_traffic_rider_sources.py
+      - .github/workflows/inspect-traffic-rider-sources.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: traffic-rider-source-inspection-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: Install pinned processor dependencies
+        run: python -m pip install numpy==2.3.5 Pillow==12.2.0 trimesh==4.11.1
+
+      - name: Inspect all approved sources
+        run: python tools/assets/inspect_traffic_rider_sources.py
+
+      - name: Upload inspection report
+        uses: actions/upload-artifact@v4
+        with:
+          name: traffic-rider-source-inspection-${{ github.sha }}
+          path: docs/assets/traffic_rider_source_inspection_all.json
+          if-no-files-found: error
+
+      - name: Commit canonical inspection report
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/assets/traffic_rider_source_inspection_all.json; then
+            echo "Inspection report is unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/traffic_rider_source_inspection_all.json
+          git commit -m "Record all Traffic Rider source geometry [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
