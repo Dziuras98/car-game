@@ -29,9 +29,13 @@ const SUPPORTED_SOURCE_FRONT_AXES: PackedStringArray = PackedStringArray([
 @export var source_wheelbase_units: float = 0.0
 @export var visual_scale: float = 0.0
 
+@export_group("Processed derivative")
+@export_file("*.glb") var processed_path: String = ""
+@export var processed_sha256: String = ""
+@export var processed_visual_ready: bool = false
+
 @export_group("Godot integration")
 @export var visual_scene: PackedScene
-@export var processed_visual_ready: bool = false
 @export var body_path: NodePath
 @export var front_left_wheel_path: NodePath
 @export var front_right_wheel_path: NodePath
@@ -50,6 +54,7 @@ func validate() -> PackedStringArray:
 	if visual_scene == null:
 		errors.append("visual_scene must not be null")
 	elif processed_visual_ready:
+		_validate_processed_asset(errors)
 		_validate_processed_visual_paths(errors)
 	return errors
 
@@ -59,24 +64,39 @@ func is_valid() -> bool:
 
 
 func _validate_source(errors: PackedStringArray) -> void:
-	if source_path.strip_edges().is_empty():
-		errors.append("source_path must not be empty")
-	elif not FileAccess.file_exists(source_path):
-		errors.append("source_path must reference a committed file: %s" % source_path)
-	else:
-		var actual_sha256: String = FileAccess.get_sha256(source_path)
-		if actual_sha256.is_empty():
-			errors.append("source_path SHA-256 could not be calculated: %s" % source_path)
-		elif source_sha256.to_lower() != actual_sha256.to_lower():
-			errors.append("source_sha256 does not match the committed source bytes")
-	if source_sha256.length() != 64:
-		errors.append("source_sha256 must contain 64 hexadecimal characters")
-	elif not source_sha256.is_valid_hex_number(false):
-		errors.append("source_sha256 must be hexadecimal")
+	_validate_file_hash(source_path, source_sha256, "source", errors)
 	if source_scene == null:
 		errors.append("source_scene must not be null")
 	if not SUPPORTED_SOURCE_FRONT_AXES.has(source_front_axis):
 		errors.append("source_front_axis must be one of: %s" % ", ".join(SUPPORTED_SOURCE_FRONT_AXES))
+
+
+func _validate_processed_asset(errors: PackedStringArray) -> void:
+	_validate_file_hash(processed_path, processed_sha256, "processed", errors)
+	if not processed_path.strip_edges().is_empty() and not ResourceLoader.exists(processed_path, "PackedScene"):
+		errors.append("processed_path must import as PackedScene: %s" % processed_path)
+
+
+func _validate_file_hash(
+	path: String,
+	expected_sha256: String,
+	label: String,
+	errors: PackedStringArray
+) -> void:
+	if path.strip_edges().is_empty():
+		errors.append("%s_path must not be empty" % label)
+	elif not FileAccess.file_exists(path):
+		errors.append("%s_path must reference a committed file: %s" % [label, path])
+	else:
+		var actual_sha256: String = FileAccess.get_sha256(path)
+		if actual_sha256.is_empty():
+			errors.append("%s_path SHA-256 could not be calculated: %s" % [label, path])
+		elif expected_sha256.to_lower() != actual_sha256.to_lower():
+			errors.append("%s_sha256 does not match the committed %s bytes" % [label, label])
+	if expected_sha256.length() != 64:
+		errors.append("%s_sha256 must contain 64 hexadecimal characters" % label)
+	elif not expected_sha256.is_valid_hex_number(false):
+		errors.append("%s_sha256 must be hexadecimal" % label)
 
 
 func _validate_reference_geometry(errors: PackedStringArray) -> void:
