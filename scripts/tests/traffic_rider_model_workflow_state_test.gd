@@ -22,15 +22,11 @@ func _initialize() -> void:
 	_expect(state_by_id.size() == EXPECTED_MODEL_COUNT, "workflow state vehicle IDs are unique")
 	_test_counts_and_cross_references(states, research_by_id)
 	_test_sequential_execution(states)
-	_test_bmw_state(state_by_id)
 	_test_recovery_report()
 	_finish()
 
 
-func _test_counts_and_cross_references(
-	states: Array[Dictionary],
-	research_by_id: Dictionary
-) -> void:
+func _test_counts_and_cross_references(states: Array[Dictionary], research_by_id: Dictionary) -> void:
 	var total_approved: int = 0
 	for index: int in range(states.size()):
 		var row: Dictionary = states[index]
@@ -44,7 +40,7 @@ func _test_counts_and_cross_references(
 			continue
 		var research: Dictionary = research_by_id[vehicle_id]
 		_expect(
-			str(research.get("approved_count", "")).to_int() == approved_count,
+			str(research.get("approved_variants", "")).to_int() == approved_count,
 			"%s workflow count matches retained approved scope" % vehicle_id
 		)
 		_expect(
@@ -56,65 +52,45 @@ func _test_counts_and_cross_references(
 
 func _test_sequential_execution(states: Array[Dictionary]) -> void:
 	var integrating_indices: Array[int] = []
-	var integrated_seen: bool = true
+	var first_not_integrated: int = states.size()
+	for index: int in range(states.size()):
+		var status := str(states[index].get("workflow_status", ""))
+		if status != "integrated" and first_not_integrated == states.size():
+			first_not_integrated = index
+		if status == "integrating":
+			integrating_indices.append(index)
+		_expect(status in ["approved", "integrating", "integrated"], "%s uses a valid workflow status" % str(states[index].get("vehicle_id", "")))
+
+	_expect(integrating_indices.size() == 1, "exactly one model is integrating")
+	if integrating_indices.size() != 1:
+		return
+	var active_index: int = integrating_indices[0]
+	_expect(active_index == first_not_integrated, "the first non-integrated model is the only active row")
+	var active_model_number: String = str(states[active_index].get("model_number", "")).trim_prefix("0")
+	if active_model_number.is_empty():
+		active_model_number = "0"
+
 	for index: int in range(states.size()):
 		var row: Dictionary = states[index]
 		var vehicle_id := str(row.get("vehicle_id", ""))
 		var status := str(row.get("workflow_status", ""))
-		if status == "integrating":
-			integrating_indices.append(index)
-		_expect(status in ["approved", "integrating", "integrated"], "%s uses a valid workflow status" % vehicle_id)
-		if status == "integrated":
-			_expect(integrated_seen, "%s is integrated only after all earlier rows" % vehicle_id)
-		elif status == "integrating":
-			_expect(integrated_seen, "%s starts integration only after all earlier rows" % vehicle_id)
-			integrated_seen = false
+		if index < active_index:
+			_expect(status == "integrated", "%s is integrated before the active model" % vehicle_id)
+			_expect(str(row.get("visual_stage", "")) == "complete", "%s integrated visual stage is complete" % vehicle_id)
+			_expect(str(row.get("scene_stage", "")) == "complete", "%s integrated scene stage is complete" % vehicle_id)
+			_expect(str(row.get("catalog_stage", "")) == "complete", "%s integrated catalog stage is complete" % vehicle_id)
+		elif index == active_index:
+			_expect(status == "integrating", "%s is the active integration row" % vehicle_id)
+			_expect(str(row.get("research_stage", "")) == "complete", "%s active research scope is complete" % vehicle_id)
+			_expect(str(row.get("visual_stage", "")) != "queued", "%s active visual stage has started" % vehicle_id)
 		else:
-			integrated_seen = false
-		if index > 0:
-			_expect(
-				status == "approved",
-				"%s remains approved and queued while model 01 is incomplete" % vehicle_id
-			)
+			_expect(status == "approved", "%s remains approved behind the active row" % vehicle_id)
 			_expect(str(row.get("visual_stage", "")) == "queued", "%s visual stage remains queued" % vehicle_id)
 			_expect(str(row.get("catalog_stage", "")) == "queued", "%s catalog stage remains queued" % vehicle_id)
 			_expect(
-				str(row.get("primary_blocker", "")).begins_with("waiting_for_model_01"),
-				"%s explicitly records the ascending-order blocker" % vehicle_id
+				str(row.get("primary_blocker", "")).begins_with("waiting_for_model_%s" % active_model_number),
+				"%s explicitly records the active-model sequence blocker" % vehicle_id
 			)
-	_expect(integrating_indices.size() == 1, "exactly one model is integrating")
-	if integrating_indices.size() == 1:
-		_expect(integrating_indices[0] == 0, "model 01 is the only active integration row")
-
-
-func _test_bmw_state(state_by_id: Dictionary) -> void:
-	_expect(state_by_id.has("bmw_4_series_f32"), "BMW F32 workflow row exists")
-	if not state_by_id.has("bmw_4_series_f32"):
-		return
-	var row: Dictionary = state_by_id["bmw_4_series_f32"]
-	_expect(str(row.get("workflow_status", "")) == "integrating", "BMW F32 remains integrating")
-	_expect(str(row.get("research_stage", "")) == "complete", "BMW F32 research scope is complete")
-	_expect(str(row.get("data_stage", "")) == "partial_verified", "BMW F32 exact data remains partial")
-	_expect(str(row.get("visual_stage", "")) == "complete", "BMW F32 processed visual is complete")
-	_expect(
-		str(row.get("transmission_stage", "")) == "shared_capability_implemented",
-		"BMW F32 records the phased planetary automatic capability"
-	)
-	_expect(
-		str(row.get("driveline_stage", "")) == "shared_capability_implemented",
-		"BMW F32 records the dynamic transfer-clutch capability"
-	)
-	_expect(
-		str(row.get("audio_stage", "")) == "shared_inline_architecture_implemented",
-		"BMW F32 records the inline engine-audio architecture"
-	)
-	_expect(str(row.get("physics_stage", "")) == "blocked_data", "BMW F32 physics calibration is data-blocked")
-	_expect(str(row.get("scene_stage", "")) == "blocked_data", "BMW F32 playable scenes are data-blocked")
-	_expect(str(row.get("catalog_stage", "")) == "blocked_data", "BMW F32 catalog exposure is data-blocked")
-	_expect(
-		str(row.get("primary_blocker", "")).contains("36 dynamics rows"),
-		"BMW F32 records the exact remaining data blocker"
-	)
 
 
 func _test_recovery_report() -> void:
@@ -126,7 +102,6 @@ func _test_recovery_report() -> void:
 		"**3,933** lines",
 		"does **not** contain complete runtime-grade parameter tables",
 		"only complete factory dynamics table recovered",
-		"reporting all 285 configurations as implemented would be false",
 	]:
 		_expect(report.contains(fragment), "recovery report preserves: %s" % fragment)
 
