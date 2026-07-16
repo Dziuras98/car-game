@@ -15,26 +15,42 @@
 
 The uploader states that many models were made by `reliable_3d` on TurboSquid and explicitly states that the uploader is not the creator and does not hold rights to those models. The uploader-stated CC BY-NC metadata is retained for traceability, but it is not proof of a complete upstream rights chain.
 
-## Retained and excluded scope
+## Retained and excluded source scope
 
 - retained vehicle identities: **18**;
-- retained source geometry after upload: **19,845 triangles**;
+- retained source geometry: **19,845 triangles**;
 - retained UAZ: higher-detail UAZ Hunter Police, 4,638 triangles;
 - retained Gazelle: **van only**;
 - excluded: lower-detail UAZ Hunter Police duplicate;
 - excluded: GAZ Gazelle flatbed.
 
-## Mandatory status progression
+## Workflow and baseline state
 
 `source_only → researching → awaiting_owner_scope → approved → integrating → integrated`
 
-Model 01 is now `researching`; the other 17 retained vehicles remain `source_only`. Presence of all 18 GLBs is recorded in the branch, and model 01 has passed byte-level source verification. Each later source must pass the same verification before its research begins. The complete all-model research gate and PR #118 physics gate remain blocking.
+All 18 GLBs are committed. Model 01 is `researching`; the other 17 retained vehicles remain `source_only`. Each source must pass byte-level verification before research begins.
+
+The all-model research gate remains open: every one of the 18 model records must reach `approved` before implementation starts.
+
+PR #118 is merged. The recorded physics baseline is `3743f5e95391b63a97e81b95050984b8240b7f30`; current-`master` synchronization and a green full suite remain mandatory before model 01 enters `integrating`.
+
+## Model 01 research direction
+
+The represented visual is a Mercedes-Benz G-Class W463 long five-door station wagon and most directly depicts a G 500 M113 5.0 V8.
+
+The owner has directed the research scope to:
+
+- exclude all G 500 Guard B4/B6/B7 derivatives;
+- include the original G 63 AMG V12 factory special-order model;
+- retain ten currently identified mechanically distinct candidate configurations pending completion of exact technical evidence.
+
+The complete current matrix and evidence blocks are recorded in `docs/vehicles/traffic/mercedes_benz_g_class.md`.
 
 ## Included vehicles
 
 | # | Expected source GLB | Intended identity | Class | Triangles | Research record | Status |
 |---:|---|---|---|---:|---|---|
-| 1 | `01_mercedes_benz_g_class.glb` | Mercedes-Benz G-Class W463 long five-door station wagon; probable G 500 M113 5.0 V8, exact year pending | SUV | 676 | `docs/vehicles/traffic/mercedes_benz_g_class.md` | `researching` |
+| 1 | `01_mercedes_benz_g_class.glb` | Mercedes-Benz G-Class W463 long five-door; G 500 visual, 10-candidate mechanical scope including G 63 AMG V12, Guard excluded | SUV | 676 | `docs/vehicles/traffic/mercedes_benz_g_class.md` | `researching` |
 | 2 | `02_bmw_m3_e92.glb` | BMW M3 E92 | passenger coupe | 478 | `docs/vehicles/traffic/bmw_m3_e92.md` | `source_only` |
 | 3 | `03_mitsubishi_lancer_evolution.glb` | Mitsubishi Lancer Evolution | performance sedan | 494 | `docs/vehicles/traffic/mitsubishi_lancer_evolution.md` | `source_only` |
 | 4 | `04_liaz_bus.glb` | LiAZ bus | city bus | 600 | `docs/vehicles/traffic/liaz_bus.md` | `source_only` |
@@ -57,4 +73,4 @@ Model 01 is now `researching`; the other 17 retained vehicles remain `source_onl
 
 `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18`
 
-The uploader labels are provisional. Generation, body, facelift, model year and complete factory powertrain scope must be verified before the owner-scope gate.
+Research proceeds sequentially through owner scope. Implementation remains globally blocked until all 18 scopes are approved, then proceeds sequentially with model 02 queued until model 01 is `integrated`.
