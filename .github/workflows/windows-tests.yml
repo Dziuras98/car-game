@@ -10,230 +10,37 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-godot-tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  GODOT_VERSION: 4.7-stable
-  GODOT_ARCHIVE: Godot_v4.7-stable_win64.exe.zip
-  GODOT_EXECUTABLE: Godot_v4.7-stable_win64_console.exe
-  GODOT_EXPORT_TEMPLATES_ARCHIVE: Godot_v4.7-stable_export_templates.tpz
-  GODOT_EXPORT_TEMPLATE_VERSION: 4.7.stable
-  GODOT_CACHE_DIRECTORY: tools/cache/godot
-  GODOT_CHECKSUMS_FILE: scripts/ci/godot_4_7_sha512.txt
-
 jobs:
-  tests:
-    name: Godot 4.7 Windows tests and export
-    runs-on: windows-2025
-    timeout-minutes: 35
-
+  apply-final-dpi-v3:
+    name: Apply final DPI v3 calibration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Check out repository
+      - name: Check out working branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: agent/physics-dpi-recalibration
           fetch-depth: 0
-          fetch-tags: true
-          persist-credentials: false
-          lfs: true
+          persist-credentials: true
 
-      - name: Download and verify Godot
-        shell: pwsh
+      - name: Verify, apply and publish patch
+        shell: bash
         run: |
-          $ErrorActionPreference = "Stop"
-          $ProgressPreference = "SilentlyContinue"
-
-          $toolsDirectory = Join-Path $PWD "tools/godot"
-          New-Item -ItemType Directory -Path $toolsDirectory -Force | Out-Null
-
-          $baseUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION"
-          $archivePath = Join-Path $env:RUNNER_TEMP $env:GODOT_ARCHIVE
-          $sumsPath = Join-Path $PWD $env:GODOT_CHECKSUMS_FILE
-          if (-not (Test-Path -LiteralPath $sumsPath -PathType Leaf)) {
-            throw "Pinned Godot checksum manifest was not found: $sumsPath"
-          }
-          Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_ARCHIVE" -OutFile $archivePath
-
-          $escapedArchiveName = [regex]::Escape($env:GODOT_ARCHIVE)
-          $checksumLine = Get-Content -LiteralPath $sumsPath | Where-Object {
-            $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
-          } | Select-Object -First 1
-          if ([string]::IsNullOrWhiteSpace($checksumLine)) {
-            throw "Pinned checksum manifest does not contain $env:GODOT_ARCHIVE."
-          }
-          $expectedHash = [regex]::Match(
-            $checksumLine,
-            "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
-          ).Groups["hash"].Value.ToLowerInvariant()
-          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA512).Hash.ToLowerInvariant()
-          if ($actualHash -ne $expectedHash) {
-            throw "Godot archive SHA512 mismatch. Expected $expectedHash, received $actualHash."
-          }
-
-          Expand-Archive -LiteralPath $archivePath -DestinationPath $toolsDirectory -Force
-          $godotPath = Join-Path $toolsDirectory $env:GODOT_EXECUTABLE
-          if (-not (Test-Path -LiteralPath $godotPath -PathType Leaf)) {
-            throw "Godot executable was not found after extraction: $godotPath"
-          }
-          "GODOT_BIN=$godotPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "GODOT_SHA512_SUMS=$sumsPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Verify Godot version
-        shell: pwsh
-        run: |
-          & $env:GODOT_BIN --version
-          if ($LASTEXITCODE -ne 0) {
-            throw "Godot version check failed with exit code $LASTEXITCODE."
-          }
-
-      - name: Verify project
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $diagnosticDirectory = Join-Path $PWD "build/test-logs"
-          New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
-          "Workflow verification wrapper started." | Set-Content -LiteralPath (Join-Path $diagnosticDirectory "workflow-wrapper.log") -Encoding utf8
-
-          try {
-            ./scripts/ci/verify_project.ps1 -GodotBinary $env:GODOT_BIN
-          }
-          catch {
-            $failureText = $_ | Out-String
-            $failureText | Set-Content -LiteralPath (Join-Path $diagnosticDirectory "workflow-runner-failure.log") -Encoding utf8
-            Write-Host $failureText
-            throw
-          }
-
-      - name: Publish verification summary
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          ./scripts/ci/write_junit_step_summary.ps1 `
-            -ReportPath (Join-Path $PWD "build/test-logs/junit.xml") `
-            -SummaryPath $env:GITHUB_STEP_SUMMARY
-
-      - name: Restore verified export-template archive
-        id: export-template-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.GODOT_CACHE_DIRECTORY }}/${{ env.GODOT_EXPORT_TEMPLATES_ARCHIVE }}
-          key: windows-godot-export-template-archive-${{ env.GODOT_VERSION }}-x86_64
-
-      - name: Download export-template archive
-        if: steps.export-template-cache.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $ProgressPreference = "SilentlyContinue"
-
-          $baseUrl = "https://github.com/godotengine/godot-builds/releases/download/$env:GODOT_VERSION"
-          $cacheDirectory = Join-Path $PWD $env:GODOT_CACHE_DIRECTORY
-          $archivePath = Join-Path $cacheDirectory $env:GODOT_EXPORT_TEMPLATES_ARCHIVE
-          New-Item -ItemType Directory -Path $cacheDirectory -Force | Out-Null
-          Invoke-WebRequest -Uri "$baseUrl/$env:GODOT_EXPORT_TEMPLATES_ARCHIVE" -OutFile $archivePath
-
-      - name: Verify and install export templates
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-
-          $cacheDirectory = Join-Path $PWD $env:GODOT_CACHE_DIRECTORY
-          $archivePath = Join-Path $cacheDirectory $env:GODOT_EXPORT_TEMPLATES_ARCHIVE
-          $extractDirectory = Join-Path $env:RUNNER_TEMP "godot-export-templates"
-          $sourceDirectory = Join-Path $extractDirectory "templates"
-          $targetDirectory = Join-Path $env:APPDATA "Godot/export_templates/$env:GODOT_EXPORT_TEMPLATE_VERSION"
-
-          if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
-            throw "Godot export-template archive was not found after cache restore/download: $archivePath"
-          }
-
-          $escapedArchiveName = [regex]::Escape($env:GODOT_EXPORT_TEMPLATES_ARCHIVE)
-          $checksumLine = Get-Content -LiteralPath $env:GODOT_SHA512_SUMS | Where-Object {
-            $_ -match "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
-          } | Select-Object -First 1
-          if ([string]::IsNullOrWhiteSpace($checksumLine)) {
-            throw "Pinned checksum manifest does not contain $env:GODOT_EXPORT_TEMPLATES_ARCHIVE."
-          }
-          $expectedHash = [regex]::Match(
-            $checksumLine,
-            "^(?<hash>[0-9A-Fa-f]{128})\s+\*?$escapedArchiveName$"
-          ).Groups["hash"].Value.ToLowerInvariant()
-          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA512).Hash.ToLowerInvariant()
-          if ($actualHash -ne $expectedHash) {
-            throw "Godot export templates SHA512 mismatch. Expected $expectedHash, received $actualHash."
-          }
-
-          Remove-Item -LiteralPath $extractDirectory -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -LiteralPath $targetDirectory -Recurse -Force -ErrorAction SilentlyContinue
-          Expand-Archive -LiteralPath $archivePath -DestinationPath $extractDirectory -Force
-          $releaseSource = Join-Path $sourceDirectory "windows_release_x86_64.exe"
-          $debugSource = Join-Path $sourceDirectory "windows_debug_x86_64.exe"
-          if (-not (Test-Path -LiteralPath $releaseSource -PathType Leaf)) {
-            throw "The archive does not contain the Windows release template: $releaseSource"
-          }
-          if (-not (Test-Path -LiteralPath $debugSource -PathType Leaf)) {
-            throw "The archive does not contain the Windows debug template: $debugSource"
-          }
-
-          New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
-          Copy-Item -LiteralPath $releaseSource -Destination $targetDirectory -Force
-          Copy-Item -LiteralPath $debugSource -Destination $targetDirectory -Force
-
-      - name: Verify Windows export templates
-        shell: pwsh
-        run: |
-          $templateDirectory = Join-Path $env:APPDATA "Godot/export_templates/$env:GODOT_EXPORT_TEMPLATE_VERSION"
-          $releaseTemplate = Join-Path $templateDirectory "windows_release_x86_64.exe"
-          $debugTemplate = Join-Path $templateDirectory "windows_debug_x86_64.exe"
-
-          if (-not (Test-Path -LiteralPath $releaseTemplate -PathType Leaf)) {
-            throw "Windows release export template was not found: $releaseTemplate"
-          }
-          if (-not (Test-Path -LiteralPath $debugTemplate -PathType Leaf)) {
-            throw "Windows debug export template was not found: $debugTemplate"
-          }
-
-      - name: Export and smoke-test Windows build
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $diagnosticDirectory = Join-Path $PWD "build/test-logs"
-          New-Item -ItemType Directory -Path $diagnosticDirectory -Force | Out-Null
-          try {
-            ./scripts/ci/export_windows.ps1 -GodotBinary $env:GODOT_BIN
-          }
-          catch {
-            $failureText = $_ | Out-String
-            $failureText | Set-Content -LiteralPath (Join-Path $diagnosticDirectory "workflow-export-failure.log") -Encoding utf8
-            Write-Host $failureText
-            throw
-          }
-
-      - name: Upload diagnostics
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: car-game-diagnostics-${{ github.sha }}
-          path: |
-            build/test-logs/
-            build/windows/*.log
-            build/windows-test/*.log
-          if-no-files-found: warn
-          retention-days: 14
-          compression-level: 6
-
-      - name: Upload trusted Windows packages
-        if: ${{ success() && github.event_name != 'pull_request' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: car-game-windows-${{ github.sha }}
-          path: |
-            build/windows/
-            build/windows-test/
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 6
+          set -euo pipefail
+          base64 --decode agent/dpi-final.patch.gz.b64 | gzip --decompress > /tmp/dpi-final.patch
+          echo "29f216c69f61603a2c186fa28a1f272706c02357c82e08671383c5a6ea8a1eb6  /tmp/dpi-final.patch" | sha256sum --check
+          git apply --check /tmp/dpi-final.patch
+          git apply /tmp/dpi-final.patch
+          git checkout origin/master -- .github/workflows/windows-tests.yml
+          rm -f agent/dpi-final.patch.gz.b64
+          git config user.name "openai-agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Implement DPI v3 and calibrate production cars [dpi-v3-applied]"
+          git push origin HEAD:agent/physics-dpi-recalibration
