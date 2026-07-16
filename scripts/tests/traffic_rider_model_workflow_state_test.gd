@@ -66,9 +66,7 @@ func _test_sequential_execution(states: Array[Dictionary]) -> void:
 		return
 	var active_index: int = integrating_indices[0]
 	_expect(active_index == first_not_integrated, "the first non-integrated model is the only active row")
-	var active_model_number: String = str(states[active_index].get("model_number", "")).trim_prefix("0")
-	if active_model_number.is_empty():
-		active_model_number = "0"
+	var active_model_number: String = str(states[active_index].get("model_number", "")).strip_edges()
 
 	for index: int in range(states.size()):
 		var row: Dictionary = states[index]
