@@ -5,6 +5,7 @@ signal visual_parts_loaded(loaded_count: int, missing_paths: PackedStringArray)
 
 const PART_COUNT: int = 17
 const PART_DIRECTORY: String = "res://assets/tracks/high_speed_ring"
+const VISUAL_VERTICAL_OFFSET: float = 0.03
 
 var _loaded_parts: Array[Node3D] = []
 
@@ -16,7 +17,12 @@ static func _get_model_paths() -> PackedStringArray:
 	return paths
 
 
+static func _get_source_to_project_transform() -> Transform3D:
+	return Transform3D(Basis.IDENTITY, Vector3(0.0, VISUAL_VERTICAL_OFFSET, 0.0))
+
+
 func _ready() -> void:
+	transform = _get_source_to_project_transform()
 	_load_available_parts()
 
 
