@@ -94,11 +94,16 @@ func _apply_engine_audio_profile(car_controller: PlayerCarController, specs: Car
 		if profiled_audio != null:
 			profiled_audio.profile = specs.engine_audio_profile
 	var traffic_specs: TrafficRiderCarSpecs = specs as TrafficRiderCarSpecs
-	if traffic_specs == null or traffic_specs.inline_engine_audio_profile == null:
+	if traffic_specs == null:
 		return
-	var inline_audio: TrafficRiderInlineEngineAudioSynthesizer = car_controller.get_node_or_null(^"EngineAudio") as TrafficRiderInlineEngineAudioSynthesizer
-	if inline_audio != null:
-		inline_audio.profile = traffic_specs.inline_engine_audio_profile
+	if traffic_specs.inline_engine_audio_profile != null:
+		var inline_audio: TrafficRiderInlineEngineAudioSynthesizer = car_controller.get_node_or_null(^"EngineAudio") as TrafficRiderInlineEngineAudioSynthesizer
+		if inline_audio != null:
+			inline_audio.profile = traffic_specs.inline_engine_audio_profile
+	if traffic_specs.banked_engine_audio_profile != null:
+		var banked_audio: TrafficRiderBankedEngineAudioSynthesizer = car_controller.get_node_or_null(^"EngineAudio") as TrafficRiderBankedEngineAudioSynthesizer
+		if banked_audio != null:
+			banked_audio.profile = traffic_specs.banked_engine_audio_profile
 
 func _validate_specs(specs: CarSpecs, context: String) -> bool:
 	if specs == null:
