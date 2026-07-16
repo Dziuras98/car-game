@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - tools/assets/recover_traffic_rider_research_history.py
+      - tools/assets/recover_traffic_rider_research_history_full.py
       - .github/workflows/recover-traffic-rider-research-history.yml
   workflow_dispatch:
 
@@ -31,7 +32,7 @@ jobs:
         env:
           TRAFFIC_RIDER_BASE_SHA: ${{ github.event.pull_request.base.sha || '3743f5e95391b63a97e81b95050984b8240b7f30' }}
           TRAFFIC_RIDER_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: python tools/assets/recover_traffic_rider_research_history.py
+        run: python tools/assets/recover_traffic_rider_research_history_full.py
 
       - name: Upload recovery archive
         uses: actions/upload-artifact@v4
