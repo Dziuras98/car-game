@@ -3,14 +3,13 @@ class_name GameSessionState
 
 signal phase_changed(phase: Phase)
 
-
 enum Phase {
 	MENU,
 	STARTING,
 	FREE_DRIVE,
+	# Retained only so old serialized test code can still parse.
 	RACE,
 }
-
 
 enum Result {
 	OK,
@@ -19,7 +18,6 @@ enum Result {
 	EMPTY_TRACK_ID,
 	EMPTY_CAR_VARIANT_ID,
 }
-
 
 var _phase: Phase = Phase.MENU
 var _mode_id: StringName = &""
@@ -38,20 +36,23 @@ func begin_start() -> Result:
 	return Result.OK
 
 
-func commit(mode_id: StringName, track_id: StringName, car_variant_id: StringName) -> Result:
+func commit(
+	mode_id: StringName,
+	track_id: StringName,
+	car_variant_id: StringName
+) -> Result:
 	if _phase != Phase.STARTING:
 		return Result.INVALID_PHASE
-	if not GameModes.is_supported(mode_id):
+	if mode_id != GameModes.FREE_DRIVE:
 		return Result.UNSUPPORTED_MODE
 	if track_id == &"":
 		return Result.EMPTY_TRACK_ID
 	if car_variant_id == &"":
 		return Result.EMPTY_CAR_VARIANT_ID
-
-	_mode_id = mode_id
+	_mode_id = GameModes.FREE_DRIVE
 	_track_id = track_id
 	_car_variant_id = car_variant_id
-	_set_phase(Phase.RACE if mode_id == GameModes.RACE else Phase.FREE_DRIVE)
+	_set_phase(Phase.FREE_DRIVE)
 	return Result.OK
 
 
@@ -100,7 +101,7 @@ func is_free_drive() -> bool:
 
 
 func is_race() -> bool:
-	return _phase == Phase.RACE
+	return false
 
 
 func _set_phase(next_phase: Phase) -> void:
