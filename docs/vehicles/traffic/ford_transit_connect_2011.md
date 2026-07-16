@@ -108,6 +108,20 @@ The Azure row requires a complete dedicated electric drivetrain model rather tha
 
 The owner requested a direct single-speed drivetrain. This is represented as a direct motor-to-fixed-reduction transaxle path with no gear changes; it must not be interpreted as an arbitrary 1:1 ratio when the evidenced vehicle uses a reduction gear.
 
+## Engine and driveline audio architecture
+
+The combustion rows require three model-specific families:
+
+- **European 1.8L Zetec/Duratec petrol** — naturally aspirated port-injected inline-four combustion, intake, exhaust and valvetrain layers calibrated for the compact-commercial intake/exhaust system and high-roof body rather than a passenger-car donor;
+- **North-American 2.0L Duratec petrol** — separate DOHC inline-four displacement/calibration and 4F27E converter/transaxle profile. It may share valid low-level Duratec utilities but must not reuse the 1.8 primary waveform without evidence that firing, intake/exhaust and calibration are equivalent;
+- **1.8L Duratorq/TDCi diesel** — common-rail/compression-ignition inline-four architecture with injection, diesel mechanical orders, turbo, engine-braking and high-load response. The merged 75-PS row, 90-PS row and 110-PS VGT row require separate profiles; the VGT calibration needs an actual variable-geometry turbo state model rather than generic turbo noise.
+
+Selected-year DPF/non-DPF and emissions hardware affect exhaust filtering, backpressure/regeneration and thermal/transient audio metadata without creating duplicate catalog rows. A non-DPF representative must not inherit regeneration events.
+
+Manual rows require clutch, synchronizer and MTX-75-family geartrain layers. The 4F27E row requires converter slip/lock-up and planetary shift-event layers driven by real transmission telemetry. The high-roof passenger body requires its own cabin/body resonance, tyre and load response.
+
+The Azure Electric row uses the non-combustion motor/inverter/fixed-reduction/regeneration backend described above and must not play petrol or diesel idle. Player rows use explicit live synthesis; AI uses the correct committed baked family or live synthesis with a representative fleet budget.
+
 ## Diesel emissions metadata
 
 DPF, non-DPF, EGR, catalyst and emissions-standard differences remain mandatory selected-year metadata. They do not create separate catalog vehicles. A DPF-equipped calibration must still model backpressure, regeneration and thermal behaviour, while a non-DPF calibration must not inherit those effects.
@@ -123,7 +137,8 @@ Before implementation retain primary Ford or manufacturer evidence for:
 - one standard final drive and differential state per approved row;
 - selected-year DPF and emissions hardware;
 - body-correct mass, axle loads, tyres, brakes, drag and performance;
-- Azure motor continuous/peak curves, inverter limits, usable battery energy, battery mass, fixed reduction and regenerative limits.
+- Azure motor continuous/peak curves, inverter limits, usable battery energy, battery mass, fixed reduction and regenerative limits;
+- firing/order, intake/exhaust, injection, VGT, limiter/governor and drivetrain-audio evidence for every combustion family.
 
 These evidence gaps do not reopen the six-row approved catalog scope and do not authorize guessed parameters.
 
