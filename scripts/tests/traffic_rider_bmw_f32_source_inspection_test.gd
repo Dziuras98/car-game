@@ -2,6 +2,7 @@ extends SceneTree
 
 const SOURCE_PATH := "res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb"
 const REPORT_PATH := "res://build/test-logs/traffic-rider-bmw-f32-source-inspection.json"
+const SOURCE_COPY_PATH := "res://build/test-logs/traffic-rider-bmw-f32-source.glb"
 const BODY_NODE_NAME := "AI_Bmw4_High_BMW_4_Series_2014_0"
 const FRONT_WHEEL_NODE_NAME := "on_teker_0"
 const REAR_WHEEL_NODE_NAME := "arka_teker_0"
@@ -59,27 +60,28 @@ func _initialize() -> void:
 		_validate_wheel_pair(front_analysis, "front")
 		_validate_wheel_pair(rear_analysis, "rear")
 
-		var front_axle_y := _average_side_axis(front_analysis, "center", 1)
-		var rear_axle_y := _average_side_axis(rear_analysis, "center", 1)
-		var measured_wheelbase := absf(front_axle_y - rear_axle_y)
+		var front_axle_z := _average_side_axis(front_analysis, "center", 2)
+		var rear_axle_z := _average_side_axis(rear_analysis, "center", 2)
+		var measured_wheelbase := absf(front_axle_z - rear_axle_z)
 		var source_center_x := (
 			_average_side_axis(front_analysis, "center", 0)
 			+ _average_side_axis(rear_analysis, "center", 0)
 		) * 0.5
-		var source_ground_z := minf(
-			_minimum_side_axis(front_analysis, 2),
-			_minimum_side_axis(rear_analysis, 2)
+		var source_ground_y := minf(
+			_minimum_side_axis(front_analysis, 1),
+			_minimum_side_axis(rear_analysis, 1)
 		)
 		report["measured_source_wheelbase"] = measured_wheelbase
 		report["wheelbase_scale_to_2_810_m"] = 2.810 / measured_wheelbase if measured_wheelbase > 0.0 else 0.0
 		report["source_vehicle_center_x"] = source_center_x
-		report["source_axle_midpoint_y"] = (front_axle_y + rear_axle_y) * 0.5
-		report["source_ground_z"] = source_ground_z
-		report["inferred_source_up_axis"] = "+Z"
-		report["inferred_source_front_axis"] = "+Y" if front_axle_y > rear_axle_y else "-Y"
+		report["source_axle_midpoint_z"] = (front_axle_z + rear_axle_z) * 0.5
+		report["source_ground_y"] = source_ground_y
+		report["inferred_source_up_axis"] = "+Y"
+		report["inferred_source_front_axis"] = "+Z" if front_axle_z > rear_axle_z else "-Z"
 		_expect(absf(measured_wheelbase - EXPECTED_SOURCE_WHEELBASE) <= WHEELBASE_TOLERANCE, "wheelbase measurement matches recorded source evidence")
 
 	_write_report(report)
+	_copy_source_to_diagnostics()
 	source_root.free()
 	_finish()
 
@@ -273,6 +275,23 @@ func _write_report(report: Dictionary) -> void:
 	if file != null:
 		file.store_string(JSON.stringify(report, "\t", false))
 		file.close()
+
+
+func _copy_source_to_diagnostics() -> void:
+	var source_bytes := FileAccess.get_file_as_bytes(SOURCE_PATH)
+	_expect(not source_bytes.is_empty(), "source bytes can be read for diagnostic artifact")
+	if source_bytes.is_empty():
+		return
+	var output := FileAccess.open(SOURCE_COPY_PATH, FileAccess.WRITE)
+	_expect(output != null, "source diagnostic copy can be written")
+	if output == null:
+		return
+	output.store_buffer(source_bytes)
+	output.close()
+	_expect(
+		FileAccess.get_sha256(SOURCE_COPY_PATH) == FileAccess.get_sha256(SOURCE_PATH),
+		"source diagnostic copy preserves SHA-256"
+	)
 
 
 func _vector_to_array(value: Vector3) -> Array[float]:
