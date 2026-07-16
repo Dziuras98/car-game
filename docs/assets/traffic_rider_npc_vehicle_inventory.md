@@ -54,7 +54,7 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 17 | `17_nissan_atlas_2007.glb` | Nissan Atlas / Cabstar F24 2007 narrow single-cab flatbed source with approved RWD scope | light flatbed truck | 1,996 | `approved` |
 | 18 | `18_nissan_atleon_2004.glb` | Nissan Atleon 2004 pre-facelift single-cab box truck with approved four-engine RWD scope | medium box truck | 2,076 | `approved` |
 | 20 | `20_skoda_octavia_combi_2013.glb` | Škoda Octavia III type 5E Combi 2013 standard pre-facelift source with approved non-Scout scope | passenger estate | 2,010 | `approved` |
-| 23 | `23_volkswagen_amarok_2010.glb` | Volkswagen Amarok I type 2H pre-V6 Double Cab source | pickup | 2,684 | `awaiting_owner_scope` |
+| 23 | `23_volkswagen_amarok_2010.glb` | Volkswagen Amarok I type 2H original Double Cab source with full-generation engine research scope | pickup | 2,684 | `awaiting_owner_scope` |
 
 Total committed source geometry: **40,300 triangles**.
 
@@ -88,7 +88,7 @@ Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 an
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 23 — Volkswagen Amarok I pre-V6 | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 12 mechanically consolidated candidates: 5 original 122/163-PS diesel rows, 6 updated 140/180-PS diesel rows and 1 regional 2.0 TSI row | all candidates; RWD/selectable low-range/permanent 4MOTION; early and late diesel calibrations; both 180-PS automatic rows; regional TSI; three evidence-blocked rows; common Double Cab body; body/payload duplicates; V6/facelift exclusions; missing variants |
+| 23 — Volkswagen Amarok I full generation | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 19 mechanically consolidated candidates: 5 original 122/163-PS diesel rows, 6 updated 140/180-PS diesel rows, 1 regional 2.0 TSI row and 7 V6 163/204/224/258-PS rows | all candidates; all nine engines; RWD/selectable low-range/permanent 4MOTION; early, late and V6 calibrations; Australian V6 manual low-range row; seven evidence-blocked rows; common original Double Cab body versus facelift derivatives; body-phase and payload duplicates; concept/non-Amarok/second-generation exclusions; missing variants |
 
 No implementation work may begin for any model while this final owner-scope gate remains unresolved. After model 23 is approved, all included models will have passed their individual research gates and the global implementation phase may begin.
 
