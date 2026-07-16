@@ -66,7 +66,7 @@ Total committed source geometry: **40,300 triangles**.
 |---|---|---:|---|
 | 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 | all 42 mechanically distinct standard combinations, including regional 418i/418d entries subject to final evidence, plus RWD 6MT and 8AT 435i ZHP; strict pre-LCI body; no mechanically duplicate catalog entries |
 | 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 | all distinct pre-facelift engine/transmission combinations but RWD only: LV3+6L80, L83+6L80, L86+6L80 and L86+8L90 |
-| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération |
+| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération; no GT, LPG, R.S., Estate, emissions-package or duplicate calibration rows |
 | 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 | all researched pre-facelift Chevrolet-badged J300 sedan rows |
 | 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 | regular-length cargo body; 4.6L and 5.4L V8 |
 | 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 | 4x2 5.4 V8, 6.8 V10, 7.3 early, 7.3 late and 6.0 Power Stroke |
@@ -92,11 +92,13 @@ All 20 models have passed their individual owner-scope gates. Combined approved 
 | Item | State |
 |---|---|
 | Physics baseline | `3743f5e95391b63a97e81b95050984b8240b7f30` recorded; dependency resolved |
-| Model 01 source | moved unchanged to canonical third-party path; root duplicate removed |
-| Model 01 scale/orientation | wheelbase-derived scale `0.6940157`; source `+Z` converted to project `-Z` |
-| Model 01 visual definition | created and validated as incomplete until wheel separation is complete |
-| Model 01 processed derivative | pending four independent hub-centred wheel meshes |
-| Model 01 powertrain catalog | pending exact evidence-backed data; no guessed variants exposed |
+| Model 01 source | moved unchanged to canonical third-party path; root duplicate removed; SHA-256 `fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510` |
+| Model 01 scale/orientation | measured source wheelbase `4.0489225388`; uniform scale `0.6940117952`; source `+Z` converted to project local `-Z` |
+| Model 01 processed derivative | deterministic static GLB generated; SHA-256 `bd0dc99b51e9756b800aeece83e2cea794b69aa182b583487fccf50e53237369`; all 1,780 triangles preserved |
+| Model 01 wheel geometry | four independent hub-centred meshes, 162 triangles each; 2.810 m wheelbase; approximately 0.328 m rolling radius |
+| Model 01 runtime visuals | explicit `CarVisualController` bindings for four independent physics-v3 wheel states; runtime controller test covers steering and independent angular positions |
+| Model 01 structured research data | 44 approved candidate IDs, 17 engine/calibration rows and eight complete factory-exact dynamics rows migrated; remaining approved rows still require migration from retained research records/history |
+| Model 01 powertrain catalog | not exposed until eligible rows have complete structured torque-curve, transmission, mass, tyre, aero, audio and validation data; no guessed variants |
 | Next model | model 02 remains queued until model 01 reaches `integrated` |
 
 ## Source topology
