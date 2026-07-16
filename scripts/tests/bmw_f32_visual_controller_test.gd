@@ -23,6 +23,11 @@ func _initialize() -> void:
 	_expect(visuals.get_registered_wheel_count() == 4, "BMW F32 exposes four wheel visuals")
 	_expect(not visuals.is_using_low_detail(), "BMW F32 remains on its detailed processed model without a fallback LOD")
 
+	var processed_root := visuals.get_node_or_null(^"Detailed/ProcessedModel") as Node3D
+	_expect(processed_root != null, "BMW F32 resolves the processed model root")
+	if processed_root != null:
+		_expect(processed_root.get_node_or_null(^"Body") is MeshInstance3D, "BMW F32 keeps the processed body mesh")
+
 	var steering_pivots: Array[Node3D] = []
 	var spin_pivots: Array[Node3D] = []
 	for wheel_id: StringName in WHEEL_IDS:
@@ -34,6 +39,7 @@ func _initialize() -> void:
 			steering_pivots.append(steering)
 		if spin != null:
 			spin_pivots.append(spin)
+			_validate_bound_wheel(spin, wheel_id)
 
 	_expect(_all_distinct(steering_pivots), "all BMW F32 steering pivots are distinct")
 	_expect(_all_distinct(spin_pivots), "all BMW F32 spin pivots are distinct")
@@ -45,6 +51,26 @@ func _initialize() -> void:
 	_expect(true, "BMW F32 accepts independent per-wheel angular positions")
 	visuals.free()
 	_finish()
+
+
+func _validate_bound_wheel(spin_pivot: Node3D, wheel_id: StringName) -> void:
+	var expected_name := _expected_wheel_node_name(wheel_id)
+	_expect(spin_pivot.get_child_count() == 1, "%s spin pivot owns exactly one wheel mesh" % wheel_id)
+	var wheel := spin_pivot.get_child(0) as MeshInstance3D if spin_pivot.get_child_count() == 1 else null
+	_expect(wheel != null, "%s spin pivot owns a MeshInstance3D" % wheel_id)
+	if wheel == null:
+		return
+	_expect(String(wheel.name) == expected_name, "%s binds the processed %s node" % [wheel_id, expected_name])
+	_expect(wheel.position.length() < 0.0001, "%s processed mesh is hub-centred under its spin pivot" % wheel_id)
+
+
+func _expected_wheel_node_name(wheel_id: StringName) -> String:
+	match wheel_id:
+		&"front_left": return "FrontLeftWheel"
+		&"front_right": return "FrontRightWheel"
+		&"rear_left": return "RearLeftWheel"
+		&"rear_right": return "RearRightWheel"
+	return ""
 
 
 func _validate_positions(visuals: BmwF32VisualController) -> void:
