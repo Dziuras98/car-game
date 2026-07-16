@@ -87,10 +87,18 @@ func _instantiate_variant_scene(variant: CarVariantDefinition, car_scene: Packed
 	return car_controller
 
 func _apply_engine_audio_profile(car_controller: PlayerCarController, specs: CarSpecs) -> void:
-	if car_controller == null or specs == null or specs.engine_audio_profile == null: return
-	var engine_audio: ProfiledEngineAudioSynthesizer = car_controller.get_node_or_null(^"EngineAudio") as ProfiledEngineAudioSynthesizer
-	if engine_audio != null:
-		engine_audio.profile = specs.engine_audio_profile
+	if car_controller == null or specs == null:
+		return
+	if specs.engine_audio_profile != null:
+		var profiled_audio: ProfiledEngineAudioSynthesizer = car_controller.get_node_or_null(^"EngineAudio") as ProfiledEngineAudioSynthesizer
+		if profiled_audio != null:
+			profiled_audio.profile = specs.engine_audio_profile
+	var traffic_specs: TrafficRiderCarSpecs = specs as TrafficRiderCarSpecs
+	if traffic_specs == null or traffic_specs.inline_engine_audio_profile == null:
+		return
+	var inline_audio: TrafficRiderInlineEngineAudioSynthesizer = car_controller.get_node_or_null(^"EngineAudio") as TrafficRiderInlineEngineAudioSynthesizer
+	if inline_audio != null:
+		inline_audio.profile = traffic_specs.inline_engine_audio_profile
 
 func _validate_specs(specs: CarSpecs, context: String) -> bool:
 	if specs == null:

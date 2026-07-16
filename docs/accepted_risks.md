@@ -59,3 +59,37 @@ This standing decision must be reviewed if any of the following occurs:
 - monetization, paid access, advertising, sponsorship or commercial licensing is considered;
 - an asset author or rights holder supplies explicit permission or different license terms;
 - a copyright, trademark or takedown complaint is received.
+
+## Traffic Rider NPC vehicle bundle provenance
+
+Decision date: 2026-07-15
+
+The project owner has reviewed the provenance limitation for the Sketchfab **Traffic Rider NPC Vehicles** bundle and has decided to retain the 20 included non-heavy source models for the current private, noncommercial prototype.
+
+The source page and embedded metadata identify Mason (`ModelzRipper`) as the uploader and state CC BY-NC 4.0. The models appear to originate from the commercial game **Traffic Rider**, while the repository contains no written authorization from the game's publisher, developer or original asset rights holders. The uploader-stated license is therefore recorded together with an incomplete upstream rights chain; it is not treated as proof that every underlying right was available for licensing.
+
+The 20 source GLBs remain committed and are not added to `.gitignore`. They must remain unchanged until each model reaches the implementation stage defined in `docs/assets/traffic_rider_npc_vehicle_import_workflow.md`. Scania, generic articulated truck and generic rigid truck remain excluded from this approved vehicle scope.
+
+This decision is based on the following project constraints:
+
+- the project remains a private, noncommercial prototype for personal use;
+- no public source or binary redistribution containing these assets is currently planned;
+- the repository must preserve the source attribution, uploader-stated license and upstream-rights warning;
+- derived geometry, Godot scenes, physics, audio and catalog data do not broaden rights in the underlying source models;
+- the assets are excluded from the repository's root license;
+- no contributor may describe the bundle as fully rights-cleared.
+
+### Audit treatment
+
+For the current private/noncommercial scope, future technical audits should treat retention of these 20 source GLBs as an **accepted, documented project risk** rather than repeatedly reopening the same provenance question. This does not assert that the upstream rights issue has been resolved.
+
+### Review triggers
+
+The decision must be reviewed before:
+
+- any public source release, binary release or redistribution containing the source or derived vehicle assets;
+- monetization, paid access, advertising, sponsorship or commercial licensing;
+- applying a different license or removing the noncommercial restriction, attribution or provenance warning;
+- a material change to the source page, displayed license or known origin of the models;
+- receipt of a copyright, trademark or takedown complaint;
+- discovery of replacement models with demonstrably better rights clearance.

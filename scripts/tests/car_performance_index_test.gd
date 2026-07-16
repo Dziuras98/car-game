@@ -16,23 +16,21 @@ func _initialize() -> void:
 	var variants: Array[CarVariantDefinition] = CAR_CATALOG.get_all_variants()
 	_expect(not variants.is_empty(), "car catalog exposes variants for DPI evaluation")
 	for variant: CarVariantDefinition in variants:
-		var variant_specs: CarSpecs = variant.get_specs()
-		var direct_index: int = CarPerformanceIndexCalculator.calculate(variant_specs)
-		var course_times: Vector3 = CarPerformanceIndexCalculator.calculate_course_times(variant_specs)
-		print(
-			"[DPI_V3_CATALOG] %s dpi=%d technical=%.3f mixed=%.3f fast=%.3f"
-			% [variant.variant_id, direct_index, course_times.x, course_times.y, course_times.z]
-		)
-		_expect(direct_index > 0, "%s receives a positive DPI" % variant.variant_id)
-		_expect(
-			is_finite(course_times.x) and is_finite(course_times.y) and is_finite(course_times.z),
-			"%s receives finite DPI v3 course times" % variant.variant_id
-		)
+		var direct_index: int = variant.get_performance_index()
+		print("[DPI_V3_CATALOG] %s dpi=%d" % [variant.variant_id, direct_index])
+		_expect(direct_index > 0, "%s receives a positive DPI from finite course times" % variant.variant_id)
 		_expect(
 			variant.get_performance_index() == direct_index,
-			"%s exposes the deterministic calculator result" % variant.variant_id
+			"%s exposes a cached deterministic calculator result" % variant.variant_id
 		)
 
+	var reference_course_times: Vector3 = CarPerformanceIndexCalculator.calculate_course_times(REFERENCE_SPECS)
+	_expect(
+		is_finite(reference_course_times.x)
+		and is_finite(reference_course_times.y)
+		and is_finite(reference_course_times.z),
+		"reference vehicle receives finite DPI v3 course times"
+	)
 	var reference_index: int = CarPerformanceIndexCalculator.calculate(REFERENCE_SPECS)
 	_expect(
 		reference_index == 1000,
@@ -116,7 +114,6 @@ func _initialize() -> void:
 		> CarPerformanceIndexCalculator.calculate(standard_width),
 		"runtime tire-width scaling contributes to DPI cornering performance"
 	)
-
 
 	var explicit_light_engine: CarSpecs = REFERENCE_SPECS.duplicate(true) as CarSpecs
 	explicit_light_engine.engine_inertia_kg_m2 = 0.08

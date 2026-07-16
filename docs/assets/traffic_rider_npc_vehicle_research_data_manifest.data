@@ -1,0 +1,21 @@
+model_number,vehicle_id,research_record,approved_variants,workflow_status,structured_data_status,structured_data_root,next_required_action
+01,bmw_4_series_f32,docs/vehicles/traffic/bmw_4_series_2014.md,44,integrating,partial_verified,resources/cars/bmw/4_series_f32/data,migrate remaining exact dynamics and torque-curve evidence before exposing additional rows
+02,chevrolet_silverado_2014,docs/vehicles/traffic/chevrolet_silverado_2014.md,4,approved,research_record_only,,migrate retained engine mass axle tyre transmission and performance data
+03,renault_clio_2013,docs/vehicles/traffic/renault_clio_2013.md,10,approved,research_record_only,,migrate retained engine mass tyre gearbox ratio and performance data
+04,chevrolet_cruze_2011,docs/vehicles/traffic/chevrolet_cruze_2011.md,20,approved,research_record_only,,migrate retained engine mass tyre gearbox ratio and performance data
+05,ford_e150_2012,docs/vehicles/traffic/ford_e150_2012.md,2,approved,research_record_only,,migrate retained V8 mass axle tyre transmission and performance data
+06,ford_excursion_2000,docs/vehicles/traffic/ford_excursion_2000.md,5,approved,research_record_only,,migrate retained petrol diesel mass axle gearbox and performance data
+07,ford_f150_limited_2013,docs/vehicles/traffic/ford_f150_limited_2013.md,7,approved,research_record_only,,migrate retained engine mass axle tyre transmission and performance data
+08,ford_transit_connect_2011,docs/vehicles/traffic/ford_transit_connect_2011.md,6,approved,research_record_only,,migrate retained combustion and electric powertrain data
+09,land_rover_freelander_2_2012,docs/vehicles/traffic/land_rover_freelander_2_2012.md,8,approved,research_record_only,,migrate retained engine gearbox mass tyre and Haldex data
+10,volkswagen_golf_vii_2013,docs/vehicles/traffic/volkswagen_golf_vii_2013.md,38,approved,research_record_only,,migrate retained TSI TDI DSG 4Motion and electric data
+11,kia_ceed_2012,docs/vehicles/traffic/kia_ceed_2012.md,15,approved,research_record_only,,migrate retained petrol diesel manual AT DCT mass and performance data
+12,renault_maxity_2008,docs/vehicles/traffic/renault_maxity_2008.md,6,approved,research_record_only,,migrate retained diesel electric chassis mass axle and gearing data
+13,mazda_2_2011,docs/vehicles/traffic/mazda_2_2011.md,16,approved,research_record_only,,migrate retained petrol diesel CVT e-4WD and EV data
+14,mazda_3_2014,docs/vehicles/traffic/mazda_3_2014.md,19,approved,research_record_only,,migrate retained petrol diesel AWD automatic and hybrid data
+15,mercedes_benz_sprinter_2014,docs/vehicles/traffic/mercedes_benz_sprinter_2014.md,17,approved,research_record_only,,migrate retained diesel petrol NGT mass axle gearbox and performance data
+16,mercedes_benz_unimog_u5023_2013,docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md,2,approved,research_record_only,,migrate retained chassis portal axle gearing mass and tyre data
+17,nissan_atlas_2007,docs/vehicles/traffic/nissan_atlas_2007.md,8,approved,research_record_only,,migrate retained Japanese and European engine gearbox chassis and mass data
+18,nissan_atleon_2004,docs/vehicles/traffic/nissan_atleon_2004.md,4,approved,research_record_only,,migrate retained engine gearbox chassis mass axle and performance data
+20,skoda_octavia_combi_2013,docs/vehicles/traffic/skoda_octavia_combi_2013.md,35,approved,research_record_only,,migrate retained standard 4x4 RS engine DSG manual mass and performance data
+23,volkswagen_amarok_2010,docs/vehicles/traffic/volkswagen_amarok_2010.md,19,approved,research_record_only,,migrate retained four-cylinder petrol V6 drivetrain gearbox mass and performance data

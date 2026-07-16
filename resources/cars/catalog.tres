@@ -1,4 +1,4 @@
-[gd_resource type="Resource" load_steps=8 format=3]
+[gd_resource type="Resource" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_catalog.gd" id="1_catalog"]
 [ext_resource type="Resource" path="res://resources/cars/nissan/370z/model.tres" id="2_370z"]
@@ -7,7 +7,8 @@
 [ext_resource type="Resource" path="res://resources/cars/fiat/punto_176_1995/model.tres" id="5_punto"]
 [ext_resource type="Resource" path="res://resources/cars/bmw/e46_sedan/model.tres" id="6_bmw_e46"]
 [ext_resource type="Resource" path="res://resources/cars/fso/polonez_caro_mr93/model.tres" id="7_polonez"]
+[ext_resource type="Resource" path="res://resources/cars/bmw/4_series_f32/model.tres" id="8_bmw_f32"]
 
 [resource]
 script = ExtResource("1_catalog")
-models = Array[Resource]([ExtResource("2_370z"), ExtResource("3_370z_nismo"), ExtResource("4_gt500"), ExtResource("5_punto"), ExtResource("6_bmw_e46"), ExtResource("7_polonez")])
+models = Array[Resource]([ExtResource("2_370z"), ExtResource("3_370z_nismo"), ExtResource("4_gt500"), ExtResource("5_punto"), ExtResource("6_bmw_e46"), ExtResource("7_polonez"), ExtResource("8_bmw_f32")])

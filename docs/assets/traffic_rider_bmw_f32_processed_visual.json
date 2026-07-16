@@ -1,0 +1,257 @@
+{
+  "body_face_count": 1132,
+  "canonical_centers": {
+    "FrontLeftWheel": [
+      -0.7694282136425246,
+      0.3279419956893355,
+      -1.4050000258539552
+    ],
+    "FrontRightWheel": [
+      0.7694282136425246,
+      0.32794207842198847,
+      -1.4049999741460437
+    ],
+    "RearLeftWheel": [
+      -0.7694282136425246,
+      0.32826994514851426,
+      1.404999974146044
+    ],
+    "RearRightWheel": [
+      0.7694282136425246,
+      0.32827002788116716,
+      1.4050000258539557
+    ]
+  },
+  "front_split": {
+    "crossing_faces": 0,
+    "negative_faces": 162,
+    "positive_faces": 162,
+    "split_x": 0.0
+  },
+  "generated_bounds": [
+    [
+      -1.0051695108413696,
+      1.1751118356162493e-08,
+      -2.1866588592529297
+    ],
+    [
+      1.0051695108413696,
+      1.3685343265533447,
+      2.4362552165985107
+    ]
+  ],
+  "generated_face_count": 1780,
+  "generated_geometry": {
+    "BodyMesh": {
+      "bounds": [
+        [
+          -1.0051695108413696,
+          0.14290671050548553,
+          -2.1866588592529297
+        ],
+        [
+          1.0051695108413696,
+          1.3685343265533447,
+          2.4362552165985107
+        ]
+      ],
+      "faces": 1132,
+      "material": {
+        "base_color_texture": [
+          1024,
+          1024
+        ],
+        "material_name": "BMW_4_Series_2014",
+        "material_type": "PBRMaterial",
+        "uv_count": 1068,
+        "visual_kind": "texture"
+      },
+      "vertices": 1068
+    },
+    "FrontLeftWheelMesh": {
+      "bounds": [
+        [
+          -0.1192825511097908,
+          -0.32794198393821716,
+          -0.3259877860546112
+        ],
+        [
+          0.1192825511097908,
+          0.32794198393821716,
+          0.3259877860546112
+        ]
+      ],
+      "faces": 162,
+      "material": {
+        "base_color_texture": [
+          1024,
+          1024
+        ],
+        "material_name": "wheel",
+        "material_type": "PBRMaterial",
+        "uv_count": 127,
+        "visual_kind": "texture"
+      },
+      "vertices": 127
+    },
+    "FrontRightWheelMesh": {
+      "bounds": [
+        [
+          -0.1192825511097908,
+          -0.32794204354286194,
+          -0.3259877562522888
+        ],
+        [
+          0.1192825511097908,
+          0.32794204354286194,
+          0.3259877562522888
+        ]
+      ],
+      "faces": 162,
+      "material": {
+        "base_color_texture": [
+          1024,
+          1024
+        ],
+        "material_name": "wheel",
+        "material_type": "PBRMaterial",
+        "uv_count": 127,
+        "visual_kind": "texture"
+      },
+      "vertices": 127
+    },
+    "RearLeftWheelMesh": {
+      "bounds": [
+        [
+          -0.1192825511097908,
+          -0.32794198393821716,
+          -0.3259877860546112
+        ],
+        [
+          0.1192825511097908,
+          0.32794198393821716,
+          0.3259877860546112
+        ]
+      ],
+      "faces": 162,
+      "material": {
+        "base_color_texture": [
+          1024,
+          1024
+        ],
+        "material_name": "wheel",
+        "material_type": "PBRMaterial",
+        "uv_count": 127,
+        "visual_kind": "texture"
+      },
+      "vertices": 127
+    },
+    "RearRightWheelMesh": {
+      "bounds": [
+        [
+          -0.1192825511097908,
+          -0.32794204354286194,
+          -0.3259877562522888
+        ],
+        [
+          0.1192825511097908,
+          0.32794204354286194,
+          0.3259877562522888
+        ]
+      ],
+      "faces": 162,
+      "material": {
+        "base_color_texture": [
+          1024,
+          1024
+        ],
+        "material_name": "wheel",
+        "material_type": "PBRMaterial",
+        "uv_count": 127,
+        "visual_kind": "texture"
+      },
+      "vertices": 127
+    }
+  },
+  "generated_nodes_geometry": [
+    "Body",
+    "FrontLeftWheel",
+    "FrontRightWheel",
+    "RearLeftWheel",
+    "RearRightWheel"
+  ],
+  "generated_wheelbase_m": 2.809999999999999,
+  "generator": "tools/assets/process_traffic_rider_bmw_f32.py",
+  "output_sha256": "bd0dc99b51e9756b800aeece83e2cea794b69aa182b583487fccf50e53237369",
+  "rear_split": {
+    "crossing_faces": 0,
+    "negative_faces": 162,
+    "positive_faces": 162,
+    "split_x": 0.0
+  },
+  "scale": 0.6940117952488576,
+  "selected_nodes": {
+    "body": "AI_Bmw4_High_BMW_4_Series_2014_0",
+    "front_pair": "on_teker_wheel_0",
+    "rear_pair": "arka_teker_wheel_0"
+  },
+  "source_bounds": [
+    [
+      -1.448346495628357,
+      -0.006443763150847437,
+      -3.330573220021212
+    ],
+    [
+      1.448346495628357,
+      1.9654741932942816,
+      3.3305729362853778
+    ]
+  ],
+  "source_face_count": 1780,
+  "source_materials": {
+    "body": {
+      "base_color_texture": [
+        1024,
+        1024
+      ],
+      "material_name": "BMW_4_Series_2014",
+      "material_type": "PBRMaterial",
+      "uv_count": 1068,
+      "visual_kind": "texture"
+    },
+    "front_pair": {
+      "base_color_texture": [
+        1024,
+        1024
+      ],
+      "material_name": "wheel",
+      "material_type": "PBRMaterial",
+      "uv_count": 254,
+      "visual_kind": "texture"
+    },
+    "rear_pair": {
+      "base_color_texture": [
+        1024,
+        1024
+      ],
+      "material_name": "wheel",
+      "material_type": "PBRMaterial",
+      "uv_count": 254,
+      "visual_kind": "texture"
+    }
+  },
+  "source_nodes_geometry": [
+    "AI_Bmw4_High_BMW_4_Series_2014_0",
+    "arka_teker_wheel_0",
+    "on_teker_wheel_0"
+  ],
+  "source_origin": [
+    0.0,
+    -0.006443763150847437,
+    0.17982131841018778
+  ],
+  "source_sha256": "fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510",
+  "source_wheelbase": 4.048922538834365,
+  "target_wheelbase_m": 2.81,
+  "wheel_face_count": 648
+}

@@ -1,0 +1,18 @@
+engine_key,badges,engine_code,fuel,aspiration,displacement_cc,cylinders,layout,power_kw,power_ps,power_hp,torque_nm,power_rpm,torque_rpm,production_period,evidence_status,implementation_status,notes
+b38b15_100,418i,B38B15,petrol,turbo,1499,3,inline,100,136,,220,,,2016-03–2017-02,provisional_regional,planned,
+n20b20_135,420i,N20B20,petrol,turbo,1997,4,inline,135,184,,270,,,2013-11–2016-02,verified_factory,planned,
+b48b20_135,420i,B48B20,petrol,turbo,1998,4,inline,135,184,,290,,,2016-03–2017-02,official_source_conflict,planned,Historical shared value retained but blocked: official F36 03/2016 lists 270 Nm while official F32 LCI lists 290 Nm for 6MT and 270 Nm for 8AT; exact pre-LCI F32 split requires primary confirmation
+n20b20_180,428i,N20B20,petrol,turbo,1997,4,inline,180,245,,350,5000–6500,1250–4800,2013-07–2016-02,verified_factory,verified_dynamics,
+b48b20_185,430i,B48B20,petrol,turbo,1998,4,inline,185,252,,350,,,2016-03–2017-02,verified_factory,planned,
+n55b30_225,435i,N55B30,petrol,turbo,2979,6,inline,225,306,,400,5800–6000,1200–5000,2013-07–2016-02,verified_factory,verified_dynamics,
+b58b30_240,440i,B58B30,petrol,turbo,2998,6,inline,240,326,,450,,,2016-03–2017-02,verified_factory,planned,
+n47d20_105,418d,N47D20,diesel,turbo,1995,4,inline,105,143,,300,,,2014-03–2015-02,provisional_regional,planned,
+b47d20_110,418d,B47D20,diesel,turbo,1995,4,inline,110,150,,320,,,2015-03–2017-02,strongly_supported_regional,planned,
+n47d20_135,420d,N47D20,diesel,turbo,1995,4,inline,135,184,,380,4000,1750–2750,2013-07–2015-02,verified_factory,verified_dynamics,
+b47d20_140,420d,B47D20,diesel,turbo,1995,4,inline,140,190,,400,,,2015-03–2017-02,verified_factory,planned,
+n47d20_160,425d,N47D20,diesel,twin_turbo,1995,4,inline,160,218,,450,,,2014-03–2016-02,strongly_supported,planned,
+b47d20_165,425d,B47D20,diesel,twin_turbo,1995,4,inline,165,224,,450,,,2016-03–2017-02,strongly_supported,planned,
+n57d30_190,430d,N57D30,diesel,turbo,2993,6,inline,190,258,,560,,,2013-11–2017-02,verified_factory,planned,
+n57d30_230,435d,N57D30,diesel,twin_turbo,2993,6,inline,230,313,,630,,,2013-11–2017-02,verified_factory,planned,
+n55b30_zhp_6mt,435i ZHP,N55B30 M Performance Power Kit,petrol,turbo,2979,6,inline,,,335,430,,,MY2016 US,verified_factory,planned,6MT-specific torque calibration
+n55b30_zhp_8at,435i ZHP,N55B30 M Performance Power Kit,petrol,turbo,2979,6,inline,,,335,450,,,MY2016 US,verified_factory,planned,8AT-specific torque calibration

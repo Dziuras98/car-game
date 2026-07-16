@@ -1,0 +1,45 @@
+candidate_id,longitudinal_grip_coefficient,longitudinal_peak_slip_ratio,longitudinal_slide_grip_multiplier,brake_deceleration_target_mps2,data_class,evidence_basis
+418i_b38b15_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+418i_b38b15_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_n20b20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_n20b20_xdrive_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_n20b20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_n20b20_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_b48b20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_b48b20_xdrive_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_b48b20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420i_b48b20_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+428i_n20b20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+428i_n20b20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+428i_n20b20_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+430i_b48b20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+430i_b48b20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+430i_b48b20_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+435i_n55b30_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+435i_n55b30_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+435i_n55b30_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+440i_b58b30_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+440i_b58b30_xdrive_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+440i_b58b30_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+440i_b58b30_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+418d_n47d20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+418d_b47d20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+418d_n47d20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+418d_b47d20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420d_n47d20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+420d_n47d20_xdrive_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420d_n47d20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 exact tyre size with simulated compound curve
+420d_n47d20_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420d_b47d20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420d_b47d20_xdrive_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420d_b47d20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+420d_b47d20_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+425d_n47d20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+425d_b47d20_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+425d_n47d20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+425d_b47d20_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+430d_n57d30_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+430d_n57d30_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+435d_n57d30_xdrive_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 road tyre and physics-v3 calibration
+435i_zhp_n55_rwd_6mt,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 baseline with ZHP road-package approximation
+435i_zhp_n55_rwd_8at,1.06,0.115,0.80,10.15,evidence_constrained_simulation,225/50R17 baseline with ZHP road-package approximation

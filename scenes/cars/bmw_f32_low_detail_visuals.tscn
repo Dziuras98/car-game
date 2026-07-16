@@ -1,0 +1,72 @@
+[gd_scene load_steps=7 format=3]
+
+[sub_resource type="StandardMaterial3D" id="BodyMaterial"]
+albedo_color = Color(0.12, 0.19, 0.29, 1)
+metallic = 0.24
+roughness = 0.38
+
+[sub_resource type="StandardMaterial3D" id="GlassMaterial"]
+albedo_color = Color(0.025, 0.04, 0.06, 1)
+metallic = 0.04
+roughness = 0.18
+
+[sub_resource type="StandardMaterial3D" id="WheelMaterial"]
+albedo_color = Color(0.025, 0.025, 0.028, 1)
+metallic = 0.08
+roughness = 0.78
+
+[sub_resource type="BoxMesh" id="BodyMesh"]
+material = SubResource("BodyMaterial")
+size = Vector3(1.82, 0.62, 4.60)
+
+[sub_resource type="BoxMesh" id="CabinMesh"]
+material = SubResource("GlassMaterial")
+size = Vector3(1.48, 0.70, 2.06)
+
+[sub_resource type="CylinderMesh" id="WheelMesh"]
+material = SubResource("WheelMaterial")
+top_radius = 0.328
+bottom_radius = 0.328
+height = 0.225
+radial_segments = 12
+rings = 1
+
+[node name="LowDetail" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.55, 0)
+mesh = SubResource("BodyMesh")
+cast_shadow = 0
+
+[node name="Cabin" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.00, 0.15)
+mesh = SubResource("CabinMesh")
+cast_shadow = 0
+
+[node name="WheelFrontLeft" type="Node3D" parent="."]
+position = Vector3(-0.769428, 0.327942, -1.405)
+[node name="Mesh" type="MeshInstance3D" parent="WheelFrontLeft"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0
+
+[node name="WheelFrontRight" type="Node3D" parent="."]
+position = Vector3(0.769428, 0.327942, -1.405)
+[node name="Mesh" type="MeshInstance3D" parent="WheelFrontRight"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0
+
+[node name="WheelRearLeft" type="Node3D" parent="."]
+position = Vector3(-0.769428, 0.328270, 1.405)
+[node name="Mesh" type="MeshInstance3D" parent="WheelRearLeft"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0
+
+[node name="WheelRearRight" type="Node3D" parent="."]
+position = Vector3(0.769428, 0.328270, 1.405)
+[node name="Mesh" type="MeshInstance3D" parent="WheelRearRight"]
+rotation = Vector3(0, 0, 1.570796)
+mesh = SubResource("WheelMesh")
+cast_shadow = 0

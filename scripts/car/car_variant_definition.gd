@@ -18,6 +18,9 @@ const PLAYER_CAR_CONTROLLER_SCRIPT: Script = preload("res://scripts/car/car_cont
 @export var engine_label: String = ""
 @export var drivetrain_label: String = ""
 
+var _cached_performance_index: int = 0
+var _cached_specs_instance_id: int = 0
+
 func is_valid() -> bool:
 	return validate().is_empty()
 
@@ -53,7 +56,17 @@ func get_specs() -> CarSpecs:
 	return specs
 
 func get_performance_index() -> int:
-	return CarPerformanceIndexCalculator.calculate(specs)
+	if specs == null:
+		return 0
+	var specs_instance_id: int = specs.get_instance_id()
+	if _cached_performance_index <= 0 or _cached_specs_instance_id != specs_instance_id:
+		_cached_performance_index = CarPerformanceIndexCalculator.calculate(specs)
+		_cached_specs_instance_id = specs_instance_id
+	return _cached_performance_index
+
+func invalidate_performance_index_cache() -> void:
+	_cached_performance_index = 0
+	_cached_specs_instance_id = 0
 
 func get_car_scene() -> PackedScene:
 	return car_scene

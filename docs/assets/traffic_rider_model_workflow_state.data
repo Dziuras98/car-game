@@ -1,0 +1,21 @@
+order,model_number,vehicle_id,approved_count,workflow_status,research_stage,data_stage,visual_stage,transmission_stage,driveline_stage,audio_stage,physics_stage,scene_stage,catalog_stage,validation_stage,primary_blocker
+1,01,bmw_4_series_f32,44,integrating,complete,partial_verified,complete,shared_capability_implemented,shared_capability_implemented,shared_inline_architecture_implemented,blocked_data,blocked_data,blocked_data,architecture_tests_passed,36 dynamics rows and exact control or audio calibration data are not retained
+2,02,chevrolet_silverado_2014,4,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+3,03,renault_clio_2013,10,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+4,04,chevrolet_cruze_2011,20,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+5,05,ford_e150_2012,2,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+6,06,ford_excursion_2000,5,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+7,07,ford_f150_limited_2013,7,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+8,08,ford_transit_connect_2011,6,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+9,09,land_rover_freelander_2_2012,8,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+10,10,volkswagen_golf_vii_2013,38,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+11,11,kia_ceed_2012,15,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+12,12,renault_maxity_2008,6,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01_and_variable_wheel_topology
+13,13,mazda_2_2011,16,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+14,14,mazda_3_2014,19,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+15,15,mercedes_benz_sprinter_2014,17,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+16,16,mercedes_benz_unimog_u5023_2013,2,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+17,17,nissan_atlas_2007,8,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01_and_variable_wheel_topology
+18,18,nissan_atleon_2004,4,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01_and_variable_wheel_topology
+19,20,skoda_octavia_combi_2013,35,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
+20,23,volkswagen_amarok_2010,19,approved,complete,research_record_only,queued,queued,queued,queued,queued,queued,queued,queued,waiting_for_model_01
