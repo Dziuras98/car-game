@@ -1,6 +1,11 @@
 extends SceneTree
 
 const MODEL_01_SOURCE := "res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb"
+const MODEL_01_SOURCE_SHA256 := "fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510"
+const MODEL_01_PROCESSED := "res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/processed/bmw_4_series_f32_processed.glb"
+const MODEL_01_PROCESSED_SHA256 := "bd0dc99b51e9756b800aeece83e2cea794b69aa182b583487fccf50e53237369"
+const MODEL_01_PROCESSOR := "res://tools/assets/process_traffic_rider_bmw_f32.py"
+const MODEL_01_PROCESSOR_REPORT := "res://docs/assets/traffic_rider_bmw_f32_processed_visual.json"
 const MODEL_01_OLD_SOURCE := "res://01_bmw_4_series_2014.glb"
 const MODEL_01_VISUAL_SCENE := "res://scenes/traffic/vehicles/bmw_4_series_f32_visuals.tscn"
 const MODEL_01_VISUAL_DEFINITION := "res://resources/traffic/vehicles/bmw_4_series_f32.tres"
@@ -85,6 +90,12 @@ func _test_assets() -> void:
 		_expect(FileAccess.file_exists(asset_path), "%s is committed" % asset_path)
 		_expect(ResourceLoader.exists(asset_path, "PackedScene"), "%s imports as PackedScene" % asset_path)
 	_expect(not FileAccess.file_exists(MODEL_01_OLD_SOURCE), "model 01 root source duplicate is removed")
+	_expect(FileAccess.get_sha256(MODEL_01_SOURCE) == MODEL_01_SOURCE_SHA256, "model 01 source bytes remain unchanged")
+	_expect(FileAccess.file_exists(MODEL_01_PROCESSED), "model 01 processed GLB is committed")
+	_expect(ResourceLoader.exists(MODEL_01_PROCESSED, "PackedScene"), "model 01 processed GLB imports as PackedScene")
+	_expect(FileAccess.get_sha256(MODEL_01_PROCESSED) == MODEL_01_PROCESSED_SHA256, "model 01 processed GLB is deterministic")
+	_expect(FileAccess.file_exists(MODEL_01_PROCESSOR), "model 01 processor is committed")
+	_expect(FileAccess.file_exists(MODEL_01_PROCESSOR_REPORT), "model 01 processor report is committed")
 	for asset_path: String in EXCLUDED_ASSETS:
 		_expect(not FileAccess.file_exists(asset_path), "%s remains excluded" % asset_path)
 
@@ -134,7 +145,8 @@ func _test_model_01_integration() -> void:
 		PHYSICS_BASELINE,
 		"Approved total: 42 standard + 2 ZHP = 44 combinations",
 		MODEL_01_SOURCE.trim_prefix("res://"),
-		"processed_visual_ready` remains `false`",
+		MODEL_01_PROCESSED.trim_prefix("res://"),
+		"`processed_visual_ready` is now `true`",
 		"No powertrain, mass, gearing, tire, audio or performance value has been guessed",
 	]), "model 01 integration record")
 	_expect(ResourceLoader.exists(MODEL_01_VISUAL_SCENE, "PackedScene"), "model 01 visual wrapper imports")
@@ -144,7 +156,14 @@ func _test_model_01_integration() -> void:
 		_expect(definition.validate().is_empty(), "model 01 visual definition validates")
 		_expect(definition.vehicle_id == &"bmw_4_series_f32", "model 01 vehicle id is stable")
 		_expect(is_equal_approx(definition.visual_scale, definition.wheelbase_m / definition.source_wheelbase_units), "model 01 scale is wheelbase-derived")
-		_expect(not definition.processed_visual_ready, "model 01 cannot be exposed as a completed processed visual")
+		_expect(definition.processed_visual_ready, "model 01 exposes a validated processed visual")
+		_expect(definition.processed_path == MODEL_01_PROCESSED, "model 01 definition references the canonical processed GLB")
+		_expect(definition.processed_sha256 == MODEL_01_PROCESSED_SHA256, "model 01 definition records the processed GLB hash")
+		_expect(not definition.body_path.is_empty(), "model 01 has an explicit body binding")
+		_expect(not definition.front_left_wheel_path.is_empty(), "model 01 has an explicit front-left wheel binding")
+		_expect(not definition.front_right_wheel_path.is_empty(), "model 01 has an explicit front-right wheel binding")
+		_expect(not definition.rear_left_wheel_path.is_empty(), "model 01 has an explicit rear-left wheel binding")
+		_expect(not definition.rear_right_wheel_path.is_empty(), "model 01 has an explicit rear-right wheel binding")
 
 
 func _test_provenance() -> void:
