@@ -17,7 +17,7 @@ enum AspirationType {
 @export_group("Identity")
 @export var engine_family_id: StringName = &""
 @export var display_name: String = ""
-@export_enum("3", "4", "6") var cylinder_count: int = 4
+@export_range(3, 6, 1) var cylinder_count: int = 4
 @export var firing_order := PackedInt32Array()
 @export var collector_group_by_cylinder := PackedInt32Array()
 @export var combustion_type: int = CombustionType.PETROL_DIRECT_INJECTION
