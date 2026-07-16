@@ -14,12 +14,18 @@ var _failures: Array[String] = []
 
 
 func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
 	var visuals := VISUAL_SCENE.instantiate() as BmwF32VisualController
 	_expect(visuals != null, "BMW F32 runtime visual controller instantiates")
 	if visuals == null:
 		_finish()
 		return
 	root.add_child(visuals)
+	await process_frame
+
 	_expect(visuals.get_detailed_wheel_binding_count() == 4, "BMW F32 registers four detailed wheel bindings")
 	_expect(visuals.get_registered_wheel_count() == 4, "BMW F32 exposes four wheel visuals")
 	_expect(not visuals.is_using_low_detail(), "BMW F32 remains on its detailed processed model without a fallback LOD")
@@ -48,10 +54,16 @@ func _initialize() -> void:
 	if steering_pivots.size() == 4:
 		_validate_positions(visuals)
 
+	var notifier := visuals.get_visibility_notifier()
+	_expect(notifier != null, "BMW F32 runtime visual controller exposes a visibility notifier")
+	if notifier != null:
+		notifier.emit_signal(&"screen_entered")
 	var wheel_positions := PackedFloat32Array([0.1, 0.2, 0.3, 0.4])
 	visuals.update_vehicle_wheel_visuals(wheel_positions, 0.5)
-	_expect(true, "BMW F32 accepts independent per-wheel angular positions")
-	visuals.free()
+	_validate_independent_wheel_rotation(visuals, wheel_positions)
+
+	visuals.queue_free()
+	await process_frame
 	_finish()
 
 
@@ -101,6 +113,20 @@ func _validate_positions(visuals: BmwF32VisualController) -> void:
 	_expect(absf(absf(front_left.position.z - rear_left.position.z) - 2.81) < 0.001, "runtime wheelbase remains 2.810 m")
 	_expect(absf(front_left.position.x + front_right.position.x) < 0.0001, "front pivots are laterally symmetric")
 	_expect(absf(rear_left.position.x + rear_right.position.x) < 0.0001, "rear pivots are laterally symmetric")
+
+
+func _validate_independent_wheel_rotation(
+	visuals: BmwF32VisualController,
+	wheel_positions: PackedFloat32Array
+) -> void:
+	for wheel_index: int in range(WHEEL_IDS.size()):
+		var spin := visuals.get_detailed_wheel_spin_pivot(WHEEL_IDS[wheel_index])
+		_expect(spin != null, "%s spin pivot remains available after update" % WHEEL_IDS[wheel_index])
+		if spin != null:
+			_expect(
+				absf(spin.rotation.x - wheel_positions[wheel_index]) < 0.0001,
+				"%s receives its independent physics-v3 angular position" % WHEEL_IDS[wheel_index]
+			)
 
 
 func _all_distinct(nodes: Array[Node3D]) -> bool:
