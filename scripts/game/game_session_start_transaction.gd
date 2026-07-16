@@ -3,7 +3,6 @@ class_name GameSessionStartTransaction
 
 signal progress_changed(progress: float, stage: ProgressStage)
 
-
 enum Result {
 	OK,
 	NOT_CONFIGURED,
@@ -20,7 +19,6 @@ enum Result {
 	SESSION_COMMIT_REJECTED,
 }
 
-
 enum ProgressStage {
 	VALIDATING,
 	CLEARING_RUNTIME,
@@ -32,7 +30,6 @@ enum ProgressStage {
 	COMPLETE,
 }
 
-
 var _session_state: GameSessionState
 var _car_selection_state: CarSelectionState
 var _track_catalog: TrackCatalog
@@ -40,7 +37,6 @@ var _reset_runtime: Callable
 var _stage_track: Callable
 var _configure_runtime: Callable
 var _spawn_player: Callable
-var _start_race: Callable
 var _commit_track: Callable
 var _finalize_track_commit: Callable
 var _configured: bool = false
@@ -55,28 +51,23 @@ func configure(
 	stage_track: Callable,
 	configure_runtime: Callable,
 	spawn_player: Callable,
-	start_race: Callable,
+	_start_race: Callable,
 	commit_track: Callable,
 	finalize_track_commit: Callable
 ) -> bool:
 	if _execution_in_progress:
-		push_error("GameSessionStartTransaction cannot be reconfigured while executing.")
 		return false
 	if session_state == null or car_selection_state == null or track_catalog == null:
-		push_error("GameSessionStartTransaction requires session, car-selection and track-catalog state.")
 		return false
 	if (
 		not reset_runtime.is_valid()
 		or not stage_track.is_valid()
 		or not configure_runtime.is_valid()
 		or not spawn_player.is_valid()
-		or not start_race.is_valid()
 		or not commit_track.is_valid()
 		or not finalize_track_commit.is_valid()
 	):
-		push_error("GameSessionStartTransaction requires valid lifecycle callbacks.")
 		return false
-
 	_session_state = session_state
 	_car_selection_state = car_selection_state
 	_track_catalog = track_catalog
@@ -84,7 +75,6 @@ func configure(
 	_stage_track = stage_track
 	_configure_runtime = configure_runtime
 	_spawn_player = spawn_player
-	_start_race = start_race
 	_commit_track = commit_track
 	_finalize_track_commit = finalize_track_commit
 	_configured = true
@@ -109,59 +99,41 @@ func execute(
 		return Result.NOT_CONFIGURED
 	if _execution_in_progress:
 		return Result.ALREADY_RUNNING
-	if not GameModes.is_supported(mode_id):
+	if mode_id != GameModes.FREE_DRIVE:
 		return Result.UNSUPPORTED_MODE
 
 	var selected_car_index: int = _car_selection_state.get_car_index_for_variant_id(car_variant_id)
 	if selected_car_index < 0:
 		return Result.UNAVAILABLE_CAR_VARIANT
 	var selected_track: TrackDefinition = _track_catalog.get_track_by_id(track_id)
-	if selected_track == null or not selected_track.supports_mode(mode_id):
+	if selected_track == null or selected_track.track_id != &"infinite_grid":
 		return Result.UNAVAILABLE_TRACK
 
 	_execution_in_progress = true
-	_report_progress(0.08, ProgressStage.VALIDATING)
-	await _yield_process_frame()
+	_report_progress(0.10, ProgressStage.VALIDATING)
 	if not GameSessionState.is_success(_session_state.begin_start()):
 		_execution_in_progress = false
 		return Result.SESSION_BEGIN_REJECTED
 
-	_report_progress(0.16, ProgressStage.CLEARING_RUNTIME)
+	_report_progress(0.22, ProgressStage.CLEARING_RUNTIME)
 	_reset_runtime.call()
-	await _yield_process_frame()
-
-	# Track replacement remains staged until runtime preparation succeeds.
-	_report_progress(0.30, ProgressStage.PREPARING_TRACK)
-	await _yield_process_frame()
-	var stage_result: Variant = await _stage_track.call(selected_track)
-	if not bool(stage_result):
+	_report_progress(0.40, ProgressStage.PREPARING_TRACK)
+	if not bool(await _stage_track.call(selected_track)):
 		return _fail(Result.TRACK_STAGE_FAILED)
-
-	_report_progress(0.56, ProgressStage.CONFIGURING_RUNTIME)
-	await _yield_process_frame()
+	_report_progress(0.60, ProgressStage.CONFIGURING_RUNTIME)
 	if not bool(_configure_runtime.call()):
 		return _fail(Result.RUNTIME_CONFIGURATION_FAILED)
-
-	_report_progress(0.72, ProgressStage.SPAWNING_PLAYER)
-	await _yield_process_frame()
+	_report_progress(0.78, ProgressStage.SPAWNING_PLAYER)
 	if not bool(_spawn_player.call(selected_car_index, spawn_global_transform)):
 		return _fail(Result.PLAYER_SPAWN_FAILED)
-
-	if mode_id == GameModes.RACE:
-		_report_progress(0.84, ProgressStage.STARTING_RACE)
-		await _yield_process_frame()
-		if not bool(_start_race.call()):
-			return _fail(Result.RACE_START_FAILED)
-
-	_report_progress(0.94, ProgressStage.FINALIZING)
-	await _yield_process_frame()
+	_report_progress(0.92, ProgressStage.FINALIZING)
 	if not bool(_commit_track.call()):
 		return _fail(Result.TRACK_COMMIT_FAILED)
 
 	var resolved_variant_id: StringName = _car_selection_state.get_variant_id_for_index(selected_car_index)
 	var commit_result: GameSessionState.Result = _session_state.commit(
-		mode_id,
-		selected_track.track_id,
+		GameModes.FREE_DRIVE,
+		&"infinite_grid",
 		resolved_variant_id
 	)
 	if not GameSessionState.is_success(commit_result):
@@ -179,37 +151,29 @@ static func get_failure_message(result: Result) -> String:
 		Result.ALREADY_RUNNING:
 			return "A session-start transaction is already running."
 		Result.UNSUPPORTED_MODE:
-			return "Menu emitted an unsupported gameplay mode."
+			return "Only free drive is supported."
 		Result.UNAVAILABLE_CAR_VARIANT:
-			return "Menu emitted an unavailable car variant."
+			return "The selected car variant is unavailable."
 		Result.UNAVAILABLE_TRACK:
-			return "Menu emitted a track unavailable for the selected mode."
+			return "Only the infinite grid is available."
 		Result.SESSION_BEGIN_REJECTED:
-			return "Session lifecycle rejected startup from the current state."
+			return "Session startup was rejected."
 		Result.TRACK_STAGE_FAILED:
-			return "The selected track could not be staged."
+			return "The infinite grid could not be staged."
 		Result.RUNTIME_CONFIGURATION_FAILED:
-			return "Runtime controllers could not be configured for the selected track."
+			return "Free-drive runtime configuration failed."
 		Result.PLAYER_SPAWN_FAILED:
 			return "The selected car could not be created."
-		Result.RACE_START_FAILED:
-			return "The race could not be started with the complete participant set."
 		Result.TRACK_COMMIT_FAILED:
-			return "The prepared track could not be committed."
+			return "The infinite grid could not be committed."
 		Result.SESSION_COMMIT_REJECTED:
-			return "Session lifecycle rejected the validated session selection."
+			return "Free-drive session commit failed."
 		_:
 			return ""
 
 
 func _report_progress(progress: float, stage: ProgressStage) -> void:
 	progress_changed.emit(clampf(progress, 0.0, 1.0), stage)
-
-
-func _yield_process_frame() -> void:
-	var scene_tree: SceneTree = Engine.get_main_loop() as SceneTree
-	if scene_tree != null:
-		await scene_tree.process_frame
 
 
 func _fail(result: Result) -> Result:
