@@ -8,9 +8,7 @@
 - uploader-stated embedded license: CC BY-NC 4.0;
 - project treatment: accepted provenance risk for a private, noncommercial project; see `THIRD_PARTY_NOTICES.md` and `docs/accepted_risks.md`.
 
-The repository contains 20 individually extracted source GLBs. Their geometry is currently unscaled for real-world use: the dimensions in the source assets must not be treated as metres.
-
-Before geometry or runtime integration begins, every model must pass the complete research and owner-approval gates defined in `docs/assets/traffic_rider_npc_vehicle_import_workflow.md`.
+The repository contains 20 individually extracted source GLBs. Their geometry is unscaled source geometry and must not be interpreted as metres. Sources are relocated individually into canonical third-party paths when their numbered implementation begins.
 
 ## Mandatory status progression
 
@@ -23,33 +21,23 @@ source_only
 → integrated
 ```
 
-`awaiting_owner_scope` is mandatory. After researching all evidenced factory engine, transmission and drivetrain combinations, the complete matrix must be shown to the owner. The individual model moves to `approved` only after the owner confirms the scope and whether anything is missing.
+`awaiting_owner_scope` is mandatory. Research and owner-scope approval are complete for all 20 included models.
 
-## Global research-before-implementation gate
+## Global implementation gates
 
-Research and owner-scope approval have been completed for all 20 included models. **No Traffic Rider model may enter `integrating` until every included model has reached `approved`.** This research condition is now satisfied.
+The global research gate is satisfied: every included model has reached `approved`.
 
-Research completion does not authorize implementation. The separate physics dependency below remains blocking.
+The physics dependency is also satisfied. PR #118, **Rework per-wheel vehicle physics and recalibrate DPI v3**, was merged into `master` as commit `3743f5e95391b63a97e81b95050984b8240b7f30`. PR #107 is synchronized directly onto that commit and uses it as the initial implementation baseline.
 
-## Mandatory physics dependency gate — PR #118
+The reviewed baseline includes authoritative per-wheel contact, load, longitudinal/lateral slip and force state; wheel/drivetrain inertia; differentials; AWD torque distribution interfaces; two-pass load transfer; braking/ABS/traction control; steering/yaw; vector drag; transmission interfaces; and DPI v3.
 
-No source relocation, geometry processing, catalog/resource creation, vehicle scene, transmission implementation, engine-audio implementation or physics/performance calibration may begin until PR #118, **Rework per-wheel vehicle physics and recalibrate DPI v3**, is completed and its final physics work is integrated into `master`.
-
-Before model 01 may move to `integrating`:
-
-1. PR #118 must be merged into `master`, or the owner must identify a merged successor carrying the same physics work;
-2. this branch must synchronize with the resulting `master`;
-3. the final physics commit must be recorded as the implementation baseline;
-4. per-wheel contact, slip, load transfer, drivetrain inertia, differentials, AWD, braking, steering/yaw, drag, transmission and DPI/performance interfaces must be reviewed;
-5. the complete current test suite must pass.
-
-Closing PR #118 without integrating its intended physics changes does not satisfy this dependency unless a merged successor is explicitly identified.
+Model 01 may therefore enter `integrating`. Stage 7 calibration still requires re-synchronization and complete regression tests before parameters are finalized.
 
 ## Included models
 
 | # | Source GLB | Intended identity | Class | Source triangles | Workflow status |
 |---:|---|---|---|---:|---|
-| 1 | `01_bmw_4_series_2014.glb` | BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `approved` |
+| 1 | `assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb` | BMW 4 Series Coupé F32 pre-LCI | passenger coupe | 1,780 | `integrating` |
 | 2 | `02_chevrolet_silverado_2014.glb` | Chevrolet Silverado 1500 Crew Cab Standard Box RWD, K2XX pre-facelift | pickup | 2,232 | `approved` |
 | 3 | `03_renault_clio_2013.glb` | Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved` |
 | 4 | `04_chevrolet_cruze_2011.glb` | Chevrolet Cruze J300 North American LS sedan, pre-facelift source and approved global pre-facelift scope | passenger sedan | 2,444 | `approved` |
@@ -77,39 +65,43 @@ Total committed source geometry: **40,300 triangles**.
 | Model | Research record | Approved combinations | Scope |
 |---|---|---:|---|
 | 01 — BMW 4 Series Coupé F32 pre-LCI | `docs/vehicles/traffic/bmw_4_series_2014.md` | 44 | all 42 mechanically distinct standard combinations, including regional 418i/418d entries subject to final evidence, plus RWD 6MT and 8AT 435i ZHP; strict pre-LCI body; no mechanically duplicate catalog entries |
-| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 | all distinct pre-facelift engine/transmission combinations but RWD only: LV3+6L80, L83+6L80, L86+6L80 and L86+8L90; both 2014 and 2015; one verified standard axle ratio per row; gasoline only; no Z71, Max Trailering, SSV, 4WD or duplicate package/fuel entries |
-| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération; no GT, LPG, R.S., Estate or duplicate calibration rows |
-| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 | all researched pre-facelift Chevrolet-badged J300 sedan rows; no facelift-only, LPG, ethanol-state, Eco, hatchback, wagon or later-body entries |
-| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 | regular-length cargo body only; 4.6L and 5.4L V8; 2008–2014 differences merged into each engine row; one verified standard axle ratio, open differential and gasoline only; no E85, CNG/LPG, Crew Van, Extended, Wagon, E-250/E-350 or package duplicates |
-| 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 | 4x2 only: 5.4 V8, 6.8 V10, 7.3 Power Stroke early, 7.3 Power Stroke late and 6.0 Power Stroke; source-like 2000–2004 pre-facelift XLT appearance; one standard axle ratio and differential per row; no 4x4, middle 7.3 calibration, 2005 facelift, Mexico 2006, trim or axle/differential duplicates |
-| 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 | all researched engine families, mechanically merged across 2009–2014: 4.6 2V, 4.6 3V, 5.4 3V, 3.7, 5.0, 3.5 EcoBoost and 6.2; 4x2 only; gasoline only; one standard axle and differential per row; common source-like 2013 Limited exterior, 22-in P275/45R22 tyres and sport-tuned shocks; no 4x4, E85, trim, body or axle duplicates |
-| 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 | all researched combustion families with early/late 75-PS diesel merged, plus Azure Dynamics Electric; common source-like LWB high-roof XLT Premium Wagon body; one standard final drive and differential per row; DPF/emissions as year metadata; no LPG/CNG, taxi, mobility, body, visual-phase or gearing duplicates; dedicated electric motor, inverter, battery, regeneration and fixed-reduction transaxle required |
-| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 | all researched engine/transmission/drivetrain rows, including eD4 FWD and seven Haldex AWD rows; manual and automatic rows separate; one standard final drive and differential/coupling state per row; common source-like 2011–2012 HSE exterior; Haldex, stop/start and emissions as year metadata; no trim, visual-phase, gearing, LPG or conversion duplicates |
-| 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 | 22 standard TSI, 14 ordinary TDI and both e-Golf generations; all applicable manual, DQ200, DQ250, DQ381, diesel 4Motion and electric-reduction architectures retained; one standard final drive and differential/coupling state per row; source-like five-door body only; no GTD, TGI, GTE, GTI/Clubsport/TCR/R, other bodies, regional tuning or emissions-state subdivisions |
-| 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 | all listed petrol and diesel rows with pre-/post-facelift 1.6 CRDi 110 PS 6MT merged; manual, 6DCT, torque-converter 6AT and 7DCT rows separate; five-door GT retained with real GT running gear; one standard final drive and differential per row; common source-like pre-facelift five-door exterior; no other bodies, conversions, gearing or emissions-state subdivisions |
-| 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 | five diesel calibrations (110, 120, 130, 140 and 150 PS) plus Maxity Electric; single-cab short-wheelbase source box body with dual rear wheels; one representative mass/payload state, final drive and differential per row; no alternative cabs, bodies, wheelbases, GVW, emissions subdivisions or conversions |
-| 13 — Mazda2 / Demio DE five-door hatchback | `docs/vehicles/traffic/mazda_2_2011.md` | 16 | all 16 listed global powertrain rows retained separately, including regional 1.3/1.5 calibrations, 5MT, 4AT, CVT, e-4WD, Miller, SKYACTIV-G, both diesels and Demio EV; one source-like five-door facelift body and one standard final drive/differential or rear-assist state per row; no alternate bodies, emissions subdivisions or conversions |
-| 14 — Mazda3 BM / BN / BY | `docs/vehicles/traffic/mazda_3_2014.md` | 19 | all 19 listed petrol, diesel, AWD and hybrid rows retained; provisional regional 1.6/4AT remains evidence-blocked; rows 1–18 use the source-like BM hatchback and the sedan-only hybrid retains its necessary BY sedan body; all transmission architectures separate; one standard final drive/differential or AWD state per row; no emissions or conversion duplicates |
-| 15 — Mercedes-Benz Sprinter W906 facelift RWD | `docs/vehicles/traffic/mercedes_benz_sprinter_2014.md` | 17 | all 17 presented RWD rows retained: OM651 and OM642 diesels, M271 petrol and factory 316 NGT, with 6MT, 5G-TRONIC/NAG1 and 7G-TRONIC PLUS kept separate; four evidence-blocked RWD rows remain confirmation-gated; source-like long high-roof windowed single-rear-wheel body; all Sprinter 4x4 rows, alternative bodies, emissions subdivisions and specialist conversions excluded |
-| 16 — Mercedes-Benz Unimog U4023 / U5023 | `docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md` | 2 | both mechanically distinct 437.4 chassis rows retained with separate portal-axle, mass and final-drive calibration; common source-like U5023 single-cab dropside body; one standard UG100/EPS/EAS state, axle/tyre/lock policy and light-payload state per row; specialist bodies and equipment/emissions duplicates excluded |
-| 17 — Nissan Atlas / Cabstar F24 | `docs/vehicles/traffic/nissan_atlas_2007.md` | 8 | five Japanese Atlas RWD rows and all three European Cabstar RWD rows retained; QR20DE and ZD30DDTi automatics remain evidence-blocked; source-like narrow single-cab flatbed; one representative payload/chassis state per row; 4WD, body/GVW duplicates, OEM derivatives and specialist conversions excluded |
-| 18 — Nissan Atleon 2004 pre-facelift | `docs/vehicles/traffic/nissan_atleon_2004.md` | 4 | all BD30Ti 110, B4.40Ti 140, B6.60TiL 165 and B6.60TiH 210 RWD engine rows retained; gearbox/chassis pairings remain evidence-blocked; source-like single-cab box body with engine-appropriate GVW, mass and axle calibration; 4WD, facelift engines, alternate bodies and payload duplicates excluded |
-| 20 — Škoda Octavia III Combi pre-facelift | `docs/vehicles/traffic/skoda_octavia_combi_2013.md` | 35 | all 23 standard FWD, 5 ordinary 4×4 and 7 RS Combi rows retained; four market/gearbox rows remain evidence-blocked; Scout excluded; RS retains exact mechanical calibration but uses the unchanged standard Combi exterior as an owner-approved visual approximation; no liftback, facelift, later engine or conversion duplicates |
-| 23 — Volkswagen Amarok I full generation | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 19 | all 19 researched rows retained across nine engine calibrations: original and updated four-cylinder TDI/BiTDI, regional 2.0 TSI and V6 TDI 163/204/224/258 PS; RWD, selectable low-range 4MOTION and permanent 4MOTION remain distinct; seven rows remain evidence-blocked; original Double Cab body used as an explicit visual homogenization; body-phase, payload, trim and special-edition duplicates excluded |
+| 02 — Chevrolet Silverado 1500 K2XX pre-facelift | `docs/vehicles/traffic/chevrolet_silverado_2014.md` | 4 | all distinct pre-facelift engine/transmission combinations but RWD only: LV3+6L80, L83+6L80, L86+6L80 and L86+8L90 |
+| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 | standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération |
+| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 | all researched pre-facelift Chevrolet-badged J300 sedan rows |
+| 05 — Ford E-150 Commercial Cargo Van | `docs/vehicles/traffic/ford_e150_2012.md` | 2 | regular-length cargo body; 4.6L and 5.4L V8 |
+| 06 — Ford Excursion pre-facelift XLT 4x2 | `docs/vehicles/traffic/ford_excursion_2000.md` | 5 | 4x2 5.4 V8, 6.8 V10, 7.3 early, 7.3 late and 6.0 Power Stroke |
+| 07 — Ford F-150 P415 SuperCrew 5.5-ft 4x2 | `docs/vehicles/traffic/ford_f150_limited_2013.md` | 7 | all researched engine families, consolidated across 2009–2014, 4x2 only |
+| 08 — Ford Transit Connect first generation | `docs/vehicles/traffic/ford_transit_connect_2011.md` | 6 | all researched combustion families plus Azure Dynamics Electric |
+| 09 — Land Rover Freelander 2 / LR2 L359 | `docs/vehicles/traffic/land_rover_freelander_2_2012.md` | 8 | eD4 FWD and seven Haldex AWD rows |
+| 10 — Volkswagen Golf VII five-door hatchback | `docs/vehicles/traffic/volkswagen_golf_vii_2013.md` | 38 | 22 standard TSI, 14 ordinary TDI and two e-Golf generations |
+| 11 — Kia cee'd JD five-door hatchback | `docs/vehicles/traffic/kia_ceed_2012.md` | 15 | eight petrol and seven diesel rows |
+| 12 — Renault Maxity F24 original body | `docs/vehicles/traffic/renault_maxity_2008.md` | 6 | five diesel calibrations plus Maxity Electric |
+| 13 — Mazda2 / Demio DE five-door hatchback | `docs/vehicles/traffic/mazda_2_2011.md` | 16 | complete global powertrain scope including EV |
+| 14 — Mazda3 BM / BN / BY | `docs/vehicles/traffic/mazda_3_2014.md` | 19 | petrol, diesel, AWD and hybrid rows |
+| 15 — Mercedes-Benz Sprinter W906 facelift RWD | `docs/vehicles/traffic/mercedes_benz_sprinter_2014.md` | 17 | OM651, OM642, M271 and factory NGT RWD rows |
+| 16 — Mercedes-Benz Unimog U4023 / U5023 | `docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md` | 2 | both mechanically distinct 437.4 chassis rows |
+| 17 — Nissan Atlas / Cabstar F24 | `docs/vehicles/traffic/nissan_atlas_2007.md` | 8 | five Japanese Atlas RWD and three European Cabstar RWD rows |
+| 18 — Nissan Atleon 2004 pre-facelift | `docs/vehicles/traffic/nissan_atleon_2004.md` | 4 | BD30Ti, B4.40Ti and two B6.60Ti calibrations |
+| 20 — Škoda Octavia III Combi pre-facelift | `docs/vehicles/traffic/skoda_octavia_combi_2013.md` | 35 | standard FWD, ordinary 4×4 and RS Combi; Scout excluded |
+| 23 — Volkswagen Amarok I full generation | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 19 | original/updated four-cylinder, regional petrol and V6 rows with distinct drivetrains |
 
 All 20 models have passed their individual owner-scope gates. Combined approved scope: **285 mechanically consolidated configurations**.
 
-## Current blocking gate
+## Current implementation progress
 
-| Dependency | State | Required resolution |
-|---|---|---|
-| PR #118 — `Rework per-wheel vehicle physics and recalibrate DPI v3` | open; implementation blocked | complete and integrate final physics changes into `master`, synchronize this branch, record the resulting baseline and pass the full current suite before model 01 enters `integrating` |
-
-No implementation work may begin while this dependency remains unresolved.
+| Item | State |
+|---|---|
+| Physics baseline | `3743f5e95391b63a97e81b95050984b8240b7f30` recorded; dependency resolved |
+| Model 01 source | moved unchanged to canonical third-party path; root duplicate removed |
+| Model 01 scale/orientation | wheelbase-derived scale `0.6940157`; source `+Z` converted to project `-Z` |
+| Model 01 visual definition | created and validated as incomplete until wheel separation is complete |
+| Model 01 processed derivative | pending four independent hub-centred wheel meshes |
+| Model 01 powertrain catalog | pending exact evidence-backed data; no guessed variants exposed |
+| Next model | model 02 remains queued until model 01 reaches `integrated` |
 
 ## Source topology
 
-The included GLBs were extracted without geometry simplification. The normal source hierarchy contains three render meshes: body, paired front wheels and paired rear wheels. Integration must create four independent, hub-centred wheel nodes as defined in `traffic_rider_npc_vehicle_import_workflow.md`. Dual-rear-wheel source models additionally require all physical rear tyres to be represented and bound explicitly.
+The normal source hierarchy contains body, paired front wheels and paired rear wheels. Integration must create four independent hub-centred wheel nodes. Dual-rear-wheel source models must represent and bind every physical rear tyre explicitly.
 
 ## Deliberately excluded large trucks
 
@@ -119,8 +111,8 @@ The included GLBs were extracted without geometry simplification. The normal sou
 | 21 | Generic articulated truck | articulated heavy truck excluded from scope |
 | 22 | Generic rigid truck | large rigid truck excluded from scope |
 
-## Research and later implementation order
+## Implementation order
 
 `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 20 → 23`
 
-Research is complete. After the PR #118 dependency is satisfied, implementation proceeds in the same ascending order. Updating a row to `integrated` requires its model-specific record, approved catalog, scenes/resources and automated validation.
+Updating a row to `integrated` requires its model-specific record, exact approved catalog, scenes/resources, architecture-correct transmission and audio, current-physics calibration and automated validation.

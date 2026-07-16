@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb" id="1_source"]
+
+[node name="Bmw4SeriesF32Visuals" type="Node3D"]
+
+[node name="SourceOrientationAndScale" type="Node3D" parent="."]
+transform = Transform3D(-0.6940157, 0, 0, 0, 0.6940157, 0, 0, 0, -0.6940157, 0, 0, 0)
+metadata/_edit_group_ = true
+
+[node name="SourceModel" parent="SourceOrientationAndScale" instance=ExtResource("1_source")]
+
+[node name="DerivativeStatus" type="Node" parent="."]
+metadata/processed_visual_ready = false
+metadata/required_meshes = "Body, WheelFrontLeft, WheelFrontRight, WheelRearLeft, WheelRearRight"
+metadata/blocking_reason = "Paired source wheel meshes still require topology-preserving separation and hub-centred pivots."
