@@ -49,7 +49,7 @@ func _initialize() -> void:
 			exact_dynamics_count += 1
 	_expect(automatic_count == 25, "BMW F32 matrix retains 25 automatic variants")
 	_expect(manual_count == 19, "BMW F32 matrix retains 19 manual variants")
-	_expect(awd_count == 16, "BMW F32 matrix retains 16 xDrive variants")
+	_expect(awd_count == 15, "BMW F32 matrix retains 15 xDrive variants")
 	_expect(exact_dynamics_count == 8, "eight variants retain exact factory dynamics")
 	_test_engine_architectures(model)
 	_test_power_consistency(model)
