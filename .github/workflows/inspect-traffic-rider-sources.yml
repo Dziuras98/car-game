@@ -29,7 +29,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: pip
 
       - name: Install pinned processor dependencies
         run: python -m pip install numpy==2.3.5 Pillow==12.2.0 trimesh==4.11.1
