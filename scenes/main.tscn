@@ -1,11 +1,11 @@
 [gd_scene load_steps=8 format=3 uid="uid://dlu8ihf75elrs"]
 
-[ext_resource type="Script" path="res://scripts/camera/follow_camera.gd" id="3_camera"]
-[ext_resource type="PackedScene" path="res://scenes/ui/speedometer.tscn" id="4_speedometer"]
-[ext_resource type="Script" path="res://scripts/game/game_manager.gd" id="5_game_manager"]
-[ext_resource type="PackedScene" path="res://scenes/ui/mode_filtered_main_menu.tscn" id="7_menu"]
-[ext_resource type="PackedScene" path="res://scenes/ui/minimap.tscn" id="8_minimap"]
-[ext_resource type="Script" path="res://scripts/game/main_scene_readiness_reporter.gd" id="9_readiness_reporter"]
+[ext_resource type="Script" path="res://scripts/camera/follow_camera.gd" id="1_camera"]
+[ext_resource type="PackedScene" path="res://scenes/ui/speedometer.tscn" id="2_speedometer"]
+[ext_resource type="Script" path="res://scripts/game/game_manager.gd" id="3_game_manager"]
+[ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="4_menu"]
+[ext_resource type="Script" path="res://scripts/game/main_scene_readiness_reporter.gd" id="5_readiness_reporter"]
+[ext_resource type="PackedScene" path="res://scenes/tracks/infinite_grid.tscn" id="6_infinite_grid"]
 
 [sub_resource type="Environment" id="Environment_sky"]
 background_mode = 1
@@ -14,18 +14,17 @@ ambient_light_source = 2
 ambient_light_energy = 0.35
 
 [node name="main" type="Node3D" unique_id=767962590]
-script = ExtResource("5_game_manager")
+script = ExtResource("3_game_manager")
 car_spawn_path = NodePath("CarSpawn")
 camera_path = NodePath("Camera3D")
 speedometer_path = NodePath("Speedometer")
-minimap_path = NodePath("Minimap")
 menu_path = NodePath("MainMenu")
-track_container_path = NodePath("TrackContainer")
+grid_path = NodePath("InfiniteGrid")
 
 [node name="ReadinessReporter" type="Node" parent="."]
-script = ExtResource("9_readiness_reporter")
+script = ExtResource("5_readiness_reporter")
 
-[node name="TrackContainer" type="Node3D" parent="."]
+[node name="InfiniteGrid" parent="." instance=ExtResource("6_infinite_grid")]
 
 [node name="CarSpawn" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
@@ -37,17 +36,13 @@ light_energy = 1.5
 [node name="Camera3D" type="Camera3D" parent="." unique_id=530116286]
 transform = Transform3D(1, 0, 0, 0, 0.81915206, 0.57357645, 0, -0.57357645, 0.81915206, 0, 6, 10)
 current = true
-script = ExtResource("3_camera")
+script = ExtResource("1_camera")
 target_path = NodePath("../PlayerCar")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1557658640]
 environment = SubResource("Environment_sky")
 
-[node name="Speedometer" parent="." instance=ExtResource("4_speedometer")]
+[node name="Speedometer" parent="." instance=ExtResource("2_speedometer")]
 target_path = NodePath("../PlayerCar")
 
-[node name="Minimap" parent="." instance=ExtResource("8_minimap")]
-target_path = NodePath("../PlayerCar")
-track_path = NodePath("../TrackContainer/ActiveTrack")
-
-[node name="MainMenu" parent="." instance=ExtResource("7_menu")]
+[node name="MainMenu" parent="." instance=ExtResource("4_menu")]
