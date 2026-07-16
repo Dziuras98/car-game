@@ -22,6 +22,7 @@ var converter_slip_rpm: float = 0.0
 var converter_torque_multiplier: float = 1.0
 var lockup_engagement: float = 0.0
 var lockup_target: float = 0.0
+var simulation_remainder_s: float = 0.0
 
 
 func reset(initial_gear: int = 1) -> void:
@@ -38,6 +39,7 @@ func reset(initial_gear: int = 1) -> void:
 	converter_torque_multiplier = 1.0
 	lockup_engagement = 0.0
 	lockup_target = 0.0
+	simulation_remainder_s = 0.0
 
 
 func is_shifting() -> bool:
