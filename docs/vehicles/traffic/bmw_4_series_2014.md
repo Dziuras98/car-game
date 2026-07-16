@@ -3,6 +3,10 @@
 - Model number in Traffic Rider bundle: **01**
 - Canonical source GLB: `assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb`
 - Source SHA-256: `fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510`
+- Canonical processed GLB: `assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/processed/bmw_4_series_f32_processed.glb`
+- Processed SHA-256: `bd0dc99b51e9756b800aeece83e2cea794b69aa182b583487fccf50e53237369`
+- Reproducible processor: `tools/assets/process_traffic_rider_bmw_f32.py`
+- Processor report: `docs/assets/traffic_rider_bmw_f32_processed_visual.json`
 - Research date: 2026-07-15
 - Owner approval date: 2026-07-15
 - Integration start date: 2026-07-16
@@ -12,25 +16,31 @@
 
 ## Current integration state
 
-Completed in the first implementation tranche:
+Completed:
 
 - synchronized PR #107 directly onto the merged PR #118 baseline;
 - relocated the unchanged source GLB from the repository root to its canonical third-party path without retaining a duplicate;
 - created `TrafficVehicleVisualDefinition` as a reusable, validated visual-integration resource;
-- created `resources/traffic/vehicles/bmw_4_series_f32.tres` with verified dimensions, source hash and scale evidence;
-- created `scenes/traffic/vehicles/bmw_4_series_f32_visuals.tscn` with canonical `+Y` up / `-Z` front conversion and wheelbase-derived uniform scale;
-- added automated contracts for the canonical path, source immutability metadata, scale, baseline and explicit incomplete-derivative state.
+- measured the source hierarchy and geometry in Godot and independently reproduced the measurements in the deterministic processor;
+- separated both paired axle meshes into four independent, hub-centred wheel meshes without dropping or creating triangles;
+- centred the derivative between axle centres, grounded it at the lowest tyre contact plane, converted source `+Z` front to project local `-Z` front and scaled the exact measured wheelbase to 2.810 m;
+- preserved the source body and wheel materials, embedded 1024×1024 textures and UV coordinates;
+- created a static processed GLB with explicit `Body`, `FrontLeftWheel`, `FrontRightWheel`, `RearLeftWheel` and `RearRightWheel` nodes;
+- bound the processed GLB through `scenes/traffic/vehicles/bmw_4_series_f32_visuals.tscn` and explicit paths in `resources/traffic/vehicles/bmw_4_series_f32.tres`;
+- retained the 44-row approved matrix, 17 engine calibrations and the first eight factory-exact launch-dynamics rows as evidence-gated research data;
+- added automated source, processed-geometry, hash, scale, material, wheel-layout and physics-baseline contracts.
 
 Not yet complete:
 
-- split paired front and rear wheel meshes into four independent hub-centred wheel meshes;
-- centre the derivative between axle centres and ground it from tyre contact points;
-- record final visibility AABB, wheel centres and rolling radius from the processed derivative;
-- create playable and AI scenes;
-- implement the 44 exact powertrain rows, ZF 8HP behaviour, xDrive coupling, engine audio and performance calibration;
-- add the model to the playable catalog only after every exposed variant has complete evidence-backed data.
+- create playable and AI vehicle scenes;
+- implement the 44 exact powertrain rows;
+- implement architecture-correct ZF 8HP behaviour before exposing any 8AT row;
+- implement dynamic transfer-clutch xDrive behaviour before exposing any xDrive row;
+- implement the required B38, N20, B48, N55, B58, N47, B47 and N57 audio families;
+- calibrate mass, tyres, drag, braking and performance against evidence-backed targets;
+- add variants to the playable catalog only after every exposed row has complete evidence-backed data.
 
-`processed_visual_ready` remains `false`. The source wrapper is an inspection and scale/orientation stage, not a runtime-ready vehicle visual. No powertrain, mass, gearing, tire, audio or performance value has been guessed.
+`processed_visual_ready` is now `true`: the static visual derivative and four explicit wheel bindings are ready for vehicle-scene integration. This flag does **not** mean the BMW F32 vehicle or its 44 mechanical configurations are complete. No powertrain, mass, gearing, tire, audio or performance value has been guessed.
 
 ## Visual identity
 
@@ -61,31 +71,47 @@ Primary pre-LCI RWD reference:
 
 The launch xDrive specification is 1.377 m high, with 1.544/1.590 m tracks and 0.145 m ground clearance. Final visual calibration uses the RWD body reference; xDrive differences belong in physical variant data.
 
-Measured source wheelbase: approximately **4.0489 source units**. The committed wrapper scale is therefore:
+Measured source wheelbase: **4.0489225388 source units**. The committed derivative scale is:
 
 ```text
-2.810 / 4.0489 = 0.6940156586
+2.810 / 4.0489225388 = 0.6940117952
 ```
 
-The wrapper uses `0.6940157` and a 180-degree Y rotation. Source front is `+Z`; project front is local `-Z`.
+The processor applies a uniform scale of `0.6940117952`, a 180-degree Y rotation, lateral centring at source X=0, longitudinal centring at the axle midpoint and vertical grounding at source Y=-0.0064437632. Source front is `+Z`; project front is local `-Z`.
 
-## Source inspection
+## Source and processed geometry inspection
 
 | Item | Result |
 |---|---|
-| Source meshes | 3 |
-| Body mesh | `AI_Bmw4_High_BMW_4_Series_2014_0` |
-| Front wheel-pair mesh | `on_teker_wheel_0` |
-| Rear wheel-pair mesh | `arka_teker_wheel_0` |
+| Source mesh instances | 3 |
+| Godot body node | `AI_Bmw4_High_BMW_4_Series_2014_0` |
+| Godot front wheel-pair node | `on_teker_0` |
+| Godot rear wheel-pair node | `arka_teker_0` |
+| Imported front mesh resource | `on_teker_wheel_0` |
+| Imported rear mesh resource | `arka_teker_wheel_0` |
 | Body triangles | 1,132 |
 | Front wheel-pair triangles | 324 |
 | Rear wheel-pair triangles | 324 |
-| Total triangles | 1,780 |
-| Source AABB | approximately 2.896693 × 1.971918 × 6.661146 source units |
-| Source front | positive source Z before canonical conversion |
-| Source wheelbase | approximately 4.0489 source units |
+| Total source triangles | 1,780 |
+| Triangles crossing either lateral split plane | 0 |
+| Processed body triangles | 1,132 |
+| Processed triangles per wheel | 162 |
+| Total processed triangles | 1,780 |
+| Processed wheelbase | 2.810000 m |
+| Processed wheel rolling radius | approximately 0.328 m |
+| Processed AABB | approximately 2.010339 × 1.368534 × 4.622914 m |
+| Processed AABB minimum | approximately (-1.005170, 0.000000, -2.186659) m |
 
-The source GLB remains byte-identical. A derived visual is mandatory because both axle meshes contain paired wheels. It must preserve materials, UVs, normals and source triangles while producing `Body`, `WheelFrontLeft`, `WheelFrontRight`, `WheelRearLeft` and `WheelRearRight` with hub-centred pivots.
+Processed wheel centres in project-local metres:
+
+| Node | X | Y | Z |
+|---|---:|---:|---:|
+| `FrontLeftWheel` | -0.769428 | 0.327942 | -1.405000 |
+| `FrontRightWheel` | 0.769428 | 0.327942 | -1.405000 |
+| `RearLeftWheel` | -0.769428 | 0.328270 | 1.405000 |
+| `RearRightWheel` | 0.769428 | 0.328270 | 1.405000 |
+
+The source GLB remains byte-identical. The processed derivative is reproducible from that exact source hash and pinned processor dependencies. Its hash, triangle counts, node names, material surfaces, wheel centres, rolling radius, grounding and wheelbase are checked in CI.
 
 ## Research boundary and deduplication
 
@@ -196,4 +222,4 @@ The owner answered on 2026-07-15:
 5. Visual scope: **strictly pre-LCI**.
 6. Missing expected variants: **none identified by the owner**.
 
-The owner-scope gate and PR #118 dependency are satisfied. Model 01 is now `integrating`; model 02 remains queued behind it in the ascending implementation order.
+The owner-scope gate and PR #118 dependency are satisfied. Model 01 remains `integrating`; model 02 remains queued behind it in the ascending implementation order.
