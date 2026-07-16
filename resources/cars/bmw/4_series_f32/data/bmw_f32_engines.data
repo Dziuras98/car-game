@@ -1,7 +1,7 @@
 engine_key,badges,engine_code,fuel,aspiration,displacement_cc,cylinders,layout,power_kw,power_ps,power_hp,torque_nm,power_rpm,torque_rpm,production_period,evidence_status,implementation_status,notes
 b38b15_100,418i,B38B15,petrol,turbo,1499,3,inline,100,136,,220,,,2016-03–2017-02,provisional_regional,planned,
 n20b20_135,420i,N20B20,petrol,turbo,1997,4,inline,135,184,,270,,,2013-11–2016-02,verified_factory,planned,
-b48b20_135,420i,B48B20,petrol,turbo,1998,4,inline,135,184,,290,,,2016-03–2017-02,verified_factory,planned,
+b48b20_135,420i,B48B20,petrol,turbo,1998,4,inline,135,184,,290,,,2016-03–2017-02,official_source_conflict,planned,Historical shared value retained but blocked: official F36 03/2016 lists 270 Nm while official F32 LCI lists 290 Nm for 6MT and 270 Nm for 8AT; exact pre-LCI F32 split requires primary confirmation
 n20b20_180,428i,N20B20,petrol,turbo,1997,4,inline,180,245,,350,5000–6500,1250–4800,2013-07–2016-02,verified_factory,verified_dynamics,
 b48b20_185,430i,B48B20,petrol,turbo,1998,4,inline,185,252,,350,,,2016-03–2017-02,verified_factory,planned,
 n55b30_225,435i,N55B30,petrol,turbo,2979,6,inline,225,306,,400,5800–6000,1200–5000,2013-07–2016-02,verified_factory,verified_dynamics,
