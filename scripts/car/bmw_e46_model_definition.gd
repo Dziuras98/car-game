@@ -154,6 +154,11 @@ func _build_specs(row: Dictionary, engine: Dictionary, curve: EngineTorqueCurve,
 	specs.max_drive_acceleration = 18.0 if fuel == "petrol" else 16.5
 	specs.drive_layout = CarSpecs.DriveLayout.ALL_WHEEL_DRIVE if drivetrain == "AWD" else CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
 	specs.awd_front_torque_fraction = 0.38
+	# Non-M E46 variants use open mechanical axle differentials. ABS and
+	# ASC/DSC provide the wheel-slip intervention represented below.
+	specs.front_differential_lock = 0.0
+	specs.rear_differential_lock = 0.0
+	specs.center_differential_lock = 0.0
 
 	var automatic_upshift: float = minf(redline * (0.94 if fuel == "petrol" else 0.90), redline)
 	var automatic_downshift: float = maxf(specs.idle_rpm, peak_torque_rpm * (0.55 if fuel == "petrol" else 0.70))
@@ -178,6 +183,8 @@ func _build_specs(row: Dictionary, engine: Dictionary, curve: EngineTorqueCurve,
 	specs.frontal_area = _float(row, "frontal_area_m2", 2.06)
 	specs.air_density = 1.225
 	specs.rolling_resistance_coefficient = 0.0145 if tire_width <= 0.205 else 0.015
+	specs.front_static_load_fraction = 0.52 if drivetrain == "AWD" else 0.50
+	specs.center_of_mass_height_m = 0.52
 
 	var lateral_grip: float = lateral_g * 12.0
 	specs.front_lateral_grip = lateral_grip
@@ -187,6 +194,9 @@ func _build_specs(row: Dictionary, engine: Dictionary, curve: EngineTorqueCurve,
 	specs.longitudinal_grip_coefficient = clampf(brake_decel / 9.81, 0.88, 1.12)
 	specs.longitudinal_peak_slip_ratio = 0.12
 	specs.longitudinal_slide_grip_multiplier = 0.78
+	specs.lateral_slide_grip_multiplier = 0.86
+	specs.traction_control_strength = 0.68
+	specs.abs_strength = 0.90
 	specs.handbrake_lateral_grip_multiplier = 0.26
 	specs.steering_slip_gain = 0.85
 	specs.slip_speed_threshold = 2.2
