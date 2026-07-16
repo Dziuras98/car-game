@@ -54,30 +54,52 @@ func _initialize() -> void:
 	_expect(SOURCE_ASSETS.size() == 18, "exactly 18 retained source GLBs")
 	_expect(RECORDS.size() == 18, "exactly 18 retained model records")
 	_test_sources()
+	_test_workflow_contract()
+	_test_inventory_contract()
+	_test_upload_contract()
+	_test_model_01_contract()
+	_test_queued_records()
+	_finish()
+
+
+func _test_workflow_contract() -> void:
 	_expect_fragments(_read(WORKFLOW_PATH), PackedStringArray([
-		"copies every applicable research, approval, geometry, transmission, physics, audio and validation rule from PR #107",
-		"Research the complete factory variant matrix before importing the model",
-		"Stop for owner approval after research",
-		"Finish all model scopes before implementing any model",
-		"Keep the committed source GLB unchanged",
-		"Use wheelbase as the primary scale reference",
-		"Provide four independent wheel nodes",
-		"Use explicit wheel bindings",
-		"Match the real transmission architecture exactly",
-		"Implement missing transmission types faithfully",
-		"Build new engine-sound architectures from first principles",
-		"Keep every model compatible with current `master` physics",
-		"No model may enter `integrating` until all included models have reached `approved`",
-		"Stage 11 — mandatory validation",
+		"authoritative orchestration procedure",
+		"traffic_rider_transmission_implementation_contract.md",
+		"traffic_rider_engine_audio_implementation_contract.md",
+		"traffic_rider_npc_vehicle_research_data_contract.md",
+		"traffic_rider_npc_vehicle_physics_v3_baseline.md",
+		"traffic_rider_npc_vehicle_workflow_suite.md",
+		"No abbreviated model note may weaken or replace those contracts",
+		"No model may enter `integrating` until all 18 included models have reached `approved`",
+		"3743f5e95391b63a97e81b95050984b8240b7f30",
+		"Retain research as structured input",
+		"Treat the transmission and driveline as a complete torque path",
+		"Define player and AI audio backends explicitly",
+		"Factory special-order vehicles",
+		"Structured migration gate",
+		"selectable 4WD requires real 2H/4H/4L/range semantics",
+		"Limiter torque cut is not pedal lift",
+		"Windows export and packaged smoke test",
+		"Model 02 remains queued until model 01 reaches `integrated`",
+		"fc81ebccf14687d6fa6b941dd23e4d60993487a9",
 	]), "workflow")
+
+
+func _test_inventory_contract() -> void:
 	_expect_fragments(_read(INVENTORY_PATH), PackedStringArray([
 		"retained vehicle identities: **18**",
-		"GAZ Gazelle flatbed",
 		"Gazelle: **van only**",
 		"19,845 triangles",
-		"Model 01 is now `researching`",
-		"probable G 500 M113 5.0 V8",
+		"PR #118 is merged",
+		"exclude all G 500 Guard B4/B6/B7 derivatives",
+		"include the original G 63 AMG V12",
+		"ten currently identified mechanically distinct candidate configurations",
+		"Model 02 queued until model 01 is `integrated`",
 	]), "inventory")
+
+
+func _test_upload_contract() -> void:
 	_expect_fragments(_read(UPLOAD_PATH), PackedStringArray([
 		"All 18 expected filenames are now present on the branch",
 		"01 — Mercedes-Benz G-Class | present | complete",
@@ -85,22 +107,35 @@ func _initialize() -> void:
 		"afc4628e07aa7006a5d11a8aff17bd100092c2f9899678cc874a4cc87f745fb7",
 		"Only the Gazelle van is allowed in this branch",
 	]), "source upload")
-	_expect_fragments(_read(RECORDS[0]), PackedStringArray([
+
+
+func _test_model_01_contract() -> void:
+	var record := _read(RECORDS[0])
+	_expect_fragments(record, PackedStringArray([
 		"Workflow status: **`researching`**",
 		"Verified source contract",
-		"Represented identity assessment",
-		"strongly_supported_identity",
-		"Mandatory owner-scope gate",
-		"PR #118",
+		"Owner scope directions recorded during research",
+		"Exclude every G 500 Guard derivative",
+		"Include the original G 63 AMG V12 special-order model",
+		"current requested scope contains **10 mechanically distinct configurations**",
+		"`w463_g63_v12_m137`",
+		"M137 E63 / M137.980",
+		"326 kW / 444 PS",
+		"620 Nm",
+		"`strongly_supported_factory_special_order`",
+		"`rejected_by_owner_scope`",
+		"dedicated naturally aspirated V12 audio architecture",
+		"PR #118 is merged",
 	]), RECORDS[0])
+
+
+func _test_queued_records() -> void:
 	for index: int in range(1, RECORDS.size()):
 		var path := RECORDS[index]
 		_expect_fragments(_read(path), PackedStringArray([
 			"Workflow status: **`source_only`**",
 			"Mandatory owner-scope gate",
-			"PR #118",
 		]), path)
-	_finish()
 
 
 func _test_sources() -> void:
@@ -110,7 +145,8 @@ func _test_sources() -> void:
 
 
 func _read(path: String) -> String:
-	if not FileAccess.file_exists(path): return ""
+	if not FileAccess.file_exists(path):
+		return ""
 	var file := FileAccess.open(path, FileAccess.READ)
 	return "" if file == null else file.get_as_text()
 
