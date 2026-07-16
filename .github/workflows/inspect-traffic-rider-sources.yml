@@ -1,29 +1,31 @@
 name: Inspect Traffic Rider sources
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/add-traffic-rider-vehicle-workflow
+      - master
     paths:
       - tools/assets/inspect_traffic_rider_sources.py
       - .github/workflows/inspect-traffic-rider-sources.yml
+      - '*.glb'
+      - 'assets/third_party/sketchfab/traffic_rider_npc_vehicles/**/*.glb'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: traffic-rider-source-inspection-${{ github.ref }}
+  group: traffic-rider-source-inspection-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out branch
+      - name: Check out PR head
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,19 +41,7 @@ jobs:
       - name: Upload inspection report
         uses: actions/upload-artifact@v4
         with:
-          name: traffic-rider-source-inspection-${{ github.sha }}
+          name: traffic-rider-source-inspection-${{ github.event.pull_request.head.sha || github.sha }}
           path: docs/assets/traffic_rider_source_inspection_all.json
           if-no-files-found: error
-
-      - name: Commit canonical inspection report
-        shell: bash
-        run: |
-          if git diff --quiet -- docs/assets/traffic_rider_source_inspection_all.json; then
-            echo "Inspection report is unchanged."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/assets/traffic_rider_source_inspection_all.json
-          git commit -m "Record all Traffic Rider source geometry [skip ci]"
-          git push origin HEAD:${{ github.ref_name }}
+          retention-days: 14
