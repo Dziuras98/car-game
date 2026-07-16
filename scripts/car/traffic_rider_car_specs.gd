@@ -18,6 +18,7 @@ enum DataQuality {
 @export_group("Traffic Rider architecture")
 @export var traffic_rider_powertrain_definition: TrafficRiderPowertrainDefinition
 @export var inline_engine_audio_profile: TrafficRiderInlineEngineAudioProfile
+@export var banked_engine_audio_profile: TrafficRiderBankedEngineAudioProfile
 
 
 func validate() -> PackedStringArray:
@@ -36,9 +37,13 @@ func validate() -> PackedStringArray:
 		errors.append("target_top_speed_kph must be positive")
 	if traffic_rider_powertrain_definition == null:
 		errors.append("traffic_rider_powertrain_definition must not be null")
-	if inline_engine_audio_profile == null:
-		errors.append("inline_engine_audio_profile must not be null")
-	else:
+	var audio_profile_count: int = int(inline_engine_audio_profile != null) + int(banked_engine_audio_profile != null)
+	if audio_profile_count != 1:
+		errors.append("exactly one physical engine-audio architecture profile is required")
+	if inline_engine_audio_profile != null:
 		for audio_error: String in inline_engine_audio_profile.validate():
 			errors.append("inline_engine_audio_profile: %s" % audio_error)
+	if banked_engine_audio_profile != null:
+		for audio_error: String in banked_engine_audio_profile.validate():
+			errors.append("banked_engine_audio_profile: %s" % audio_error)
 	return errors
