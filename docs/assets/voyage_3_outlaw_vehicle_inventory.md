@@ -28,13 +28,13 @@ The uploader states that many models were made by `reliable_3d` on TurboSquid an
 
 `source_only → researching → awaiting_owner_scope → approved → integrating → integrated`
 
-All 18 retained vehicles remain `source_only`. The verified GLB upload, complete all-model research gate and PR #118 physics gate all remain blocking.
+Model 01 is now `researching`; the other 17 retained vehicles remain `source_only`. Presence of all 18 GLBs is recorded in the branch, and model 01 has passed byte-level source verification. Each later source must pass the same verification before its research begins. The complete all-model research gate and PR #118 physics gate remain blocking.
 
 ## Included vehicles
 
-| # | Expected source GLB | Uploader-label identity | Class | Triangles | Research record | Status |
+| # | Expected source GLB | Intended identity | Class | Triangles | Research record | Status |
 |---:|---|---|---|---:|---|---|
-| 1 | `01_mercedes_benz_g_class.glb` | Mercedes-Benz G-Class | SUV | 676 | `docs/vehicles/traffic/mercedes_benz_g_class.md` | `source_only` |
+| 1 | `01_mercedes_benz_g_class.glb` | Mercedes-Benz G-Class W463 long five-door station wagon; probable G 500 M113 5.0 V8, exact year pending | SUV | 676 | `docs/vehicles/traffic/mercedes_benz_g_class.md` | `researching` |
 | 2 | `02_bmw_m3_e92.glb` | BMW M3 E92 | passenger coupe | 478 | `docs/vehicles/traffic/bmw_m3_e92.md` | `source_only` |
 | 3 | `03_mitsubishi_lancer_evolution.glb` | Mitsubishi Lancer Evolution | performance sedan | 494 | `docs/vehicles/traffic/mitsubishi_lancer_evolution.md` | `source_only` |
 | 4 | `04_liaz_bus.glb` | LiAZ bus | city bus | 600 | `docs/vehicles/traffic/liaz_bus.md` | `source_only` |
