@@ -1,15 +1,17 @@
-# Volkswagen Amarok I type 2H full-generation Double Cab — research and owner-scope gate
+# Volkswagen Amarok I type 2H full-generation Double Cab — research and approved scope
 
 - Model number in Traffic Rider bundle: **23**
 - Source GLB: `23_volkswagen_amarok_2010.glb`
 - Source Git blob SHA-1: `2cb28a59e50ef4daf6707ae67a3d930de6a5687f`
 - Source SHA-256: **pending direct binary hash capture before integration**
 - Research date: 2026-07-16
-- Workflow status: **`awaiting_owner_scope`**
-- Physics baseline inspected during research: current `master` after `a22eb5ee8776ae3e4aa294de9de8fc57af69609a`; later master physics changes must be inspected again before implementation
-- Global implementation gate: no geometry, catalog, physics, transmission or audio implementation begins until every included model has reached `approved`.
+- Owner decision date: 2026-07-16
+- Workflow status: **`approved`**
+- Approved implementation scope: **19 full-generation Volkswagen Amarok I configurations**
+- Physics dependency: **implementation is blocked until PR #118 (`Rework per-wheel vehicle physics and recalibrate DPI v3`) is completed and its final physics changes are integrated into `master`**
+- Physics baseline inspected during research: historical `master` after `a22eb5ee8776ae3e4aa294de9de8fc57af69609a`; this is not an implementation baseline
 
-## Visual identity
+## Visual identity and approved body policy
 
 The source represents a **first-generation Volkswagen Amarok type 2H from the original 2010 body phase**, most plausibly a four-door Double Cab with the standard cargo bed.
 
@@ -22,7 +24,9 @@ The source-body anchor is:
 - ordinary production bumpers, arches and road/off-road ride height;
 - no Single Cab, cab-chassis, extended-bed, hardtop, military or specialist body.
 
-The research scope is intentionally wider than the source appearance. It now covers every evidenced factory engine calibration from the complete first-generation type 2H lifecycle, including the 2016 V6 facelift and the 2024 South-American visual update. Later body phases do not automatically create duplicate mechanical rows.
+The approved mechanical scope is wider than the source appearance. It covers every retained factory engine calibration from the complete first-generation type 2H lifecycle, including the 2016 V6 facelift and the 2024 South-American visual update.
+
+The owner approved all 19 mechanical configurations and did not request separate facelift geometry. Therefore every retained row uses the original source Double Cab body as an explicit visual homogenization. V6 and 2024 rows retain their correct mechanical, mass, drivetrain and performance calibration, but no claim is made that the original 2010 exterior is visually exact for those later phases. Mechanically duplicate facelift rows remain merged.
 
 The committed inventory records **2,684 triangles**. Direct binary inspection remains required to confirm the node hierarchy, paired wheel meshes, AABB, wheel centres, front axis and wheelbase-derived scale.
 
@@ -45,11 +49,11 @@ The committed inventory records **2,684 triangles**. Direct binary inspection re
 
 The committed GLB remains unchanged. Integration must create four independent hub-centred wheel nodes, explicit wheel bindings and project-authored collision. Scale must use the wheelbase as the primary reference and cross-check overall length, width, track and tyre diameter.
 
-## Full first-generation research boundary
+## Approved full-generation research boundary
 
-The candidate scope covers the complete **first-generation Amarok type 2H**, across original, 2016-facelift and 2024 South-American body states, provided that the powertrain was factory offered in this generation.
+The approved scope covers the complete **first-generation Amarok type 2H**, across original, 2016-facelift and 2024 South-American body states, provided that the powertrain was factory offered in this generation.
 
-Nine production engine calibrations are retained for scope consideration:
+Nine production engine calibrations are retained:
 
 1. **EA189 2.0 TDI 90 kW / 122 PS**, single-turbo common-rail diesel, approximately 340 Nm;
 2. **EA189 2.0 BiTDI 120 kW / 163 PS**, sequential twin-turbo common-rail diesel, approximately 400 Nm;
@@ -63,60 +67,60 @@ Nine production engine calibrations are retained for scope consideration:
 
 The 2013 275-PS V6 Wörthersee pickup was a concept and is excluded. Audi/Porsche-only 250/272-PS EA897 calibrations are not Amarok production engines and are excluded. The Ford-derived engines of the second-generation Amarok are outside the type 2H generation.
 
-Three fundamentally different drive systems must remain separate:
+Three fundamentally different drive systems remain separate:
 
 1. **Rear-wheel drive / 4×2** — longitudinal engine, gearbox, prop shaft and live rear axle only.
 2. **Selectable 4MOTION** — part-time transfer case with driver-selectable rear drive, high-range four-wheel drive and low range; no centre differential in locked 4WD operation.
 3. **Permanent 4MOTION** — full-time four-wheel drive through a torque-sensing centre differential with a rear-biased nominal split; no selectable low range in the eight-speed automatic architecture.
 
-## Mechanically consolidated candidate matrix
+## Approved configuration matrix
 
-### Original 2010–2012 diesel range — 5 candidates
+### Original 2010–2012 diesel range — 5 configurations
 
-| # | Engine / calibration | Transmission | Drivetrain | Evidence state |
+| # | Engine / calibration | Transmission | Drivetrain | Status |
 |---:|---|---|---|---|
-| 1 | EA189 2.0 TDI 90 kW / 122 PS, approximately 340 Nm | 6-speed conventional manual | RWD / 4×2 | `verified_family` |
-| 2 | EA189 2.0 TDI 90 kW / 122 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | `verified_family` |
-| 3 | EA189 2.0 BiTDI 120 kW / 163 PS, approximately 400 Nm | 6-speed conventional manual | RWD / 4×2 | `verified_family` |
-| 4 | EA189 2.0 BiTDI 120 kW / 163 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | `verified_family` |
-| 5 | EA189 2.0 BiTDI 120 kW / 163 PS | 6-speed conventional manual | permanent 4MOTION with torque-sensing centre differential | `drive_concept_verified`; exact market and final-drive application evidence blocked |
+| 1 | EA189 2.0 TDI 90 kW / 122 PS, approximately 340 Nm | 6-speed conventional manual | RWD / 4×2 | **approved** |
+| 2 | EA189 2.0 TDI 90 kW / 122 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | **approved** |
+| 3 | EA189 2.0 BiTDI 120 kW / 163 PS, approximately 400 Nm | 6-speed conventional manual | RWD / 4×2 | **approved** |
+| 4 | EA189 2.0 BiTDI 120 kW / 163 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | **approved** |
+| 5 | EA189 2.0 BiTDI 120 kW / 163 PS | 6-speed conventional manual | permanent 4MOTION with torque-sensing centre differential | **approved scope / market and final-drive evidence blocked** |
 
-### Updated 2012–2016 four-cylinder diesel range — 6 candidates
+### Updated 2012–2016 four-cylinder diesel range — 6 configurations
 
-| # | Engine / calibration | Transmission | Drivetrain | Evidence state |
+| # | Engine / calibration | Transmission | Drivetrain | Status |
 |---:|---|---|---|---|
-| 6 | EA189 2.0 TDI 103 kW / 140 PS, approximately 340 Nm | 6-speed conventional manual | RWD / 4×2 | `verified_family` |
-| 7 | EA189 2.0 TDI 103 kW / 140 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | `verified_family` |
-| 8 | EA189 2.0 BiTDI 132 kW / 180 PS, manual calibration | 6-speed conventional manual | RWD / 4×2 | `verified_family` |
-| 9 | EA189 2.0 BiTDI 132 kW / 180 PS, manual calibration | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | `verified_family` |
-| 10 | EA189 2.0 BiTDI 132 kW / 180 PS, approximately 420-Nm automatic calibration | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | RWD / 4×2 | `regional_application_evidence_blocked`; exact ordering market and gearbox suffix require primary data |
-| 11 | EA189 2.0 BiTDI 132 kW / 180 PS, approximately 420-Nm automatic calibration | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | `verified_family` |
+| 6 | EA189 2.0 TDI 103 kW / 140 PS, approximately 340 Nm | 6-speed conventional manual | RWD / 4×2 | **approved** |
+| 7 | EA189 2.0 TDI 103 kW / 140 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | **approved** |
+| 8 | EA189 2.0 BiTDI 132 kW / 180 PS, manual calibration | 6-speed conventional manual | RWD / 4×2 | **approved** |
+| 9 | EA189 2.0 BiTDI 132 kW / 180 PS, manual calibration | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | **approved** |
+| 10 | EA189 2.0 BiTDI 132 kW / 180 PS, approximately 420-Nm automatic calibration | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | RWD / 4×2 | **approved scope / regional application and gearbox suffix evidence blocked** |
+| 11 | EA189 2.0 BiTDI 132 kW / 180 PS, approximately 420-Nm automatic calibration | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | **approved** |
 
-### Regional four-cylinder petrol range — 1 candidate
+### Regional four-cylinder petrol range — 1 configuration
 
-| # | Engine / calibration | Transmission | Drivetrain | Evidence state |
+| # | Engine / calibration | Transmission | Drivetrain | Status |
 |---:|---|---|---|---|
-| 12 | EA888 2.0 TSI 118 kW / 160 PS, approximately 300 Nm | 6-speed conventional manual | RWD / 4×2 | `regional_application_verified_family`; exact market dates and code evidence blocked |
+| 12 | EA888 2.0 TSI 118 kW / 160 PS, approximately 300 Nm | 6-speed conventional manual | RWD / 4×2 | **approved scope / exact market dates and engine code evidence blocked** |
 
-### 2016-onward V6 diesel range — 7 candidates
+### 2016-onward V6 diesel range — 7 configurations
 
-| # | Engine / calibration | Transmission | Drivetrain | Evidence state |
+| # | Engine / calibration | Transmission | Drivetrain | Status |
 |---:|---|---|---|---|
-| 13 | EA897 evo DDXA 3.0 V6 TDI 120 kW / 163 PS, approximately 450 Nm | 6-speed conventional manual | RWD / 4×2 | `engine_verified`; exact RWD ordering application evidence blocked |
-| 14 | EA897 evo DDXA 3.0 V6 TDI 120 kW / 163 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | `engine_and_architecture_verified`; exact market table required |
-| 15 | EA897 evo DDXB 3.0 V6 TDI 150 kW / 204 PS, approximately 500 Nm | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | `verified_family`; gearbox suffix and market restrictions require primary data |
-| 16 | EA897 evo DDXB 3.0 V6 TDI 150 kW / 204 PS | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | `verified_family` |
-| 17 | EA897 evo DDXC 3.0 V6 TDI 165 kW / 224 PS, approximately 550 Nm | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | `verified` |
-| 18 | EA897 evo 3.0 V6 TDI 165 kW / 224 PS, Australian TDI500 calibration at approximately 500 Nm | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | `verified_regional_family`; exact engine suffix and ratios require primary Australian data |
-| 19 | EA897 evo DDXE 3.0 V6 TDI 190 kW / 258 PS, approximately 580 Nm | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | `verified` |
+| 13 | EA897 evo DDXA 3.0 V6 TDI 120 kW / 163 PS, approximately 450 Nm | 6-speed conventional manual | RWD / 4×2 | **approved scope / exact RWD ordering application evidence blocked** |
+| 14 | EA897 evo DDXA 3.0 V6 TDI 120 kW / 163 PS | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | **approved scope / exact market table evidence blocked** |
+| 15 | EA897 evo DDXB 3.0 V6 TDI 150 kW / 204 PS, approximately 500 Nm | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | **approved scope / gearbox suffix and market restrictions evidence blocked** |
+| 16 | EA897 evo DDXB 3.0 V6 TDI 150 kW / 204 PS | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | **approved** |
+| 17 | EA897 evo DDXC 3.0 V6 TDI 165 kW / 224 PS, approximately 550 Nm | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | **approved** |
+| 18 | EA897 evo 3.0 V6 TDI 165 kW / 224 PS, Australian TDI500 calibration at approximately 500 Nm | 6-speed conventional manual | selectable 4MOTION with high/low transfer case | **approved scope / exact engine suffix and ratios evidence blocked** |
+| 19 | EA897 evo DDXE 3.0 V6 TDI 190 kW / 258 PS, approximately 580 Nm | ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic | permanent 4MOTION with torque-sensing centre differential | **approved** |
 
-**Mechanically consolidated candidate total: 19 full-generation Amarok I configurations.**
+**Approved total: 5 original diesel + 6 updated diesel + 1 regional petrol + 7 V6 = 19 full-generation Amarok I configurations.**
 
-Rows 5, 10, 12, 13, 14, 15 and 18 remain confirmation-gated in at least one market, gearbox-code, engine-suffix or drivetrain-application detail. Primary Volkswagen ordering data may remove or refine a row, but unsupported combinations may not be invented.
+Rows 5, 10, 12, 13, 14, 15 and 18 remain confirmation-gated in at least one market, gearbox-code, engine-suffix or drivetrain-application detail. They are retained in the approved scope, but no implementation may invent missing transmission architecture, ratios, final drive, engine suffix or market application. A row whose complete factory application cannot be confirmed before parameter commitment must remain unimplemented rather than receive guessed data.
 
-## Uncounted combinations requiring primary confirmation
+## Explicitly uncounted combinations
 
-The following possibilities are not counted because current evidence does not establish a complete factory engine, gearbox and drive-system combination:
+The following possibilities remain outside the approved matrix because current evidence does not establish a complete factory engine, gearbox and drive-system combination:
 
 - 122-PS or 140-PS permanent 4MOTION;
 - 163-PS or 140-PS eight-speed automatic;
@@ -128,20 +132,12 @@ The following possibilities are not counted because current evidence does not es
 - V6 258 PS with six-speed manual and selectable low range;
 - any automatic paired with the selectable low-range transfer case.
 
-A primary price list, type-approval table or service application list may promote one of these to the matrix. Until then, each remains excluded rather than guessed.
+A primary price list, type-approval table or service application list may promote one of these only through a new owner-scope amendment. Until then, each remains excluded rather than guessed.
 
-## Facelift and body policy candidates
+## Approved body, payload and duplicate policy
 
-The first generation has at least three relevant visual states:
-
-1. original 2010–2016 four-cylinder body represented by the source GLB;
-2. 2016–2024 V6 facelift with revised front, interior and V6-specific details;
-3. 2024 South-American second facelift, which remains on the first-generation type 2H structure.
-
-Recommended implementation policy:
-
-- use the source-like Double Cab and standard bed for all mechanical rows unless the owner requests project-authored facelift derivatives;
-- if one common source body is used, record V6 and 2024 rows as explicit visual homogenizations rather than claiming factory visual accuracy;
+- use the original source-like Double Cab and standard bed for all 19 rows as an explicit visual homogenization;
+- retain correct facelift-era mechanical mass, brakes, tyres, suspension and drivetrain calibration even where the exterior remains the original mesh;
 - do not create duplicate catalog rows solely for the 2016 or 2024 appearance when engine, gearbox, drivetrain and calibration are unchanged;
 - use one representative unladen/light-payload state per powertrain row;
 - assign drivetrain-correct kerb mass, front/rear axle load, centre of gravity, suspension, brakes and tyre calibration;
@@ -216,23 +212,23 @@ Before implementation retain primary Volkswagen Commercial Vehicles brochures, p
 - drag, frontal area and documented acceleration, top-speed, towing and gradeability targets;
 - direct GLB SHA-256, hierarchy, wheel centres, AABB, front axis and scale.
 
-The engine families and three driveline architectures are established, but seven rows and all exact ratio/final-drive data remain confirmation-gated.
+## Mandatory PR #118 implementation dependency
 
-## Owner scope decision — required before implementation
+Research and owner-scope work are complete, but implementation remains prohibited while PR #118 is unfinished.
 
-Status remains **`awaiting_owner_scope`**.
+No Traffic Rider vehicle may enter `integrating`, and no source relocation, processed GLB, runtime scene, catalog resource, transmission implementation, engine-audio implementation or physics calibration may be committed until all of the following are true:
 
-Please decide:
+1. PR #118, **Rework per-wheel vehicle physics and recalibrate DPI v3**, is completed and its final physics changes are merged into `master`, or an explicitly identified successor carrying the same work is merged instead;
+2. this Traffic Rider branch is synchronized with that resulting `master`;
+3. the final physics commit is recorded as the implementation baseline;
+4. changes to per-wheel contact, slip, load transfer, drivetrain inertia, differentials, AWD, braking, steering/yaw, drag, transmissions and DPI/performance evaluation are reviewed;
+5. the integration plan and every shared calibration assumption are updated for the new interfaces;
+6. the full current test suite passes before model 01 moves to `integrating`.
 
-1. Include all 19 candidate configurations across the complete first generation?
-2. Include all nine engine calibrations, including V6 163, 204, 224 and 258 PS?
-3. Include all three drivetrain architectures: RWD, selectable low-range 4MOTION and permanent 4MOTION?
-4. Include the Australian V6 224-PS six-speed-manual low-range row?
-5. Retain evidence-blocked rows 5, 10, 12, 13, 14, 15 and 18 pending primary Volkswagen confirmation?
-6. Use the original source Double Cab body for all rows as an explicit visual homogenization, or require separate project-authored 2016 and 2024 facelift derivatives?
-7. Merge facelift/body-phase duplicates when their mechanical configuration is unchanged?
-8. Omit Single Cab, cab-chassis, bed, payload, trim, wheel and special-edition duplicates?
-9. Exclude concepts, non-Amarok EA897 calibrations, conversions and all second-generation engines?
-10. Is an expected first-generation Amarok engine, transmission or drivetrain combination missing?
+Closing PR #118 without integrating its intended physics work does not satisfy the dependency unless the owner explicitly identifies a merged successor.
 
-This is the final individual model gate. After the owner fixes model 23 scope, every included model will have a decided research scope and the global implementation gate may move to its next stage.
+## Owner decision recorded
+
+The owner approved all 19 researched first-generation Amarok configurations, including all nine engine calibrations, all four V6 outputs, the Australian manual low-range V6 row and all seven evidence-blocked rows. The original source Double Cab is retained as the common visual body, mechanically duplicate facelift entries remain merged, and concepts, non-Amarok calibrations, conversions and second-generation engines remain excluded.
+
+Model 23 is **`approved`** with **19** configurations. All 20 Traffic Rider model scopes are now approved. Implementation remains blocked by the mandatory PR #118 physics dependency.
