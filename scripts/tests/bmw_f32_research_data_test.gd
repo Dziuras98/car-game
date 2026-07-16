@@ -7,16 +7,6 @@ const VERIFIED_DYNAMICS_PATH := "res://resources/cars/bmw/4_series_f32/data/bmw_
 const EXPECTED_VARIANT_COUNT := 44
 const EXPECTED_ENGINE_COUNT := 17
 const EXPECTED_VERIFIED_DYNAMICS_COUNT := 8
-const EXPECTED_VERIFIED_IDS: PackedStringArray = PackedStringArray([
-	"428i_n20b20_rwd_6mt",
-	"428i_n20b20_rwd_8at",
-	"428i_n20b20_xdrive_8at",
-	"435i_n55b30_rwd_6mt",
-	"435i_n55b30_rwd_8at",
-	"435i_n55b30_xdrive_8at",
-	"420d_n47d20_rwd_6mt",
-	"420d_n47d20_rwd_8at",
-])
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -43,6 +33,19 @@ func _initialize() -> void:
 	_test_engines(engines)
 	_test_verified_dynamics(dynamics, variants_by_id, engines_by_key, dynamics_by_id)
 	_finish()
+
+
+func _expected_verified_ids() -> PackedStringArray:
+	return PackedStringArray([
+		"428i_n20b20_rwd_6mt",
+		"428i_n20b20_rwd_8at",
+		"428i_n20b20_xdrive_8at",
+		"435i_n55b30_rwd_6mt",
+		"435i_n55b30_rwd_8at",
+		"435i_n55b30_xdrive_8at",
+		"420d_n47d20_rwd_6mt",
+		"420d_n47d20_rwd_8at",
+	])
 
 
 func _test_variant_matrix(
@@ -95,7 +98,7 @@ func _test_verified_dynamics(
 	engines_by_key: Dictionary,
 	dynamics_by_id: Dictionary
 ) -> void:
-	for expected_id: String in EXPECTED_VERIFIED_IDS:
+	for expected_id: String in _expected_verified_ids():
 		_expect(dynamics_by_id.has(expected_id), "factory launch dataset contains %s" % expected_id)
 
 	for row: Dictionary in dynamics:
