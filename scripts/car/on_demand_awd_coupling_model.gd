@@ -1,7 +1,8 @@
 extends RefCounted
 class_name OnDemandAwdCouplingModel
 
-const MAX_UPDATE_STEP_S: float = 1.0 / 120.0
+const FIXED_UPDATE_STEP_S: float = 1.0 / 600.0
+const UPDATE_EPSILON_S: float = 0.0000001
 const MIN_TORQUE_EPSILON_NM: float = 0.001
 
 var base_front_fraction: float = 0.0
@@ -74,9 +75,8 @@ func update(
 ) -> void:
 	if state == null:
 		return
-	var remaining: float = maxf(delta, 0.0)
-	while remaining > 0.000001:
-		var step: float = minf(remaining, MAX_UPDATE_STEP_S)
+	var safe_delta: float = maxf(delta, 0.0)
+	if safe_delta <= 0.0:
 		_update_step(
 			state,
 			throttle,
@@ -85,10 +85,11 @@ func update(
 			rear_axle_speed_rad_s,
 			stability_request,
 			total_input_torque_nm,
-			step
+			0.0
 		)
-		remaining -= step
-	if delta <= 0.0:
+		return
+	state.simulation_remainder_s += safe_delta
+	while state.simulation_remainder_s + UPDATE_EPSILON_S >= FIXED_UPDATE_STEP_S:
 		_update_step(
 			state,
 			throttle,
@@ -97,6 +98,10 @@ func update(
 			rear_axle_speed_rad_s,
 			stability_request,
 			total_input_torque_nm,
+			FIXED_UPDATE_STEP_S
+		)
+		state.simulation_remainder_s = maxf(
+			state.simulation_remainder_s - FIXED_UPDATE_STEP_S,
 			0.0
 		)
 
