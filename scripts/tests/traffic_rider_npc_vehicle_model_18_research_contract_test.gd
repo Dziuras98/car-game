@@ -11,14 +11,15 @@ func _initialize() -> void:
 	var inventory := _read_text(INVENTORY_PATH)
 	var research := _read_text(RESEARCH_PATH)
 	for fragment: String in [
-		"Nissan Atleon 2004 pre-facelift single-cab box truck | medium box truck | 2,076 | `awaiting_owner_scope`",
-		"4 mechanically consolidated RWD engine rows: BD30Ti 110, B4.40Ti 140, B6.60TiL 165 and B6.60TiH 210",
-		"After model 18 is approved, research continues with model 20",
+		"Nissan Atleon 2004 pre-facelift single-cab box truck with approved four-engine RWD scope | medium box truck | 2,076 | `approved`",
+		"| 18 — Nissan Atleon 2004 pre-facelift | `docs/vehicles/traffic/nissan_atleon_2004.md` | 4 |",
+		"After model 20 is approved, research continues with model 23",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves: %s" % fragment)
 	for fragment: String in [
-		"Nissan Atleon 2004 pre-facelift box truck — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
+		"Nissan Atleon 2004 pre-facelift box truck — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **4 pre-facelift Nissan Atleon RWD configurations**",
 		"Source GLB: `18_nissan_atleon_2004.glb`",
 		"Source Git blob SHA-1: `680e31baa11e5d7abf8d13b95b2638eb3db32e69`",
 		"Source SHA-256: **pending direct binary hash capture before integration**",
@@ -27,12 +28,14 @@ func _initialize() -> void:
 		"B4.40Ti 3.989L turbo-diesel inline-four",
 		"B6.60TiL 5.985L turbo-diesel inline-six",
 		"B6.60TiH 5.985L turbo-diesel inline-six",
-		"Mechanically consolidated candidate total: 4 pre-facelift RWD configurations",
-		"Unresolved 4WD branch",
-		"Owner scope decision — required before implementation",
-		"No implementation begins after this individual decision",
+		"Approved total: 4 pre-facelift Nissan Atleon RWD configurations",
+		"Explicitly excluded 4WD branch",
+		"Owner decision recorded",
+		"Model 18 is **`approved`** with **4** configurations",
+		"Research proceeds to model 20",
 	]:
 		_expect(research.contains(fragment), "Atleon research preserves: %s" % fragment)
+	_expect(not research.contains("Workflow status: **`awaiting_owner_scope`**"), "Atleon owner gate is closed")
 	_finish()
 
 
