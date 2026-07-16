@@ -11,7 +11,7 @@
   },
   "parts": [
     {
-      "path": "models/track_surface.glb",
+      "path": "track_surface.glb",
       "sha256": "06c898080ab8beaecd90ea9da80d4b6442d898b039bc5932ecb4446a7d3e84fe",
       "bytes": 13909616,
       "objects": 7,
@@ -20,7 +20,7 @@
       "materials": ["GROUND", "Kerbs", "Lines", "Material.001", "ROAD"]
     },
     {
-      "path": "models/fences.glb",
+      "path": "fences.glb",
       "sha256": "66efe38be4f64d2033209119bebcd0a5336eba7b6c411eb1644e1056a8b629cf",
       "bytes": 12419816,
       "objects": 5,
@@ -29,7 +29,7 @@
       "materials": ["Track_Fence"]
     },
     {
-      "path": "models/barriers.glb",
+      "path": "barriers.glb",
       "sha256": "2b45c84654bba9e132adac13acedf8d4c4842b9aba6f9e2ee607830688fea37e",
       "bytes": 7070888,
       "objects": 4,
@@ -38,7 +38,7 @@
       "materials": ["Bankina_Default", "surface.Lim_Ograda"]
     },
     {
-      "path": "models/buildings.glb",
+      "path": "buildings.glb",
       "sha256": "7095233d02641251a22d0729c2e44f58ccfdbf4440378d4d8452a2047bc4446d",
       "bytes": 8412108,
       "objects": 19,
@@ -47,7 +47,7 @@
       "materials": ["Finish", "Material.002", "Scene_-_Root", "Start", "Steal", "building1", "building3", "building4", "building5", "building6"]
     },
     {
-      "path": "models/vehicles.glb",
+      "path": "vehicles.glb",
       "sha256": "1418e6339ec00ff112406d8e2bef365be755b3dcb6be285d8db239883793c58f",
       "bytes": 2402960,
       "objects": 12,
@@ -56,7 +56,7 @@
       "materials": ["car_0", "material"]
     },
     {
-      "path": "models/vegetation.glb",
+      "path": "vegetation.glb",
       "sha256": "71d4824b8e5a93582049487373be616d6c47a50c07a9ad4d5835e61cc16a9976",
       "bytes": 1615032,
       "objects": 234,
