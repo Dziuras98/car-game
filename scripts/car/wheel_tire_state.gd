@@ -14,13 +14,20 @@ var wheel_index: int = Position.FRONT_LEFT
 var has_contact: bool = false
 var surface_grip_multiplier: float = 1.0
 var contact_normal: Vector3 = Vector3.UP
+var contact_position_global: Vector3 = Vector3.ZERO
 var suspension_acceleration: float = 0.0
+var normal_load_share: float = 0.0
+var road_longitudinal_speed_mps: float = 0.0
 var steering_angle_rad: float = 0.0
 var lateral_slip_angle_rad: float = 0.0
 var lateral_force_n: float = 0.0
+var lateral_grip_usage: float = 0.0
 var lateral_slip_intensity: float = 0.0
 var longitudinal_slip_ratio: float = 0.0
 var longitudinal_slip_intensity: float = 0.0
+var longitudinal_grip_usage: float = 0.0
+var longitudinal_force_n: float = 0.0
+var body_force_local_n: Vector2 = Vector2.ZERO
 var tire_slip_intensity: float = 0.0
 var requested_longitudinal_acceleration: float = 0.0
 var applied_longitudinal_acceleration: float = 0.0
@@ -86,17 +93,22 @@ func reset_contact() -> void:
 	has_contact = false
 	surface_grip_multiplier = 1.0
 	contact_normal = Vector3.UP
+	contact_position_global = Vector3.ZERO
 	suspension_acceleration = 0.0
+	normal_load_share = 0.0
+	road_longitudinal_speed_mps = 0.0
 
 
 func set_contact(
 	grip_multiplier: float,
 	normal: Vector3,
-	support_acceleration: float
+	support_acceleration: float,
+	contact_position: Vector3 = Vector3.ZERO
 ) -> void:
 	has_contact = true
 	surface_grip_multiplier = clampf(grip_multiplier, 0.05, 2.0)
 	contact_normal = normal.normalized() if normal.length_squared() > 0.000001 else Vector3.UP
+	contact_position_global = contact_position
 	suspension_acceleration = maxf(support_acceleration, 0.0)
 
 
@@ -109,12 +121,16 @@ func reset_tire_dynamics() -> void:
 func reset_lateral_dynamics() -> void:
 	lateral_slip_angle_rad = 0.0
 	lateral_force_n = 0.0
+	lateral_grip_usage = 0.0
 	lateral_slip_intensity = 0.0
 
 
 func reset_longitudinal_dynamics() -> void:
 	longitudinal_slip_ratio = 0.0
 	longitudinal_slip_intensity = 0.0
+	longitudinal_grip_usage = 0.0
+	longitudinal_force_n = 0.0
+	body_force_local_n = Vector2.ZERO
 	requested_longitudinal_acceleration = 0.0
 	applied_longitudinal_acceleration = 0.0
 	drive_torque_nm = 0.0

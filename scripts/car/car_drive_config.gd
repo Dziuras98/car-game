@@ -8,6 +8,13 @@ var handbrake_deceleration: float = 18.0
 var max_forward_speed: float = 30.0
 var max_reverse_speed: float = 10.0
 var steering_speed: float = 2.7
+var steering_response_rate: float = 7.0
+var max_yaw_rate_rad_s: float = 3.5
+var yaw_damping_per_second: float = 0.35
+var released_steering_yaw_damping_per_second: float = 0.90
+var low_speed_yaw_damping_per_second: float = 3.50
+var collision_yaw_response: float = 0.35
+var speed_limiter_strength: float = 8.0
 var wheel_base: float = 2.65
 var front_axle_track_width: float = 1.55
 var rear_axle_track_width: float = 1.55
@@ -25,6 +32,7 @@ var redline_torque_multiplier: float = 0.72
 var engine_force: float = 30.0
 var engine_brake_force: float = 3.0
 var rpm_response: float = 8.0
+var engine_inertia_kg_m2: float = 0.0
 
 var transmission_type: int = CarSpecs.TransmissionType.DIRECT_DRIVE
 var gear_ratios: Array[float] = [3.20, 2.10, 1.50, 1.15, 0.92, 0.75]
@@ -37,6 +45,9 @@ var shift_delay: float = 0.28
 var max_drive_acceleration: float = 100.0
 var drive_layout: int = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
 var awd_front_torque_fraction: float = 0.40
+var front_differential_lock: float = 0.0
+var rear_differential_lock: float = 0.0
+var center_differential_lock: float = 0.0
 
 var automatic_upshift_rpm: float = 6200.0
 var automatic_downshift_rpm: float = 2100.0
@@ -56,6 +67,7 @@ var smg_downshift_rpm: float = 1800.0
 var smg_clutch_reengage_point: float = 0.48
 
 var cvt_max_ratio: float = 2.50
+var cvt_min_ratio: float = 0.0
 var cvt_target_rpm_min: float = 1800.0
 var cvt_target_rpm_max: float = 5500.0
 var cvt_ratio_response: float = 8.0
@@ -69,6 +81,12 @@ var air_density: float = 1.225
 var rolling_resistance_coefficient: float = 0.015
 var front_static_load_fraction: float = 0.0
 var center_of_mass_height_m: float = 0.55
+var suspension_load_blend: float = 0.65
+var aerodynamic_lateral_area_multiplier: float = 1.15
+var body_pitch_response: float = 7.0
+var body_roll_response: float = 7.0
+var max_body_pitch_degrees: float = 4.0
+var max_body_roll_degrees: float = 6.0
 
 var front_lateral_grip: float = 10.0
 var rear_lateral_grip: float = 10.0
@@ -77,6 +95,9 @@ var rear_tire_width_m: float = 0.245
 var longitudinal_grip_coefficient: float = 1.05
 var longitudinal_peak_slip_ratio: float = 0.12
 var longitudinal_slide_grip_multiplier: float = 0.78
+var lateral_slide_grip_multiplier: float = 0.88
+var traction_control_strength: float = 0.0
+var abs_strength: float = 0.0
 var handbrake_lateral_grip_multiplier: float = 0.28
 var steering_slip_gain: float = 0.85
 var slip_speed_threshold: float = 2.2
@@ -205,6 +226,13 @@ func duplicate_config() -> CarDriveConfig:
 
 func sanitize() -> void:
 	max_forward_speed = maxf(max_forward_speed, 0.1)
+	steering_response_rate = maxf(steering_response_rate, 0.01)
+	max_yaw_rate_rad_s = maxf(max_yaw_rate_rad_s, 0.01)
+	yaw_damping_per_second = maxf(yaw_damping_per_second, 0.0)
+	released_steering_yaw_damping_per_second = maxf(released_steering_yaw_damping_per_second, 0.0)
+	low_speed_yaw_damping_per_second = maxf(low_speed_yaw_damping_per_second, 0.0)
+	collision_yaw_response = clampf(collision_yaw_response, 0.0, 1.0)
+	speed_limiter_strength = maxf(speed_limiter_strength, 0.0)
 	max_reverse_speed = maxf(max_reverse_speed, 0.0)
 	wheel_base = maxf(wheel_base, 0.1)
 	front_axle_track_width = maxf(front_axle_track_width, 0.1)
@@ -216,10 +244,19 @@ func sanitize() -> void:
 	if drive_layout < CarSpecs.DriveLayout.FRONT_WHEEL_DRIVE or drive_layout > CarSpecs.DriveLayout.ALL_WHEEL_DRIVE:
 		drive_layout = CarSpecs.DriveLayout.REAR_WHEEL_DRIVE
 	awd_front_torque_fraction = clampf(awd_front_torque_fraction, 0.0, 1.0)
+	front_differential_lock = clampf(front_differential_lock, 0.0, 1.0)
+	rear_differential_lock = clampf(rear_differential_lock, 0.0, 1.0)
+	center_differential_lock = clampf(center_differential_lock, 0.0, 1.0)
 	if front_static_load_fraction <= 0.0:
 		front_static_load_fraction = 0.62 if is_front_wheel_drive() else 0.50 if is_all_wheel_drive() else 0.53
 	front_static_load_fraction = clampf(front_static_load_fraction, 0.10, 0.90)
 	center_of_mass_height_m = maxf(center_of_mass_height_m, 0.05)
+	suspension_load_blend = clampf(suspension_load_blend, 0.0, 1.0)
+	aerodynamic_lateral_area_multiplier = maxf(aerodynamic_lateral_area_multiplier, 0.01)
+	body_pitch_response = maxf(body_pitch_response, 0.01)
+	body_roll_response = maxf(body_roll_response, 0.01)
+	max_body_pitch_degrees = maxf(max_body_pitch_degrees, 0.0)
+	max_body_roll_degrees = maxf(max_body_roll_degrees, 0.0)
 	front_lateral_grip = maxf(front_lateral_grip, 0.01)
 	rear_lateral_grip = maxf(rear_lateral_grip, 0.01)
 	front_tire_width_m = maxf(front_tire_width_m, 0.01)
@@ -227,9 +264,13 @@ func sanitize() -> void:
 	longitudinal_grip_coefficient = maxf(longitudinal_grip_coefficient, 0.01)
 	longitudinal_peak_slip_ratio = maxf(longitudinal_peak_slip_ratio, 0.001)
 	longitudinal_slide_grip_multiplier = clampf(longitudinal_slide_grip_multiplier, 0.0, 1.0)
+	lateral_slide_grip_multiplier = clampf(lateral_slide_grip_multiplier, 0.0, 1.0)
+	traction_control_strength = clampf(traction_control_strength, 0.0, 1.0)
+	abs_strength = clampf(abs_strength, 0.0, 1.0)
 	front_brake_bias = clampf(front_brake_bias, 0.0, 1.0)
 	wheel_angular_damping_nm_per_rad_s = maxf(wheel_angular_damping_nm_per_rad_s, 0.0)
 	wheel_slip_reference_speed_mps = maxf(wheel_slip_reference_speed_mps, WheelRotationalDynamicsModel.MIN_REFERENCE_SPEED_MPS)
+	engine_inertia_kg_m2 = maxf(engine_inertia_kg_m2, 0.0)
 	if front_wheel_inertia_kg_m2 <= 0.0:
 		front_wheel_inertia_kg_m2 = _estimate_wheel_inertia(front_tire_width_m)
 	if rear_wheel_inertia_kg_m2 <= 0.0:
@@ -244,6 +285,9 @@ func sanitize() -> void:
 	ground_probe_collision_mask = maxi(ground_probe_collision_mask, 1)
 	minimum_ground_normal_dot = clampf(minimum_ground_normal_dot, 0.0, 1.0)
 	cvt_max_ratio = maxf(cvt_max_ratio, CvtTransmissionModel.MIN_DYNAMIC_RATIO)
+	cvt_min_ratio = maxf(cvt_min_ratio, 0.0)
+	if cvt_min_ratio > 0.0:
+		cvt_min_ratio = minf(cvt_min_ratio, cvt_max_ratio - CvtTransmissionModel.MIN_DYNAMIC_RATIO)
 	cvt_target_rpm_min = maxf(cvt_target_rpm_min, idle_rpm)
 	cvt_target_rpm_max = maxf(cvt_target_rpm_max, cvt_target_rpm_min)
 	cvt_ratio_response = maxf(cvt_ratio_response, 0.01)

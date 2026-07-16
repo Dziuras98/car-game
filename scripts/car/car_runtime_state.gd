@@ -11,8 +11,12 @@ var forward_speed: float = 0.0
 var lateral_speed: float = 0.0
 var yaw_rate_rad_s: float = 0.0
 var yaw_acceleration_rad_s2: float = 0.0
+var longitudinal_acceleration_mps2: float = 0.0
 var lateral_acceleration_mps2: float = 0.0
 var yaw_moment_nm: float = 0.0
+var steering_input_state: float = 0.0
+var body_pitch_angle_rad: float = 0.0
+var body_roll_angle_rad: float = 0.0
 var engine_rpm: float = 900.0
 var current_gear: int = 1
 var shift_timer: float = 0.0
@@ -27,6 +31,7 @@ var surface_grip_multiplier: float = 1.0
 var ground_contact_count: int = 0
 var ground_normal: Vector3 = Vector3.UP
 var suspension_acceleration: float = 0.0
+var suspension_acceleration_vector: Vector3 = Vector3.ZERO
 var wheel_states: Array[WheelTireState] = []
 
 
@@ -97,7 +102,7 @@ func _synchronize_free_rolling_wheels(config: CarDriveConfig) -> void:
 	# lateral kinetic energy. Match each wheel to its own velocity along the
 	# steered wheel plane instead, without applying a fictitious center impulse.
 	for wheel: WheelTireState in free_wheels:
-		wheel.set_rolling_speed(_get_wheel_longitudinal_road_speed(wheel, config))
+		wheel.set_rolling_speed(get_wheel_longitudinal_road_speed(wheel, config))
 		wheel.angular_acceleration_rad_s2 = 0.0
 
 
@@ -156,7 +161,7 @@ func _is_near_straight_free_rolling(free_wheels: Array[WheelTireState]) -> bool:
 	return true
 
 
-func _get_wheel_longitudinal_road_speed(
+func get_wheel_longitudinal_road_speed(
 	wheel: WheelTireState,
 	config: CarDriveConfig
 ) -> float:
@@ -260,6 +265,7 @@ func synchronize_wheel_contacts_from_aggregate() -> void:
 			ground_normal,
 			support_per_wheel
 		)
+		wheel.road_longitudinal_speed_mps = forward_speed
 		# Aggregate contact is used by deterministic simulations that may seed body
 		# speed directly. Initialize a previously stationary wheel to road speed before
 		# slip is resolved, preventing a one-step fictitious braking impulse.
@@ -276,12 +282,85 @@ func synchronize_wheel_contacts_from_aggregate() -> void:
 		wheel.tire_slip_intensity = tire_slip_intensity
 
 
+func update_wheel_load_shares(
+	config: CarDriveConfig,
+	longitudinal_acceleration: float,
+	lateral_acceleration: float
+) -> void:
+	ensure_wheel_states()
+	if config == null:
+		return
+	var analytic_shares: PackedFloat32Array = PackedFloat32Array()
+	analytic_shares.resize(WheelTireState.WHEEL_COUNT)
+	var suspension_sum: float = 0.0
+	var contact_count: int = 0
+	for wheel: WheelTireState in wheel_states:
+		if wheel.has_contact:
+			contact_count += 1
+			suspension_sum += maxf(wheel.suspension_acceleration, 0.0)
+	var analytic_sum: float = 0.0
+	for wheel: WheelTireState in wheel_states:
+		if not wheel.has_contact:
+			wheel.normal_load_share = 0.0
+			analytic_shares[wheel.wheel_index] = 0.0
+			continue
+		var base_share: float = config.get_wheel_load_share(
+			wheel.wheel_index,
+			longitudinal_acceleration
+		)
+		var axle_fraction: float = base_share * 2.0
+		var track_width: float = (
+			config.front_axle_track_width if wheel.is_front() else config.rear_axle_track_width
+		)
+		var requested_transfer: float = (
+			absf(lateral_acceleration)
+			* config.center_of_mass_height_m
+			/ maxf(TireModel.STANDARD_GRAVITY * track_width, 0.01)
+			* axle_fraction
+			* 0.5
+		)
+		var transfer: float = minf(requested_transfer, maxf(base_share - 0.001, 0.0))
+		var outside_sign: float = signf(lateral_acceleration)
+		var wheel_sign: float = 1.0 if wheel.is_left() else -1.0
+		var analytic_share: float = maxf(base_share + outside_sign * wheel_sign * transfer, 0.0)
+		analytic_shares[wheel.wheel_index] = analytic_share
+		analytic_sum += analytic_share
+	if contact_count <= 0:
+		return
+	var blended_sum: float = 0.0
+	for wheel: WheelTireState in wheel_states:
+		if not wheel.has_contact:
+			continue
+		var analytic_share: float = (
+			analytic_shares[wheel.wheel_index] / analytic_sum
+			if analytic_sum > 0.000001
+			else 1.0 / float(contact_count)
+		)
+		var suspension_share: float = (
+			maxf(wheel.suspension_acceleration, 0.0) / suspension_sum
+			if suspension_sum > 0.000001
+			else 1.0 / float(contact_count)
+		)
+		wheel.normal_load_share = lerpf(
+			analytic_share,
+			suspension_share,
+			clampf(config.suspension_load_blend, 0.0, 1.0)
+		)
+		blended_sum += wheel.normal_load_share
+	if blended_sum <= 0.000001:
+		return
+	for wheel: WheelTireState in wheel_states:
+		if wheel.has_contact:
+			wheel.normal_load_share /= blended_sum
+
+
 func update_contact_aggregates() -> void:
 	ensure_wheel_states()
 	var contact_count: int = 0
 	var normal_sum: Vector3 = Vector3.ZERO
 	var grip_sum: float = 0.0
 	var support_sum: float = 0.0
+	var support_vector_sum: Vector3 = Vector3.ZERO
 	for wheel: WheelTireState in wheel_states:
 		if not wheel.has_contact:
 			continue
@@ -289,12 +368,15 @@ func update_contact_aggregates() -> void:
 		normal_sum += wheel.contact_normal
 		grip_sum += wheel.surface_grip_multiplier
 		support_sum += wheel.suspension_acceleration
+		support_vector_sum += wheel.contact_normal * wheel.suspension_acceleration
 
 	ground_contact_count = contact_count
 	suspension_acceleration = support_sum
+	suspension_acceleration_vector = support_vector_sum
 	if contact_count <= 0:
 		ground_normal = Vector3.UP
 		surface_grip_multiplier = 1.0
+		suspension_acceleration_vector = Vector3.ZERO
 		return
 	ground_normal = normal_sum.normalized() if normal_sum.length_squared() > 0.000001 else Vector3.UP
 	surface_grip_multiplier = clampf(grip_sum / float(contact_count), 0.05, 2.0)
@@ -335,8 +417,12 @@ func reset_drive_state(idle_rpm: float) -> void:
 	lateral_speed = 0.0
 	yaw_rate_rad_s = 0.0
 	yaw_acceleration_rad_s2 = 0.0
+	longitudinal_acceleration_mps2 = 0.0
 	lateral_acceleration_mps2 = 0.0
 	yaw_moment_nm = 0.0
+	steering_input_state = 0.0
+	body_pitch_angle_rad = 0.0
+	body_roll_angle_rad = 0.0
 	engine_rpm = idle_rpm
 	current_gear = 1
 	shift_timer = 0.0
@@ -351,6 +437,7 @@ func reset_drive_state(idle_rpm: float) -> void:
 	ground_contact_count = 0
 	ground_normal = Vector3.UP
 	suspension_acceleration = 0.0
+	suspension_acceleration_vector = Vector3.ZERO
 	ensure_wheel_states()
 	for wheel: WheelTireState in wheel_states:
 		wheel.reset()

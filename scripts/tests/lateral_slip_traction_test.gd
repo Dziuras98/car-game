@@ -138,16 +138,21 @@ func _test_pure_sideways_motion_generates_recovery_force() -> void:
 	chassis.update_tire_dynamics(state, 0.0, false, 0.0)
 
 	var total_lateral_force: float = 0.0
+	var minimum_lateral_grip_usage: float = 1.0
 	for wheel: WheelTireState in state.wheel_states:
 		total_lateral_force += wheel.lateral_force_n
+		minimum_lateral_grip_usage = minf(minimum_lateral_grip_usage, wheel.lateral_grip_usage)
 	_expect(
 		total_lateral_force < -1.0,
 		"pure sideways motion produces tire force opposing the slide"
 	)
 	_expect(
-		state.lateral_slip_intensity
-		>= LateralTireDynamicsModel.DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER - EPSILON,
-		"pure sideways motion reaches the configured post-peak lateral usage"
+		state.lateral_slip_intensity >= 1.0 - EPSILON,
+		"pure sideways motion reaches saturated slip severity"
+	)
+	_expect(
+		absf(minimum_lateral_grip_usage - config.lateral_slide_grip_multiplier) <= EPSILON,
+		"pure sideways motion reaches the configured post-peak physical grip usage"
 	)
 
 

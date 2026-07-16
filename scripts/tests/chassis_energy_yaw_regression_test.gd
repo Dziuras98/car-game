@@ -40,6 +40,7 @@ func _test_released_steering_damps_residual_yaw() -> void:
 func _saturate_longitudinal_slip(state: CarRuntimeState) -> void:
 	for wheel: WheelTireState in state.wheel_states:
 		wheel.longitudinal_slip_intensity = 1.0
+		wheel.longitudinal_grip_usage = 1.0
 		wheel.tire_slip_intensity = 1.0
 	state.update_slip_aggregates()
 
