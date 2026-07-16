@@ -13,6 +13,7 @@ func _initialize() -> void:
 		_finish()
 		return
 	_expect(definition.validate().is_empty(), "committed BMW F32 visual definition validates")
+	_expect(definition.processed_visual_ready, "committed BMW F32 visual definition is processed")
 	_test_source_hash(definition)
 	_test_source_axis(definition)
 	_test_reference_geometry(definition)
@@ -55,7 +56,7 @@ func _test_reference_geometry(definition: TrafficVehicleVisualDefinition) -> voi
 
 func _test_processed_visual_gate(definition: TrafficVehicleVisualDefinition) -> void:
 	var incomplete := definition.duplicate(true) as TrafficVehicleVisualDefinition
-	incomplete.processed_visual_ready = true
+	incomplete.front_left_wheel_path = NodePath()
 	_expect(
 		incomplete.validate().has("processed visuals require explicit body and four wheel paths"),
 		"processed state requires explicit body and four-wheel paths"
