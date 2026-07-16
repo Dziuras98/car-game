@@ -48,6 +48,17 @@ func _initialize() -> void:
 		and short_desert_track.supports_mode(GameModes.RACE),
 		"short desert track is available in free drive and race modes"
 	)
+	var high_speed_ring: TrackDefinition = PRODUCTION_CATALOG.get_track_by_id(&"high_speed_ring")
+	_expect(
+		high_speed_ring != null and high_speed_ring.is_valid(),
+		"high speed ring is a valid production track definition"
+	)
+	_expect(
+		high_speed_ring != null
+		and high_speed_ring.supports_mode(GameModes.FREE_DRIVE)
+		and high_speed_ring.supports_mode(GameModes.RACE),
+		"high speed ring is available in free drive and race modes"
+	)
 
 	var explicit_default_catalog: TrackCatalog = TrackCatalog.new()
 	explicit_default_catalog.tracks = [_build_definition(&"explicit")]
