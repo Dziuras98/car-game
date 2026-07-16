@@ -4,11 +4,11 @@ const MANIFEST_PATH := "res://docs/assets/traffic_rider_npc_vehicle_research_dat
 const CONTRACT_PATH := "res://docs/assets/traffic_rider_npc_vehicle_research_data_contract.md"
 const EXPECTED_MODELS := 20
 const EXPECTED_APPROVED_VARIANTS := 285
-const ALLOWED_DATA_STATUSES: PackedStringArray = PackedStringArray([
+const ALLOWED_DATA_STATUSES := [
 	"research_record_only",
 	"partial_verified",
 	"complete_verified",
-])
+]
 
 var _checks: int = 0
 var _failures: Array[String] = []
