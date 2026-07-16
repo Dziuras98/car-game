@@ -4,8 +4,8 @@
 Usage:
     python tools/track_import/split_short_desert_track.py path/to/race_track_map.glb
 
-Requires Python 3.10+ and trimesh. The generated files belong under
-assets/tracks/short_desert_track/models/.
+Requires Python 3.10+ and trimesh. The generated files belong directly under
+assets/tracks/short_desert_track/.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-import shutil
 
 import trimesh
 
@@ -38,7 +37,7 @@ GROUPS: dict[str, set[str]] = {
     "vegetation": {"Pine", "Base"},
 }
 
-DEFAULT_OUTPUT = Path("assets/tracks/short_desert_track/models")
+DEFAULT_OUTPUT = Path("assets/tracks/short_desert_track")
 MAX_EXPECTED_PART_BYTES = 15 * 1024 * 1024
 
 
@@ -58,9 +57,7 @@ def material_name(geometry: trimesh.Trimesh) -> str:
 def split_model(source: Path, output: Path) -> dict[str, object]:
     if not source.is_file():
         raise FileNotFoundError(source)
-    if output.exists():
-        shutil.rmtree(output)
-    output.mkdir(parents=True)
+    output.mkdir(parents=True, exist_ok=True)
 
     source_scene = trimesh.load(source, force="scene", process=False)
     assigned_geometry: set[str] = set()
@@ -96,6 +93,8 @@ def split_model(source: Path, output: Path) -> dict[str, object]:
             triangle_count += len(optimized.faces)
 
         target_path = output / f"{group_name}.glb"
+        if target_path.exists():
+            target_path.unlink()
         target_scene.export(target_path)
         validation_scene = trimesh.load(target_path, force="scene", process=False)
         if len(validation_scene.graph.nodes_geometry) != object_count:
@@ -126,7 +125,7 @@ def split_model(source: Path, output: Path) -> dict[str, object]:
         "source_bytes": source.stat().st_size,
         "parts": parts,
     }
-    manifest_path = output.parent / "split_manifest.json"
+    manifest_path = output / "split_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
 
