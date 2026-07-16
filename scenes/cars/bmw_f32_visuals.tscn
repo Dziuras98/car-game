@@ -1,14 +1,19 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/bmw_f32_visual_controller.gd" id="1_controller"]
 [ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/processed/bmw_4_series_f32_processed.glb" id="2_processed"]
+[ext_resource type="PackedScene" path="res://scenes/cars/bmw_f32_low_detail_visuals.tscn" id="3_low"]
 
 [node name="BmwF32Visuals" type="Node3D"]
 script = ExtResource("1_controller")
-detailed_root_path = NodePath("Detailed")
+detailed_root_path = NodePath("SketchfabModel")
+low_detail_root_path = NodePath("LowDetail")
 visibility_aabb = AABB(-1.05, -0.02, -2.24, 2.1, 1.43, 4.74)
 visual_wheel_radius = 0.327942
 
-[node name="Detailed" type="Node3D" parent="."]
+[node name="SketchfabModel" type="Node3D" parent="."]
 
-[node name="ProcessedModel" parent="Detailed" instance=ExtResource("2_processed")]
+[node name="ProcessedModel" parent="SketchfabModel" instance=ExtResource("2_processed")]
+
+[node name="LowDetail" parent="." instance=ExtResource("3_low")]
+visible = false
