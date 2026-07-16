@@ -1,24 +1,29 @@
 extends SceneTree
 
 const VISUAL_SCENE := preload("res://scenes/traffic/vehicles/bmw_4_series_f32_visuals.tscn")
-const WHEEL_PATHS: PackedStringArray = PackedStringArray([
+const WHEEL_PATHS := [
 	"WheelFrontLeft",
 	"WheelFrontRight",
 	"WheelRearLeft",
 	"WheelRearRight",
-])
+]
 
 var _checks: int = 0
 var _failures: Array[String] = []
 
 
 func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
 	var visual := VISUAL_SCENE.instantiate() as Node3D
 	_expect(visual != null, "BMW F32 processed visual scene instantiates")
 	if visual == null:
 		_finish()
 		return
 	root.add_child(visual)
+	await process_frame
 	_expect(bool(visual.call("is_configured")), "BMW F32 static processed rig configures")
 
 	var body := visual.get_node_or_null(^"Body") as Node3D
@@ -59,7 +64,8 @@ func _initialize() -> void:
 	if processed_model != null:
 		_collect_meshes(processed_model, remaining_meshes)
 	_expect(remaining_meshes.is_empty(), "processed import container has no unbound render meshes")
-	visual.free()
+	visual.queue_free()
+	await process_frame
 	_finish()
 
 
