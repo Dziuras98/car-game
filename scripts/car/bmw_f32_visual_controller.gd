@@ -1,11 +1,11 @@
 extends CarVisualController
 class_name BmwF32VisualController
 
-const DETAILED_ROOT := "Detailed"
-const FRONT_LEFT_PATH := DETAILED_ROOT + "/WheelFrontLeft"
-const FRONT_RIGHT_PATH := DETAILED_ROOT + "/WheelFrontRight"
-const REAR_LEFT_PATH := DETAILED_ROOT + "/WheelRearLeft"
-const REAR_RIGHT_PATH := DETAILED_ROOT + "/WheelRearRight"
+const PROCESSED_MODEL_ROOT := "Detailed/ProcessedModel"
+const FRONT_LEFT_PATH := PROCESSED_MODEL_ROOT + "/FrontLeftWheel"
+const FRONT_RIGHT_PATH := PROCESSED_MODEL_ROOT + "/FrontRightWheel"
+const REAR_LEFT_PATH := PROCESSED_MODEL_ROOT + "/RearLeftWheel"
+const REAR_RIGHT_PATH := PROCESSED_MODEL_ROOT + "/RearRightWheel"
 
 const FRONT_LEFT_HUB := Vector3(-0.7694282, 0.3279420, -1.4050000)
 const FRONT_RIGHT_HUB := Vector3(0.7694282, 0.3279421, -1.4050000)
@@ -30,7 +30,7 @@ func _create_wheel_spec(
 ) -> Dictionary:
 	return {
 		"wheel_id": wheel_id,
-		"pivot_parent_path": NodePath(DETAILED_ROOT),
+		"pivot_parent_path": NodePath(PROCESSED_MODEL_ROOT),
 		"pivot_position": pivot_position,
 		"steers": steers,
 		"steering_direction": 1.0,
