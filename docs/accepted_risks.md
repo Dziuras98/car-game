@@ -64,46 +64,35 @@ This standing decision must be reviewed if any of the following occurs:
 
 Decision date: 2026-07-15
 
-The project owner has reviewed the provenance limitation of the **Traffic Rider NPC Vehicles** bundle and explicitly accepts retention of the 20 individually extracted non-heavy vehicle GLBs in this repository.
+The project owner has reviewed the provenance limitation for the Sketchfab **Traffic Rider NPC Vehicles** bundle and has decided to retain the 20 included non-heavy source models for the current private, noncommercial prototype.
 
-The decision is based on the following project constraints and owner instructions:
+The source page and embedded metadata identify Mason (`ModelzRipper`) as the uploader and state CC BY-NC 4.0. The models appear to originate from the commercial game **Traffic Rider**, while the repository contains no written authorization from the game's publisher, developer or original asset rights holders. The uploader-stated license is therefore recorded together with an incomplete upstream rights chain; it is not treated as proof that every underlying right was available for licensing.
 
-- the game is a personal, private-purpose and noncommercial prototype;
-- the owner intends to use the models only inside this project;
-- the uploader-stated embedded license is CC BY-NC 4.0;
-- the bundle identifies Mason (`ModelzRipper`) as uploader;
-- the model title and contents indicate origin in the commercial game *Traffic Rider*;
-- the repository does not contain evidence that the uploader owns the upstream game assets or was authorized by the relevant upstream rights holder to license them;
-- the owner understands that noncommercial use and uploader-stated metadata do not resolve an incomplete upstream rights chain;
-- the owner nevertheless directs the project to retain and technically integrate the 20 committed source GLBs;
-- the Scania, generic articulated truck and generic rigid truck remain excluded.
+The 20 source GLBs remain committed and are not added to `.gitignore`. They must remain unchanged until each model reaches the implementation stage defined in `docs/assets/traffic_rider_npc_vehicle_import_workflow.md`. Scania, generic articulated truck and generic rigid truck remain excluded from this approved vehicle scope.
 
-### Accepted repository treatment
+This decision is based on the following project constraints:
 
-- The 20 source GLBs remain committed and are not added to `.gitignore`.
-- Their derived GLBs may also be committed when required for wheel separation, pivot correction or canonical Godot orientation.
-- Source files must remain unchanged; derived technical adaptations must use separate paths.
-- Source and derived files remain excluded from the repository's root `LICENSE`.
-- `THIRD_PARTY_NOTICES.md` must preserve attribution, the uploader-stated license and the unresolved provenance warning.
-- The import workflow in `docs/assets/traffic_rider_npc_vehicle_import_workflow.md` governs every model.
+- the project remains a private, noncommercial prototype for personal use;
+- no public source or binary redistribution containing these assets is currently planned;
+- the repository must preserve the source attribution, uploader-stated license and upstream-rights warning;
+- derived geometry, Godot scenes, physics, audio and catalog data do not broaden rights in the underlying source models;
+- the assets are excluded from the repository's root license;
+- no contributor may describe the bundle as fully rights-cleared.
 
 ### Audit treatment
 
-Ordinary technical audits should classify the known Traffic Rider provenance limitation as an **accepted, documented project risk**, not as a recurring remediation item. Audits should still report missing attribution, accidental relicensing, inclusion of an excluded large truck, destructive replacement of a source GLB or use outside the accepted scope.
+For the current private/noncommercial scope, future technical audits should treat retention of these 20 source GLBs as an **accepted, documented project risk** rather than repeatedly reopening the same provenance question. This does not assert that the upstream rights issue has been resolved.
 
 ### Review triggers
 
-This decision must be reviewed before:
+The decision must be reviewed before:
 
-- any public binary release or redistribution beyond the current source repository and private prototype use;
+- any public source release, binary release or redistribution containing the source or derived vehicle assets;
 - monetization, paid access, advertising, sponsorship or commercial licensing;
-- changing or removing the uploader attribution, noncommercial restriction or provenance warning;
-- adding one of the three excluded large-truck models;
-- a material change to the source page or uploader-stated license;
-- receipt of permission from an upstream rights holder or discovery of a demonstrably cleared replacement;
-- receipt of a copyright, trademark or takedown complaint.
-
-This record does not assert ownership, upstream authorization or full rights clearance. It records the owner's deliberate acceptance of the identified risk for the stated project scope.
+- applying a different license or removing the noncommercial restriction, attribution or provenance warning;
+- a material change to the source page, displayed license or known origin of the models;
+- receipt of a copyright, trademark or takedown complaint;
+- discovery of replacement models with demonstrably better rights clearance.
 
 ## Voyage 3: Outlaw vehicle bundle provenance
 
@@ -130,7 +119,7 @@ The decision is based on the following project constraints and owner instruction
 - Source files must remain unchanged; derived technical adaptations must use separate paths.
 - Source and derived files remain excluded from the repository's root `LICENSE`.
 - `THIRD_PARTY_NOTICES.md` must preserve attribution, the uploader-stated license and the unresolved provenance warning.
-- The import workflow in `docs/assets/voyage_3_outlaw_vehicle_import_workflow.md` governs every retained model and copies all applicable rules from PR #107.
+- The import workflow in `docs/assets/voyage_3_outlaw_vehicle_import_workflow.md` governs every retained model and inherits the current mandatory contracts from PR #107.
 - The excluded low-detail UAZ and Gazelle flatbed must not be reintroduced without a new explicit owner decision.
 
 ### Audit treatment
