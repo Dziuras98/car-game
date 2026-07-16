@@ -1,12 +1,12 @@
 extends Resource
 class_name TrafficVehicleVisualDefinition
 
-const SUPPORTED_SOURCE_FRONT_AXES: PackedStringArray = PackedStringArray([
+const SUPPORTED_SOURCE_FRONT_AXES := [
 	"+Z",
 	"-Z",
 	"+X",
 	"-X",
-])
+]
 
 @export_group("Identity")
 @export var vehicle_id: StringName = &""
@@ -68,7 +68,7 @@ func _validate_source(errors: PackedStringArray) -> void:
 	if source_scene == null:
 		errors.append("source_scene must not be null")
 	if not SUPPORTED_SOURCE_FRONT_AXES.has(source_front_axis):
-		errors.append("source_front_axis must be one of: %s" % ", ".join(SUPPORTED_SOURCE_FRONT_AXES))
+		errors.append("source_front_axis must be one of: +Z, -Z, +X, -X")
 
 
 func _validate_processed_asset(errors: PackedStringArray) -> void:
