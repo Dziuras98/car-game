@@ -29,6 +29,7 @@ redline_torque_multiplier = 0.714286
 engine_force = 30.0
 engine_brake_force = 2.6
 rpm_response = 4.5
+engine_inertia_kg_m2 = 0.10
 transmission_type = 1
 gear_ratios = Array[float]([2.32, 1.69, 1.29, 1.0])
 reverse_gear_ratio = 2.32
