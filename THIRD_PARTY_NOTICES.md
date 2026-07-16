@@ -2,7 +2,7 @@
 
 This project is unofficial and is not sponsored, endorsed by or affiliated with BMW AG, Nissan Motor Co., Ltd., Fiat S.p.A./Stellantis, Ford Motor Company, Shelby American, Fabryka Samochodów Osobowych, Rover Group, PSA, Electronic Arts, Firemonkeys Studios or any other vehicle manufacturer, publisher, studio or asset author named below.
 
-Names such as "BMW", "3 Series", "E46", "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "FSO", "Polonez", "Caro", "Rover", "Pinto", "XUD", "Need for Speed", "Real Racing" and "Traffic Rider" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
+Names such as "BMW", "3 Series", "E46", "Nissan", "370Z", "Fiat", "Punto", "Ford", "Mustang", "Shelby", "G.T. 500", "FSO", "Polonez", "Caro", "Rover", "Pinto", "XUD", "Need for Speed", "Real Racing", "Traffic Rider" and "Voyage 3: Outlaw" are used descriptively. All product names, trademarks, logos and trade dress remain the property of their respective owners. The repository license and any third-party asset license described below do not grant trademark rights.
 
 ## Sketchfab BMW E46 visual model
 
@@ -131,6 +131,31 @@ The uploader-stated Creative Commons metadata is recorded for traceability but i
 The owner has explicitly directed the project to retain and integrate the 20 committed source GLBs for the current personal, private-purpose and noncommercial prototype while preserving this warning and attribution. The owner accepts the unresolved upstream provenance risk for that scope.
 
 The exact accepted scope, audit treatment and review triggers are recorded in `docs/accepted_risks.md`. Inclusion in this repository records the owner's risk decision; it does not grant additional rights to the project or downstream users.
+
+## Sketchfab Voyage 3: Outlaw vehicle bundle
+
+The selected project scope contains 18 individually extracted vehicle GLBs from the combined Sketchfab asset **Voyage 3: Outlaw Playable & NPC Vehicles**. Their exact filenames and SHA-256 values are recorded in `docs/assets/voyage_3_outlaw_source_upload.md`.
+
+- uploader: Mason (`ModelzRipper`);
+- source page: https://sketchfab.com/3d-models/voyage-3-outlaw-playable-npc-vehicles-ec3bd1d415a0471aad47d07e93a448ff;
+- uploader-stated license: CC BY-NC 4.0 — https://creativecommons.org/licenses/by-nc/4.0/;
+- model inventory: `docs/assets/voyage_3_outlaw_vehicle_inventory.md`;
+- integration procedure: `docs/assets/voyage_3_outlaw_vehicle_import_workflow.md`;
+- intended use: NPC traffic and owner-approved playable variants in the private, noncommercial prototype;
+- selected Gazelle source: van only;
+- excluded sources: GAZ Gazelle flatbed and lower-detail UAZ Hunter Police duplicate.
+
+The selected GLBs and any direct geometry derivatives are expressly excluded from the repository's root `LICENSE`. Attribution to Mason / `ModelzRipper`, the Sketchfab source page and the uploader-stated CC BY-NC 4.0 terms must remain with redistributed project copies containing these files.
+
+### Rights-chain limitation
+
+The uploader states that many models were made by `reliable_3d` on TurboSquid, that the uploader is not their creator and that the uploader does not hold rights to them. The bundle title and description also associate the assets with the commercial game *Voyage 3: Outlaw* and with higher-resolution Traffic Racer assets. The repository contains no evidence of a complete upstream rights chain.
+
+The uploader-stated Creative Commons metadata is recorded for traceability but is not treated as proof that the uploader could license every included asset. Noncommercial use does not by itself resolve that limitation.
+
+### Accepted project decision
+
+The owner explicitly selected the 18-model scope, including only the GAZ Gazelle van and the higher-detail UAZ Hunter Police. The accepted-risk record, audit treatment and review triggers are in `docs/accepted_risks.md`.
 
 ## Contribution policy
 
