@@ -138,3 +138,20 @@ Before committing any additional external model, texture, sound, font, logo or o
 Contributors must not describe an external asset as rights-cleared unless the repository contains a demonstrable license or permission covering the submitted material. Unverified provenance must be disclosed explicitly rather than inferred from a download label.
 
 When an asset with incomplete provenance is intentionally retained, the owner must separately decide whether to remove it, complete the license record or add a dated accepted-risk entry with explicit scope and review triggers. One asset's accepted-risk decision never applies automatically to another asset.
+
+## Sketchfab Voyage 3: Outlaw vehicle bundle
+
+The selected project scope contains 18 individually extracted vehicle GLBs from the combined Sketchfab asset **Voyage 3: Outlaw Playable & NPC Vehicles**.
+
+- uploader: Mason (`ModelzRipper`);
+- source page: https://sketchfab.com/3d-models/voyage-3-outlaw-playable-npc-vehicles-ec3bd1d415a0471aad47d07e93a448ff;
+- uploader-stated license: CC BY-NC 4.0 — https://creativecommons.org/licenses/by-nc/4.0/;
+- exact filenames and hashes: `docs/assets/voyage_3_outlaw_source_upload.md`;
+- inventory: `docs/assets/voyage_3_outlaw_vehicle_inventory.md`;
+- workflow: `docs/assets/voyage_3_outlaw_vehicle_import_workflow.md`;
+- retained Gazelle: van only;
+- excluded sources: GAZ Gazelle flatbed and lower-detail UAZ Hunter Police duplicate.
+
+The uploader states that many models were made by `reliable_3d` and that the uploader does not hold rights to them. The repository therefore records the uploader-stated license for traceability but does not treat it as proof of a complete upstream rights chain. These GLBs and direct derivatives are excluded from the root `LICENSE`.
+
+The owner's accepted scope and review triggers are recorded in `docs/accepted_risks.md`.

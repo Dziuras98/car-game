@@ -93,3 +93,30 @@ The decision must be reviewed before:
 - a material change to the source page, displayed license or known origin of the models;
 - receipt of a copyright, trademark or takedown complaint;
 - discovery of replacement models with demonstrably better rights clearance.
+
+## Voyage 3: Outlaw vehicle bundle provenance
+
+Decision date: 2026-07-16
+
+The project owner accepts retention of the selected 18 GLBs from **Voyage 3: Outlaw Playable & NPC Vehicles** for the current private, noncommercial prototype. The selected scope keeps the higher-detail UAZ Hunter Police and only the GAZ Gazelle van; the lower-detail UAZ duplicate and Gazelle flatbed remain excluded.
+
+The uploader identifies as Mason (`ModelzRipper`), states CC BY-NC 4.0 and also states that many models were created by `reliable_3d` and that the uploader does not hold rights to them. The repository therefore records an incomplete upstream rights chain rather than treating the displayed license as proof of full clearance.
+
+### Accepted repository treatment
+
+- The 18 GLBs must match `docs/assets/voyage_3_outlaw_source_upload.md`.
+- Source files remain unchanged; derivatives use separate paths.
+- Source and derivative assets are excluded from the root `LICENSE`.
+- `THIRD_PARTY_NOTICES.md` must preserve attribution and the provenance warning.
+- `docs/assets/voyage_3_outlaw_vehicle_import_workflow.md` governs research and integration and inherits the current PR #107 contracts.
+- The excluded Gazelle flatbed and low-detail UAZ may not be restored without a new owner decision.
+
+### Audit treatment
+
+Ordinary technical audits should treat this provenance limitation as an **accepted, documented project risk**, while still reporting missing attribution, accidental relicensing, destructive source modification, reintroduction of excluded assets or use outside the accepted scope.
+
+### Review triggers
+
+Review this decision before public source or binary redistribution, monetization, relicensing, removal of attribution or the noncommercial warning, addition of either excluded source, a material source-page/license change, receipt of upstream permission, discovery of a cleared replacement or any copyright/trademark/takedown complaint.
+
+This record does not assert ownership or full rights clearance.
