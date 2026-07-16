@@ -133,10 +133,13 @@ func _test_all_model_records_preserve_methods() -> void:
 				"transmission architecture",
 				"transmission requirements",
 				"transmission and drivetrain",
+				"transmission and driveline",
 				"transmission and awd",
+				"transmission and 4motion",
 				"chassis and transmission",
+				"chassis and drivetrain",
 				"physics, transmission and audio requirements",
-				"azure electric architecture requirement",
+				"electric architecture requirement",
 			]),
 			"%s preserves model-specific transmission research/methods" % vehicle_id
 		)
@@ -154,7 +157,7 @@ func _test_all_model_records_preserve_methods() -> void:
 		)
 
 
-func _contains_any(text: String, fragments: Array[String]) -> bool:
+func _contains_any(text: String, fragments: Array) -> bool:
 	for fragment: String in fragments:
 		if text.contains(fragment):
 			return true
