@@ -19,6 +19,22 @@ The following third-party GLB is included under the uploader's stated **Creative
 
 The game adds Godot wrapper scenes, collision volumes, screen-visibility LOD, low-detail fallback geometry, drivetrain configuration and procedural audio. These integration changes do not transfer authorship of the underlying model. Redistributed copies or builds containing the GLB must credit ROH3D, link the source page and CC BY 4.0 license, and identify that the model was integrated and adapted for Godot runtime use.
 
+## Sketchfab Short Desert Track visual model
+
+The visual scene used by **Krótki Tor Pustynny / Short Desert Track** is included under the uploader's stated **Creative Commons Attribution 4.0 International** license and is expressly excluded from the repository's root `LICENSE`.
+
+### Race Track Map
+
+- author/uploader: Mabaso_J (`pgs_jayb3e`);
+- source: https://sketchfab.com/3d-models/race-track-map-c9f923f05b7443b6b55f0f2a19e0cb48;
+- uploader-stated license: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/;
+- source publication date shown by Sketchfab: May 29, 2026;
+- split asset directory: `assets/tracks/short_desert_track/models/`;
+- detailed notice: `assets/tracks/short_desert_track/NOTICE.md`;
+- integrity and conversion record: `assets/tracks/short_desert_track/split_manifest.json`.
+
+The supplied 72 MB GLB is divided into six logical GLB scene groups for track surfaces, fences, barriers, buildings, vehicles and vegetation. Project modifications include safe duplicate-vertex cleanup, a five-times scale correction, a 90-degree Y-axis rotation, translation to the project start line, procedural collision and checkpoint composition, and adaptation for Godot runtime loading. Redistributed copies or builds containing these files must credit Mabaso_J, link the source and CC BY 4.0 license, and identify these modifications.
+
 ## Sketchfab Nissan 370Z visual models
 
 The following third-party GLB files are included under the uploader's stated **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International** license. They and their direct adaptations are expressly excluded from the repository's root `LICENSE`.

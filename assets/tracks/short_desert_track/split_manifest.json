@@ -1,0 +1,68 @@
+{
+  "format_version": 1,
+  "source_file": "race_track_map.glb",
+  "source_sha256": "81dd8a585c4c75380da2466f5b90c56910e97473fb233ae241ad1319cd25b806",
+  "source_bytes": 72406464,
+  "transform_to_project": {
+    "scale": 5.0,
+    "rotation_y_degrees": 90.0,
+    "origin": [0.39379445, 0.0, 15.45714075],
+    "godot_transform3d": [0.0, 0.0, -5.0, 0.0, 5.0, 0.0, 5.0, 0.0, 0.0, 0.39379445, 0.0, 15.45714075]
+  },
+  "parts": [
+    {
+      "path": "track_surface.glb",
+      "sha256": "06c898080ab8beaecd90ea9da80d4b6442d898b039bc5932ecb4446a7d3e84fe",
+      "bytes": 13909616,
+      "objects": 7,
+      "vertices": 72258,
+      "triangles": 125206,
+      "materials": ["GROUND", "Kerbs", "Lines", "Material.001", "ROAD"]
+    },
+    {
+      "path": "fences.glb",
+      "sha256": "66efe38be4f64d2033209119bebcd0a5336eba7b6c411eb1644e1056a8b629cf",
+      "bytes": 12419816,
+      "objects": 5,
+      "vertices": 213290,
+      "triangles": 322770,
+      "materials": ["Track_Fence"]
+    },
+    {
+      "path": "barriers.glb",
+      "sha256": "2b45c84654bba9e132adac13acedf8d4c4842b9aba6f9e2ee607830688fea37e",
+      "bytes": 7070888,
+      "objects": 4,
+      "vertices": 105560,
+      "triangles": 71630,
+      "materials": ["Bankina_Default", "surface.Lim_Ograda"]
+    },
+    {
+      "path": "buildings.glb",
+      "sha256": "7095233d02641251a22d0729c2e44f58ccfdbf4440378d4d8452a2047bc4446d",
+      "bytes": 8412108,
+      "objects": 19,
+      "vertices": 29001,
+      "triangles": 44767,
+      "materials": ["Finish", "Material.002", "Scene_-_Root", "Start", "Steal", "building1", "building3", "building4", "building5", "building6"]
+    },
+    {
+      "path": "vehicles.glb",
+      "sha256": "1418e6339ec00ff112406d8e2bef365be755b3dcb6be285d8db239883793c58f",
+      "bytes": 2402960,
+      "objects": 12,
+      "vertices": 32316,
+      "triangles": 40800,
+      "materials": ["car_0", "material"]
+    },
+    {
+      "path": "vegetation.glb",
+      "sha256": "71d4824b8e5a93582049487373be616d6c47a50c07a9ad4d5835e61cc16a9976",
+      "bytes": 1615032,
+      "objects": 234,
+      "vertices": 4176,
+      "triangles": 2088,
+      "materials": ["Base", "Pine"]
+    }
+  ]
+}

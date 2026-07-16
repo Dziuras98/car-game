@@ -37,6 +37,17 @@ func _initialize() -> void:
 		and simple_oval.supports_mode(GameModes.RACE),
 		"existing tracks remain available in both gameplay modes by default"
 	)
+	var short_desert_track: TrackDefinition = PRODUCTION_CATALOG.get_track_by_id(&"short_desert_track")
+	_expect(
+		short_desert_track != null and short_desert_track.is_valid(),
+		"short desert track is a valid production track definition"
+	)
+	_expect(
+		short_desert_track != null
+		and short_desert_track.supports_mode(GameModes.FREE_DRIVE)
+		and short_desert_track.supports_mode(GameModes.RACE),
+		"short desert track is available in free drive and race modes"
+	)
 
 	var explicit_default_catalog: TrackCatalog = TrackCatalog.new()
 	explicit_default_catalog.tracks = [_build_definition(&"explicit")]
