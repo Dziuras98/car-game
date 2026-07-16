@@ -2,9 +2,10 @@ extends RefCounted
 class_name GameModes
 
 const FREE_DRIVE: StringName = &"free_drive"
-const RACE: StringName = &"race"
-const ALL: Array[StringName] = [FREE_DRIVE, RACE]
+# Compatibility identifier for old tests and serialized scripts. It is intentionally unsupported.
+const RACE: StringName = &"removed_race_mode"
+const ALL: Array[StringName] = [FREE_DRIVE]
 
 
 static func is_supported(mode_id: StringName) -> bool:
-	return ALL.has(mode_id)
+	return mode_id == FREE_DRIVE
