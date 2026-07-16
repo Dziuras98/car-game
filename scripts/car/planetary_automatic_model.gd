@@ -3,7 +3,8 @@ class_name PlanetaryAutomaticModel
 
 const MIN_RPM: float = 1.0
 const MIN_PHASE_DURATION_S: float = 0.001
-const MAX_UPDATE_STEP_S: float = 1.0 / 120.0
+const FIXED_UPDATE_STEP_S: float = 1.0 / 600.0
+const UPDATE_EPSILON_S: float = 0.0000001
 
 var torque_reduction_duration_s: float = 0.045
 var handover_duration_s: float = 0.070
@@ -94,14 +95,25 @@ func update(
 ) -> void:
 	if runtime == null:
 		return
-	var remaining: float = maxf(delta, 0.0)
-	while remaining > 0.000001:
-		var step: float = minf(remaining, MAX_UPDATE_STEP_S)
-		_update_shift(runtime, step)
-		_update_converter(runtime, engine_rpm, turbine_rpm, throttle, vehicle_speed_mps, step)
-		remaining -= step
-	if delta <= 0.0:
+	var safe_delta: float = maxf(delta, 0.0)
+	if safe_delta <= 0.0:
 		_update_converter(runtime, engine_rpm, turbine_rpm, throttle, vehicle_speed_mps, 0.0)
+		return
+	runtime.simulation_remainder_s += safe_delta
+	while runtime.simulation_remainder_s + UPDATE_EPSILON_S >= FIXED_UPDATE_STEP_S:
+		_update_shift(runtime, FIXED_UPDATE_STEP_S)
+		_update_converter(
+			runtime,
+			engine_rpm,
+			turbine_rpm,
+			throttle,
+			vehicle_speed_mps,
+			FIXED_UPDATE_STEP_S
+		)
+		runtime.simulation_remainder_s = maxf(
+			runtime.simulation_remainder_s - FIXED_UPDATE_STEP_S,
+			0.0
+		)
 
 
 func choose_kickdown_gear(
@@ -126,6 +138,39 @@ func choose_kickdown_gear(
 	return current_gear
 
 
+func get_remaining_shift_time(runtime: PlanetaryAutomaticRuntimeState) -> float:
+	if runtime == null or not runtime.is_shifting():
+		return 0.0
+	var remaining: float = maxf(_get_phase_duration(runtime.shift_phase) - runtime.phase_elapsed_s, 0.0)
+	if runtime.shift_phase <= PlanetaryAutomaticRuntimeState.ShiftPhase.TORQUE_REDUCTION:
+		remaining += handover_duration_s + inertia_duration_s + reapply_duration_s
+	elif runtime.shift_phase == PlanetaryAutomaticRuntimeState.ShiftPhase.HANDOVER:
+		remaining += inertia_duration_s + reapply_duration_s
+	elif runtime.shift_phase == PlanetaryAutomaticRuntimeState.ShiftPhase.INERTIA:
+		remaining += reapply_duration_s
+	return remaining
+
+
+func get_pump_rpm(
+	runtime: PlanetaryAutomaticRuntimeState,
+	turbine_rpm: float,
+	drive_input: float,
+	idle_rpm: float,
+	stall_rpm: float
+) -> float:
+	var safe_turbine_rpm: float = maxf(absf(turbine_rpm), 0.0)
+	var stall_target_rpm: float = lerpf(
+		maxf(idle_rpm, 0.0),
+		maxf(stall_rpm, idle_rpm),
+		clampf(drive_input, 0.0, 1.0)
+	)
+	var unlocked_rpm: float = maxf(safe_turbine_rpm, stall_target_rpm)
+	if runtime == null:
+		return unlocked_rpm
+	var locked_rpm: float = maxf(safe_turbine_rpm + commanded_lockup_slip_rpm, safe_turbine_rpm)
+	return lerpf(unlocked_rpm, locked_rpm, clampf(runtime.lockup_engagement, 0.0, 1.0))
+
+
 func _update_shift(runtime: PlanetaryAutomaticRuntimeState, delta: float) -> void:
 	if not runtime.is_shifting():
 		runtime.shift_progress = 1.0
@@ -136,7 +181,7 @@ func _update_shift(runtime: PlanetaryAutomaticRuntimeState, delta: float) -> voi
 	var phase_progress: float = clampf(runtime.phase_elapsed_s / phase_duration, 0.0, 1.0)
 	runtime.torque_transfer_factor = _get_phase_torque_factor(runtime.shift_phase, phase_progress)
 	runtime.shift_progress = _get_total_shift_progress(runtime.shift_phase, phase_progress)
-	if phase_progress < 1.0:
+	if runtime.phase_elapsed_s + UPDATE_EPSILON_S < phase_duration:
 		return
 	_advance_shift_phase(runtime)
 
