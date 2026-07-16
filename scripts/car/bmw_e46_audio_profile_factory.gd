@@ -25,7 +25,7 @@ static func create(engine: Dictionary) -> BmwE46EngineAudioProfile:
 	profile.shutdown_duration = 1.0 if fuel == "petrol" else 1.25
 	profile.limiter_period = 0.055 if fuel == "petrol" else 0.075
 	profile.limiter_cut_ratio = 0.42 if fuel == "petrol" else 0.52
-	profile.limiter_residual_combustion = 0.17 if fuel == "petrol" else 0.10
+	profile.limiter_residual_combustion = 0.17 if fuel == "petrol" else 0.30
 	profile.rpm_smoothing = 13.5 if fuel == "petrol" else 10.0
 	profile.throttle_smoothing = 17.0 if fuel == "petrol" else 12.5
 	if fuel == "diesel":
@@ -87,7 +87,7 @@ static func _configure_diesel(profile: BmwE46EngineAudioProfile, key: String, cy
 	var six: bool = cylinders == 6
 	var tu: bool = key.contains("tu")
 	var power_factor: float = clampf((power_kw - 80.0) / 80.0, 0.0, 1.0)
-	profile.idle_volume_db = -9.5
+	profile.idle_volume_db = -11.5
 	profile.load_volume_db = -0.5
 	profile.output_volume_boost_db = 9.5
 	profile.synthesis_gain_db = 0.0

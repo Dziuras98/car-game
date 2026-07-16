@@ -8,17 +8,21 @@ func get_probe_local_positions(
 	wheel_base: float,
 	front_track_width: float,
 	rear_track_width: float,
-	probe_height: float
+	probe_height: float,
+	front_static_load_fraction: float = 0.5
 ) -> Array[Vector3]:
-	var half_wheel_base: float = maxf(wheel_base, 0.1) * 0.5
+	var safe_wheel_base: float = maxf(wheel_base, 0.1)
+	var safe_front_fraction: float = clampf(front_static_load_fraction, 0.10, 0.90)
+	var front_forward_offset: float = safe_wheel_base * (1.0 - safe_front_fraction)
+	var rear_forward_offset: float = -safe_wheel_base * safe_front_fraction
 	var half_front_track: float = maxf(front_track_width, 0.1) * 0.5
 	var half_rear_track: float = maxf(rear_track_width, 0.1) * 0.5
 	var height: float = maxf(probe_height, 0.0)
 	return [
-		Vector3(-half_front_track, height, -half_wheel_base),
-		Vector3(half_front_track, height, -half_wheel_base),
-		Vector3(-half_rear_track, height, half_wheel_base),
-		Vector3(half_rear_track, height, half_wheel_base),
+		Vector3(-half_front_track, height, -front_forward_offset),
+		Vector3(half_front_track, height, -front_forward_offset),
+		Vector3(-half_rear_track, height, -rear_forward_offset),
+		Vector3(half_rear_track, height, -rear_forward_offset),
 	]
 
 

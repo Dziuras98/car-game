@@ -1,0 +1,41 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/track/infinite_grid_track.gd" id="1_track"]
+[ext_resource type="Script" path="res://scripts/track/track_surface_body.gd" id="2_surface"]
+
+[sub_resource type="Shader" id="Shader_grid"]
+code = "shader_type spatial;\nrender_mode unshaded, cull_disabled;\n\nuniform vec4 base_color : source_color = vec4(0.31, 0.32, 0.34, 1.0);\nuniform vec4 minor_line_color : source_color = vec4(1.0, 0.34, 0.03, 1.0);\nuniform vec4 major_line_color : source_color = vec4(0.86, 0.025, 0.015, 1.0);\nuniform float minor_spacing = 1.0;\nuniform float major_spacing = 10.0;\nuniform float minor_half_width = 0.025;\nuniform float major_half_width = 0.075;\n\nvarying vec3 world_position;\n\nfloat grid_mask(vec2 position, float spacing, float half_width) {\n\tvec2 cell_distance = abs(fract(position / spacing + 0.5) - 0.5) * spacing;\n\tvec2 antialias_width = max(fwidth(position), vec2(0.0005));\n\tvec2 line = 1.0 - smoothstep(\n\t\tvec2(half_width),\n\t\tvec2(half_width) + antialias_width,\n\t\tcell_distance\n\t);\n\treturn max(line.x, line.y);\n}\n\nvoid vertex() {\n\tworld_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;\n}\n\nvoid fragment() {\n\tfloat minor_grid = grid_mask(world_position.xz, minor_spacing, minor_half_width);\n\tfloat major_grid = grid_mask(world_position.xz, major_spacing, major_half_width);\n\tvec3 surface_color = mix(base_color.rgb, minor_line_color.rgb, minor_grid);\n\tsurface_color = mix(surface_color, major_line_color.rgb, major_grid);\n\tALBEDO = surface_color;\n\tROUGHNESS = 0.92;\n}\n"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
+shader = SubResource("Shader_grid")
+shader_parameter/base_color = Color(0.31, 0.32, 0.34, 1)
+shader_parameter/minor_line_color = Color(1, 0.34, 0.03, 1)
+shader_parameter/major_line_color = Color(0.86, 0.025, 0.015, 1)
+shader_parameter/minor_spacing = 1.0
+shader_parameter/major_spacing = 10.0
+shader_parameter/minor_half_width = 0.025
+shader_parameter/major_half_width = 0.075
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_grid"]
+material = SubResource("ShaderMaterial_grid")
+size = Vector2(8192, 8192)
+
+[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_floor"]
+plane = Plane(0, 1, 0, 0)
+
+[node name="NieskonczonaSiatka" type="Node3D"]
+script = ExtResource("1_track")
+
+[node name="VisualFloor" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+extra_cull_margin = 8192.0
+mesh = SubResource("PlaneMesh_grid")
+
+[node name="Surface" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_surface")
+grip_multiplier = 1.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Surface"]
+shape = SubResource("WorldBoundaryShape3D_floor")

@@ -101,6 +101,7 @@ func _test_automatic_reverse_and_drive_selection() -> void:
 
 	state.forward_speed = 0.0
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 1.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 1, "automatic throttle from reverse selects first drive gear")
 	_expect(is_equal_approx(state.forward_speed, 0.0), "automatic drive selection waits for shift delay")
@@ -117,12 +118,14 @@ func _test_automatic_direction_interlock() -> void:
 	state.current_gear = 2
 	state.forward_speed = 8.0
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
 	_expect(state.current_gear == 1, "automatic braking performs a safe forward-gear downshift")
 	_expect(state.forward_speed > 0.0 and state.forward_speed < 8.0, "automatic reverse request brakes forward motion before selecting reverse")
 
 	state.forward_speed = 0.20
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.0)
 	_expect(state.current_gear == -1, "automatic selects reverse only near zero forward speed")
 	_advance_shift(powertrain, state, 0.0, 1.0)
@@ -131,12 +134,14 @@ func _test_automatic_direction_interlock() -> void:
 	state.current_gear = -1
 	state.forward_speed = -6.0
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
 	_expect(state.current_gear == -1, "automatic keeps reverse gear while braking from reverse motion toward drive")
 	_expect(state.forward_speed > -6.0 and state.forward_speed <= 0.0, "automatic drive request brakes reverse motion before selecting drive")
 
 	state.forward_speed = -0.20
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 1.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 1, "automatic selects first drive gear only near zero reverse speed")
 	_advance_shift(powertrain, state, 1.0, 0.0)
@@ -151,6 +156,7 @@ func _test_automatic_upshift_request_and_torque_cut() -> void:
 	state.current_gear = 1
 	state.engine_rpm = config.redline_rpm
 	state.forward_speed = 20.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 2, "automatic high RPM requests upshift")
 	_expect(is_equal_approx(state.shift_timer, config.automatic_shift_delay), "automatic upshift applies automatic shift delay")
@@ -189,14 +195,18 @@ func _test_fallback_drive_brake_and_reverse() -> void:
 	_expect(state.forward_speed > 0.0, "fallback non-geared drive accelerates forward with throttle")
 	_expect(powertrain.get_gear_text(state) == "D", "fallback gear text reports drive while moving forward")
 
-	var forward_speed: float = state.forward_speed
+	var forward_speed: float = maxf(state.forward_speed, 2.0)
+	state.forward_speed = forward_speed
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
 	_expect(state.forward_speed < forward_speed, "fallback brake reduces forward speed")
 
 	state.forward_speed = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.20)
 	_expect(state.forward_speed < 0.0, "fallback brake from stop applies reverse acceleration")
 	for _step_index: int in range(3):
+		_synchronize_wheel_road_speed(state)
 		powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
 	_expect(state.forward_speed < -0.25, "fallback reverse exceeds the gear-indicator dead zone")
 	_expect(powertrain.get_gear_text(state) == "R", "fallback gear text reports reverse while moving backwards")
@@ -209,7 +219,19 @@ func _advance_shift(
 	brake: float
 ) -> void:
 	for _step: int in range(4):
+		_synchronize_wheel_road_speed(state)
 		powertrain.update(state, throttle, brake, false, false, false, 0.10)
+
+
+func _synchronize_wheel_road_speed(
+	state: CarRuntimeState,
+	synchronize_rotation: bool = false
+) -> void:
+	state.ensure_wheel_states()
+	for wheel: WheelTireState in state.wheel_states:
+		wheel.road_longitudinal_speed_mps = state.forward_speed
+		if synchronize_rotation:
+			wheel.set_rolling_speed(state.forward_speed)
 
 
 func _build_state(config: CarDriveConfig) -> CarRuntimeState:

@@ -1,6 +1,6 @@
 extends Node
 
-const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/ui/main_menu.tscn")
+const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/ui/mode_filtered_main_menu.tscn")
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -23,6 +23,12 @@ func _run() -> void:
 
 	var menu: MainMenu = MAIN_MENU_SCENE.instantiate() as MainMenu
 	var track_options: Array[TrackMenuOption] = [
+		TrackMenuOption.new(
+			&"free_drive_space",
+			"Plac testowy",
+			1,
+			[GameModes.FREE_DRIVE]
+		),
 		TrackMenuOption.new(&"test_track", "Tor testowy", 4),
 	]
 	var test_specs := CarSpecs.new()
@@ -72,8 +78,13 @@ func _run() -> void:
 	mode_buttons[0].pressed.emit()
 	await get_tree().process_frame
 	var track_buttons: Array[Button] = _get_option_buttons(menu)
-	_expect(track_buttons.size() == 1 and track_buttons[0].text == "Tor testowy", "track step renders typed track data")
-	track_buttons[0].pressed.emit()
+	_expect(
+		track_buttons.size() == 2
+		and track_buttons[0].text == "Plac testowy"
+		and track_buttons[1].text == "Tor testowy",
+		"free-drive-only maps are placed above shared circuits"
+	)
+	track_buttons[1].pressed.emit()
 	await get_tree().process_frame
 
 	_expect(not _get_selection_panel(menu).visible, "flat car browser replaces the grouped model step")
@@ -119,6 +130,24 @@ func _run() -> void:
 	menu.complete_loading(false)
 	_expect(not menu.is_loading_screen_visible(), "failed session admission restores the selection menu explicitly")
 	_expect(menu.visible, "failed session admission keeps the menu visible")
+
+	mode_buttons = _get_option_buttons(menu)
+	var race_button: Button = _find_button(mode_buttons, "Wyścig")
+	_expect(race_button != null, "race mode remains available after returning to the menu")
+	if race_button != null:
+		race_button.pressed.emit()
+		await get_tree().process_frame
+		track_buttons = _get_option_buttons(menu)
+		_expect(
+			track_buttons.size() == 1 and track_buttons[0].text == "Tor testowy",
+			"free-drive-only maps are absent from the race track list"
+		)
+		menu._on_track_pressed(&"free_drive_space")
+		await get_tree().process_frame
+		_expect(
+			_get_subtitle(menu).text == "Wybrany tor nie jest dostępny",
+			"mode filtering is enforced when a hidden track id is submitted directly"
+		)
 
 	var invalid_menu: MainMenu = MAIN_MENU_SCENE.instantiate() as MainMenu
 	add_child(invalid_menu)

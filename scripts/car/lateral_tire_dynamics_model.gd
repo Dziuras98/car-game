@@ -5,7 +5,6 @@ const MIN_REFERENCE_SPEED_MPS: float = 0.25
 const MAX_STEERING_ANGLE_RAD: float = PI * 0.305555556
 const MAX_SLIP_ANGLE_RAD: float = PI * 0.49
 const FULL_SLIDE_SLIP_RATIO: float = 3.0
-const DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER: float = 0.78
 
 
 func get_ackermann_steering_angles(
@@ -25,8 +24,16 @@ func get_ackermann_steering_angles(
 	var safe_wheel_base: float = maxf(wheel_base_m, 0.10)
 	var half_track: float = maxf(front_track_width_m, 0.10) * 0.5
 	var turn_radius: float = safe_wheel_base / maxf(tan(absf(center_angle)), 0.0001)
-	var inner_angle: float = atan(safe_wheel_base / maxf(turn_radius - half_track, 0.05))
-	var outer_angle: float = atan(safe_wheel_base / maxf(turn_radius + half_track, 0.05))
+	var inner_angle: float = clampf(
+		atan(safe_wheel_base / maxf(turn_radius - half_track, 0.05)),
+		0.0,
+		MAX_STEERING_ANGLE_RAD
+	)
+	var outer_angle: float = clampf(
+		atan(safe_wheel_base / maxf(turn_radius + half_track, 0.05)),
+		0.0,
+		MAX_STEERING_ANGLE_RAD
+	)
 	if center_angle > 0.0:
 		return Vector2(outer_angle, inner_angle)
 	return Vector2(-inner_angle, -outer_angle)
@@ -67,6 +74,12 @@ func calculate_slip_angle_rad(
 	wheel_lateral_speed_mps: float,
 	steering_angle_rad: float
 ) -> float:
+	var wheel_speed_mps: float = Vector2(
+		wheel_forward_speed_mps,
+		wheel_lateral_speed_mps
+	).length()
+	if wheel_speed_mps <= MIN_REFERENCE_SPEED_MPS:
+		return 0.0
 	var travel_direction: float = 1.0 if wheel_forward_speed_mps >= 0.0 else -1.0
 	var velocity_angle: float = atan2(
 		wheel_lateral_speed_mps,
@@ -101,19 +114,25 @@ func resolve_lateral_acceleration(
 	load_share: float,
 	lateral_grip_mps2: float,
 	surface_grip_multiplier: float,
-	longitudinal_slip_intensity: float,
+	longitudinal_grip_usage: float,
 	peak_slip_angle_rad: float,
-	handbrake_grip_multiplier: float = 1.0
+	handbrake_grip_multiplier: float = 1.0,
+	lateral_slide_grip_multiplier: float = 0.88
 ) -> float:
 	if is_zero_approx(slip_angle_rad) or load_share <= 0.0:
 		return 0.0
-	var speed_factor: float = absf(wheel_forward_speed_mps) / (
+	var forward_speed_factor: float = absf(wheel_forward_speed_mps) / (
 		absf(wheel_forward_speed_mps) + MIN_REFERENCE_SPEED_MPS
 	)
+	# Near a perpendicular slide the forward component can approach zero even
+	# while the tire contact patch is moving quickly. Preserve lateral recovery
+	# from the slip angle instead of treating that state as almost stationary.
+	var sideways_motion_factor: float = absf(sin(slip_angle_rad))
+	var speed_factor: float = maxf(forward_speed_factor, sideways_motion_factor)
 	if speed_factor <= 0.0:
 		return 0.0
 	var combined_grip_factor: float = sqrt(
-		maxf(1.0 - pow(clampf(longitudinal_slip_intensity, 0.0, 1.0), 2.0), 0.0)
+		maxf(1.0 - pow(clampf(longitudinal_grip_usage, 0.0, 1.0), 2.0), 0.0)
 	)
 	var maximum_acceleration: float = (
 		maxf(lateral_grip_mps2, 0.01)
@@ -124,29 +143,27 @@ func resolve_lateral_acceleration(
 		* speed_factor
 	)
 	var normalized_slip: float = absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001)
-	var force_multiplier: float = normalized_slip
-	if normalized_slip > 1.0:
-		var slide_progress: float = _smoothstep(
-			clampf(
-				(normalized_slip - 1.0) / maxf(FULL_SLIDE_SLIP_RATIO - 1.0, 0.001),
-				0.0,
-				1.0
-			)
-		)
-		force_multiplier = lerpf(
-			1.0,
-			DEFAULT_LATERAL_SLIDE_GRIP_MULTIPLIER,
-			slide_progress
-		)
-	return -signf(slip_angle_rad) * maximum_acceleration * clampf(force_multiplier, 0.0, 1.0)
+	var force_multiplier: float = _get_lateral_force_multiplier(normalized_slip, lateral_slide_grip_multiplier)
+	return -signf(slip_angle_rad) * maximum_acceleration * force_multiplier
+
+
+func calculate_lateral_grip_usage(
+	slip_angle_rad: float,
+	peak_slip_angle_rad: float,
+	lateral_slide_grip_multiplier: float
+) -> float:
+	var normalized_slip: float = absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001)
+	return _get_lateral_force_multiplier(normalized_slip, lateral_slide_grip_multiplier)
 
 
 func calculate_lateral_slip_intensity(
 	slip_angle_rad: float,
 	peak_slip_angle_rad: float
 ) -> float:
+	# Effect severity remains saturated after the force peak instead of decreasing
+	# together with post-peak grip. This keeps smoke/audio and telemetry monotonic.
 	return clampf(
-		absf(slip_angle_rad) / maxf(peak_slip_angle_rad * 1.5, 0.001),
+		absf(slip_angle_rad) / maxf(peak_slip_angle_rad, 0.001),
 		0.0,
 		1.0
 	)
@@ -164,6 +181,24 @@ func estimate_yaw_inertia_kg_m2(config: CarDriveConfig) -> float:
 			+ 0.05 * average_track * average_track
 		),
 		1.0
+	)
+
+
+func _get_lateral_force_multiplier(normalized_slip: float, slide_grip_multiplier: float) -> float:
+	var safe_normalized_slip: float = maxf(normalized_slip, 0.0)
+	if safe_normalized_slip <= 1.0:
+		return safe_normalized_slip
+	var slide_progress: float = _smoothstep(
+		clampf(
+			(safe_normalized_slip - 1.0) / maxf(FULL_SLIDE_SLIP_RATIO - 1.0, 0.001),
+			0.0,
+			1.0
+		)
+	)
+	return lerpf(
+		1.0,
+		clampf(slide_grip_multiplier, 0.0, 1.0),
+		slide_progress
 	)
 
 
