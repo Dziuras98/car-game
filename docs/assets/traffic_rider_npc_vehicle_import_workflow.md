@@ -10,45 +10,61 @@ The source bundle is used only for the project's private, noncommercial scope un
 
 ## Scope and processing order
 
-The repository contains 20 source GLBs. Research and owner-scope approval must proceed in ascending order of the numeric prefix assigned during source extraction. Do not start research for a later model while an earlier model is awaiting its mandatory owner-scope decision, unless the owner explicitly changes the order.
+The repository contains 20 source GLBs. Research and owner-scope approval proceed in ascending order of the numeric prefix assigned during source extraction.
 
-Current research order:
+Research and later implementation order:
 
 `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 20 → 23`
+
+All 20 owner-scope decisions are now complete. The approved combined scope is recorded in `docs/assets/traffic_rider_npc_vehicle_inventory.md`.
 
 ### Global research-before-implementation gate
 
 Complete research and obtain owner-scope approval for **every included model before any implementation begins**. An individual model reaching `approved` records only that its scope is fixed; it does not authorize geometry conversion, source relocation, catalog/resource creation, physics calibration, transmission work or audio work while any other included model remains below `approved`.
 
-After model 23 reaches `approved`, implementation begins in ascending numeric order and follows all later stages of this workflow. No model may enter `integrating` before the global gate is satisfied.
+**No model may enter `integrating` until all included models have reached `approved`.** This research condition is satisfied, but the separate physics dependency below remains blocking.
 
-The following large-truck models are outside this scope:
+### Mandatory physics dependency — PR #118
+
+No Traffic Rider vehicle implementation may begin until PR #118, **Rework per-wheel vehicle physics and recalibrate DPI v3**, is completed and its final physics work is integrated into `master`.
+
+No source relocation, processed GLB, runtime vehicle scene, catalog resource, transmission implementation, engine-audio implementation, physics calibration or performance calibration may be committed before all of the following are true:
+
+1. PR #118 is merged into `master`, or the owner explicitly identifies a merged successor carrying the same physics work;
+2. this branch is synchronized with the resulting `master`;
+3. the final merged physics commit is recorded as the implementation baseline;
+4. per-wheel contact, slip, load transfer, drivetrain inertia, differentials, AWD, braking, steering/yaw, drag, transmissions and DPI/performance interfaces are reviewed;
+5. shared calibration assumptions and model-specific implementation plans are updated for the final interfaces;
+6. the full current test suite passes before model 01 enters `integrating`.
+
+Closing PR #118 without integrating its intended physics changes does not satisfy this dependency unless a merged successor is explicitly identified.
+
+The following large-truck models remain outside this scope:
 
 - Scania heavy truck;
 - generic articulated truck;
 - generic rigid truck.
 
-The complete source inventory and current status are recorded in `docs/assets/traffic_rider_npc_vehicle_inventory.md`.
-
 ## Core rules
 
 1. **Research the complete factory variant matrix before importing the model.** Identify every evidenced engine, transmission and drivetrain combination applicable to the represented generation/body across its production years and markets. Regional, facelift and limited factory variants must not be silently omitted.
 2. **Stop for owner approval after research.** Present the complete matrix to the owner, ask whether every variant should be imported or only a subset, and ask whether any expected variant is missing.
-3. **Finish all model scopes before implementing any model.** After an individual owner decision, continue research with the next numeric model. Do not begin geometry conversion, catalog creation, physics calibration, transmission implementation or audio implementation until every included model is `approved`.
-4. **Keep the committed source GLB unchanged.** Technical adaptations belong in a derived GLB, Godot wrapper scene, imported material override or project-authored resource. Do not destructively overwrite the source file.
-5. **Calibrate every model independently.** Scale must be based on verified dimensions for the represented body variant. The former package-wide `0.695` conversion is not authoritative and must not be reused as a default.
-6. **Use wheelbase as the primary scale reference.** Overall length is a mandatory cross-check, not the only measurement. Wheel track, height and wheel diameter provide additional validation.
-7. **Use the project coordinate convention.** `+Y` is up, local `-Z` is the vehicle front, local `-X` is vehicle-left and local `+X` is vehicle-right.
-8. **Provide four independent wheel nodes.** The current source models generally contain one body mesh, one paired front-wheel mesh and one paired rear-wheel mesh. Each axle pair must be split into left and right wheel geometry with a hub-centred pivot.
-9. **Use explicit wheel bindings.** Do not add generic name scanning or heuristic wheel discovery to `CarVisualController`.
-10. **Match the real transmission architecture exactly.** A torque-converter planetary automatic must use a torque-converter automatic model; an automated manual must use an automated-clutch manual model; a dual-clutch transmission, CVT and conventional manual must each use their own correct architecture. Never substitute one transmission type because it already exists in the project.
-11. **Implement missing transmission types faithfully.** If the project lacks the required transmission architecture or generation-specific behaviour, create or extend a dedicated model that preserves its real operating principles instead of adapting an unrelated model.
-12. **Reproduce performance from evidence, not from labels.** Engine curves, gearing, mass, drag, tyres, drivetrain losses, shift behaviour and physical limits must combine to reproduce documented performance as closely as the current simulation permits.
-13. **Build new engine-sound architectures from first principles.** If the synthesizer does not already contain the relevant engine architecture, create a dedicated synthesis model based on that engine's firing cadence, crank arrangement, bank/collector geometry, aspiration and mechanical character. Do not base the new architecture on an unrelated cylinder layout.
-14. **Keep every model compatible with current `master` physics.** Before final validation, synchronize with `master`, inspect all relevant physics changes, and recalibrate every model and variant introduced earlier in the same PR when those changes affect it.
-15. **Separate visual and physical data.** Collision, wheel contact, mass, powertrain and traffic behaviour are project-authored. They must not be inferred directly from the render mesh at runtime.
-16. **Document uncertainty.** When an exact trim, body configuration, engine calibration, gearbox suffix or performance result cannot be established, record the uncertainty and use a clearly labelled provisional value.
-17. **One model is complete only after full validation.** Merely importing a GLB without research, owner approval, scale, wheels, transmission, physics, audio, collision, visibility and runtime checks does not complete the workflow.
+3. **Finish all model scopes before implementing any model.** Do not begin geometry conversion, catalog creation, physics calibration, transmission implementation or audio implementation until every included model is `approved`.
+4. **Wait for the authoritative physics baseline.** Even after every scope is approved, do not begin implementation until the PR #118 dependency is satisfied and the resulting `master` commit is recorded.
+5. **Keep the committed source GLB unchanged.** Technical adaptations belong in a derived GLB, Godot wrapper scene, imported material override or project-authored resource. Do not destructively overwrite the source file.
+6. **Calibrate every model independently.** Scale must be based on verified dimensions for the represented body variant. The former package-wide `0.695` conversion is not authoritative and must not be reused as a default.
+7. **Use wheelbase as the primary scale reference.** Overall length is a mandatory cross-check, not the only measurement. Wheel track, height and wheel diameter provide additional validation.
+8. **Use the project coordinate convention.** `+Y` is up, local `-Z` is the vehicle front, local `-X` is vehicle-left and local `+X` is vehicle-right.
+9. **Provide four independent wheel nodes.** The current source models generally contain one body mesh, one paired front-wheel mesh and one paired rear-wheel mesh. Each axle pair must be split into left and right wheel geometry with a hub-centred pivot.
+10. **Use explicit wheel bindings.** Do not add generic name scanning or heuristic wheel discovery to `CarVisualController`.
+11. **Match the real transmission architecture exactly.** A torque-converter planetary automatic must use a torque-converter automatic model; an automated manual must use an automated-clutch manual model; a dual-clutch transmission, CVT and conventional manual must each use their own correct architecture. Never substitute one transmission type because it already exists in the project.
+12. **Implement missing transmission types faithfully.** If the project lacks the required transmission architecture or generation-specific behaviour, create or extend a dedicated model that preserves its real operating principles instead of adapting an unrelated model.
+13. **Reproduce performance from evidence, not from labels.** Engine curves, gearing, mass, drag, tyres, drivetrain losses, shift behaviour and physical limits must combine to reproduce documented performance as closely as the current simulation permits.
+14. **Build new engine-sound architectures from first principles.** If the synthesizer does not already contain the relevant engine architecture, create a dedicated synthesis model based on that engine's firing cadence, crank arrangement, bank/collector geometry, aspiration and mechanical character. Do not base the new architecture on an unrelated cylinder layout.
+15. **Keep every model compatible with current `master` physics.** Before implementation and final validation, synchronize with `master`, inspect all relevant physics changes, and recalibrate every affected model and variant rather than adding compatibility hacks.
+16. **Separate visual and physical data.** Collision, wheel contact, mass, powertrain and traffic behaviour are project-authored. They must not be inferred directly from the render mesh at runtime.
+17. **Document uncertainty.** When an exact trim, body configuration, engine calibration, gearbox suffix or performance result cannot be established, record the uncertainty and use a clearly labelled provisional value. Evidence-blocked rows may remain approved in scope but may not receive guessed parameters.
+18. **One model is complete only after full validation.** Merely importing a GLB without research, owner approval, scale, wheels, transmission, physics, audio, collision, visibility and runtime checks does not complete the workflow.
 
 ## Status gates
 
@@ -57,15 +73,15 @@ Use these statuses in the inventory and model-specific record:
 1. `source_only` — source GLB is committed but research has not started;
 2. `researching` — identity, dimensions and full powertrain matrix are being established;
 3. `awaiting_owner_scope` — research matrix has been presented and the next numbered model is blocked on the owner's answer;
-4. `approved` — the owner has fixed the scope, but implementation remains deferred until every included model is also `approved`;
-5. `integrating` — the global research gate has passed and geometry, catalog, physics, transmission and audio work is in progress;
-6. `integrated` — all mandatory validation has passed against current `master`.
+4. `approved` — the owner has fixed the scope, but implementation remains deferred until the global research and physics-dependency gates are satisfied;
+5. `integrating` — every scope is approved, the PR #118 dependency is satisfied, and geometry, catalog, physics, transmission and audio work is in progress;
+6. `integrated` — all mandatory validation has passed against the final current `master` physics baseline.
 
-A model must not skip `awaiting_owner_scope`. No model may enter `integrating` until all included models have reached `approved`.
+A model must not skip `awaiting_owner_scope`. No model may enter `integrating` while either the all-model research gate or PR #118 dependency remains unresolved.
 
 ## Repository layout
 
-Only after the global research-before-implementation gate has passed, when implementation begins on a model, move its source file from the repository root into a canonical third-party directory and update all references in the same commit:
+Only after both global gates have passed, move a model's source file from the repository root into a canonical third-party directory and update all references in the same commit:
 
 ```text
 assets/third_party/sketchfab/traffic_rider_npc_vehicles/<vehicle_id>/source/<original_filename>.glb
@@ -85,9 +101,7 @@ resources/traffic/vehicles/<vehicle_id>.tres
 docs/vehicles/traffic/<vehicle_id>.md
 ```
 
-Playable model and variant resources must follow the existing authoritative car-catalog hierarchy rather than creating a parallel catalog.
-
-Do not retain duplicate source copies after relocation.
+Playable model and variant resources must follow the existing authoritative car-catalog hierarchy rather than creating a parallel catalog. Do not retain duplicate source copies after relocation.
 
 ## Stage 0 — complete vehicle and powertrain research
 
@@ -137,15 +151,11 @@ Prefer sources in this order:
 4. reputable specialist secondary sources;
 5. community sources only for gaps, explicitly marked as lower-confidence evidence.
 
-Never infer a factory combination solely because an engine and gearbox were separately available somewhere in the same model family.
-
-For every combination, classify evidence as `verified_factory`, `strongly_supported`, `provisional` or `rejected/not_factory`.
-
-Conflicting data must be preserved and resolved explicitly rather than silently selecting the most convenient value.
+Never infer a factory combination solely because an engine and gearbox were separately available somewhere in the same model family. For every combination, classify evidence as `verified_factory`, `strongly_supported`, `provisional` or `rejected/not_factory`. Conflicting data must be preserved and resolved explicitly.
 
 ### 0.4 Mandatory owner decision gate
 
-After completing the matrix, present it to the owner before continuing to the next numbered model. The summary must include:
+After completing the matrix, present it to the owner. The summary must include:
 
 - total number of identified factory combinations;
 - grouped engine families and calibrations;
@@ -160,18 +170,22 @@ Then explicitly ask:
 
 > I identified the following complete set of evidenced variants. Do you want all of them imported, or only a selected subset? Is any engine, transmission, drivetrain or model-year variant missing from this list?
 
-Wait for the owner's answer. Record the answer verbatim or as an unambiguous scope table in the model-specific record, set that model to `approved`, and continue Stage 0 with the next numeric model. No geometry processing, source relocation, catalog resource, powertrain code or audio code may be committed for any Traffic Rider model until every included model has passed this gate.
+Record the answer verbatim or as an unambiguous scope table in the model-specific record and set that model to `approved`. No geometry processing, source relocation, catalog resource, powertrain code or audio code may be committed until every included model has passed this gate.
 
-### 0.5 Global owner-scope completion gate
+### 0.5 Global owner-scope completion and physics-dependency gate
 
 After model 23 is approved:
 
 1. verify that every included inventory row is `approved`;
 2. verify that every model has a complete research record and recorded owner decision;
 3. report the final combined model and variant count;
-4. resolve any cross-model duplicate or shared-architecture decisions without deleting mechanically distinct variants;
-5. synchronize with current `master` and establish the implementation physics baseline;
-6. only then move model 01 to `integrating` and begin Stage 1.
+4. resolve cross-model duplicate or shared-architecture decisions without deleting mechanically distinct variants;
+5. wait for PR #118 or its explicitly identified successor to merge the final physics work into `master`;
+6. synchronize this branch with that resulting `master`;
+7. record the merged physics commit as the implementation baseline;
+8. review and update all vehicle, transmission, AWD, tyre, braking, steering/yaw and performance assumptions;
+9. rerun the full current suite;
+10. only then move model 01 to `integrating` and begin Stage 1.
 
 ## Stage 1 — establish dimensions and geometry evidence
 
@@ -205,15 +219,16 @@ Use evidence-based mass, acceleration, standing-distance, in-gear, top-speed, en
 
 ### Mandatory `master` physics synchronization
 
-Before final validation and again before marking the PR ready:
+Before any Stage 7 parameter commitment, before final validation and again before marking the PR ready:
 
-1. synchronize with current `master`;
-2. record the physics-baseline commit;
-3. inspect changes to specs, drivetrain, transmissions, wheels/tires, load transfer, suspension contact, drag, braking, steering/yaw and performance logic;
-4. identify all models and variants added earlier in the PR that are affected;
-5. rerun full tests;
-6. recalibrate every affected model to current physics rather than adding compatibility hacks;
-7. rerun catalog-wide regressions when shared code changed.
+1. verify that the PR #118 dependency is satisfied;
+2. synchronize with current `master`;
+3. record the physics-baseline commit;
+4. inspect changes to specs, drivetrain, transmissions, wheels/tires, load transfer, suspension contact, drag, braking, steering/yaw and performance logic;
+5. identify all affected models and variants;
+6. rerun full tests;
+7. recalibrate every affected model to current physics rather than adding compatibility hacks;
+8. rerun catalog-wide regressions when shared code changed.
 
 ## Stage 8 — implement architecture-correct engine audio
 
@@ -237,4 +252,4 @@ Every model record under `docs/vehicles/traffic/` must contain identity, referen
 
 ## Integration order
 
-Research and owner-scope approval proceed by numeric source prefix, ascending. After every included model is `approved`, implementation also proceeds by numeric source prefix, ascending. The earlier geometry-class pilot list remains useful for shared-tool validation, but it does not override the owner-directed numeric order, permit implementation before the global gate, or allow skipping an unresolved earlier model.
+Research and owner-scope approval are complete. After the PR #118 dependency is satisfied, implementation proceeds by numeric source prefix, ascending. The earlier geometry-class pilot list remains useful for shared-tool validation, but it does not override the owner-directed numeric order or permit implementation before the physics dependency is resolved.
