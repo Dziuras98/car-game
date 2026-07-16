@@ -59,6 +59,23 @@ The owner has explicitly accepted this known Nissan limitation for the current p
 
 This accepted-risk record does not claim full rights clearance. It means ordinary technical audits should not report the unchanged Nissan provenance limitation as a new remediation item unless a documented review trigger occurs.
 
+## Sketchfab Traffic Rider NPC vehicle bundle
+
+The repository contains 20 individually extracted GLB vehicle models from the Sketchfab bundle **Traffic Rider NPC Vehicles**.
+
+- uploader shown in embedded metadata: Mason (`ModelzRipper`);
+- source: https://sketchfab.com/3d-models/traffic-rider-npc-vehicles-61f8508a366d41e3b3a40c4b54f7a03a;
+- uploader-stated embedded license: CC BY-NC 4.0 — https://creativecommons.org/licenses/by-nc/4.0/;
+- included scope: the 20 non-heavy source GLBs listed in `docs/assets/traffic_rider_npc_vehicle_inventory.md`;
+- excluded scope: Scania heavy truck, generic articulated truck and generic rigid truck;
+- project use: private, noncommercial research and Godot integration under the recorded accepted-risk decision.
+
+The displayed or embedded CC BY-NC 4.0 label is recorded as the uploader's statement. The vehicle geometry appears to originate from the commercial game **Traffic Rider**, and the repository contains no written authorization from the game's publisher, developer or original asset rights holders. This creates an **incomplete upstream rights chain**. The project therefore does not represent these models as fully rights-cleared, does not place them under the repository's root license and does not treat noncommercial use as resolving upstream ownership.
+
+The committed source GLBs must remain unchanged until a model enters the documented integration workflow. Derived geometry, Godot scenes, collision, physics, audio and catalog data are project-authored integration work, but they do not broaden rights in the underlying models. Any public redistribution, binary release, monetization, relicensing or change in project scope requires a fresh rights review before these assets are included.
+
+The owner's decision to retain the 20 source GLBs for the current private/noncommercial prototype, together with review triggers and the three excluded heavy vehicles, is recorded in `docs/accepted_risks.md`.
+
 ## Additional Sketchfab models with incomplete or restrictive repository provenance
 
 The repository also contains external GLB assets whose source pages are documented in model-specific integration notes, but which are not covered by the BMW or Nissan Creative Commons statements above.
