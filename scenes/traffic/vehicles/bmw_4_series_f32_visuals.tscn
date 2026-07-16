@@ -1,16 +1,34 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb" id="1_source"]
+[ext_resource type="Script" path="res://scripts/traffic/bmw_f32_visual_derivative.gd" id="2_derivative"]
 
 [node name="Bmw4SeriesF32Visuals" type="Node3D"]
+script = ExtResource("2_derivative")
 
-[node name="SourceOrientationAndScale" type="Node3D" parent="."]
-transform = Transform3D(-0.6940157, 0, 0, 0, 0.6940157, 0, 0, 0, -0.6940157, 0, 0, 0)
-metadata/_edit_group_ = true
+[node name="Body" type="Node3D" parent="."]
 
-[node name="SourceModel" parent="SourceOrientationAndScale" instance=ExtResource("1_source")]
+[node name="SourceModel" parent="Body" instance=ExtResource("1_source")]
+
+[node name="WheelFrontLeft" type="Node3D" parent="."]
+
+[node name="Geometry" type="MeshInstance3D" parent="WheelFrontLeft"]
+
+[node name="WheelFrontRight" type="Node3D" parent="."]
+
+[node name="Geometry" type="MeshInstance3D" parent="WheelFrontRight"]
+
+[node name="WheelRearLeft" type="Node3D" parent="."]
+
+[node name="Geometry" type="MeshInstance3D" parent="WheelRearLeft"]
+
+[node name="WheelRearRight" type="Node3D" parent="."]
+
+[node name="Geometry" type="MeshInstance3D" parent="WheelRearRight"]
 
 [node name="DerivativeStatus" type="Node" parent="."]
-metadata/processed_visual_ready = false
-metadata/required_meshes = "Body, WheelFrontLeft, WheelFrontRight, WheelRearLeft, WheelRearRight"
-metadata/blocking_reason = "Paired source wheel meshes still require topology-preserving separation and hub-centred pivots."
+metadata/processed_visual_ready = true
+metadata/source_body_triangles = 1132
+metadata/wheel_triangles_each = 162
+metadata/total_preserved_triangles = 1780
+metadata/source_to_project = "+Y up retained; +Z front rotated to local -Z; centred at axle midpoint; grounded at tyre contact plane"
