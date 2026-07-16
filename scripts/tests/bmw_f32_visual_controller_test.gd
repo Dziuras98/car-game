@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_expect(visuals.get_detailed_wheel_binding_count() == 4, "BMW F32 registers four detailed wheel bindings")
 	_expect(visuals.get_registered_wheel_count() == 4, "BMW F32 exposes four wheel visuals")
 	_expect(not visuals.is_using_low_detail(), "BMW F32 remains on its detailed processed model without a fallback LOD")
+	_validate_spec_contract(visuals)
 
 	var processed_root := visuals.get_node_or_null(^"Detailed/ProcessedModel") as Node3D
 	_expect(processed_root != null, "BMW F32 resolves the processed model root")
@@ -51,6 +52,18 @@ func _initialize() -> void:
 	_expect(true, "BMW F32 accepts independent per-wheel angular positions")
 	visuals.free()
 	_finish()
+
+
+func _validate_spec_contract(visuals: BmwF32VisualController) -> void:
+	var specs: Array[Dictionary] = visuals._get_explicit_detailed_wheel_specs()
+	_expect(specs.size() == 4, "BMW F32 exposes four explicit wheel specs")
+	for spec: Dictionary in specs:
+		var wheel_id: StringName = spec.get("wheel_id", &"")
+		_expect(spec.get("pivot_parent_path", NodePath()) == ^"Detailed/ProcessedModel", "%s pivots below the processed model root" % wheel_id)
+		var spin_paths: Array = spec.get("spin_node_paths", [])
+		_expect(spin_paths.size() == 1, "%s has exactly one processed spin mesh path" % wheel_id)
+		if bool(spec.get("steers", false)):
+			_expect(is_equal_approx(float(spec.get("steering_direction", 0.0)), -1.0), "%s uses the project -Z steering sign" % wheel_id)
 
 
 func _validate_bound_wheel(spin_pivot: Node3D, wheel_id: StringName) -> void:
