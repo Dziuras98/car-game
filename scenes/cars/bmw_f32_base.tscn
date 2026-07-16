@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/traffic_rider_car_controller.gd" id="1_controller"]
-[ext_resource type="Script" path="res://scripts/car/traffic_rider_inline_engine_audio.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/traffic_rider_inline_engine_audio_runtime.gd" id="2_engine_audio"]
 [ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
 [ext_resource type="PackedScene" path="res://scenes/cars/bmw_f32_visuals.tscn" id="4_visuals"]
 
