@@ -4,7 +4,16 @@
 
 The branch records 18 retained GLBs. They were extracted from the combined Sketchfab scene by removing only the lineup translation and preserving local hierarchy, geometry, materials, embedded textures and local transforms.
 
-The GitHub connector used to create this draft cannot transfer local binary files. Therefore the GLBs are the only intentionally pending part of the initial draft. They must be copied from the prepared package and committed without modification before research begins.
+All 18 expected filenames are now present on the branch. Research still proceeds model-by-model: each GLB must pass byte-level verification against the prepared source before its record may move from `source_only` to `researching`.
+
+## Verification progress
+
+| Model | Presence | Byte verification | Research authorization |
+|---|---|---|---|
+| 01 — Mercedes-Benz G-Class | present | complete: size, SHA-256 and Git blob match | authorized; status `researching` |
+| 02–18 | present | pending per-model verification | not authorized; status remains `source_only` |
+
+Uploading a filename is not sufficient by itself. A different model, modified GLB or hash mismatch must stop that model's research until resolved.
 
 ## Required files and hashes
 
@@ -31,6 +40,14 @@ The GitHub connector used to create this draft cannot transfer local binary file
 
 Total retained geometry: **19,845 triangles**.
 
+## Model 01 verification evidence
+
+`01_mercedes_benz_g_class.glb` has been verified against the prepared source:
+
+- expected and actual size: 1,356,064 bytes;
+- expected and actual SHA-256: `5f3b43e8e5dfbef5c15ec24e11721086e23c396a7f6c416710d58fe5606d0225`;
+- expected and actual Git blob SHA-1: `1868eaadc613f4dbc2e83e89464322860be33610`.
+
 ## Explicit exclusions
 
 - lower-detail UAZ Hunter Police source: 640 triangles, SHA-256 `7351aef4cb3ab2a081a8d6d2c481a0ccd6ca4c9efbb37ffd7f5bcdf9a9ef6d17`;
@@ -38,6 +55,15 @@ Total retained geometry: **19,845 triangles**.
 
 Only the Gazelle van is allowed in this branch. The flatbed must not be added under another filename.
 
-## Verification
+## Verification procedure
 
-After copying the GLBs, verify every SHA-256 and run a Godot headless import. The source-upload commit must not modify workflow status, begin geometry processing or create runtime vehicle resources.
+For each next model:
+
+1. verify the root-level filename;
+2. compare file size and SHA-256 against this table;
+3. confirm the Git blob corresponds to the prepared source bytes;
+4. run a Godot headless import;
+5. inspect hierarchy, geometry, materials, textures, transforms and source axes;
+6. only then change that model from `source_only` to `researching`.
+
+Source verification must not begin geometry processing or create runtime vehicle resources.
