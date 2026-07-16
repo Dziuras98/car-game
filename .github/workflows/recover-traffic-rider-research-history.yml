@@ -1,0 +1,42 @@
+name: Recover Traffic Rider research history
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - tools/assets/recover_traffic_rider_research_history.py
+      - .github/workflows/recover-traffic-rider-research-history.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full PR history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Recover all retained research versions
+        env:
+          TRAFFIC_RIDER_BASE_SHA: ${{ github.event.pull_request.base.sha || '3743f5e95391b63a97e81b95050984b8240b7f30' }}
+          TRAFFIC_RIDER_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python tools/assets/recover_traffic_rider_research_history.py
+
+      - name: Upload recovery archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: traffic-rider-research-history-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/traffic_rider_research_history
+          if-no-files-found: error
+          retention-days: 14
