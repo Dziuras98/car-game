@@ -187,6 +187,7 @@ func _test_soft_speed_limiter_does_not_hard_clamp() -> void:
 	state.forward_speed = 25.0
 	for wheel: WheelTireState in state.wheel_states:
 		wheel.set_rolling_speed(state.forward_speed)
+		wheel.road_longitudinal_speed_mps = state.forward_speed
 	var powertrain := CarPowertrainController.new()
 	powertrain.configure(config)
 	powertrain.reset(state)
@@ -195,6 +196,7 @@ func _test_soft_speed_limiter_does_not_hard_clamp() -> void:
 	state.synchronize_wheel_contacts_from_aggregate()
 	for wheel: WheelTireState in state.wheel_states:
 		wheel.set_rolling_speed(state.forward_speed)
+		wheel.road_longitudinal_speed_mps = state.forward_speed
 	powertrain.update(state, 0.0, 0.0, false, false, false, STEP)
 	_expect(
 		state.forward_speed < 25.0 and state.forward_speed > config.max_forward_speed,
