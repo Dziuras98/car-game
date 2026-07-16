@@ -14,7 +14,7 @@ The track is selectable in free drive and race modes. Its procedural layer suppl
 
 ## Split visual model
 
-The uploaded 72,406,464-byte GLB is divided by scene function rather than by arbitrary byte ranges:
+The uploaded 72,406,464-byte GLB is divided by scene function rather than by arbitrary byte ranges. All six visual parts are stored directly in `assets/tracks/short_desert_track/`:
 
 | File | Size | Contents |
 | --- | ---: | --- |
@@ -25,7 +25,7 @@ The uploaded 72,406,464-byte GLB is divided by scene function rather than by arb
 | `vehicles.glb` | 2.3 MiB | source-scene vehicles |
 | `vegetation.glb` | 1.5 MiB | trees and vegetation bases |
 
-Every part preserves its source transforms and materials. `ShortDesertVisualLoader` applies one common transform to all six files: a five-times scale, 90-degree Y rotation and translation to the procedural start line. The loader tolerates missing parts, so the procedural track remains playable while binary assets are being transferred.
+Every part preserves its source transforms and materials. `ShortDesertVisualLoader` applies one common transform to all six files: a five-times scale, 90-degree Y rotation and translation to the procedural start line. The loader tolerates missing parts, so the procedural track remains playable if a visual part is removed.
 
 `assets/tracks/short_desert_track/split_manifest.json` records the source hash, expected output hashes, object counts and triangle counts. The split can be reproduced with:
 
