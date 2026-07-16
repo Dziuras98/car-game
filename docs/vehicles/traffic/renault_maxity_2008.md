@@ -72,9 +72,22 @@ Every diesel row requires the ladder frame, longitudinal front engine, dry clutc
 
 Maxity Electric requires a complete motor, inverter, battery, state-of-charge, voltage-sag, thermal, regenerative-braking, auxiliary-load and fixed-reduction model. It must not use a diesel gearbox locked in one gear.
 
+## Engine and driveline audio architecture
+
+The five diesel rows require two related but mechanically distinct commercial-diesel families:
+
+- **YD25DDTi / DXi2.5 2.5L inline-four** — dedicated common-rail four-cylinder commercial-diesel cadence with injection transients, turbo spool, governor, engine-braking and low-speed/high-load response. The 110, 120, 130 and 140-PS rows may share the first-principles YD25 timing architecture, but each retained calibration requires its own boost, injection, governor, intake/exhaust and load-response profile;
+- **ZD30DDTi / DXi3 3.0L inline-four** — separate larger-displacement commercial-diesel family with its own combustion pulse, turbo, mechanical, intake/exhaust and engine-brake character. It must not be created only by pitch-shifting the YD25 waveform.
+
+Both diesel families require body/driveline layers for dry-clutch launch and shifts, five- versus six-speed gear whine, prop shaft, live axle, dual rear tyres and enclosed-box resonance. Those layers must respond to truthful clutch, selected/engaged gear, load and wheel-speed telemetry.
+
+**Maxity Electric** requires a non-combustion backend derived from motor speed/torque, inverter switching, fixed-reduction gear mesh, live axle, regenerative braking, auxiliary systems, dual rear tyres and box-body resonance. It must not play an idling diesel loop or simulate motor speed from a fake combustion RPM range.
+
+Every player row uses an explicit architecture-correct live backend. The AI backend must be selected and tested explicitly as a committed baked bank or a live synthesizer with a representative fleet budget, following `traffic_rider_engine_audio_implementation_contract.md`.
+
 ## Evidence still required before parameter commitment
 
-Before implementation retain primary Renault Trucks, Nissan or PVI documentation for exact engine outputs and dates, gearbox codes and ratios, clutch capacities, one standard final drive per row, source GVW/kerb/payload/axle ratings, tyre and brake hardware, box dimensions and drag, and the complete electric motor/inverter/battery/reduction data. These evidence gaps do not reopen the approved six-row catalog scope and do not authorize guessed parameters.
+Before implementation retain primary Renault Trucks, Nissan or PVI documentation for exact engine outputs and dates, gearbox codes and ratios, clutch capacities, one standard final drive per row, source GVW/kerb/payload/axle ratings, tyre and brake hardware, box dimensions and drag, and the complete electric motor/inverter/battery/reduction data. Audio parameter commitment additionally requires engine idle/governor/engine-brake evidence, turbo/injection behaviour and motor/inverter/reduction operating data. These evidence gaps do not reopen the approved six-row catalog scope and do not authorize guessed parameters.
 
 ## Owner decision recorded
 
