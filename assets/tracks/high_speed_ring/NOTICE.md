@@ -6,7 +6,7 @@
 - **License:** Creative Commons Attribution 4.0 International (CC BY 4.0)
 - **License text:** https://creativecommons.org/licenses/by/4.0/
 
-The prepared repository copy is modified from the downloaded source GLB. The
-original scene is split into 17 standalone GLB files with compacted buffer
-ranges. No mesh simplification, decimation, coordinate change or material
-replacement is applied by the split process.
+The repository copy is modified from the downloaded source GLB. The original
+scene was split into 17 standalone GLB files with compacted buffer ranges. No
+mesh simplification, decimation, coordinate change or material replacement was
+applied by the split process.
