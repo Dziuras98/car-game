@@ -29,7 +29,7 @@ func _initialize() -> void:
 		"Approved total: 7 mechanically consolidated Ford F-150 P415 SuperCrew 5.5-ft 4x2 configurations",
 		"simulate gasoline only",
 		"source-like 2013 Limited exterior and chassis presentation",
-		"22-in P275/45R22 tyres for every row",
+		"P275/45R22 tyres for every row",
 		"sport-tuned shock calibration for every row",
 		"Model 07 is **`approved`** with **7** configurations",
 		"Research proceeds to model 08",
