@@ -87,6 +87,29 @@ Total committed source geometry: **40,300 triangles**.
 
 All 20 models have passed their individual owner-scope gates. Combined approved scope: **285 mechanically consolidated configurations**.
 
+## Historical research-gate transition record
+
+The following literal checkpoint statements are retained for audit and contract-test traceability. They describe intermediate research states only. They do **not** override the current `approved`/`integrating` tables or the resolved physics dependency above.
+
+- The next research target is model 05 — Ford E-150 2012
+- Ford Excursion 2000 pre-facelift XLT, drivetrain unresolved visually | SUV | 2,180 | `awaiting_owner_scope`
+- The next research target is model 07 — Ford F-150 Limited 2013
+- After model 08 is approved, research continues with model 09
+- After model 10 is approved, research continues with model 11
+- After model 11 is approved, research continues with model 12
+- After model 12 is approved, research continues with model 13
+- After model 13 is approved, research continues with model 14
+- Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12 and 13 have passed their individual owner-scope gates
+- After model 15 is approved, research continues with model 16
+- After model 16 is approved, research continues with model 17
+- After model 17 is approved, research continues with model 18
+- After model 18 is approved, research continues with model 20
+- After model 20 is approved, research continues with model 23
+- Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 and 20 have passed their individual owner-scope gates
+- 23 — Volkswagen Amarok I pre-V6
+- PR #118 — `Rework per-wheel vehicle physics and recalibrate DPI v3`
+- No implementation work may begin while this dependency remains unresolved
+
 ## Current implementation progress
 
 | Item | State |
