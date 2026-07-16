@@ -2,9 +2,9 @@ extends SceneTree
 
 const SOURCE_PATH := "res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb"
 const REPORT_PATH := "res://build/test-logs/traffic-rider-bmw-f32-source-inspection.json"
-const BODY_MESH_NAME := "AI_Bmw4_High_BMW_4_Series_2014_0"
-const FRONT_WHEEL_MESH_NAME := "on_teker_wheel_0"
-const REAR_WHEEL_MESH_NAME := "arka_teker_wheel_0"
+const BODY_NODE_NAME := "AI_Bmw4_High_BMW_4_Series_2014_0"
+const FRONT_WHEEL_NODE_NAME := "on_teker_0"
+const REAR_WHEEL_NODE_NAME := "arka_teker_0"
 const EXPECTED_TRIANGLES := 1780
 const EXPECTED_SOURCE_WHEELBASE := 4.0489
 const WHEELBASE_TOLERANCE := 0.01
@@ -25,69 +25,103 @@ func _initialize() -> void:
 	if source_root == null:
 		_finish()
 		return
-	root.add_child(source_root)
-	var mesh_instances: Array[MeshInstance3D] = []
-	_collect_mesh_instances(source_root, mesh_instances)
-	_expect(mesh_instances.size() == 3, "source contains exactly three mesh instances")
+
+	var mesh_records: Array[Dictionary] = []
+	var hierarchy: Array[Dictionary] = []
+	_collect_source_nodes(source_root, Transform3D.IDENTITY, "", mesh_records, hierarchy)
+	_expect(mesh_records.size() == 3, "source contains exactly three mesh instances")
 
 	var report: Dictionary = {
 		"source_path": SOURCE_PATH,
 		"source_sha256": FileAccess.get_sha256(SOURCE_PATH),
 		"root_name": String(source_root.name),
+		"hierarchy": hierarchy,
 		"meshes": [],
 	}
 	var total_triangles: int = 0
-	var named_instances: Dictionary = {}
-	for mesh_instance: MeshInstance3D in mesh_instances:
-		named_instances[String(mesh_instance.name)] = mesh_instance
-		var mesh_report := _inspect_mesh(mesh_instance)
+	var named_records: Dictionary = {}
+	for mesh_record: Dictionary in mesh_records:
+		var mesh_instance: MeshInstance3D = mesh_record["instance"]
+		named_records[String(mesh_instance.name)] = mesh_record
+		var mesh_report := _inspect_mesh(mesh_record)
 		total_triangles += int(mesh_report.get("triangle_count", 0))
 		(report["meshes"] as Array).append(mesh_report)
 	report["total_triangles"] = total_triangles
 	_expect(total_triangles == EXPECTED_TRIANGLES, "source triangle count remains %d" % EXPECTED_TRIANGLES)
-	for required_name: String in [BODY_MESH_NAME, FRONT_WHEEL_MESH_NAME, REAR_WHEEL_MESH_NAME]:
-		_expect(named_instances.has(required_name), "source contains mesh %s" % required_name)
+	for required_name: String in [BODY_NODE_NAME, FRONT_WHEEL_NODE_NAME, REAR_WHEEL_NODE_NAME]:
+		_expect(named_records.has(required_name), "source contains mesh node %s" % required_name)
 
-	if named_instances.has(FRONT_WHEEL_MESH_NAME) and named_instances.has(REAR_WHEEL_MESH_NAME):
-		var front_analysis := _inspect_wheel_pair(named_instances[FRONT_WHEEL_MESH_NAME] as MeshInstance3D)
-		var rear_analysis := _inspect_wheel_pair(named_instances[REAR_WHEEL_MESH_NAME] as MeshInstance3D)
+	if named_records.has(FRONT_WHEEL_NODE_NAME) and named_records.has(REAR_WHEEL_NODE_NAME):
+		var front_analysis := _inspect_wheel_pair(named_records[FRONT_WHEEL_NODE_NAME])
+		var rear_analysis := _inspect_wheel_pair(named_records[REAR_WHEEL_NODE_NAME])
 		report["front_wheels"] = front_analysis
 		report["rear_wheels"] = rear_analysis
 		_validate_wheel_pair(front_analysis, "front")
 		_validate_wheel_pair(rear_analysis, "rear")
-		var front_axle_z := _average_side_axis(front_analysis, "center", 2)
-		var rear_axle_z := _average_side_axis(rear_analysis, "center", 2)
-		var measured_wheelbase := absf(front_axle_z - rear_axle_z)
+
+		var front_axle_y := _average_side_axis(front_analysis, "center", 1)
+		var rear_axle_y := _average_side_axis(rear_analysis, "center", 1)
+		var measured_wheelbase := absf(front_axle_y - rear_axle_y)
+		var source_center_x := (
+			_average_side_axis(front_analysis, "center", 0)
+			+ _average_side_axis(rear_analysis, "center", 0)
+		) * 0.5
+		var source_ground_z := minf(
+			_minimum_side_axis(front_analysis, 2),
+			_minimum_side_axis(rear_analysis, 2)
+		)
 		report["measured_source_wheelbase"] = measured_wheelbase
 		report["wheelbase_scale_to_2_810_m"] = 2.810 / measured_wheelbase if measured_wheelbase > 0.0 else 0.0
-		report["source_axle_midpoint_z"] = (front_axle_z + rear_axle_z) * 0.5
-		var front_ground_y := minf(
-			_float_from_side(front_analysis, "negative_x", "minimum", 1),
-			_float_from_side(front_analysis, "positive_x", "minimum", 1)
-		)
-		var rear_ground_y := minf(
-			_float_from_side(rear_analysis, "negative_x", "minimum", 1),
-			_float_from_side(rear_analysis, "positive_x", "minimum", 1)
-		)
-		report["source_ground_y"] = minf(front_ground_y, rear_ground_y)
+		report["source_vehicle_center_x"] = source_center_x
+		report["source_axle_midpoint_y"] = (front_axle_y + rear_axle_y) * 0.5
+		report["source_ground_z"] = source_ground_z
+		report["inferred_source_up_axis"] = "+Z"
+		report["inferred_source_front_axis"] = "+Y" if front_axle_y > rear_axle_y else "-Y"
 		_expect(absf(measured_wheelbase - EXPECTED_SOURCE_WHEELBASE) <= WHEELBASE_TOLERANCE, "wheelbase measurement matches recorded source evidence")
 
 	_write_report(report)
-	source_root.queue_free()
+	source_root.free()
 	_finish()
 
 
-func _collect_mesh_instances(node: Node, output: Array[MeshInstance3D]) -> void:
+func _collect_source_nodes(
+	node: Node,
+	parent_source_transform: Transform3D,
+	parent_path: String,
+	mesh_records: Array[Dictionary],
+	hierarchy: Array[Dictionary]
+) -> void:
+	var node_path := String(node.name) if parent_path.is_empty() else "%s/%s" % [parent_path, node.name]
+	var local_transform := Transform3D.IDENTITY
+	if node is Node3D:
+		local_transform = (node as Node3D).transform
+	var source_transform := parent_source_transform * local_transform
+	var hierarchy_record: Dictionary = {
+		"name": String(node.name),
+		"type": node.get_class(),
+		"path": node_path,
+	}
+	if node is Node3D:
+		hierarchy_record["local_transform"] = _transform_to_dictionary(local_transform)
+		hierarchy_record["source_transform"] = _transform_to_dictionary(source_transform)
+	hierarchy.append(hierarchy_record)
 	if node is MeshInstance3D:
-		output.append(node as MeshInstance3D)
+		mesh_records.append({
+			"instance": node as MeshInstance3D,
+			"path": node_path,
+			"source_transform": source_transform,
+		})
 	for child: Node in node.get_children():
-		_collect_mesh_instances(child, output)
+		_collect_source_nodes(child, source_transform, node_path, mesh_records, hierarchy)
 
 
-func _inspect_mesh(mesh_instance: MeshInstance3D) -> Dictionary:
+func _inspect_mesh(mesh_record: Dictionary) -> Dictionary:
+	var mesh_instance: MeshInstance3D = mesh_record["instance"]
+	var source_transform: Transform3D = mesh_record["source_transform"]
 	var mesh: Mesh = mesh_instance.mesh
 	var surface_reports: Array[Dictionary] = []
 	var triangle_count: int = 0
+	var global_bounds := _new_side_accumulator()
 	if mesh != null:
 		for surface_index: int in range(mesh.get_surface_count()):
 			var arrays: Array = mesh.surface_get_arrays(surface_index)
@@ -95,6 +129,8 @@ func _inspect_mesh(mesh_instance: MeshInstance3D) -> Dictionary:
 			var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
 			var surface_triangles: int = int(indices.size() / 3) if not indices.is_empty() else int(vertices.size() / 3)
 			triangle_count += surface_triangles
+			for vertex: Vector3 in vertices:
+				_accumulate_point(global_bounds, source_transform * vertex)
 			surface_reports.append({
 				"surface_index": surface_index,
 				"primitive": int(mesh.surface_get_primitive_type(surface_index)),
@@ -105,20 +141,25 @@ func _inspect_mesh(mesh_instance: MeshInstance3D) -> Dictionary:
 				"material_class": "" if mesh.surface_get_material(surface_index) == null else mesh.surface_get_material(surface_index).get_class(),
 			})
 	return {
-		"name": String(mesh_instance.name),
-		"node_path": String(mesh_instance.get_path()),
-		"global_transform": _transform_to_dictionary(mesh_instance.global_transform),
+		"node_name": String(mesh_instance.name),
+		"mesh_resource_name": "" if mesh == null else String(mesh.resource_name),
+		"node_path": mesh_record["path"],
+		"source_transform": _transform_to_dictionary(source_transform),
 		"local_aabb": _aabb_to_dictionary(mesh_instance.get_aabb()),
+		"source_aabb": _bounds_to_dictionary(global_bounds),
 		"surface_count": 0 if mesh == null else mesh.get_surface_count(),
 		"triangle_count": triangle_count,
 		"surfaces": surface_reports,
 	}
 
 
-func _inspect_wheel_pair(mesh_instance: MeshInstance3D) -> Dictionary:
-	var negative_x := _new_side_accumulator()
-	var positive_x := _new_side_accumulator()
+func _inspect_wheel_pair(mesh_record: Dictionary) -> Dictionary:
+	var mesh_instance: MeshInstance3D = mesh_record["instance"]
+	var source_transform: Transform3D = mesh_record["source_transform"]
+	var negative_lateral := _new_side_accumulator()
+	var positive_lateral := _new_side_accumulator()
 	var centre_crossing_triangles: int = 0
+	var split_x := (source_transform * mesh_instance.get_aabb().get_center()).x
 	var mesh: Mesh = mesh_instance.mesh
 	if mesh != null:
 		for surface_index: int in range(mesh.get_surface_count()):
@@ -137,17 +178,18 @@ func _inspect_wheel_pair(mesh_instance: MeshInstance3D) -> Dictionary:
 				var positions: Array[Vector3] = []
 				for corner: int in range(3):
 					var source_vertex: Vector3 = vertices[triangle_indices[index_offset + corner]]
-					positions.append(mesh_instance.global_transform * source_vertex)
+					positions.append(source_transform * source_vertex)
 				var triangle_min_x := minf(minf(positions[0].x, positions[1].x), positions[2].x)
 				var triangle_max_x := maxf(maxf(positions[0].x, positions[1].x), positions[2].x)
-				if triangle_min_x < -SIDE_EPSILON and triangle_max_x > SIDE_EPSILON:
+				if triangle_min_x < split_x - SIDE_EPSILON and triangle_max_x > split_x + SIDE_EPSILON:
 					centre_crossing_triangles += 1
 				var centroid_x := (positions[0].x + positions[1].x + positions[2].x) / 3.0
-				var accumulator: Dictionary = negative_x if centroid_x < 0.0 else positive_x
+				var accumulator: Dictionary = negative_lateral if centroid_x < split_x else positive_lateral
 				_accumulate_triangle(accumulator, positions)
 	return {
-		"negative_x": _finalize_side(negative_x),
-		"positive_x": _finalize_side(positive_x),
+		"split_x": split_x,
+		"negative_lateral": _finalize_side(negative_lateral),
+		"positive_lateral": _finalize_side(positive_lateral),
 		"centre_crossing_triangles": centre_crossing_triangles,
 	}
 
@@ -164,15 +206,19 @@ func _new_side_accumulator() -> Dictionary:
 func _accumulate_triangle(accumulator: Dictionary, positions: Array[Vector3]) -> void:
 	accumulator["triangle_count"] = int(accumulator["triangle_count"]) + 1
 	for position: Vector3 in positions:
-		accumulator["point_count"] = int(accumulator["point_count"]) + 1
-		accumulator["minimum"] = (accumulator["minimum"] as Vector3).min(position)
-		accumulator["maximum"] = (accumulator["maximum"] as Vector3).max(position)
+		_accumulate_point(accumulator, position)
+
+
+func _accumulate_point(accumulator: Dictionary, position: Vector3) -> void:
+	accumulator["point_count"] = int(accumulator["point_count"]) + 1
+	accumulator["minimum"] = (accumulator["minimum"] as Vector3).min(position)
+	accumulator["maximum"] = (accumulator["maximum"] as Vector3).max(position)
 
 
 func _finalize_side(accumulator: Dictionary) -> Dictionary:
 	var minimum: Vector3 = accumulator["minimum"]
 	var maximum: Vector3 = accumulator["maximum"]
-	var has_geometry := int(accumulator["triangle_count"]) > 0
+	var has_geometry := int(accumulator["point_count"]) > 0
 	if not has_geometry:
 		minimum = Vector3.ZERO
 		maximum = Vector3.ZERO
@@ -184,22 +230,35 @@ func _finalize_side(accumulator: Dictionary) -> Dictionary:
 		"maximum": _vector_to_array(maximum),
 		"center": _vector_to_array((minimum + maximum) * 0.5),
 		"size": _vector_to_array(size),
-		"estimated_radius_yz": maxf(size.y, size.z) * 0.5,
+		"estimated_radius_longitudinal_up": maxf(size.y, size.z) * 0.5,
 	}
 
 
+func _bounds_to_dictionary(accumulator: Dictionary) -> Dictionary:
+	var finalized := _finalize_side(accumulator)
+	finalized.erase("triangle_count")
+	return finalized
+
+
 func _validate_wheel_pair(analysis: Dictionary, axle_label: String) -> void:
-	for side_key: String in ["negative_x", "positive_x"]:
+	for side_key: String in ["negative_lateral", "positive_lateral"]:
 		var side: Dictionary = analysis[side_key]
 		_expect(int(side["triangle_count"]) > 0, "%s %s wheel geometry is present" % [axle_label, side_key])
-	_expect(int(analysis["centre_crossing_triangles"]) == 0, "%s wheel pair has no triangles crossing the vehicle centre plane" % axle_label)
+	_expect(int(analysis["centre_crossing_triangles"]) == 0, "%s wheel pair has no triangles crossing its lateral split plane" % axle_label)
 
 
 func _average_side_axis(analysis: Dictionary, vector_key: String, axis: int) -> float:
 	return (
-		_float_from_side(analysis, "negative_x", vector_key, axis)
-		+ _float_from_side(analysis, "positive_x", vector_key, axis)
+		_float_from_side(analysis, "negative_lateral", vector_key, axis)
+		+ _float_from_side(analysis, "positive_lateral", vector_key, axis)
 	) * 0.5
+
+
+func _minimum_side_axis(analysis: Dictionary, axis: int) -> float:
+	return minf(
+		_float_from_side(analysis, "negative_lateral", "minimum", axis),
+		_float_from_side(analysis, "positive_lateral", "minimum", axis)
+	)
 
 
 func _float_from_side(analysis: Dictionary, side_key: String, vector_key: String, axis: int) -> float:
