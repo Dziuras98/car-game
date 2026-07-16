@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/processed/bmw_4_series_f32_processed.glb" id="1_processed"]
+[ext_resource type="Script" path="res://scripts/traffic/bmw_f32_processed_visual_rig.gd" id="2_rig"]
+
+[node name="Bmw4SeriesF32Visuals" type="Node3D"]
+script = ExtResource("2_rig")
+
+[node name="ProcessedModel" parent="." instance=ExtResource("1_processed")]
+
+[node name="Body" type="Node3D" parent="."]
+
+[node name="WheelFrontLeft" type="Node3D" parent="."]
+
+[node name="WheelFrontRight" type="Node3D" parent="."]
+
+[node name="WheelRearLeft" type="Node3D" parent="."]
+
+[node name="WheelRearRight" type="Node3D" parent="."]
+
+[node name="DerivativeStatus" type="Node" parent="."]
+metadata/processed_visual_ready = true
+metadata/source_sha256 = "fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510"
+metadata/processed_sha256 = "bd0dc99b51e9756b800aeece83e2cea794b69aa182b583487fccf50e53237369"
+metadata/source_body_triangles = 1132
+metadata/wheel_triangles_each = 162
+metadata/total_preserved_triangles = 1780
+metadata/wheelbase_m = 2.81
+metadata/wheel_radius_m = 0.327942
+metadata/visual_aabb_position = Vector3(-1.00517, 0, -2.186659)
+metadata/visual_aabb_size = Vector3(2.010339, 1.368534, 4.622914)
+metadata/generator = "res://tools/assets/process_traffic_rider_bmw_f32.py"

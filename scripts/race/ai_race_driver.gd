@@ -161,7 +161,7 @@ func _physics_process(delta: float) -> void:
 	_last_steering = steering
 	var turn_pressure: float = clampf(absf(steering) * 1.45, 0.0, 1.0)
 	var speed_limit: float = lerpf(_profile.target_speed_kmh, _profile.corner_speed_kmh, turn_pressure)
-	var speed_kmh: float = absf(_car.get_speed_kmh())
+	var speed_kmh: float = _car.get_speed_kmh()
 	var throttle: float = 0.92
 	var brake: float = 0.0
 
@@ -212,7 +212,7 @@ func _fail_driver(message: String) -> void:
 		_car.clear_external_gear_requests()
 		if _car.is_manual_transmission():
 			_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)
-		elif _car.get_current_gear() < 0 or _car.get_speed_kmh() < 0.0:
+		elif _car.get_current_gear() < 0 or _car.get_forward_speed() < 0.0:
 			_car.set_external_drive_inputs(1.0, 0.0, 0.0, false)
 		else:
 			_car.set_external_drive_inputs(0.0, 0.85, 0.0, false)
@@ -289,7 +289,7 @@ func _begin_recovery() -> void:
 
 func _update_recovery(delta: float) -> void:
 	var recovery_steering: float = _get_recovery_steering()
-	var signed_speed_kmh: float = _car.get_speed_kmh()
+	var signed_speed_kmh: float = _car.get_forward_speed() * 3.6
 	var stop_speed: float = _profile.recovery_stop_speed_kmh
 	match _driver_state:
 		DriverState.RECOVERY_BRAKE_TO_STOP:

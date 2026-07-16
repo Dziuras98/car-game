@@ -4,8 +4,6 @@ class_name TireModel
 const STANDARD_GRAVITY: float = 9.80665
 const MIN_ACCELERATION_CAPACITY: float = 0.0001
 const FULL_SLIDE_DEMAND_RATIO: float = 2.5
-const SLIP_VISUAL_ONSET_MULTIPLIER: float = 0.75
-const SLIP_VISUAL_FULL_MULTIPLIER: float = 1.50
 
 
 func recover_lateral_speed(
@@ -42,7 +40,7 @@ func calculate_slip_intensity(
 
 func resolve_longitudinal_acceleration(
 	requested_acceleration: float,
-	lateral_slip_intensity: float,
+	lateral_grip_usage: float,
 	surface_grip_multiplier: float,
 	contact_factor: float,
 	longitudinal_grip_coefficient: float,
@@ -54,7 +52,7 @@ func resolve_longitudinal_acceleration(
 		return Vector2.ZERO
 
 	var peak_capacity: float = get_longitudinal_acceleration_capacity(
-		lateral_slip_intensity,
+		lateral_grip_usage,
 		surface_grip_multiplier,
 		safe_contact_factor,
 		longitudinal_grip_coefficient
@@ -79,7 +77,7 @@ func resolve_longitudinal_acceleration(
 
 func resolve_longitudinal_acceleration_from_slip(
 	slip_ratio: float,
-	lateral_slip_intensity: float,
+	lateral_grip_usage: float,
 	surface_grip_multiplier: float,
 	contact_factor: float,
 	longitudinal_grip_coefficient: float,
@@ -90,7 +88,7 @@ func resolve_longitudinal_acceleration_from_slip(
 	if safe_contact_factor <= 0.0 or is_zero_approx(slip_ratio):
 		return 0.0
 	var peak_capacity: float = get_longitudinal_acceleration_capacity(
-		lateral_slip_intensity,
+		lateral_grip_usage,
 		surface_grip_multiplier,
 		safe_contact_factor,
 		longitudinal_grip_coefficient
@@ -108,7 +106,7 @@ func resolve_longitudinal_acceleration_from_slip(
 
 
 func get_longitudinal_acceleration_capacity(
-	lateral_slip_intensity: float,
+	lateral_grip_usage: float,
 	surface_grip_multiplier: float,
 	contact_factor: float,
 	longitudinal_grip_coefficient: float
@@ -116,21 +114,34 @@ func get_longitudinal_acceleration_capacity(
 	return (
 		STANDARD_GRAVITY
 		* maxf(longitudinal_grip_coefficient, 0.0)
-		* get_longitudinal_grip_factor(lateral_slip_intensity, surface_grip_multiplier)
+		* get_longitudinal_grip_factor(lateral_grip_usage, surface_grip_multiplier)
 		* clampf(contact_factor, 0.0, 1.0)
 	)
 
 
 func calculate_longitudinal_slip_intensity(slip_ratio: float, peak_slip_ratio: float) -> float:
-	var safe_peak_slip_ratio: float = maxf(peak_slip_ratio, 0.001)
-	var onset: float = safe_peak_slip_ratio * SLIP_VISUAL_ONSET_MULTIPLIER
-	var full_intensity: float = safe_peak_slip_ratio * SLIP_VISUAL_FULL_MULTIPLIER
-	var normalized: float = clampf(
-		(absf(slip_ratio) - onset) / maxf(full_intensity - onset, 0.001),
+	# This value participates in the lateral/longitudinal friction circle, so it
+	# represents physical grip usage rather than a delayed visual-only onset.
+	return clampf(
+		absf(slip_ratio) / maxf(peak_slip_ratio, 0.001),
 		0.0,
 		1.0
 	)
-	return _smoothstep(normalized)
+
+
+func calculate_longitudinal_grip_usage(
+	slip_ratio: float,
+	peak_slip_ratio: float,
+	slide_grip_multiplier: float
+) -> float:
+	var normalized_slip: float = absf(slip_ratio) / maxf(peak_slip_ratio, 0.001)
+	if normalized_slip <= 1.0:
+		return clampf(normalized_slip, 0.0, 1.0)
+	return clampf(
+		_get_post_peak_capacity_multiplier(normalized_slip, slide_grip_multiplier),
+		0.0,
+		1.0
+	)
 
 
 func calculate_combined_slip_intensity(lateral_intensity: float, longitudinal_intensity: float) -> float:
@@ -140,10 +151,10 @@ func calculate_combined_slip_intensity(lateral_intensity: float, longitudinal_in
 
 
 func get_longitudinal_grip_factor(
-	slip_intensity: float,
+	lateral_grip_usage: float,
 	surface_grip_multiplier: float
 ) -> float:
-	var lateral_usage: float = clampf(slip_intensity, 0.0, 1.0)
+	var lateral_usage: float = clampf(lateral_grip_usage, 0.0, 1.0)
 	var friction_circle_factor: float = sqrt(maxf(1.0 - lateral_usage * lateral_usage, 0.0))
 	return friction_circle_factor * clampf(surface_grip_multiplier, 0.05, 2.0)
 

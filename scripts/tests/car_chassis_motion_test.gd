@@ -18,6 +18,7 @@ func _run() -> void:
 	_test_tire_forces_generate_chassis_yaw()
 	_test_airborne_steering_does_not_create_yaw()
 	_test_lateral_tire_forces_recover_sideways_motion()
+	_test_near_sideways_slide_recovers_quickly()
 	_test_handbrake_reduces_rear_lateral_force()
 	_finish()
 
@@ -134,6 +135,18 @@ func _test_lateral_tire_forces_recover_sideways_motion() -> void:
 		chassis.update_tire_dynamics(state, 0.0, false, STEP)
 	_expect(absf(state.lateral_speed) < initial_lateral_speed, "tire forces reduce an existing lateral velocity")
 	_expect(state.lateral_slip_intensity > 0.0, "sideways motion creates physical tire slip angles")
+
+
+func _test_near_sideways_slide_recovers_quickly() -> void:
+	var chassis := _configured_chassis()
+	var state := _contact_state(0.0)
+	state.lateral_speed = 8.0
+	for _step_index: int in range(30):
+		chassis.update_tire_dynamics(state, 0.0, false, STEP)
+	_expect(
+		absf(state.lateral_speed) < 7.0,
+		"near-sideways motion retains enough tire force for rapid lateral recovery"
+	)
 
 
 func _test_handbrake_reduces_rear_lateral_force() -> void:

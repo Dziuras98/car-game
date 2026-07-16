@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/track/track_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/tracks/infinite_grid.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_definition")
+track_id = &"infinite_grid"
+display_name = "Nieskończona siatka"
+recommended_laps = 1
+supported_modes = Array[StringName]([&"free_drive"])
+track_scene = ExtResource("2_scene")

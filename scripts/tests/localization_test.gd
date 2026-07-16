@@ -58,12 +58,12 @@ func _initialize() -> void:
 	)
 	var polish_tracks: Array[TrackMenuOption] = MenuOptionsBuilder.build_track_options(TRACK_CATALOG)
 	var polish_models: Array[CarModelMenuOption] = MenuOptionsBuilder.build_car_models(CAR_CATALOG)
+	var polish_automatic: CarVariantMenuOption = _find_car_option(polish_models, &"nissan_370z_7at")
 	_expect(not polish_tracks.is_empty() and polish_tracks[0].label == "Prosty owal", "Polish menu uses the localized track name")
 	_expect(
-		not polish_models.is_empty()
-		and not polish_models[0].variants.is_empty()
-		and polish_models[0].variants[0].label == "370Z automat"
-		and polish_models[0].variants[0].performance_index > 0,
+		polish_automatic != null
+		and polish_automatic.label == "370Z automat"
+		and polish_automatic.performance_index > 0,
 		"Polish menu keeps the variant label separate from its DPI metadata"
 	)
 
@@ -111,19 +111,34 @@ func _initialize() -> void:
 	)
 	var english_tracks: Array[TrackMenuOption] = MenuOptionsBuilder.build_track_options(TRACK_CATALOG)
 	var english_models: Array[CarModelMenuOption] = MenuOptionsBuilder.build_car_models(CAR_CATALOG)
+	var english_automatic: CarVariantMenuOption = _find_car_option(english_models, &"nissan_370z_7at")
+	var english_manual: CarVariantMenuOption = _find_car_option(english_models, &"nissan_370z_6mt")
 	_expect(not english_tracks.is_empty() and english_tracks[0].label == "Simple oval", "English menu translates the track name")
 	_expect(
-		not english_models.is_empty()
-		and english_models[0].variants.size() >= 2
-		and english_models[0].variants[0].label == "370Z automatic"
-		and english_models[0].variants[1].label == "370Z manual"
-		and english_models[0].variants[0].performance_index > 0
-		and english_models[0].variants[1].performance_index > 0,
+		english_automatic != null
+		and english_manual != null
+		and english_automatic.label == "370Z automatic"
+		and english_manual.label == "370Z manual"
+		and english_automatic.performance_index > 0
+		and english_manual.performance_index > 0,
 		"English menu translates variant labels and keeps DPI as structured metadata"
 	)
 
 	TranslationServer.set_locale(original_locale)
 	_finish()
+
+
+func _find_car_option(
+	models: Array[CarModelMenuOption],
+	variant_id: StringName
+) -> CarVariantMenuOption:
+	for model: CarModelMenuOption in models:
+		if model == null:
+			continue
+		for option: CarVariantMenuOption in model.variants:
+			if option != null and option.variant_id == variant_id:
+				return option
+	return null
 
 
 func _expect(condition: bool, message: String) -> void:

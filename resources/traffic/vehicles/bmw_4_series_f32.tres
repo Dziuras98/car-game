@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="TrafficVehicleVisualDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/traffic/traffic_vehicle_visual_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb" id="2_source"]
+[ext_resource type="PackedScene" path="res://scenes/traffic/vehicles/bmw_4_series_f32_visuals.tscn" id="3_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+vehicle_id = &"bmw_4_series_f32"
+display_name = "BMW 4 Series Coupé F32 pre-LCI"
+source_path = "res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/source/01_bmw_4_series_2014.glb"
+source_sha256 = "fab5af5379c45f780f2ccc608560b99cb441ebf0f66c06e8eef0cb7fcd28d510"
+source_scene = ExtResource("2_source")
+source_front_axis = "+Z"
+length_m = 4.638
+width_m = 1.825
+height_m = 1.362
+wheelbase_m = 2.81
+front_track_m = 1.545
+rear_track_m = 1.594
+ground_clearance_m = 0.13
+source_wheelbase_units = 4.04892254
+visual_scale = 0.6940118
+processed_path = "res://assets/third_party/sketchfab/traffic_rider_npc_vehicles/bmw_4_series_f32/processed/bmw_4_series_f32_processed.glb"
+processed_sha256 = "bd0dc99b51e9756b800aeece83e2cea794b69aa182b583487fccf50e53237369"
+processed_visual_ready = true
+visual_scene = ExtResource("3_visual")
+body_path = NodePath("ProcessedModel/Bmw4SeriesF32Processed/Body")
+front_left_wheel_path = NodePath("ProcessedModel/Bmw4SeriesF32Processed/FrontLeftWheel")
+front_right_wheel_path = NodePath("ProcessedModel/Bmw4SeriesF32Processed/FrontRightWheel")
+rear_left_wheel_path = NodePath("ProcessedModel/Bmw4SeriesF32Processed/RearLeftWheel")
+rear_right_wheel_path = NodePath("ProcessedModel/Bmw4SeriesF32Processed/RearRightWheel")

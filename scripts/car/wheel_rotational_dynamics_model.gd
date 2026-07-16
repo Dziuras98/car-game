@@ -26,6 +26,35 @@ func calculate_slip_ratio(
 	)
 
 
+func synchronize_free_rolling_contact(
+	wheel: WheelTireState,
+	drive_torque_nm: float,
+	brake_torque_nm: float,
+	vehicle_forward_speed_mps: float
+) -> bool:
+	if not is_free_rolling_contact(wheel, drive_torque_nm, brake_torque_nm):
+		return false
+	wheel.set_rolling_speed(vehicle_forward_speed_mps)
+	wheel.drive_torque_nm = 0.0
+	wheel.brake_torque_nm = 0.0
+	wheel.tire_torque_nm = 0.0
+	wheel.angular_acceleration_rad_s2 = 0.0
+	return true
+
+
+func is_free_rolling_contact(
+	wheel: WheelTireState,
+	drive_torque_nm: float,
+	brake_torque_nm: float
+) -> bool:
+	return (
+		wheel != null
+		and wheel.has_contact
+		and absf(drive_torque_nm) <= TORQUE_EPSILON_NM
+		and maxf(brake_torque_nm, 0.0) <= TORQUE_EPSILON_NM
+	)
+
+
 func integrate_wheel(
 	wheel: WheelTireState,
 	drive_torque_nm: float,
@@ -35,14 +64,32 @@ func integrate_wheel(
 	angular_damping_nm_per_rad_s: float,
 	vehicle_forward_speed_mps: float,
 	delta: float,
-	_effective_inertia_kg_m2: float = -1.0
+	effective_inertia_kg_m2: float = -1.0
 ) -> void:
 	if wheel == null:
 		return
 	var safe_delta: float = maxf(delta, 0.0)
 	var safe_mass: float = maxf(vehicle_mass_kg, 1.0)
 	var safe_radius: float = maxf(wheel.wheel_radius_m, 0.01)
-	var safe_inertia: float = maxf(wheel.moment_of_inertia_kg_m2, 0.01)
+	var safe_inertia: float = maxf(
+		effective_inertia_kg_m2 if effective_inertia_kg_m2 > 0.0 else wheel.moment_of_inertia_kg_m2,
+		0.01
+	)
+	var safe_brake_torque: float = maxf(brake_torque_nm, 0.0)
+
+	# A contacted wheel without drive or brake torque is constrained by the road to
+	# pure rolling in this deterministic arcade model. Letting numerical wheel
+	# inertia drift away from road speed creates fictitious longitudinal slip,
+	# consumes the entire friction circle and removes steering authority.
+	if synchronize_free_rolling_contact(
+		wheel,
+		drive_torque_nm,
+		safe_brake_torque,
+		vehicle_forward_speed_mps
+	):
+		wheel.integrate_rotation(safe_delta)
+		return
+
 	var tire_force_n: float = tire_acceleration_mps2 * safe_mass
 	var tire_torque_nm: float = -tire_force_n * safe_radius
 	var damping_torque_nm: float = -wheel.angular_velocity_rad_s * maxf(
@@ -55,7 +102,6 @@ func integrate_wheel(
 		torque_without_brake,
 		vehicle_forward_speed_mps
 	)
-	var safe_brake_torque: float = maxf(brake_torque_nm, 0.0)
 	var signed_brake_torque: float = -reference_direction * safe_brake_torque
 	var net_torque_nm: float = torque_without_brake + signed_brake_torque
 	var angular_acceleration: float = net_torque_nm / safe_inertia

@@ -27,6 +27,13 @@ enum DriveLayout {
 @export var max_forward_speed: float = 30.0
 @export var max_reverse_speed: float = 10.0
 @export var steering_speed: float = 2.7
+@export var steering_response_rate: float = 7.0
+@export var max_yaw_rate_rad_s: float = 3.5
+@export var yaw_damping_per_second: float = 0.35
+@export var released_steering_yaw_damping_per_second: float = 0.90
+@export var low_speed_yaw_damping_per_second: float = 3.50
+@export var collision_yaw_response: float = 0.35
+@export var speed_limiter_strength: float = 8.0
 @export var wheel_base: float = 2.65
 @export var front_axle_track_width: float = 1.55
 @export var rear_axle_track_width: float = 1.55
@@ -45,6 +52,7 @@ enum DriveLayout {
 @export var engine_force: float = 30.0
 @export var engine_brake_force: float = 3.0
 @export var rpm_response: float = 8.0
+@export var engine_inertia_kg_m2: float = 0.0
 
 @export_group("Audio")
 @export var engine_audio_profile: EngineAudioProfile
@@ -61,6 +69,9 @@ enum DriveLayout {
 @export var max_drive_acceleration: float = 100.0
 @export_enum("FWD", "RWD", "AWD") var drive_layout: int = DriveLayout.REAR_WHEEL_DRIVE
 @export_range(0.0, 1.0, 0.01) var awd_front_torque_fraction: float = 0.40
+@export_range(0.0, 1.0, 0.01) var front_differential_lock: float = 0.0
+@export_range(0.0, 1.0, 0.01) var rear_differential_lock: float = 0.0
+@export_range(0.0, 1.0, 0.01) var center_differential_lock: float = 0.0
 
 @export_group("Automatic Transmission")
 @export var automatic_upshift_rpm: float = 6200.0
@@ -83,6 +94,9 @@ enum DriveLayout {
 
 @export_group("Continuously Variable Transmission")
 @export var cvt_max_ratio: float = 2.50
+# Zero means that the variator has no physical longest-ratio stop and may
+# continue toward the numerical epsilon as road speed rises.
+@export var cvt_min_ratio: float = 0.0
 @export var cvt_target_rpm_min: float = 1800.0
 @export var cvt_target_rpm_max: float = 5500.0
 @export var cvt_ratio_response: float = 8.0
@@ -97,6 +111,12 @@ enum DriveLayout {
 @export var rolling_resistance_coefficient: float = 0.015
 @export_range(0.0, 1.0, 0.01) var front_static_load_fraction: float = 0.0
 @export var center_of_mass_height_m: float = 0.55
+@export var suspension_load_blend: float = 0.65
+@export var aerodynamic_lateral_area_multiplier: float = 1.15
+@export var body_pitch_response: float = 7.0
+@export var body_roll_response: float = 7.0
+@export var max_body_pitch_degrees: float = 4.0
+@export var max_body_roll_degrees: float = 6.0
 
 @export_group("Tires")
 @export var front_lateral_grip: float = 10.0
@@ -106,6 +126,9 @@ enum DriveLayout {
 @export var longitudinal_grip_coefficient: float = 1.05
 @export var longitudinal_peak_slip_ratio: float = 0.12
 @export_range(0.0, 1.0, 0.01) var longitudinal_slide_grip_multiplier: float = 0.78
+@export_range(0.0, 1.0, 0.01) var lateral_slide_grip_multiplier: float = 0.88
+@export_range(0.0, 1.0, 0.01) var traction_control_strength: float = 0.0
+@export_range(0.0, 1.0, 0.01) var abs_strength: float = 0.0
 @export var handbrake_lateral_grip_multiplier: float = 0.28
 @export var steering_slip_gain: float = 0.85
 @export var slip_speed_threshold: float = 2.2
@@ -182,6 +205,13 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "max_forward_speed", max_forward_speed)
 	_append_non_negative(errors, "max_reverse_speed", max_reverse_speed)
 	_append_positive(errors, "steering_speed", steering_speed)
+	_append_positive(errors, "steering_response_rate", steering_response_rate)
+	_append_positive(errors, "max_yaw_rate_rad_s", max_yaw_rate_rad_s)
+	_append_non_negative(errors, "yaw_damping_per_second", yaw_damping_per_second)
+	_append_non_negative(errors, "released_steering_yaw_damping_per_second", released_steering_yaw_damping_per_second)
+	_append_non_negative(errors, "low_speed_yaw_damping_per_second", low_speed_yaw_damping_per_second)
+	_append_range(errors, "collision_yaw_response", collision_yaw_response, 0.0, 1.0)
+	_append_non_negative(errors, "speed_limiter_strength", speed_limiter_strength)
 	_append_positive(errors, "wheel_base", wheel_base)
 	_append_positive(errors, "front_axle_track_width", front_axle_track_width)
 	_append_positive(errors, "rear_axle_track_width", rear_axle_track_width)
@@ -207,12 +237,16 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "engine_force", engine_force)
 	_append_non_negative(errors, "engine_brake_force", engine_brake_force)
 	_append_positive(errors, "rpm_response", rpm_response)
+	_append_non_negative(errors, "engine_inertia_kg_m2", engine_inertia_kg_m2)
 
 	if transmission_type < TransmissionType.DIRECT_DRIVE or transmission_type > TransmissionType.CVT:
 		errors.append("transmission_type is invalid")
 	if drive_layout < DriveLayout.FRONT_WHEEL_DRIVE or drive_layout > DriveLayout.ALL_WHEEL_DRIVE:
 		errors.append("drive_layout is invalid")
 	_append_range(errors, "awd_front_torque_fraction", awd_front_torque_fraction, 0.0, 1.0)
+	_append_range(errors, "front_differential_lock", front_differential_lock, 0.0, 1.0)
+	_append_range(errors, "rear_differential_lock", rear_differential_lock, 0.0, 1.0)
+	_append_range(errors, "center_differential_lock", center_differential_lock, 0.0, 1.0)
 	if smg_enabled and not is_automatic_transmission():
 		errors.append("smg_enabled requires AUTOMATIC transmission_type")
 	if uses_discrete_gears() and gear_ratios.is_empty(): errors.append("gear_ratios must contain at least one forward gear")
@@ -263,6 +297,8 @@ func validate() -> PackedStringArray:
 
 	if is_cvt_transmission():
 		_append_positive(errors, "cvt_max_ratio", cvt_max_ratio)
+		_append_non_negative(errors, "cvt_min_ratio", cvt_min_ratio)
+		if cvt_min_ratio > 0.0 and cvt_min_ratio >= cvt_max_ratio: errors.append("cvt_min_ratio must be below cvt_max_ratio when configured")
 		_append_positive(errors, "cvt_target_rpm_min", cvt_target_rpm_min)
 		_append_positive(errors, "cvt_target_rpm_max", cvt_target_rpm_max)
 		if cvt_target_rpm_min < idle_rpm: errors.append("cvt_target_rpm_min must be at or above idle_rpm")
@@ -282,6 +318,12 @@ func validate() -> PackedStringArray:
 	_append_non_negative(errors, "rolling_resistance_coefficient", rolling_resistance_coefficient)
 	_append_range(errors, "front_static_load_fraction", front_static_load_fraction, 0.0, 1.0)
 	_append_positive(errors, "center_of_mass_height_m", center_of_mass_height_m)
+	_append_range(errors, "suspension_load_blend", suspension_load_blend, 0.0, 1.0)
+	_append_positive(errors, "aerodynamic_lateral_area_multiplier", aerodynamic_lateral_area_multiplier)
+	_append_positive(errors, "body_pitch_response", body_pitch_response)
+	_append_positive(errors, "body_roll_response", body_roll_response)
+	_append_non_negative(errors, "max_body_pitch_degrees", max_body_pitch_degrees)
+	_append_non_negative(errors, "max_body_roll_degrees", max_body_roll_degrees)
 	_append_positive(errors, "front_lateral_grip", front_lateral_grip)
 	_append_positive(errors, "rear_lateral_grip", rear_lateral_grip)
 	_append_positive(errors, "front_tire_width_m", front_tire_width_m)
@@ -289,6 +331,9 @@ func validate() -> PackedStringArray:
 	_append_positive(errors, "longitudinal_grip_coefficient", longitudinal_grip_coefficient)
 	_append_positive(errors, "longitudinal_peak_slip_ratio", longitudinal_peak_slip_ratio)
 	_append_range(errors, "longitudinal_slide_grip_multiplier", longitudinal_slide_grip_multiplier, 0.0, 1.0)
+	_append_range(errors, "lateral_slide_grip_multiplier", lateral_slide_grip_multiplier, 0.0, 1.0)
+	_append_range(errors, "traction_control_strength", traction_control_strength, 0.0, 1.0)
+	_append_range(errors, "abs_strength", abs_strength, 0.0, 1.0)
 	_append_range(errors, "handbrake_lateral_grip_multiplier", handbrake_lateral_grip_multiplier, 0.0, 1.0)
 	_append_non_negative(errors, "steering_slip_gain", steering_slip_gain)
 	_append_positive(errors, "slip_speed_threshold", slip_speed_threshold)

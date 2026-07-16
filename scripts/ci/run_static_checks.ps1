@@ -316,10 +316,10 @@ Assert-GDScriptFunctions "scripts/car/car_input.gd" @(
 )
 Assert-Contains "scripts/car/car_chassis_controller.gd" @(
     "var _probe_local_positions: Array[Vector3]",
-    "for local_probe_position: Vector3 in _probe_local_positions",
-    "var contact_count: int",
-    "var normal_sum: Vector3",
-    "var grip_sum: float"
+    "for wheel_index: int in range(mini(_probe_local_positions.size(), state.wheel_states.size()))",
+    "state.wheel_states[wheel_index].set_contact(",
+    "state.update_contact_aggregates()",
+    "suspension_acceleration_vector"
 )
 Assert-DoesNotContain "scripts/car/car_chassis_controller.gd" @(
     "var normals: Array[Vector3]",

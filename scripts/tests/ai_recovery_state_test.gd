@@ -14,7 +14,10 @@ class RecoveryCar:
 	var last_steering: float = 0.0
 
 	func get_speed_kmh() -> float:
-		return simulated_speed_kmh
+		return absf(simulated_speed_kmh)
+
+	func get_forward_speed() -> float:
+		return simulated_speed_kmh / 3.6
 
 	func get_current_gear() -> int:
 		return simulated_gear

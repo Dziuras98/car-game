@@ -2,6 +2,7 @@ extends SceneTree
 
 const INVENTORY_PATH: String = "res://docs/assets/traffic_rider_npc_vehicle_inventory.md"
 const RESEARCH_PATH: String = "res://docs/vehicles/traffic/renault_clio_2013.md"
+const CLIO_SCOPE_PREFIX := "| 03 — Renault Clio IV X98 hatchback |"
 
 var _checks: int = 0
 var _failures: Array[String] = []
@@ -20,17 +21,27 @@ func _test_inventory_scope() -> void:
 		inventory.contains("Renault Clio IV X98 five-door hatchback, Phase 1 source with approved Phase 1/Phase 2 scope | passenger hatchback | 2,118 | `approved`"),
 		"model 03 remains approved"
 	)
+	var scope_line := _find_line_starting_with(inventory, CLIO_SCOPE_PREFIX)
+	_expect(not scope_line.is_empty(), "inventory contains the dedicated Clio scope row")
 	_expect(
-		inventory.contains("| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 10 |"),
+		scope_line.contains("| 10 |"),
 		"inventory records ten approved Clio configurations"
 	)
 	_expect(
-		inventory.contains("no GT, LPG, R.S., Estate, emissions-package or duplicate calibration rows"),
+		scope_line.contains("standard non-R.S., non-GT hatchback scope across Phase 1, Phase 2 and Clio Génération"),
+		"inventory preserves the approved body and phase scope"
+	)
+	_expect(
+		scope_line.contains("no GT, LPG, R.S., Estate, emissions-package or duplicate calibration rows"),
 		"inventory records the final Clio exclusions"
 	)
 	_expect(
-		inventory.contains("The next research target is model 05 — Ford E-150 2012"),
-		"later approvals do not reopen the Clio scope"
+		not inventory.contains("| 03 — Renault Clio IV X98 hatchback | `docs/vehicles/traffic/renault_clio_2013.md` | 11 |"),
+		"later approvals do not reopen the ten-row Clio scope"
+	)
+	_expect(
+		inventory.contains("| 04 — Chevrolet Cruze J300 sedan | `docs/vehicles/traffic/chevrolet_cruze_2011.md` | 20 |"),
+		"implementation order continues to the independently approved model 04 scope"
 	)
 
 
@@ -58,6 +69,13 @@ func _test_research_record() -> void:
 	]:
 		_expect(research.contains(required_fragment), "Renault Clio approval preserves: %s" % required_fragment)
 	_expect(not research.contains("| 7 | Phase 1 GT |"), "GT 120 EDC is absent from the approved matrix")
+
+
+func _find_line_starting_with(text: String, prefix: String) -> String:
+	for line: String in text.split("\n"):
+		if line.begins_with(prefix):
+			return line
+	return ""
 
 
 func _read_text(path: String) -> String:

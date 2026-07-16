@@ -13,13 +13,15 @@ static func build_track_options(track_catalog: TrackCatalog) -> Array[TrackMenuO
 		track_options.append(TrackMenuOption.new(
 			definition.track_id,
 			TranslationServer.translate(definition.display_name),
-			definition.recommended_laps
+			definition.recommended_laps,
+			definition.supported_modes
 		))
 	return track_options
 
 
 static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOption]:
 	var menu_models: Array[CarModelMenuOption] = []
+	var ordered_variants: Array[CarVariantMenuOption] = []
 	if car_catalog == null:
 		return menu_models
 
@@ -27,7 +29,6 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 		if model == null:
 			continue
 		var model_label: String = model.get_model_name()
-		var variants: Array[CarVariantMenuOption] = []
 		for variant: CarVariantDefinition in model.get_variants():
 			if variant == null or variant.get_car_scene() == null:
 				continue
@@ -37,7 +38,7 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 			var performance_index: int = variant.get_performance_index()
 			if performance_index <= 0:
 				continue
-			variants.append(CarVariantMenuOption.new(
+			ordered_variants.append(CarVariantMenuOption.new(
 				variant.variant_id,
 				TranslationServer.translate(variant.get_menu_name()),
 				performance_index,
@@ -48,11 +49,31 @@ static func build_car_models(car_catalog: CarCatalog) -> Array[CarModelMenuOptio
 				model.model_id,
 				model_label
 			))
-		if not variants.is_empty():
-			menu_models.append(CarModelMenuOption.new(
-				model.model_id,
-				model_label,
-				variants
-			))
+
+	ordered_variants.sort_custom(_is_car_option_ordered_before)
+
+	# MainMenu flattens these entries in sequence. Splitting a model when needed
+	# preserves a global ascending DPI order while retaining the correct model metadata.
+	for variant: CarVariantMenuOption in ordered_variants:
+		if not menu_models.is_empty():
+			var previous_group: CarModelMenuOption = menu_models[menu_models.size() - 1]
+			if previous_group.model_id == variant.model_id:
+				previous_group.variants.append(variant)
+				continue
+		var group_variants: Array[CarVariantMenuOption] = [variant]
+		menu_models.append(CarModelMenuOption.new(
+			variant.model_id,
+			variant.model_label,
+			group_variants
+		))
 
 	return menu_models
+
+
+static func _is_car_option_ordered_before(
+	left: CarVariantMenuOption,
+	right: CarVariantMenuOption
+) -> bool:
+	if left.performance_index != right.performance_index:
+		return left.performance_index < right.performance_index
+	return String(left.variant_id).casecmp_to(String(right.variant_id)) < 0

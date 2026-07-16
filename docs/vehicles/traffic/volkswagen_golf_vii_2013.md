@@ -105,9 +105,24 @@ Lower-output FWD rows must use their torsion-beam rear axle where applicable, wh
 
 Every manual, DQ200, DQ250 and DQ381 row remains a distinct transmission architecture. DQ200 requires two dry clutch paths and preselection; DQ250 and DQ381 require their correct wet clutch packs, ratios, hydraulics and thermal behaviour. The e-Golf rows require complete motor, inverter, battery, regenerative-braking and fixed-reduction models rather than a combustion DSG locked in one gear.
 
+## Engine and driveline audio architecture
+
+The retained Golf rows require architecture-correct families and calibration profiles:
+
+- **EA211 1.0 TSI** — true turbocharged inline-three firing cadence with three-cylinder crank/order content, direct-injection and valvetrain detail, compressor/turbine/wastegate state and calibration-specific intake/exhaust response;
+- **EA111/EA211 1.2 and 1.4 TSI** — turbocharged inline-four families with engine-generation, displacement, ACT hardware and output-specific combustion, intake/exhaust, boost, inertia and limiter profiles. ACT transitions require explicit cylinder-deactivation state rather than an arbitrary gain reduction;
+- **EA211 evo 1.5 TSI ACT** — separate Miller/B-cycle-era combustion and turbo/control profile where evidence shows materially different operating behaviour; it may share only valid low-level EA211 utilities;
+- **EA288 1.6 TDI** — common-rail turbo-diesel inline-four with displacement/output-specific injection, turbo/VGT, mechanical, exhaust and engine-braking behaviour;
+- **EA288 2.0 TDI** — separate larger-displacement diesel calibration family with its own injection, turbo, intake/exhaust and load response. It must not be a pitch-shifted 1.6 TDI;
+- **e-Golf early and facelift** — non-combustion motor/inverter/fixed-reduction/regeneration/tyre backends. The two generations may share the electric architecture but require separate motor-speed, inverter, reduction, power and regeneration profiles.
+
+Manual, DQ200 dry, DQ250 wet, DQ381 wet and 4Motion rows require distinct clutch, preselection, shift-handover, geartrain, coupling and driveline layers driven by actual runtime state. DSG type must not select the combustion waveform implicitly.
+
+The e-Golf must not play an idling combustion loop. Player variants use explicit live synthesis; AI variants use a committed baked bank generated from the correct family or live synthesis with a measured fleet budget. Summed turbo and diesel layers remain normalized to the catalog loudness reference rather than gaining level merely through additional sources.
+
 ## Evidence still required before parameter commitment
 
-Before implementation retain primary Volkswagen evidence for exact engine codes and dates, gearbox ratios and clutch limits, one standard final drive per row, 4Motion coupling data, rear-suspension applicability, battery usable energy and motor/inverter limits, plus body-correct mass, tyres, brakes, drag and performance targets. These evidence gaps do not reopen the approved 38-row scope and do not authorize guessed hardware.
+Before implementation retain primary Volkswagen evidence for exact engine codes and dates, gearbox ratios and clutch limits, one standard final drive per row, 4Motion coupling data, rear-suspension applicability, battery usable energy and motor/inverter limits, plus body-correct mass, tyres, brakes, drag and performance targets. Audio commitment additionally requires firing/order, ACT transition, turbo/VGT, injection, intake/exhaust, limiter and electric motor/inverter/reduction evidence. These evidence gaps do not reopen the approved 38-row scope and do not authorize guessed hardware.
 
 ## Owner decision recorded
 
