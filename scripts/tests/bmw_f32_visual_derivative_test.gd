@@ -19,23 +19,31 @@ func _initialize() -> void:
 		_finish()
 		return
 	root.add_child(visual)
-	_expect(bool(visual.call("is_processed")), "BMW F32 visual derivative completes")
+	_expect(bool(visual.call("is_configured")), "BMW F32 static processed rig configures")
+
+	var body := visual.get_node_or_null(^"Body") as Node3D
+	_expect(body != null, "BMW F32 has explicit Body target")
+	if body != null:
+		var body_meshes: Array[MeshInstance3D] = []
+		_collect_meshes(body, body_meshes)
+		_expect(body_meshes.size() == 1, "Body target contains exactly one processed mesh")
+		if body_meshes.size() == 1:
+			_expect(_mesh_triangle_count(body_meshes[0].mesh) == 1132, "body preserves 1132 source triangles")
 
 	var wheel_nodes: Dictionary = {}
 	var total_wheel_triangles := 0
 	for wheel_path: String in WHEEL_PATHS:
 		var wheel := visual.get_node_or_null(NodePath(wheel_path)) as Node3D
-		_expect(wheel != null, "%s node exists" % wheel_path)
+		_expect(wheel != null, "%s pivot exists" % wheel_path)
 		if wheel == null:
 			continue
 		wheel_nodes[wheel_path] = wheel
-		var geometry := wheel.get_node_or_null(^"Geometry") as MeshInstance3D
-		_expect(geometry != null, "%s has Geometry" % wheel_path)
-		if geometry == null:
+		var meshes: Array[MeshInstance3D] = []
+		_collect_meshes(wheel, meshes)
+		_expect(meshes.size() == 1, "%s contains exactly one processed wheel mesh" % wheel_path)
+		if meshes.size() != 1:
 			continue
-		_expect(geometry.mesh != null, "%s has a separated mesh" % wheel_path)
-		if geometry.mesh == null:
-			continue
+		var geometry := meshes[0]
 		var triangle_count := _mesh_triangle_count(geometry.mesh)
 		_expect(triangle_count == 162, "%s preserves 162 source triangles" % wheel_path)
 		total_wheel_triangles += triangle_count
@@ -44,9 +52,13 @@ func _initialize() -> void:
 		var radius := maxf(geometry.get_aabb().size.y, geometry.get_aabb().size.z) * 0.5
 		_expect(radius > 0.32 and radius < 0.34, "%s has measured rolling radius near 0.328 m" % wheel_path)
 
-	_expect(total_wheel_triangles == 648, "four split wheels preserve all 648 wheel triangles")
+	_expect(total_wheel_triangles == 648, "four wheel pivots preserve all 648 wheel triangles")
 	_test_positions(wheel_nodes)
-	_test_original_wheel_pairs_hidden(visual)
+	var processed_model := visual.get_node_or_null(^"ProcessedModel")
+	var remaining_meshes: Array[MeshInstance3D] = []
+	if processed_model != null:
+		_collect_meshes(processed_model, remaining_meshes)
+	_expect(remaining_meshes.is_empty(), "processed import container has no unbound render meshes")
 	visual.free()
 	_finish()
 
@@ -58,36 +70,30 @@ func _test_positions(wheels: Dictionary) -> void:
 	var front_right: Node3D = wheels["WheelFrontRight"]
 	var rear_left: Node3D = wheels["WheelRearLeft"]
 	var rear_right: Node3D = wheels["WheelRearRight"]
-	_expect(front_left.position.x < 0.0, "front-left wheel uses project negative X")
-	_expect(rear_left.position.x < 0.0, "rear-left wheel uses project negative X")
-	_expect(front_right.position.x > 0.0, "front-right wheel uses project positive X")
-	_expect(rear_right.position.x > 0.0, "rear-right wheel uses project positive X")
+	_expect(front_left.position.x < 0.0, "front-left pivot uses project negative X")
+	_expect(rear_left.position.x < 0.0, "rear-left pivot uses project negative X")
+	_expect(front_right.position.x > 0.0, "front-right pivot uses project positive X")
+	_expect(rear_right.position.x > 0.0, "rear-right pivot uses project positive X")
 	_expect(front_left.position.z < 0.0 and front_right.position.z < 0.0, "front axle uses project local -Z")
 	_expect(rear_left.position.z > 0.0 and rear_right.position.z > 0.0, "rear axle lies behind the centred origin")
-	_expect(absf(front_left.position.z - front_right.position.z) < 0.0001, "front wheel hubs share one axle")
-	_expect(absf(rear_left.position.z - rear_right.position.z) < 0.0001, "rear wheel hubs share one axle")
+	_expect(absf(front_left.position.z - front_right.position.z) < 0.0001, "front pivots share one axle")
+	_expect(absf(rear_left.position.z - rear_right.position.z) < 0.0001, "rear pivots share one axle")
 	_expect(absf(absf(front_left.position.z - rear_left.position.z) - 2.81) < 0.001, "processed wheelbase is 2.810 m")
 	for wheel: Node3D in [front_left, front_right, rear_left, rear_right]:
-		_expect(wheel.position.y > 0.32 and wheel.position.y < 0.34, "%s hub height matches tyre radius" % wheel.name)
+		_expect(wheel.position.y > 0.32 and wheel.position.y < 0.34, "%s pivot height matches tyre radius" % wheel.name)
 
 
-func _test_original_wheel_pairs_hidden(visual: Node) -> void:
-	var source_wheels: Array[MeshInstance3D] = []
-	_collect_source_wheels(visual, source_wheels)
-	_expect(source_wheels.size() == 2, "source hierarchy still contains both untouched paired wheel meshes")
-	for source_wheel: MeshInstance3D in source_wheels:
-		_expect(not source_wheel.visible, "%s source wheel pair is hidden" % source_wheel.name)
-
-
-func _collect_source_wheels(node: Node, output: Array[MeshInstance3D]) -> void:
-	if node is MeshInstance3D and (node.name == &"on_teker_0" or node.name == &"arka_teker_0"):
+func _collect_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
+	if node is MeshInstance3D:
 		output.append(node as MeshInstance3D)
 	for child: Node in node.get_children():
-		_collect_source_wheels(child, output)
+		_collect_meshes(child, output)
 
 
 func _mesh_triangle_count(mesh: Mesh) -> int:
 	var result := 0
+	if mesh == null:
+		return result
 	for surface_index: int in range(mesh.get_surface_count()):
 		var arrays: Array = mesh.surface_get_arrays(surface_index)
 		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
