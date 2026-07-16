@@ -1,7 +1,7 @@
 extends SceneTree
 
 const VISUAL_SCENE := preload("res://scenes/cars/bmw_f32_visuals.tscn")
-const PROCESSED_MODEL_ROOT := ^"Detailed/ProcessedModel/Bmw4SeriesF32Processed"
+const PROCESSED_MODEL_ROOT := ^"SketchfabModel/ProcessedModel/Bmw4SeriesF32Processed"
 const WHEEL_IDS: Array[StringName] = [
 	&"front_left",
 	&"front_right",
@@ -27,14 +27,16 @@ func _run() -> void:
 	await process_frame
 
 	_expect(visuals.get_detailed_wheel_binding_count() == 4, "BMW F32 registers four detailed wheel bindings")
+	_expect(visuals.get_low_detail_wheel_binding_count() == 4, "BMW F32 registers four low-detail wheel bindings")
 	_expect(visuals.get_registered_wheel_count() == 4, "BMW F32 exposes four wheel visuals")
-	_expect(not visuals.is_using_low_detail(), "BMW F32 remains on its detailed processed model without a fallback LOD")
+	_expect(visuals.is_using_low_detail(), "BMW F32 starts in fleet-safe low detail while off screen")
 	_validate_spec_contract(visuals)
 
 	var processed_root := visuals.get_node_or_null(PROCESSED_MODEL_ROOT) as Node3D
 	_expect(processed_root != null, "BMW F32 resolves the processed model root")
 	if processed_root != null:
 		_expect(processed_root.get_node_or_null(^"Body") is MeshInstance3D, "BMW F32 keeps the processed body mesh")
+	_expect(visuals.get_node_or_null(^"LowDetail/WheelFrontLeft") is Node3D, "BMW F32 exposes the standard low-detail wheel hierarchy")
 
 	var steering_pivots: Array[Node3D] = []
 	var spin_pivots: Array[Node3D] = []
@@ -58,9 +60,13 @@ func _run() -> void:
 	_expect(notifier != null, "BMW F32 runtime visual controller exposes a visibility notifier")
 	if notifier != null:
 		notifier.emit_signal(&"screen_entered")
+	_expect(not visuals.is_using_low_detail(), "BMW F32 switches to processed detail on screen")
 	var wheel_positions := PackedFloat32Array([0.1, 0.2, 0.3, 0.4])
 	visuals.update_vehicle_wheel_visuals(wheel_positions, 0.5)
 	_validate_independent_wheel_rotation(visuals, wheel_positions)
+	if notifier != null:
+		notifier.emit_signal(&"screen_exited")
+	_expect(visuals.is_using_low_detail(), "BMW F32 returns to low detail off screen")
 
 	visuals.queue_free()
 	await process_frame
