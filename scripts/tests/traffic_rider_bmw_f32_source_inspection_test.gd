@@ -33,7 +33,7 @@ func _initialize() -> void:
 	var report: Dictionary = {
 		"source_path": SOURCE_PATH,
 		"source_sha256": FileAccess.get_sha256(SOURCE_PATH),
-		"root_name": source_root.name,
+		"root_name": String(source_root.name),
 		"meshes": [],
 	}
 	var total_triangles: int = 0
@@ -61,12 +61,15 @@ func _initialize() -> void:
 		report["measured_source_wheelbase"] = measured_wheelbase
 		report["wheelbase_scale_to_2_810_m"] = 2.810 / measured_wheelbase if measured_wheelbase > 0.0 else 0.0
 		report["source_axle_midpoint_z"] = (front_axle_z + rear_axle_z) * 0.5
-		report["source_ground_y"] = minf(
+		var front_ground_y := minf(
 			_float_from_side(front_analysis, "negative_x", "minimum", 1),
-			_float_from_side(front_analysis, "positive_x", "minimum", 1),
+			_float_from_side(front_analysis, "positive_x", "minimum", 1)
+		)
+		var rear_ground_y := minf(
 			_float_from_side(rear_analysis, "negative_x", "minimum", 1),
 			_float_from_side(rear_analysis, "positive_x", "minimum", 1)
 		)
+		report["source_ground_y"] = minf(front_ground_y, rear_ground_y)
 		_expect(absf(measured_wheelbase - EXPECTED_SOURCE_WHEELBASE) <= WHEELBASE_TOLERANCE, "wheelbase measurement matches recorded source evidence")
 
 	_write_report(report)
@@ -90,12 +93,12 @@ func _inspect_mesh(mesh_instance: MeshInstance3D) -> Dictionary:
 			var arrays: Array = mesh.surface_get_arrays(surface_index)
 			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 			var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-			var surface_triangles := indices.size() / 3 if not indices.is_empty() else vertices.size() / 3
+			var surface_triangles: int = int(indices.size() / 3) if not indices.is_empty() else int(vertices.size() / 3)
 			triangle_count += surface_triangles
 			surface_reports.append({
 				"surface_index": surface_index,
-				"primitive": mesh.surface_get_primitive_type(surface_index),
-				"format": mesh.surface_get_format(surface_index),
+				"primitive": int(mesh.surface_get_primitive_type(surface_index)),
+				"format": int(mesh.surface_get_format(surface_index)),
 				"vertex_count": vertices.size(),
 				"index_count": indices.size(),
 				"triangle_count": surface_triangles,
@@ -122,7 +125,7 @@ func _inspect_wheel_pair(mesh_instance: MeshInstance3D) -> Dictionary:
 			var arrays: Array = mesh.surface_get_arrays(surface_index)
 			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 			var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-			var triangle_indices := indices
+			var triangle_indices: PackedInt32Array = indices
 			if triangle_indices.is_empty():
 				triangle_indices = PackedInt32Array()
 				triangle_indices.resize(vertices.size())
@@ -135,8 +138,8 @@ func _inspect_wheel_pair(mesh_instance: MeshInstance3D) -> Dictionary:
 				for corner: int in range(3):
 					var source_vertex: Vector3 = vertices[triangle_indices[index_offset + corner]]
 					positions.append(mesh_instance.global_transform * source_vertex)
-				var triangle_min_x := minf(positions[0].x, positions[1].x, positions[2].x)
-				var triangle_max_x := maxf(positions[0].x, positions[1].x, positions[2].x)
+				var triangle_min_x := minf(minf(positions[0].x, positions[1].x), positions[2].x)
+				var triangle_max_x := maxf(maxf(positions[0].x, positions[1].x), positions[2].x)
 				if triangle_min_x < -SIDE_EPSILON and triangle_max_x > SIDE_EPSILON:
 					centre_crossing_triangles += 1
 				var centroid_x := (positions[0].x + positions[1].x + positions[2].x) / 3.0
