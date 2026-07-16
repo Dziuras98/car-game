@@ -11,7 +11,7 @@ func _init() -> void:
 
 func _initialize_drive_runtime() -> SpecsApplyResult:
 	var controller := _get_traffic_rider_powertrain_controller()
-	controller.set_powertrain_definition(traffic_rider_powertrain_definition)
+	controller.set_powertrain_definition(_resolve_powertrain_definition(_car_specs))
 	var result: SpecsApplyResult = super._initialize_drive_runtime()
 	if result != SpecsApplyResult.OK:
 		return result
@@ -29,15 +29,16 @@ func try_apply_car_specs(next_specs: CarSpecs) -> SpecsApplyResult:
 	if next_config == null:
 		push_warning("PlayerCarController rejected invalid CarSpecs; keeping the active runtime configuration.")
 		return SpecsApplyResult.INVALID_SPECS
-	if traffic_rider_powertrain_definition == null:
-		push_warning("PlayerCarController rejected invalid CarSpecs; keeping the active runtime configuration.")
+	var next_definition: TrafficRiderPowertrainDefinition = _resolve_powertrain_definition(next_specs)
+	if next_definition == null:
+		push_warning("PlayerCarController rejected Traffic Rider specs without a powertrain definition.")
 		return SpecsApplyResult.INVALID_SPECS
-	var definition_errors: PackedStringArray = traffic_rider_powertrain_definition.validate_for(next_config)
+	var definition_errors: PackedStringArray = next_definition.validate_for(next_config)
 	if not definition_errors.is_empty():
-		push_warning("PlayerCarController rejected invalid CarSpecs; keeping the active runtime configuration.")
+		push_warning("PlayerCarController rejected invalid Traffic Rider powertrain definition: %s" % "; ".join(definition_errors))
 		return SpecsApplyResult.INVALID_SPECS
 	var controller := _get_traffic_rider_powertrain_controller()
-	controller.set_powertrain_definition(traffic_rider_powertrain_definition)
+	controller.set_powertrain_definition(next_definition)
 	_car_specs = next_specs
 	_apply_drive_config(next_config, true)
 	if not controller.has_valid_powertrain_definition():
@@ -80,6 +81,13 @@ func get_dynamic_front_torque_fraction() -> float:
 
 func get_transfer_clutch_temperature_c() -> float:
 	return _get_traffic_rider_powertrain_controller().get_transfer_clutch_temperature_c()
+
+
+func _resolve_powertrain_definition(specs: CarSpecs) -> TrafficRiderPowertrainDefinition:
+	var traffic_specs: TrafficRiderCarSpecs = specs as TrafficRiderCarSpecs
+	if traffic_specs != null and traffic_specs.traffic_rider_powertrain_definition != null:
+		return traffic_specs.traffic_rider_powertrain_definition
+	return traffic_rider_powertrain_definition
 
 
 func _get_traffic_rider_powertrain_controller() -> TrafficRiderPowertrainController:
