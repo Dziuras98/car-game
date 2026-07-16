@@ -5,6 +5,7 @@ const BMW_DYNAMICS_PATHS: Array[String] = [
 	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_petrol.data",
 	"res://resources/cars/bmw/e46_sedan/data/bmw_e46_sedan_drivetrain_dynamics_diesel.data",
 ]
+const BMW_F32_TIRE_CALIBRATION_PATH := "res://resources/cars/bmw/4_series_f32/data/bmw_f32_longitudinal_tire_calibration.data"
 const EXPECTED_LEGACY_CALIBRATIONS: Dictionary = {
 	&"nissan_370z_7at": Vector4(1.02, 0.11, 0.82, 10.0),
 	&"nissan_370z_6mt": Vector4(1.02, 0.11, 0.82, 10.0),
@@ -78,35 +79,81 @@ func _build_expected_calibrations() -> Dictionary:
 	for variant_id: StringName in EXPECTED_POLONEZ_CALIBRATIONS:
 		result[variant_id] = EXPECTED_POLONEZ_CALIBRATIONS[variant_id]
 	for path: String in BMW_DYNAMICS_PATHS:
-		var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-		_expect(file != null, "BMW tire calibration source loads: %s" % path)
-		if file == null:
-			continue
-		var headers: PackedStringArray = file.get_csv_line()
-		var candidate_index: int = headers.find("candidate_id")
-		var brake_index: int = headers.find("brake_deceleration_target_mps2")
-		_expect(candidate_index >= 0 and brake_index >= 0, "BMW tire calibration source exposes required columns: %s" % path)
-		if candidate_index < 0 or brake_index < 0:
-			continue
-		while not file.eof_reached():
-			var values: PackedStringArray = file.get_csv_line()
-			if values.is_empty() or values[0].strip_edges().is_empty():
-				continue
-			if candidate_index >= values.size() or brake_index >= values.size():
-				continue
-			var candidate_id: String = values[candidate_index].strip_edges()
-			var brake_text: String = values[brake_index].strip_edges()
-			if candidate_id.is_empty() or not brake_text.is_valid_float():
-				continue
-			var brake_deceleration: float = brake_text.to_float()
-			var grip_coefficient: float = clampf(brake_deceleration / 9.81, 0.88, 1.12)
-			result[StringName("bmw_e46_sedan_%s" % candidate_id)] = Vector4(
-				grip_coefficient,
-				0.12,
-				0.78,
-				brake_deceleration
-			)
+		_append_bmw_e46_calibrations(result, path)
+	_append_explicit_csv_calibrations(result, BMW_F32_TIRE_CALIBRATION_PATH, "bmw_4_series_f32_")
 	return result
+
+func _append_bmw_e46_calibrations(result: Dictionary, path: String) -> void:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	_expect(file != null, "BMW tire calibration source loads: %s" % path)
+	if file == null:
+		return
+	var headers: PackedStringArray = file.get_csv_line()
+	var candidate_index: int = headers.find("candidate_id")
+	var brake_index: int = headers.find("brake_deceleration_target_mps2")
+	_expect(candidate_index >= 0 and brake_index >= 0, "BMW tire calibration source exposes required columns: %s" % path)
+	if candidate_index < 0 or brake_index < 0:
+		file.close()
+		return
+	while not file.eof_reached():
+		var values: PackedStringArray = file.get_csv_line()
+		if values.is_empty() or values[0].strip_edges().is_empty():
+			continue
+		if candidate_index >= values.size() or brake_index >= values.size():
+			continue
+		var candidate_id: String = values[candidate_index].strip_edges()
+		var brake_text: String = values[brake_index].strip_edges()
+		if candidate_id.is_empty() or not brake_text.is_valid_float():
+			continue
+		var brake_deceleration: float = brake_text.to_float()
+		var grip_coefficient: float = clampf(brake_deceleration / 9.81, 0.88, 1.12)
+		result[StringName("bmw_e46_sedan_%s" % candidate_id)] = Vector4(
+			grip_coefficient,
+			0.12,
+			0.78,
+			brake_deceleration
+		)
+	file.close()
+
+func _append_explicit_csv_calibrations(result: Dictionary, path: String, variant_prefix: String) -> void:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	_expect(file != null, "explicit tire calibration source loads: %s" % path)
+	if file == null:
+		return
+	var headers: PackedStringArray = file.get_csv_line()
+	var candidate_index: int = headers.find("candidate_id")
+	var grip_index: int = headers.find("longitudinal_grip_coefficient")
+	var peak_index: int = headers.find("longitudinal_peak_slip_ratio")
+	var slide_index: int = headers.find("longitudinal_slide_grip_multiplier")
+	var brake_index: int = headers.find("brake_deceleration_target_mps2")
+	_expect(
+		candidate_index >= 0 and grip_index >= 0 and peak_index >= 0 and slide_index >= 0 and brake_index >= 0,
+		"explicit tire calibration source exposes required columns: %s" % path
+	)
+	if candidate_index < 0 or grip_index < 0 or peak_index < 0 or slide_index < 0 or brake_index < 0:
+		file.close()
+		return
+	while not file.eof_reached():
+		var values: PackedStringArray = file.get_csv_line()
+		if values.is_empty() or values[0].strip_edges().is_empty():
+			continue
+		var required_max: int = maxi(candidate_index, maxi(grip_index, maxi(peak_index, maxi(slide_index, brake_index))))
+		if required_max >= values.size():
+			continue
+		var candidate_id: String = values[candidate_index].strip_edges()
+		var grip_text: String = values[grip_index].strip_edges()
+		var peak_text: String = values[peak_index].strip_edges()
+		var slide_text: String = values[slide_index].strip_edges()
+		var brake_text: String = values[brake_index].strip_edges()
+		if candidate_id.is_empty() or not grip_text.is_valid_float() or not peak_text.is_valid_float() or not slide_text.is_valid_float() or not brake_text.is_valid_float():
+			continue
+		result[StringName("%s%s" % [variant_prefix, candidate_id])] = Vector4(
+			grip_text.to_float(),
+			peak_text.to_float(),
+			slide_text.to_float(),
+			brake_text.to_float()
+		)
+	file.close()
 
 func _expect(condition: bool, message: String) -> void:
 	_checks += 1
