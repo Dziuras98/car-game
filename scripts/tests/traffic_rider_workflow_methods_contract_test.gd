@@ -14,6 +14,7 @@ var _failures: Array[String] = []
 func _initialize() -> void:
 	_test_suite_index()
 	_test_import_workflow()
+	_test_data_contract()
 	_test_transmission_contract()
 	_test_audio_contract()
 	_test_all_model_records_preserve_methods()
@@ -40,6 +41,7 @@ func _test_import_workflow() -> void:
 	_expect(not text.is_empty(), "main import workflow is readable")
 	for fragment: String in [
 		"Research the complete factory variant matrix before importing the model",
+		"Retain the research as structured input",
 		"Match the real transmission architecture exactly",
 		"Implement missing transmission types faithfully",
 		"Build new engine-sound architectures from first principles",
@@ -48,6 +50,23 @@ func _test_import_workflow() -> void:
 		"Transmission and audio fallbacks are prohibited",
 	]:
 		_expect(text.contains(fragment), "main workflow preserves: %s" % fragment)
+
+
+func _test_data_contract() -> void:
+	var text := _read_text(DATA_PATH)
+	_expect(not text.is_empty(), "research-data retention contract is readable")
+	for fragment: String in [
+		"complete owner-approved variant matrix with stable candidate IDs",
+		"all distinct engine and motor calibrations",
+		"sampled torque or motor-force curves",
+		"every forward ratio, reverse ratio and final drive",
+		"DIN/EU/kerb mass, axle loads",
+		"tyre size and rolling radius",
+		"drag coefficient and frontal area",
+		"An empty field is permitted only when the research record explicitly states",
+		"must never be silently replaced by a family proxy",
+	]:
+		_expect(text.contains(fragment), "research-data contract preserves: %s" % fragment)
 
 
 func _test_transmission_contract() -> void:
@@ -109,8 +128,37 @@ func _test_all_model_records_preserve_methods() -> void:
 		var record := _read_text(record_path)
 		_expect(not record.is_empty(), "%s research record is readable" % vehicle_id)
 		var lower := record.to_lower()
-		_expect(lower.contains("transmission"), "%s preserves transmission research/methods" % vehicle_id)
-		_expect(lower.contains("audio"), "%s preserves engine/driveline audio research/methods" % vehicle_id)
+		_expect(
+			lower.count("transmission") >= 3 and _contains_any(lower, [
+				"transmission architecture",
+				"transmission requirements",
+				"transmission and drivetrain",
+				"transmission and awd",
+				"chassis and transmission",
+				"physics, transmission and audio requirements",
+				"azure electric architecture requirement",
+			]),
+			"%s preserves model-specific transmission research/methods" % vehicle_id
+		)
+		_expect(
+			lower.count("audio") >= 2 and _contains_any(lower, [
+				"engine-audio architecture",
+				"engine audio architecture",
+				"engine and driveline audio architecture",
+				"engine and driveline audio",
+				"audio architecture",
+				"audio requirements",
+				"audio instead of a combustion waveform",
+			]),
+			"%s preserves model-specific engine/driveline audio methods" % vehicle_id
+		)
+
+
+func _contains_any(text: String, fragments: Array[String]) -> bool:
+	for fragment: String in fragments:
+		if text.contains(fragment):
+			return true
+	return false
 
 
 func _read_csv(path: String) -> Array[Dictionary]:
