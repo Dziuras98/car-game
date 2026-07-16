@@ -1,6 +1,7 @@
 extends SceneTree
 
 const VISUAL_SCENE := preload("res://scenes/cars/bmw_f32_visuals.tscn")
+const PROCESSED_MODEL_ROOT := ^"Detailed/ProcessedModel/Bmw4SeriesF32Processed"
 const WHEEL_IDS: Array[StringName] = [
 	&"front_left",
 	&"front_right",
@@ -24,7 +25,7 @@ func _initialize() -> void:
 	_expect(not visuals.is_using_low_detail(), "BMW F32 remains on its detailed processed model without a fallback LOD")
 	_validate_spec_contract(visuals)
 
-	var processed_root := visuals.get_node_or_null(^"Detailed/ProcessedModel") as Node3D
+	var processed_root := visuals.get_node_or_null(PROCESSED_MODEL_ROOT) as Node3D
 	_expect(processed_root != null, "BMW F32 resolves the processed model root")
 	if processed_root != null:
 		_expect(processed_root.get_node_or_null(^"Body") is MeshInstance3D, "BMW F32 keeps the processed body mesh")
@@ -59,7 +60,7 @@ func _validate_spec_contract(visuals: BmwF32VisualController) -> void:
 	_expect(specs.size() == 4, "BMW F32 exposes four explicit wheel specs")
 	for spec: Dictionary in specs:
 		var wheel_id: StringName = spec.get("wheel_id", &"")
-		_expect(spec.get("pivot_parent_path", NodePath()) == ^"Detailed/ProcessedModel", "%s pivots below the processed model root" % wheel_id)
+		_expect(spec.get("pivot_parent_path", NodePath()) == PROCESSED_MODEL_ROOT, "%s pivots below the processed model root" % wheel_id)
 		var spin_paths: Array = spec.get("spin_node_paths", [])
 		_expect(spin_paths.size() == 1, "%s has exactly one processed spin mesh path" % wheel_id)
 		if bool(spec.get("steers", false)):
