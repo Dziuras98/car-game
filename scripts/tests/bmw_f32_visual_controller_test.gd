@@ -56,7 +56,9 @@ func _initialize() -> void:
 func _validate_bound_wheel(spin_pivot: Node3D, wheel_id: StringName) -> void:
 	var expected_name := _expected_wheel_node_name(wheel_id)
 	_expect(spin_pivot.get_child_count() == 1, "%s spin pivot owns exactly one wheel mesh" % wheel_id)
-	var wheel := spin_pivot.get_child(0) as MeshInstance3D if spin_pivot.get_child_count() == 1 else null
+	var wheel: MeshInstance3D = null
+	if spin_pivot.get_child_count() == 1:
+		wheel = spin_pivot.get_child(0) as MeshInstance3D
 	_expect(wheel != null, "%s spin pivot owns a MeshInstance3D" % wheel_id)
 	if wheel == null:
 		return
