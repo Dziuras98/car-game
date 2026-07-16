@@ -6,7 +6,6 @@
 [node name="BmwF32Visuals" type="Node3D"]
 script = ExtResource("1_controller")
 detailed_root_path = NodePath("Detailed")
-low_detail_root_path = NodePath("")
 visibility_aabb = AABB(-1.05, -0.02, -2.24, 2.1, 1.43, 4.74)
 visual_wheel_radius = 0.327942
 
