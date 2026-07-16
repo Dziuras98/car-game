@@ -55,6 +55,7 @@ const APPROVED_SCOPE_PATHS: Dictionary = {
 	"res://docs/vehicles/traffic/nissan_atlas_2007.md": "Approved total: 5 Japanese RWD + 3 European RWD = 8 Nissan Atlas / Cabstar F24 configurations",
 	"res://docs/vehicles/traffic/nissan_atleon_2004.md": "Approved total: 4 pre-facelift Nissan Atleon RWD configurations",
 	"res://docs/vehicles/traffic/skoda_octavia_combi_2013.md": "Approved total: 23 standard FWD + 5 ordinary 4×4 + 7 RS Combi = 35 configurations",
+	"res://docs/vehicles/traffic/volkswagen_amarok_2010.md": "Approved total: 5 original diesel + 6 updated diesel + 1 regional petrol + 7 V6 = 19 full-generation Amarok I configurations",
 }
 
 const AMAROK_RESEARCH_PATH := "res://docs/vehicles/traffic/volkswagen_amarok_2010.md"
@@ -69,7 +70,7 @@ func _initialize() -> void:
 	_test_workflow()
 	_test_inventory()
 	_test_approved_scopes()
-	_test_amarok_gate()
+	_test_physics_dependency()
 	_test_provenance()
 	_test_gitignore()
 	_finish()
@@ -106,11 +107,14 @@ func _test_inventory() -> void:
 	_expect_fragments(inventory, PackedStringArray([
 		"Mandatory status progression",
 		"Global research-before-implementation gate",
-		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 and 20 have passed their individual owner-scope gates",
+		"Mandatory physics dependency gate — PR #118",
+		"Research and owner-scope approval have been completed for all 20 included models",
+		"All 20 models have passed their individual owner-scope gates",
+		"Combined approved scope: **285 mechanically consolidated configurations**",
 		"| 20 — Škoda Octavia III Combi pre-facelift | `docs/vehicles/traffic/skoda_octavia_combi_2013.md` | 35 |",
-		"23 — Volkswagen Amarok I full generation",
-		"19 mechanically consolidated candidates: 5 original 122/163-PS diesel rows, 6 updated 140/180-PS diesel rows, 1 regional 2.0 TSI row and 7 V6 163/204/224/258-PS rows",
-		"After model 23 is approved, all included models will have passed their individual research gates",
+		"| 23 — Volkswagen Amarok I full generation | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 19 |",
+		"PR #118 — `Rework per-wheel vehicle physics and recalibrate DPI v3`",
+		"No implementation work may begin while this dependency remains unresolved",
 		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
 	]), "inventory")
@@ -119,12 +123,14 @@ func _test_inventory() -> void:
 	for fragment: String in [
 		"Nissan Atleon 2004 pre-facelift single-cab box truck with approved four-engine RWD scope | medium box truck | 2,076 | `approved`",
 		"Škoda Octavia III type 5E Combi 2013 standard pre-facelift source with approved non-Scout scope | passenger estate | 2,010 | `approved`",
-		"Volkswagen Amarok I type 2H original Double Cab source with full-generation engine research scope | pickup | 2,684 | `awaiting_owner_scope`",
+		"Volkswagen Amarok I type 2H original Double Cab source with approved full-generation scope | pickup | 2,684 | `approved`",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves scope: %s" % fragment)
+	_expect(not inventory.contains("## Active owner-scope gates"), "inventory has no unresolved owner-scope gate")
 
 
 func _test_approved_scopes() -> void:
+	_expect(APPROVED_SCOPE_PATHS.size() == 20, "all 20 model records are approved")
 	for path: String in APPROVED_SCOPE_PATHS:
 		var text := _read_text(path)
 		_expect_fragments(text, PackedStringArray([
@@ -134,31 +140,16 @@ func _test_approved_scopes() -> void:
 		_expect(not text.contains("Workflow status: **`awaiting_owner_scope`**"), "%s owner gate is closed" % path)
 
 
-func _test_amarok_gate() -> void:
+func _test_physics_dependency() -> void:
 	_expect_fragments(_read_text(AMAROK_RESEARCH_PATH), PackedStringArray([
-		"Volkswagen Amarok I type 2H full-generation Double Cab — research and owner-scope gate",
-		"Workflow status: **`awaiting_owner_scope`**",
-		"Source Git blob SHA-1: `2cb28a59e50ef4daf6707ae67a3d930de6a5687f`",
-		"Source SHA-256: **pending direct binary hash capture before integration**",
-		"Source triangles | 2,684",
-		"Nine production engine calibrations are retained for scope consideration",
-		"Original 2010–2012 diesel range — 5 candidates",
-		"Updated 2012–2016 four-cylinder diesel range — 6 candidates",
-		"Regional four-cylinder petrol range — 1 candidate",
-		"2016-onward V6 diesel range — 7 candidates",
-		"EA897 evo DDXA 3.0 V6 TDI 120 kW / 163 PS",
-		"EA897 evo DDXB 3.0 V6 TDI 150 kW / 204 PS",
-		"EA897 evo DDXC 3.0 V6 TDI 165 kW / 224 PS",
-		"EA897 evo DDXE 3.0 V6 TDI 190 kW / 258 PS",
-		"Australian TDI500 calibration",
-		"Mechanically consolidated candidate total: 19 full-generation Amarok I configurations",
-		"selectable 4MOTION with high/low transfer case",
-		"permanent 4MOTION with torque-sensing centre differential",
-		"ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic",
-		"Rows 5, 10, 12, 13, 14, 15 and 18 remain confirmation-gated",
-		"Owner scope decision — required before implementation",
-		"This is the final individual model gate",
-	]), "Amarok gate")
+		"Volkswagen Amarok I type 2H full-generation Double Cab — research and approved scope",
+		"Workflow status: **`approved`**",
+		"Approved implementation scope: **19 full-generation Volkswagen Amarok I configurations**",
+		"Mandatory PR #118 implementation dependency",
+		"PR #118, **Rework per-wheel vehicle physics and recalibrate DPI v3**",
+		"No Traffic Rider vehicle may enter `integrating`",
+		"All 20 Traffic Rider model scopes are now approved",
+	]), "physics dependency")
 
 
 func _test_provenance() -> void:
