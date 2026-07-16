@@ -1,0 +1,41 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/car/traffic_rider_car_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/car/traffic_rider_inline_engine_audio.gd" id="2_engine_audio"]
+[ext_resource type="Script" path="res://scripts/car/tire_squeal_audio.gd" id="3_tire_squeal"]
+[ext_resource type="PackedScene" path="res://scenes/cars/bmw_f32_visuals.tscn" id="4_visuals"]
+
+[sub_resource type="BoxShape3D" id="CabinCollision"]
+size = Vector3(1.64, 1.22, 2.10)
+
+[sub_resource type="BoxShape3D" id="FrontCollision"]
+size = Vector3(1.76, 0.64, 1.28)
+
+[sub_resource type="BoxShape3D" id="RearCollision"]
+size = Vector3(1.76, 0.70, 1.25)
+
+[node name="BmwF32" type="CharacterBody3D"]
+floor_snap_length = 0.0
+script = ExtResource("1_controller")
+
+[node name="CollisionCabin" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.77, 0.12)
+shape = SubResource("CabinCollision")
+
+[node name="CollisionFront" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.39, -1.63)
+shape = SubResource("FrontCollision")
+
+[node name="CollisionRear" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.42, 1.62)
+shape = SubResource("RearCollision")
+
+[node name="VisualRoot" parent="." instance=ExtResource("4_visuals")]
+
+[node name="EngineAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("2_engine_audio")
+force_full_runtime_generation = true
+
+[node name="TireSquealAudio" type="AudioStreamPlayer3D" parent="."]
+script = ExtResource("3_tire_squeal")
+loud_volume_db = -7.0
