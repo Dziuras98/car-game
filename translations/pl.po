@@ -138,6 +138,9 @@ msgstr "Tor Poznań"
 msgid "Krótki Tor Pustynny"
 msgstr "Krótki Tor Pustynny"
 
+msgid "High Speed Ring"
+msgstr "High Speed Ring"
+
 msgid "Nieskończona siatka"
 msgstr "Nieskończona siatka"
 
