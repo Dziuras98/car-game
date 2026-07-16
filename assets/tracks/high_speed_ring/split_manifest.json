@@ -1,0 +1,464 @@
+{
+  "format_version": 1,
+  "source_file": "high_speed_ring.glb",
+  "source_sha256": "8b66086ea75ca2245fa44c3a38d0840e0464f41675977f2b0d66b7f84d77bdc1",
+  "source_bytes": 68264572,
+  "source": "https://sketchfab.com/3d-models/high-speed-ring-00dab1ac3dcb49778660072e405af630",
+  "author": "Dave Bored SketchFab (https://sketchfab.com/Tyler_Dave)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "split_strategy": "material-set first-fit-decreasing with compacted accessor ranges",
+  "target_part_bytes": 4194304,
+  "max_part_bytes": 5242880,
+  "source_objects": 127,
+  "source_material_groups": 100,
+  "parts": [
+    {
+      "path": "part_001.glb",
+      "sha256": "10e97a1755b5b66d3b11546b12c0cc8a9d0aa317bab532901c0b5acc49bd2066",
+      "bytes": 4437256,
+      "objects": 2,
+      "vertices": 65872,
+      "triangles": 75168,
+      "materials": [
+        "ROADA193.004_73"
+      ],
+      "source_nodes": [
+        "Object_91",
+        "Object_92"
+      ],
+      "validated_meshes": 2
+    },
+    {
+      "path": "part_002.glb",
+      "sha256": "6d6c7ccee48eeae37339c7223084c47a35acb31026a8ca18262e065ad51fc5a9",
+      "bytes": 4107316,
+      "objects": 5,
+      "vertices": 8676,
+      "triangles": 6638,
+      "materials": [
+        "ROADA193.004_8",
+        "ROADA193.004_87",
+        "ROADA193.004_18",
+        "ROADA193.004_20"
+      ],
+      "source_nodes": [
+        "Object_16",
+        "Object_28",
+        "Object_30",
+        "Object_108",
+        "Object_126"
+      ],
+      "validated_meshes": 5
+    },
+    {
+      "path": "part_003.glb",
+      "sha256": "fbf635000d36c08c232e740606493bb1e376adadad92f489a69c574bcb8fa681",
+      "bytes": 4091840,
+      "objects": 3,
+      "vertices": 13696,
+      "triangles": 11312,
+      "materials": [
+        "ROADA193.004_92",
+        "ROADA193.004_94"
+      ],
+      "source_nodes": [
+        "Object_113",
+        "Object_115",
+        "Object_116"
+      ],
+      "validated_meshes": 3
+    },
+    {
+      "path": "part_004.glb",
+      "sha256": "6f7f853e16b91fb4b1677cc7c771d248da59bb8f3ce67e5800e712b13c005be7",
+      "bytes": 4097500,
+      "objects": 3,
+      "vertices": 2817,
+      "triangles": 1368,
+      "materials": [
+        "ROADA193.004_23",
+        "ROADA193.004_53",
+        "ROADA193.004_56"
+      ],
+      "source_nodes": [
+        "Object_33",
+        "Object_67",
+        "Object_70"
+      ],
+      "validated_meshes": 3
+    },
+    {
+      "path": "part_005.glb",
+      "sha256": "8e96c8a85410e5d796bb1342426f00dde3e6c50705e1ad22a230a5532d244fad",
+      "bytes": 4093620,
+      "objects": 3,
+      "vertices": 1836,
+      "triangles": 902,
+      "materials": [
+        "ROADA193.004_26",
+        "ROADA193.004_48",
+        "ROADA193.004_54"
+      ],
+      "source_nodes": [
+        "Object_36",
+        "Object_62",
+        "Object_68"
+      ],
+      "validated_meshes": 3
+    },
+    {
+      "path": "part_006.glb",
+      "sha256": "48d1e9b39e16baf26c6781d14639403947614f4425980a07176e747e7e1a359e",
+      "bytes": 4085624,
+      "objects": 4,
+      "vertices": 14961,
+      "triangles": 9157,
+      "materials": [
+        "Merged_materials",
+        "ROADA193.004_45",
+        "ROADA193.004_29"
+      ],
+      "source_nodes": [
+        "Object_7",
+        "Object_39",
+        "Object_59",
+        "Object_106"
+      ],
+      "validated_meshes": 4
+    },
+    {
+      "path": "part_007.glb",
+      "sha256": "7f179cdc6b7238483e8b2de317fae5884f0f4ec083d7f4ed80c6f3e594bd2519",
+      "bytes": 4101912,
+      "objects": 3,
+      "vertices": 2615,
+      "triangles": 2114,
+      "materials": [
+        "ROADA193.004_33",
+        "ROADA193.004_88",
+        "ROADA193.004_55"
+      ],
+      "source_nodes": [
+        "Object_46",
+        "Object_69",
+        "Object_109"
+      ],
+      "validated_meshes": 3
+    },
+    {
+      "path": "part_008.glb",
+      "sha256": "3469fbb73f62a49c83d6cb289c2947fe6479aa63739cd7918cf5799b97d9b4f4",
+      "bytes": 4100832,
+      "objects": 6,
+      "vertices": 1623,
+      "triangles": 1088,
+      "materials": [
+        "ROADA193.004_58",
+        "ROADA193.004_85",
+        "ROADA193.004_89"
+      ],
+      "source_nodes": [
+        "Object_73",
+        "Object_105",
+        "Object_110",
+        "Object_134",
+        "Object_136",
+        "Object_138"
+      ],
+      "validated_meshes": 6
+    },
+    {
+      "path": "part_009.glb",
+      "sha256": "d1421a82170487a6b70564e8f7dfe7a36ce14eccab64e7986a35d7c69aaec2e9",
+      "bytes": 4105428,
+      "objects": 5,
+      "vertices": 3144,
+      "triangles": 1716,
+      "materials": [
+        "ROADA193.004_24",
+        "ROADA193.004_36",
+        "ROADA193.004_49",
+        "ROADA193.004_52",
+        "ROADA193.004_96"
+      ],
+      "source_nodes": [
+        "Object_34",
+        "Object_49",
+        "Object_63",
+        "Object_66",
+        "Object_119"
+      ],
+      "validated_meshes": 5
+    },
+    {
+      "path": "part_010.glb",
+      "sha256": "0fd072f1e9720e0b954958b1717d76ba14c4143955bb0b8b6b20e861561148ff",
+      "bytes": 4108264,
+      "objects": 5,
+      "vertices": 17857,
+      "triangles": 18800,
+      "materials": [
+        "ROADA193.004_11",
+        "ROADA193.004_12",
+        "ROADA193.004_28",
+        "ROADA193.004_40",
+        "ROADA193.004_15"
+      ],
+      "source_nodes": [
+        "Object_20",
+        "Object_21",
+        "Object_25",
+        "Object_38",
+        "Object_54"
+      ],
+      "validated_meshes": 5
+    },
+    {
+      "path": "part_011.glb",
+      "sha256": "ee8af269ed71b5c2811714a5a4c3df6c06e72c16dcd43fce25a6f21dad928cbc",
+      "bytes": 4104336,
+      "objects": 9,
+      "vertices": 21443,
+      "triangles": 11020,
+      "materials": [
+        "ROADA193.004_1",
+        "ROADA193.004_0",
+        "ROADA193.004_81",
+        "ROADA193.004_25",
+        "ROADA193.004_42"
+      ],
+      "source_nodes": [
+        "Object_5",
+        "Object_6",
+        "Object_14",
+        "Object_35",
+        "Object_42",
+        "Object_56",
+        "Object_99",
+        "Object_101",
+        "Object_124"
+      ],
+      "validated_meshes": 9
+    },
+    {
+      "path": "part_012.glb",
+      "sha256": "860f4b3aa4bc33e8d59968e8f1d10b13a545ed367dd431ccf8de675a1a05dd27",
+      "bytes": 4104316,
+      "objects": 5,
+      "vertices": 1006,
+      "triangles": 1124,
+      "materials": [
+        "ROADA193.004_37",
+        "ROADA193.004_90",
+        "ROADA193.004_47",
+        "ROADA193.004_60",
+        "ROADA193.004_62"
+      ],
+      "source_nodes": [
+        "Object_51",
+        "Object_61",
+        "Object_78",
+        "Object_80",
+        "Object_111"
+      ],
+      "validated_meshes": 5
+    },
+    {
+      "path": "part_013.glb",
+      "sha256": "ecfaec369b612b1780006b001fa0df55d50ce592a1f9bf67fb7a9e4b47304b64",
+      "bytes": 4098624,
+      "objects": 6,
+      "vertices": 19375,
+      "triangles": 18910,
+      "materials": [
+        "ROADA193.004_86",
+        "ROADA193.004_13",
+        "ROADA193.004_35",
+        "ROADA193.004_46",
+        "ROADA193.004_16",
+        "ROADA193.004_69"
+      ],
+      "source_nodes": [
+        "Object_22",
+        "Object_26",
+        "Object_48",
+        "Object_60",
+        "Object_87",
+        "Object_107"
+      ],
+      "validated_meshes": 6
+    },
+    {
+      "path": "part_014.glb",
+      "sha256": "7265f6846bb19a459f9d3c546e87304d5aad0abcb2b6ebf300bebd810e67a20e",
+      "bytes": 4104744,
+      "objects": 7,
+      "vertices": 4744,
+      "triangles": 7278,
+      "materials": [
+        "ROADA193.004_32",
+        "ROADA193.004_80",
+        "ROADA193.004_82",
+        "ROADA193.004_30",
+        "ROADA193.004_41",
+        "ROADA193.004_44",
+        "ROADA193.004_71"
+      ],
+      "source_nodes": [
+        "Object_40",
+        "Object_45",
+        "Object_55",
+        "Object_58",
+        "Object_89",
+        "Object_100",
+        "Object_102"
+      ],
+      "validated_meshes": 7
+    },
+    {
+      "path": "part_015.glb",
+      "sha256": "b61b1a2e3decaae6e38821138b75d10d8f07d8f609894a2b66ccabccbca43e8a",
+      "bytes": 4114864,
+      "objects": 11,
+      "vertices": 5772,
+      "triangles": 6546,
+      "materials": [
+        "ROADA193.004",
+        "ROADA193.004_34",
+        "ROADA193.004_31",
+        "ROADA193.004_95",
+        "ROADA193.004_83",
+        "ROADA193.004_93",
+        "ROADA193.004_17",
+        "ROADA193.004_64",
+        "ROADA193.004_22",
+        "ROADA193.004_57"
+      ],
+      "source_nodes": [
+        "Object_4",
+        "Object_27",
+        "Object_32",
+        "Object_41",
+        "Object_44",
+        "Object_47",
+        "Object_72",
+        "Object_82",
+        "Object_103",
+        "Object_114",
+        "Object_117"
+      ],
+      "validated_meshes": 11
+    },
+    {
+      "path": "part_016.glb",
+      "sha256": "3f364b4e4233f57a3538b6d72f1500581f84121febec844953dcd487f99c83bb",
+      "bytes": 4116740,
+      "objects": 12,
+      "vertices": 9939,
+      "triangles": 9150,
+      "materials": [
+        "ROADA193.004_84",
+        "ROADA193.004_43",
+        "ROADA193.004_91",
+        "ROADA193.004_51",
+        "ROADA193.004_59",
+        "ROADA193.004_63",
+        "ROADA193.004_21",
+        "ROADA193.004_76",
+        "ROADA193.004_77",
+        "ROADA193.004_79",
+        "ROADA193.004_97"
+      ],
+      "source_nodes": [
+        "Object_31",
+        "Object_57",
+        "Object_65",
+        "Object_77",
+        "Object_81",
+        "Object_95",
+        "Object_96",
+        "Object_98",
+        "Object_104",
+        "Object_112",
+        "Object_130",
+        "Object_132"
+      ],
+      "validated_meshes": 12
+    },
+    {
+      "path": "part_017.glb",
+      "sha256": "dcb5c33c3c410e35993e525f1411d657c8684f8b1e49b0bc6072a1f45acc73a8",
+      "bytes": 3459076,
+      "objects": 38,
+      "vertices": 13749,
+      "triangles": 10053,
+      "materials": [
+        "ROADA193.004_7",
+        "ROADA193.004_10",
+        "ROADA193.004_9",
+        "ROADA193.004_4",
+        "ROADA193.004_3",
+        "ROADA193.004_5",
+        "ROADA193.004_6",
+        "ROADA193.004_2",
+        "ROADA193.004_27",
+        "ROADA193.004_14",
+        "ROADA193.004_38",
+        "ROADA193.004_39",
+        "ROADA193.004_50",
+        "ROADA193.004_61",
+        "ROADA193.004_65",
+        "ROADA193.004_19",
+        "ROADA193.004_66",
+        "ROADA193.004_67",
+        "ROADA193.004_68",
+        "ROADA193.004_70",
+        "ROADA193.004_72",
+        "ROADA193.004_74",
+        "ROADA193.004_75",
+        "ROADA193.004_78"
+      ],
+      "source_nodes": [
+        "Object_9",
+        "Object_10",
+        "Object_11",
+        "Object_12",
+        "Object_13",
+        "Object_15",
+        "Object_17",
+        "Object_18",
+        "Object_23",
+        "Object_24",
+        "Object_29",
+        "Object_37",
+        "Object_43",
+        "Object_50",
+        "Object_52",
+        "Object_53",
+        "Object_64",
+        "Object_71",
+        "Object_74",
+        "Object_75",
+        "Object_76",
+        "Object_79",
+        "Object_83",
+        "Object_84",
+        "Object_85",
+        "Object_86",
+        "Object_88",
+        "Object_90",
+        "Object_93",
+        "Object_94",
+        "Object_97",
+        "Object_120",
+        "Object_121",
+        "Object_122",
+        "Object_123",
+        "Object_125",
+        "Object_127",
+        "Object_128"
+      ],
+      "validated_meshes": 38
+    }
+  ]
+}

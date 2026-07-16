@@ -35,6 +35,21 @@ The visual scene used by **Krótki Tor Pustynny / Short Desert Track** is includ
 
 The supplied 72 MB GLB is divided into six logical GLB scene groups for track surfaces, fences, barriers, buildings, vehicles and vegetation. Project modifications include safe duplicate-vertex cleanup, a five-times scale correction, a 90-degree Y-axis rotation, translation to the project start line, procedural collision and checkpoint composition, and adaptation for Godot runtime loading. Redistributed copies or builds containing these files must credit Mabaso_J, link the source and CC BY 4.0 license, and identify these modifications.
 
+## Sketchfab High Speed Ring visual model
+
+The visual scene used by **High Speed Ring** is included under the uploader's stated **Creative Commons Attribution 4.0 International** license and is expressly excluded from the repository's root `LICENSE`.
+
+### High Speed Ring
+
+- author/uploader: Dave Bored SketchFab (`Tyler_Dave`);
+- source: https://sketchfab.com/3d-models/high-speed-ring-00dab1ac3dcb49778660072e405af630;
+- uploader-stated license: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/;
+- split asset directory: `assets/tracks/high_speed_ring/`;
+- detailed notice: `assets/tracks/high_speed_ring/NOTICE.md`;
+- integrity and conversion record: `assets/tracks/high_speed_ring/split_manifest.json`.
+
+The supplied 68,264,572-byte GLB is divided into 17 standalone GLB files with compacted accessor and image-buffer ranges. Project modifications include deterministic material-set packing, Godot runtime loading, a source-derived procedural road layout, collision, barriers, checkpoints and AI racing-line data. Mesh geometry, source coordinates and materials are not simplified or replaced by the split process. Redistributed copies or builds containing these files must credit Dave Bored SketchFab, link the source and CC BY 4.0 license, and identify these modifications.
+
 ## Sketchfab Nissan 370Z visual models
 
 The following third-party GLB files are included under the uploader's stated **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International** license. They and their direct adaptations are expressly excluded from the repository's root `LICENSE`.
