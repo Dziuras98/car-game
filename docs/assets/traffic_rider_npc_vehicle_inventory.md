@@ -27,9 +27,23 @@ source_only
 
 ## Global research-before-implementation gate
 
-Research and owner-scope approval proceed through all included models in ascending numeric order. **No Traffic Rider model may enter `integrating` until every included model has reached `approved`.** An individually approved model remains implementation-deferred while any later model is still `source_only`, `researching` or `awaiting_owner_scope`.
+Research and owner-scope approval have been completed for all 20 included models. **No Traffic Rider model may enter `integrating` until every included model has reached `approved`.** This research condition is now satisfied.
 
-After model 23 receives scope approval, implementation begins in ascending numeric order and must follow the current-physics, exact-transmission, audio and validation requirements of the workflow.
+Research completion does not authorize implementation. The separate physics dependency below remains blocking.
+
+## Mandatory physics dependency gate — PR #118
+
+No source relocation, geometry processing, catalog/resource creation, vehicle scene, transmission implementation, engine-audio implementation or physics/performance calibration may begin until PR #118, **Rework per-wheel vehicle physics and recalibrate DPI v3**, is completed and its final physics work is integrated into `master`.
+
+Before model 01 may move to `integrating`:
+
+1. PR #118 must be merged into `master`, or the owner must identify a merged successor carrying the same physics work;
+2. this branch must synchronize with the resulting `master`;
+3. the final physics commit must be recorded as the implementation baseline;
+4. per-wheel contact, slip, load transfer, drivetrain inertia, differentials, AWD, braking, steering/yaw, drag, transmission and DPI/performance interfaces must be reviewed;
+5. the complete current test suite must pass.
+
+Closing PR #118 without integrating its intended physics changes does not satisfy this dependency unless a merged successor is explicitly identified.
 
 ## Included models
 
@@ -54,7 +68,7 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 17 | `17_nissan_atlas_2007.glb` | Nissan Atlas / Cabstar F24 2007 narrow single-cab flatbed source with approved RWD scope | light flatbed truck | 1,996 | `approved` |
 | 18 | `18_nissan_atleon_2004.glb` | Nissan Atleon 2004 pre-facelift single-cab box truck with approved four-engine RWD scope | medium box truck | 2,076 | `approved` |
 | 20 | `20_skoda_octavia_combi_2013.glb` | Škoda Octavia III type 5E Combi 2013 standard pre-facelift source with approved non-Scout scope | passenger estate | 2,010 | `approved` |
-| 23 | `23_volkswagen_amarok_2010.glb` | Volkswagen Amarok I type 2H original Double Cab source with full-generation engine research scope | pickup | 2,684 | `awaiting_owner_scope` |
+| 23 | `23_volkswagen_amarok_2010.glb` | Volkswagen Amarok I type 2H original Double Cab source with approved full-generation scope | pickup | 2,684 | `approved` |
 
 Total committed source geometry: **40,300 triangles**.
 
@@ -81,16 +95,17 @@ Total committed source geometry: **40,300 triangles**.
 | 17 — Nissan Atlas / Cabstar F24 | `docs/vehicles/traffic/nissan_atlas_2007.md` | 8 | five Japanese Atlas RWD rows and all three European Cabstar RWD rows retained; QR20DE and ZD30DDTi automatics remain evidence-blocked; source-like narrow single-cab flatbed; one representative payload/chassis state per row; 4WD, body/GVW duplicates, OEM derivatives and specialist conversions excluded |
 | 18 — Nissan Atleon 2004 pre-facelift | `docs/vehicles/traffic/nissan_atleon_2004.md` | 4 | all BD30Ti 110, B4.40Ti 140, B6.60TiL 165 and B6.60TiH 210 RWD engine rows retained; gearbox/chassis pairings remain evidence-blocked; source-like single-cab box body with engine-appropriate GVW, mass and axle calibration; 4WD, facelift engines, alternate bodies and payload duplicates excluded |
 | 20 — Škoda Octavia III Combi pre-facelift | `docs/vehicles/traffic/skoda_octavia_combi_2013.md` | 35 | all 23 standard FWD, 5 ordinary 4×4 and 7 RS Combi rows retained; four market/gearbox rows remain evidence-blocked; Scout excluded; RS retains exact mechanical calibration but uses the unchanged standard Combi exterior as an owner-approved visual approximation; no liftback, facelift, later engine or conversion duplicates |
+| 23 — Volkswagen Amarok I full generation | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 19 | all 19 researched rows retained across nine engine calibrations: original and updated four-cylinder TDI/BiTDI, regional 2.0 TSI and V6 TDI 163/204/224/258 PS; RWD, selectable low-range 4MOTION and permanent 4MOTION remain distinct; seven rows remain evidence-blocked; original Double Cab body used as an explicit visual homogenization; body-phase, payload, trim and special-edition duplicates excluded |
 
-Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 and 20 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+All 20 models have passed their individual owner-scope gates. Combined approved scope: **285 mechanically consolidated configurations**.
 
-## Active owner-scope gates
+## Current blocking gate
 
-| Model | Research record | Candidate configurations | Blocking decision |
-|---|---|---:|---|
-| 23 — Volkswagen Amarok I full generation | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 19 mechanically consolidated candidates: 5 original 122/163-PS diesel rows, 6 updated 140/180-PS diesel rows, 1 regional 2.0 TSI row and 7 V6 163/204/224/258-PS rows | all candidates; all nine engines; RWD/selectable low-range/permanent 4MOTION; early, late and V6 calibrations; Australian V6 manual low-range row; seven evidence-blocked rows; common original Double Cab body versus facelift derivatives; body-phase and payload duplicates; concept/non-Amarok/second-generation exclusions; missing variants |
+| Dependency | State | Required resolution |
+|---|---|---|
+| PR #118 — `Rework per-wheel vehicle physics and recalibrate DPI v3` | open; implementation blocked | complete and integrate final physics changes into `master`, synchronize this branch, record the resulting baseline and pass the full current suite before model 01 enters `integrating` |
 
-No implementation work may begin for any model while this final owner-scope gate remains unresolved. After model 23 is approved, all included models will have passed their individual research gates and the global implementation phase may begin.
+No implementation work may begin while this dependency remains unresolved.
 
 ## Source topology
 
@@ -108,4 +123,4 @@ The included GLBs were extracted without geometry simplification. The normal sou
 
 `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 20 → 23`
 
-Only after all 20 scopes are approved does implementation begin, again in ascending order. Updating a row to `integrated` requires its model-specific record, approved catalog, scenes/resources and automated validation.
+Research is complete. After the PR #118 dependency is satisfied, implementation proceeds in the same ascending order. Updating a row to `integrated` requires its model-specific record, approved catalog, scenes/resources and automated validation.
