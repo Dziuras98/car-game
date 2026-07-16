@@ -1,7 +1,7 @@
 extends CarVisualController
 class_name BmwF32VisualController
 
-const PROCESSED_MODEL_ROOT := "Detailed/ProcessedModel"
+const PROCESSED_MODEL_ROOT := "Detailed/ProcessedModel/Bmw4SeriesF32Processed"
 const FRONT_LEFT_PATH := PROCESSED_MODEL_ROOT + "/FrontLeftWheel"
 const FRONT_RIGHT_PATH := PROCESSED_MODEL_ROOT + "/FrontRightWheel"
 const REAR_LEFT_PATH := PROCESSED_MODEL_ROOT + "/RearLeftWheel"
