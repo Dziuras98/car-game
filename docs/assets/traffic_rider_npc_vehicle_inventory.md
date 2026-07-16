@@ -53,8 +53,8 @@ After model 23 receives scope approval, implementation begins in ascending numer
 | 16 | `16_mercedes_benz_unimog_u5023_2013.glb` | Mercedes-Benz Unimog U5023 single-cab dropside source with approved U4023/U5023 mechanical scope | utility vehicle | 2,032 | `approved` |
 | 17 | `17_nissan_atlas_2007.glb` | Nissan Atlas / Cabstar F24 2007 narrow single-cab flatbed source with approved RWD scope | light flatbed truck | 1,996 | `approved` |
 | 18 | `18_nissan_atleon_2004.glb` | Nissan Atleon 2004 pre-facelift single-cab box truck with approved four-engine RWD scope | medium box truck | 2,076 | `approved` |
-| 20 | `20_skoda_octavia_combi_2013.glb` | Škoda Octavia III type 5E Combi 2013 standard pre-facelift source | passenger estate | 2,010 | `awaiting_owner_scope` |
-| 23 | `23_volkswagen_amarok_2010.glb` | Volkswagen Amarok 2010 | pickup | 2,684 | `source_only` |
+| 20 | `20_skoda_octavia_combi_2013.glb` | Škoda Octavia III type 5E Combi 2013 standard pre-facelift source with approved non-Scout scope | passenger estate | 2,010 | `approved` |
+| 23 | `23_volkswagen_amarok_2010.glb` | Volkswagen Amarok I type 2H pre-V6 Double Cab source | pickup | 2,684 | `awaiting_owner_scope` |
 
 Total committed source geometry: **40,300 triangles**.
 
@@ -80,16 +80,17 @@ Total committed source geometry: **40,300 triangles**.
 | 16 — Mercedes-Benz Unimog U4023 / U5023 | `docs/vehicles/traffic/mercedes_benz_unimog_u5023_2013.md` | 2 | both mechanically distinct 437.4 chassis rows retained with separate portal-axle, mass and final-drive calibration; common source-like U5023 single-cab dropside body; one standard UG100/EPS/EAS state, axle/tyre/lock policy and light-payload state per row; specialist bodies and equipment/emissions duplicates excluded |
 | 17 — Nissan Atlas / Cabstar F24 | `docs/vehicles/traffic/nissan_atlas_2007.md` | 8 | five Japanese Atlas RWD rows and all three European Cabstar RWD rows retained; QR20DE and ZD30DDTi automatics remain evidence-blocked; source-like narrow single-cab flatbed; one representative payload/chassis state per row; 4WD, body/GVW duplicates, OEM derivatives and specialist conversions excluded |
 | 18 — Nissan Atleon 2004 pre-facelift | `docs/vehicles/traffic/nissan_atleon_2004.md` | 4 | all BD30Ti 110, B4.40Ti 140, B6.60TiL 165 and B6.60TiH 210 RWD engine rows retained; gearbox/chassis pairings remain evidence-blocked; source-like single-cab box body with engine-appropriate GVW, mass and axle calibration; 4WD, facelift engines, alternate bodies and payload duplicates excluded |
+| 20 — Škoda Octavia III Combi pre-facelift | `docs/vehicles/traffic/skoda_octavia_combi_2013.md` | 35 | all 23 standard FWD, 5 ordinary 4×4 and 7 RS Combi rows retained; four market/gearbox rows remain evidence-blocked; Scout excluded; RS retains exact mechanical calibration but uses the unchanged standard Combi exterior as an owner-approved visual approximation; no liftback, facelift, later engine or conversion duplicates |
 
-Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17 and 18 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
+Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 and 20 have passed their individual owner-scope gates, but implementation is deferred by the global research-before-implementation gate.
 
 ## Active owner-scope gates
 
 | Model | Research record | Candidate configurations | Blocking decision |
 |---|---|---:|---|
-| 20 — Škoda Octavia III Combi pre-facelift | `docs/vehicles/traffic/skoda_octavia_combi_2013.md` | 38 mechanically consolidated candidates: 23 standard FWD, 5 ordinary 4×4, 7 RS Combi and 3 Scout rows | all candidates vs standard body only; ordinary AWD; RS/RS 230/RS 4×4; Scout; G-TEC and GreenLine; late 2015–2016 revisions; five evidence-blocked market/gearbox rows; RS/Scout visual policy; excluded facelift/liftback/regional derivatives; missing variants |
+| 23 — Volkswagen Amarok I pre-V6 | `docs/vehicles/traffic/volkswagen_amarok_2010.md` | 12 mechanically consolidated candidates: 5 original 122/163-PS diesel rows, 6 updated 140/180-PS diesel rows and 1 regional 2.0 TSI row | all candidates; RWD/selectable low-range/permanent 4MOTION; early and late diesel calibrations; both 180-PS automatic rows; regional TSI; three evidence-blocked rows; common Double Cab body; body/payload duplicates; V6/facelift exclusions; missing variants |
 
-No implementation work may begin for any model while this or any later owner-scope gate remains unresolved. After model 20 is approved, research continues with model 23.
+No implementation work may begin for any model while this final owner-scope gate remains unresolved. After model 23 is approved, all included models will have passed their individual research gates and the global implementation phase may begin.
 
 ## Source topology
 
