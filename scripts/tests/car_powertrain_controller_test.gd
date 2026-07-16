@@ -195,8 +195,9 @@ func _test_fallback_drive_brake_and_reverse() -> void:
 	_expect(state.forward_speed > 0.0, "fallback non-geared drive accelerates forward with throttle")
 	_expect(powertrain.get_gear_text(state) == "D", "fallback gear text reports drive while moving forward")
 
-	var forward_speed: float = state.forward_speed
-	_synchronize_wheel_road_speed(state)
+	var forward_speed: float = maxf(state.forward_speed, 2.0)
+	state.forward_speed = forward_speed
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
 	_expect(state.forward_speed < forward_speed, "fallback brake reduces forward speed")
 
