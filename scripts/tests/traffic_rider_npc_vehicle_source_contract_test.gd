@@ -108,8 +108,8 @@ func _test_inventory() -> void:
 		"Global research-before-implementation gate",
 		"Models 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 and 20 have passed their individual owner-scope gates",
 		"| 20 — Škoda Octavia III Combi pre-facelift | `docs/vehicles/traffic/skoda_octavia_combi_2013.md` | 35 |",
-		"23 — Volkswagen Amarok I pre-V6",
-		"12 mechanically consolidated candidates: 5 original 122/163-PS diesel rows, 6 updated 140/180-PS diesel rows and 1 regional 2.0 TSI row",
+		"23 — Volkswagen Amarok I full generation",
+		"19 mechanically consolidated candidates: 5 original 122/163-PS diesel rows, 6 updated 140/180-PS diesel rows, 1 regional 2.0 TSI row and 7 V6 163/204/224/258-PS rows",
 		"After model 23 is approved, all included models will have passed their individual research gates",
 		"Dual-rear-wheel source models additionally require all physical rear tyres",
 		"Total committed source geometry: **40,300 triangles**",
@@ -119,7 +119,7 @@ func _test_inventory() -> void:
 	for fragment: String in [
 		"Nissan Atleon 2004 pre-facelift single-cab box truck with approved four-engine RWD scope | medium box truck | 2,076 | `approved`",
 		"Škoda Octavia III type 5E Combi 2013 standard pre-facelift source with approved non-Scout scope | passenger estate | 2,010 | `approved`",
-		"Volkswagen Amarok I type 2H pre-V6 Double Cab source | pickup | 2,684 | `awaiting_owner_scope`",
+		"Volkswagen Amarok I type 2H original Double Cab source with full-generation engine research scope | pickup | 2,684 | `awaiting_owner_scope`",
 	]:
 		_expect(inventory.contains(fragment), "inventory preserves scope: %s" % fragment)
 
@@ -136,19 +136,26 @@ func _test_approved_scopes() -> void:
 
 func _test_amarok_gate() -> void:
 	_expect_fragments(_read_text(AMAROK_RESEARCH_PATH), PackedStringArray([
-		"Volkswagen Amarok 2010 double-cab pre-V6 — research and owner-scope gate",
+		"Volkswagen Amarok I type 2H full-generation Double Cab — research and owner-scope gate",
 		"Workflow status: **`awaiting_owner_scope`**",
 		"Source Git blob SHA-1: `2cb28a59e50ef4daf6707ae67a3d930de6a5687f`",
 		"Source SHA-256: **pending direct binary hash capture before integration**",
 		"Source triangles | 2,684",
+		"Nine production engine calibrations are retained for scope consideration",
 		"Original 2010–2012 diesel range — 5 candidates",
-		"Updated 2012–2016 diesel range — 6 candidates",
-		"Regional petrol range — 1 candidate",
-		"Mechanically consolidated candidate total: 12 pre-V6 Amarok configurations",
+		"Updated 2012–2016 four-cylinder diesel range — 6 candidates",
+		"Regional four-cylinder petrol range — 1 candidate",
+		"2016-onward V6 diesel range — 7 candidates",
+		"EA897 evo DDXA 3.0 V6 TDI 120 kW / 163 PS",
+		"EA897 evo DDXB 3.0 V6 TDI 150 kW / 204 PS",
+		"EA897 evo DDXC 3.0 V6 TDI 165 kW / 224 PS",
+		"EA897 evo DDXE 3.0 V6 TDI 190 kW / 258 PS",
+		"Australian TDI500 calibration",
+		"Mechanically consolidated candidate total: 19 full-generation Amarok I configurations",
 		"selectable 4MOTION with high/low transfer case",
-		"permanent 4MOTION with Torsen-type centre differential",
-		"ZF 8-speed hydrodynamic torque-converter planetary automatic",
-		"Rows 5, 10 and 12 remain confirmation-gated",
+		"permanent 4MOTION with torque-sensing centre differential",
+		"ZF-engineered 8-speed hydrodynamic torque-converter planetary automatic",
+		"Rows 5, 10, 12, 13, 14, 15 and 18 remain confirmation-gated",
 		"Owner scope decision — required before implementation",
 		"This is the final individual model gate",
 	]), "Amarok gate")
