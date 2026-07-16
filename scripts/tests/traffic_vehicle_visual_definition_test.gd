@@ -15,6 +15,7 @@ func _initialize() -> void:
 	_expect(definition.validate().is_empty(), "committed BMW F32 visual definition validates")
 	_expect(definition.processed_visual_ready, "committed BMW F32 visual definition is processed")
 	_test_source_hash(definition)
+	_test_processed_hash(definition)
 	_test_source_axis(definition)
 	_test_reference_geometry(definition)
 	_test_processed_visual_gate(definition)
@@ -27,6 +28,15 @@ func _test_source_hash(definition: TrafficVehicleVisualDefinition) -> void:
 	_expect(
 		invalid.validate().has("source_sha256 does not match the committed source bytes"),
 		"source byte changes cannot be hidden behind metadata"
+	)
+
+
+func _test_processed_hash(definition: TrafficVehicleVisualDefinition) -> void:
+	var invalid := definition.duplicate(true) as TrafficVehicleVisualDefinition
+	invalid.processed_sha256 = "0".repeat(64)
+	_expect(
+		invalid.validate().has("processed_sha256 does not match the committed processed bytes"),
+		"processed derivative byte changes cannot be hidden behind metadata"
 	)
 
 
