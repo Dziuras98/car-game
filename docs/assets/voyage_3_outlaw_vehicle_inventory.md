@@ -73,4 +73,4 @@ The complete current matrix and evidence blocks are recorded in `docs/vehicles/t
 
 `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18`
 
-Research proceeds sequentially through owner scope. Implementation remains globally blocked until all 18 scopes are approved, then proceeds sequentially with model 02 queued until model 01 is `integrated`.
+Research proceeds sequentially through owner scope. Implementation remains globally blocked until all 18 scopes are approved, then proceeds sequentially with Model 02 queued until model 01 is `integrated`.
