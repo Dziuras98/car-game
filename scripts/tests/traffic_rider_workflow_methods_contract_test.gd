@@ -43,9 +43,9 @@ func _test_import_workflow() -> void:
 		"Match the real transmission architecture exactly",
 		"Implement missing transmission types faithfully",
 		"Build new engine-sound architectures from first principles",
-		"Stage 6 — implement the exact transmission architecture",
+		"Stage 6 — implement exact transmission and driveline architecture",
 		"Stage 8 — implement architecture-correct engine audio",
-		"transmission and audio fallbacks are prohibited",
+		"Transmission and audio fallbacks are prohibited",
 	]:
 		_expect(text.contains(fragment), "main workflow preserves: %s" % fragment)
 
