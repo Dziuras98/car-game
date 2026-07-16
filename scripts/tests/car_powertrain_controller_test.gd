@@ -56,10 +56,10 @@ func _test_manual_shift_assist() -> void:
 
 	downshift_powertrain.update(downshift_state, 0.0, 0.0, false, false, true, 0.0)
 	_expect(downshift_state.current_gear == 1, "manual downshift selects the lower forward gear")
-	_expect(downshift_state.throttle_input > 0.0, "manual downshift automatically applies a throttle blip")
+	_expect(downshhift_state.throttle_input > 0.0, "manual downshift automatically applies a throttle blip")
 	var rpm_before_blip: float = downshift_state.engine_rpm
 	downshift_powertrain.update(downshift_state, 0.0, 0.0, false, false, false, 0.10)
-	_expect(downshift_state.engine_rpm > rpm_before_blip, "manual downshift throttle blip raises engine RPM")
+	_expect(downshhift_state.engine_rpm > rpm_before_blip, "manual downshift throttle blip raises engine RPM")
 	_advance_shift(downshift_powertrain, downshift_state, 0.0, 0.0)
 	_expect(is_zero_approx(downshift_state.throttle_input), "manual downshift releases the automatic throttle blip after the shift")
 
@@ -93,7 +93,7 @@ func _test_automatic_reverse_and_drive_selection() -> void:
 
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.0)
 	_expect(state.current_gear == -1, "automatic brake from near stop selects reverse")
-	_expect(is_equal_approx(state.forward_speed, 0.0), "automatic direction change does not apply drive before shift delay")
+	_expect(is_equal_approx(state.forward_speed 0.0), "automatic direction change does not apply drive before shift delay")
 	_expect(is_equal_approx(state.shift_timer, config.automatic_shift_delay), "automatic reverse selection starts shift delay")
 	_advance_shift(powertrain, state, 0.0, 1.0)
 	_expect(state.forward_speed < 0.0, "automatic reverse applies backwards drive after shift delay")
@@ -101,6 +101,7 @@ func _test_automatic_reverse_and_drive_selection() -> void:
 
 	state.forward_speed = 0.0
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 1.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 1, "automatic throttle from reverse selects first drive gear")
 	_expect(is_equal_approx(state.forward_speed, 0.0), "automatic drive selection waits for shift delay")
@@ -117,12 +118,14 @@ func _test_automatic_direction_interlock() -> void:
 	state.current_gear = 2
 	state.forward_speed = 8.0
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
 	_expect(state.current_gear == 1, "automatic braking performs a safe forward-gear downshift")
 	_expect(state.forward_speed > 0.0 and state.forward_speed < 8.0, "automatic reverse request brakes forward motion before selecting reverse")
 
 	state.forward_speed = 0.20
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.0)
 	_expect(state.current_gear == -1, "automatic selects reverse only near zero forward speed")
 	_advance_shift(powertrain, state, 0.0, 1.0)
@@ -131,12 +134,14 @@ func _test_automatic_direction_interlock() -> void:
 	state.current_gear = -1
 	state.forward_speed = -6.0
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 1.0, 0.0, false, false, false, 0.10)
 	_expect(state.current_gear == -1, "automatic keeps reverse gear while braking from reverse motion toward drive")
 	_expect(state.forward_speed > -6.0 and state.forward_speed <= 0.0, "automatic drive request brakes reverse motion before selecting drive")
 
 	state.forward_speed = -0.20
 	state.shift_timer = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 1.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 1, "automatic selects first drive gear only near zero reverse speed")
 	_advance_shift(powertrain, state, 1.0, 0.0)
@@ -151,6 +156,7 @@ func _test_automatic_upshift_request_and_torque_cut() -> void:
 	state.current_gear = 1
 	state.engine_rpm = config.redline_rpm
 	state.forward_speed = 20.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 0.0, false, false, false, 0.0)
 	_expect(state.current_gear == 2, "automatic high RPM requests upshift")
 	_expect(is_equal_approx(state.shift_timer, config.automatic_shift_delay), "automatic upshift applies automatic shift delay")
@@ -190,13 +196,16 @@ func _test_fallback_drive_brake_and_reverse() -> void:
 	_expect(powertrain.get_gear_text(state) == "D", "fallback gear text reports drive while moving forward")
 
 	var forward_speed: float = state.forward_speed
+	_synchronize_wheel_road_speed(state)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
 	_expect(state.forward_speed < forward_speed, "fallback brake reduces forward speed")
 
 	state.forward_speed = 0.0
+	_synchronize_wheel_road_speed(state, true)
 	powertrain.update(state, 0.0, 1.0, false, false, false, 0.20)
 	_expect(state.forward_speed < 0.0, "fallback brake from stop applies reverse acceleration")
 	for _step_index: int in range(3):
+	_synchronize_wheel_road_speed(state)
 		powertrain.update(state, 0.0, 1.0, false, false, false, 0.10)
 	_expect(state.forward_speed < -0.25, "fallback reverse exceeds the gear-indicator dead zone")
 	_expect(powertrain.get_gear_text(state) == "R", "fallback gear text reports reverse while moving backwards")
@@ -209,7 +218,19 @@ func _advance_shift(
 	brake: float
 ) -> void:
 	for _step: int in range(4):
+		_synchronize_wheel_road_speed(state)
 		powertrain.update(state, throttle, brake, false, false, false, 0.10)
+
+
+func _synchronize_wheel_road_speed(
+	state: CarRuntimeState,
+	synchronize_rotation: bool = false
+) -> void:
+	state.ensure_wheel_states()
+	for wheel: WheelTireState in state.wheel_states:
+		wheel.road_longitudinal_speed_mps = state.forward_speed
+		if synchronize_rotation:
+			wheel.set_rolling_speed(state.forward_speed)
 
 
 func _build_state(config: CarDriveConfig) -> CarRuntimeState:
@@ -303,7 +324,7 @@ func _finish() -> void:
 		get_tree().quit(0)
 		return
 
-	push_error("[CAR_POWERTRAIN_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _checks])
+	push_error("[CAR_POWERTRAIN_TEST] Failed: %d failure(s), %d checks" % [_failures.size(), _chects])
 	for failure_message: String in _failures:
 		push_error("[CAR_POWERTRAIN_TEST] - %s" % failure_message)
 	get_tree().quit(1)
