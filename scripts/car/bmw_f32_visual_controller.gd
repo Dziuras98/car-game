@@ -33,7 +33,7 @@ func _create_wheel_spec(
 		"pivot_parent_path": NodePath(PROCESSED_MODEL_ROOT),
 		"pivot_position": pivot_position,
 		"steers": steers,
-		"steering_direction": 1.0,
+		"steering_direction": -1.0,
 		"spin_direction": 1.0,
 		"spin_node_paths": [NodePath(wheel_path)],
 		"steering_only_node_paths": [],
